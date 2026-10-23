@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { LonLat, ModelRecipe, Troops } from '../../shared/data/types.ts';
 import { instance } from '../models/library.ts';
+import { riderGeometry, soldierGeometry, troopMaterial } from './troops.ts';
 import { animate, rig } from './animate.ts';
 import type { Geo } from './geo.ts';
 import type { Label, Labels } from './labels.ts';
@@ -404,7 +404,7 @@ export class Fx {
   /** Instanced soldiers (and riders) sharing a material; `place` positions slot i. */
   private formation(n: number, unit: Troops, color: string) {
     const nh = unit === 'horse' ? n : unit === 'mixed' ? Math.round(n * 0.35) : 0;
-    const mat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7, flatShading: true, transparent: true });
+    const mat = troopMaterial();
     const horse = nh ? new THREE.InstancedMesh(riderGeometry(), mat, nh) : null;
     const foot = n - nh ? new THREE.InstancedMesh(soldierGeometry(), mat, n - nh) : null;
     const col = new THREE.Color(color);
@@ -669,36 +669,6 @@ function tag(text: string, cls: string, color?: string): HTMLElement {
   if (color) el.style.setProperty('--c', color);
   el.textContent = text;
   return el;
-}
-
-let soldier: THREE.BufferGeometry | null = null;
-function soldierGeometry(): THREE.BufferGeometry {
-  if (soldier) return soldier;
-  const body = new THREE.CylinderGeometry(0.14, 0.2, 0.55, 6).translate(0, 0.28, 0);
-  const head = new THREE.SphereGeometry(0.12, 6, 4).translate(0, 0.66, 0);
-  const spear = new THREE.CylinderGeometry(0.02, 0.02, 1.1, 4).translate(0.2, 0.5, 0.05);
-  const shield = new THREE.BoxGeometry(0.06, 0.3, 0.24).translate(-0.2, 0.35, 0.05);
-  for (const g of [body, head, spear, shield]) g.deleteAttribute('uv');
-  soldier = mergeGeometries([body.toNonIndexed(), head.toNonIndexed(), spear.toNonIndexed(), shield.toNonIndexed()])!;
-  return soldier;
-}
-
-let riderGeo: THREE.BufferGeometry | null = null;
-/** A horse and rider, facing +z, about the soldier's height. */
-function riderGeometry(): THREE.BufferGeometry {
-  if (riderGeo) return riderGeo;
-  const parts = [
-    new THREE.BoxGeometry(0.26, 0.26, 0.7).translate(0, 0.42, 0),            // body
-    new THREE.BoxGeometry(0.16, 0.34, 0.16).rotateX(-0.6).translate(0, 0.62, 0.38), // neck
-    new THREE.BoxGeometry(0.13, 0.13, 0.28).translate(0, 0.78, 0.52),       // head
-    ...[[-0.09, 0.25], [0.09, 0.25], [-0.09, -0.25], [0.09, -0.25]].map(([x, z]) => new THREE.BoxGeometry(0.07, 0.32, 0.07).translate(x, 0.16, z)),
-    new THREE.CylinderGeometry(0.1, 0.13, 0.36, 6).translate(0, 0.72, -0.05), // rider
-    new THREE.SphereGeometry(0.09, 6, 4).translate(0, 0.97, -0.05),
-    new THREE.CylinderGeometry(0.015, 0.015, 1.0, 4).rotateX(0.5).translate(0.16, 0.9, 0.15), // lance
-  ];
-  for (const g of parts) g.deleteAttribute('uv');
-  riderGeo = mergeGeometries(parts.map(g => (g.index ? g.toNonIndexed() : g)))!;
-  return riderGeo;
 }
 
 function blobTexture(): THREE.Texture {

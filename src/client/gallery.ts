@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { buildFresh, whenModelReady, BUILDERS } from './models/kit.ts';
+import { riderGeometry, soldierGeometry, troopMaterial } from './scene/troops.ts';
 import { outdoorEnvironment } from './models/environment.ts';
 import type { ModelRecipe } from '../shared/data/types.ts';
 
@@ -30,8 +31,20 @@ const labels = document.getElementById('l')!;
 const tags: { el: HTMLElement; p: THREE.Vector3 }[] = [];
 let pending = list.length;
 list.forEach(async (r, i) => {
-  await whenModelReady(r);
-  const m = buildFresh(r);
+  let m: THREE.Object3D;
+  if (r.kind.startsWith('troop:')) {
+    // a 3×3 block of instanced troops in two team colours
+    const geo = r.kind === 'troop:rider' ? riderGeometry() : soldierGeometry();
+    const im = new THREE.InstancedMesh(geo, troopMaterial(), 9);
+    for (let k = 0; k < 9; k++) {
+      im.setMatrixAt(k, new THREE.Matrix4().makeTranslation((k % 3 - 1) * 0.45, 0, (Math.floor(k / 3) - 1) * 0.5));
+      im.setColorAt(k, new THREE.Color(k < 5 ? '#b8322a' : '#2f4f8a'));
+    }
+    m = new THREE.Group().add(im);
+  } else {
+    await whenModelReady(r);
+    m = buildFresh(r);
+  }
   const x = ((i % cols) - (cols - 1) / 2) * gap, z = (Math.floor(i / cols) - (rows - 1) / 2) * gap;
   m.position.set(x, 0, z);
   scene.add(m);
