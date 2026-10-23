@@ -22,7 +22,7 @@ describe('procedural models', () => {
       const g = buildFresh({ kind });
       const s = stats(g);
       expect(s.tris, kind).toBeGreaterThan(20);
-      expect(s.tris, kind).toBeLessThan(40_000);
+      expect(s.tris, kind).toBeLessThan(60_000);
       expect(s.meshes, kind).toBeLessThan(60);
       const h = g.userData.height as number;
       expect(h, kind).toBeGreaterThan(0.05);

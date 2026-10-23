@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { C, anim, ball, box, cbox, cone, cyl, fire, flag, gable, lathe, person, rod, roof, shadeHex, slab, smoke, str, wheel, type Builder } from './prims.ts';
+import { C, anim, ball, box, cbox, cone, cyl, fire, flag, gable, lathe, person, rod, roof, shadeHex, slab, smoke, str, wheel, type Builder } from './lite.ts';
 
 const ground = (p: THREE.Object3D, w: number, d: number, c: string = C.earth) => box(p, c, 0, -0.02, 0, w, 0.04, d);
 

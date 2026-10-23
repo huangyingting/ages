@@ -54,7 +54,7 @@ const viaWorker = (recipe: ModelRecipe, urgent: boolean) => new Promise<THREE.Gr
   if (urgent) queue.unshift(job); else queue.push(job);
   pump();
 });
-const onMain = async (recipe: ModelRecipe) => (await import('./kit.ts')).buildFresh(recipe);
+const onMain = async (recipe: ModelRecipe) => { const k = await import('./kit.ts'); await k.whenModelReady(recipe); return k.buildFresh(recipe); };
 
 /** Resolves with the cached prototype of a recipe, building it first if needed. */
 export function prototype(recipe: ModelRecipe, urgent = false): Promise<THREE.Group> {

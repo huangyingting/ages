@@ -1,4 +1,4 @@
-import { C, anim, ball, box, cone, cyl, fire, flag, lathe, person, rod, roof, slab, smoke, str, wheel, type Builder } from './prims.ts';
+import { C, anim, ball, box, cone, cyl, fire, flag, lathe, person, rod, roof, slab, smoke, str, wheel, type Builder } from './lite.ts';
 
 export const MODERN: Record<string, Builder> = {
   warship: (p, r) => {
