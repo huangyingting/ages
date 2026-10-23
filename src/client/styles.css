@@ -99,8 +99,12 @@ h2, h3 { font-weight: 700; }
 .place.t3 { font-size: 11px; color: #d6d0c4; }
 .place.k-mountain { color: #cfc6b4; }
 .place.k-water { color: #9fcbe0; }
-.place.cap { color: #ffd59a; font-weight: 700; font-size: 14px; }
-.place.cap::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 5px; vertical-align: 1px; background: var(--zhu-hi); border-radius: 50%; box-shadow: 0 0 0 1.5px #fff; }
+/* the capital: a small vermilion seal (印) before the name */
+.place.cap { color: #ffe2b0; font-weight: 700; font-size: 14px; letter-spacing: 0.08em; display: flex; align-items: center; gap: 5px; }
+.place.cap::before {
+  content: ''; flex: none; width: 9px; height: 9px; background: var(--zhu-hi); border-radius: 1.5px; transform: rotate(45deg);
+  box-shadow: inset 0 0 0 1.5px var(--zhu-hi), inset 0 0 0 2.5px rgba(255, 240, 220, 0.95), 0 1px 4px rgba(0, 0, 0, 0.5);
+}
 .place:hover { text-decoration: underline dotted; color: #fff; }
 .place.minor { font-size: 10.5px; opacity: 0.75; }
 .river { font-size: 11px; color: #9fcbe0; letter-spacing: 0.32em; opacity: 0.85; text-shadow: 0 0 2px #0c0e10, 0 0 5px rgba(0, 0, 0, 0.8); }
@@ -108,13 +112,19 @@ h2, h3 { font-weight: 700; }
 :lang(en) .river { letter-spacing: 0.04em; font-style: italic; }
 .admin { font-size: 11px; color: #ddd0b4; letter-spacing: 0.12em; opacity: 0.85; text-shadow: 0 0 2px #0c0e10, 0 0 4px rgba(0, 0, 0, 0.8); }
 .admin.l1 { font-size: 12.5px; font-weight: 600; color: #f2e2bf; }
+/* walls, canals, roads, sea routes: cartographic italic lettering in the work's colour, no box */
 .work {
-  font-size: 10.5px; letter-spacing: .04em; padding: 2px 8px; color: #fff; background: rgba(120, 92, 52, 0.9);
-  border-radius: 0; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  --c: #e2c48f; font-size: 11px; font-style: italic; font-weight: 600; letter-spacing: 0.22em; color: var(--c);
+  display: flex; align-items: center; gap: 6px;
+  text-shadow: 0 0 2px #0c0e10, 0 0 4px #0c0e10, 0 1px 6px rgba(0, 0, 0, 0.8);
 }
-.work.k-canal { background: rgba(37, 112, 180, 0.92); }
-.work.k-sea { background: rgba(28, 82, 128, 0.92); }
-.work.k-road { background: rgba(138, 90, 43, 0.92); }
+.work::before, .work::after { content: ''; width: 10px; height: 1.5px; border-radius: 1px; background: currentColor; opacity: 0.7; box-shadow: 0 0 3px rgba(0, 0, 0, 0.6); }
+.work.k-wall::before, .work.k-wall::after { height: 3px; background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 3.5px); }
+.work.k-canal { --c: #8fcdf5; }
+.work.k-sea { --c: #7fb6dc; }
+.work.k-sea::before, .work.k-sea::after { background: repeating-linear-gradient(90deg, currentColor 0 3px, transparent 3px 5px); }
+.work.k-road { --c: #e0b47c; }
+:lang(en) .work { letter-spacing: 0.05em; }
 .polity {
   font-weight: 800; letter-spacing: 0.3em; color: color-mix(in srgb, var(--c) 45%, #fff6e4); opacity: 0.92;
   text-shadow: 0 0 3px rgba(10, 10, 12, 0.95), 0 0 10px rgba(10, 10, 12, 0.7);
@@ -132,7 +142,12 @@ h2, h3 { font-weight: 700; }
 :root:not([data-map=ink]) .place.t3 { color: #5a5248; }
 :root:not([data-map=ink]) .place.k-mountain { color: #4a5d6b; }
 :root:not([data-map=ink]) .place.k-water, :root:not([data-map=ink]) .river { color: #1f5f8b; text-shadow: 0 0 2px #f4f2ea, 0 0 5px rgba(244, 242, 234, 0.9); }
-:root:not([data-map=ink]) .place.cap { color: #a3241a; }
+:root:not([data-map=ink]) .place.cap { color: #8f1f16; }
+:root:not([data-map=ink]) .work { --c: #7a5428; text-shadow: 0 0 2px #fbf8f1, 0 0 3px #fbf8f1, 0 0 6px rgba(251, 248, 241, 0.9); }
+:root:not([data-map=ink]) .work::before, :root:not([data-map=ink]) .work::after { box-shadow: none; }
+:root:not([data-map=ink]) .work.k-canal { --c: #1d6aa8; }
+:root:not([data-map=ink]) .work.k-sea { --c: #1f557e; }
+:root:not([data-map=ink]) .work.k-road { --c: #8a5a2b; }
 :root:not([data-map=ink]) .place:hover { color: #000; }
 :root:not([data-map=ink]) .admin { color: #5b4a36; text-shadow: 0 0 2px #fbf8f1, 0 0 4px rgba(251, 248, 241, 0.9); }
 :root:not([data-map=ink]) .admin.l1 { color: #47321d; }
@@ -141,28 +156,58 @@ h2, h3 { font-weight: 700; }
 .hovertip { position: fixed; z-index: 30; pointer-events: none; padding: 5px 10px; font-size: 12.5px; border-radius: 0; transform: translate(14px, 14px); }
 .hovertip small { color: var(--ink-3); margin-left: 8px; font-size: 11px; }
 
-/* event pins: white pills with a kind-coloured dot on a short stem */
+/* event pins: rounded lacquer-ink pills with a glowing kind-coloured dot, on a hairline stem ending in a map dot */
 .pin {
-  pointer-events: auto; border: 0; background: none; padding: 0 0 7px; display: flex; flex-direction: column; align-items: center;
-  --k: var(--k-politics); color: var(--ink);
+  pointer-events: auto; border: 0; background: none; padding: 0 0 6px; display: flex; flex-direction: column; align-items: center;
+  --k: var(--k-politics); color: var(--ink); font: inherit;
 }
 .pin .t {
-  display: flex; align-items: center; gap: 5px; font-size: 11.5px; line-height: 1; padding: 4px 9px 4px 7px; background: rgba(255, 255, 255, 0.94); color: var(--ink);
-  border-radius: 0; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 3px 10px rgba(0, 0, 0, 0.22); max-width: 13em; overflow: hidden; text-overflow: ellipsis;
-  transition: transform 0.15s;
+  display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 500; line-height: 1; letter-spacing: 0.02em;
+  padding: 4px 10px 4px 6px; border-radius: 999px; max-width: 13em; overflow: hidden; text-overflow: ellipsis;
+  color: #f6f0e4; background: linear-gradient(180deg, rgba(38, 36, 34, 0.9), rgba(20, 19, 18, 0.9));
+  border: 1px solid color-mix(in srgb, var(--k) 45%, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.25), 0 4px 12px -2px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s var(--ease-out), background 0.15s, border-color 0.15s;
 }
-.pin .t::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--k); }
-.pin i { display: block; width: 1.5px; height: 9px; background: rgba(255, 255, 255, 0.9); }
+.pin .t::before {
+  content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--k);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--k) 30%, transparent), 0 0 6px color-mix(in srgb, var(--k) 80%, transparent);
+}
+.pin i { display: block; width: 1px; height: 8px; background: linear-gradient(180deg, color-mix(in srgb, var(--k) 70%, #fff), rgba(255, 255, 255, 0.85)); }
 .pin i::after {
-  content: ''; display: block; width: 8px; height: 8px; background: var(--k); border: 1.5px solid #fff; border-radius: 50%; transform: translate(-3.5px, 7px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  content: ''; display: block; width: 6px; height: 6px; background: var(--k); border: 1.5px solid #fff; border-radius: 50%; transform: translate(-3px, 7px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
-.pin.w3 .t { font-size: 10.5px; opacity: 0.86; }
-.pin:hover .t, .pin:focus-visible .t { transform: translateY(-2px); background: #fff; }
-.pin.sel .t { background: var(--zhu); color: #fff; font-weight: 700; font-size: 13px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 6px 18px rgba(200, 55, 45, 0.45); }
-.pin.sel .t::before { background: #fff; }
-.pin.sel i::after { background: var(--zhu); width: 11px; height: 11px; transform: translate(-5px, 6px); animation: pulse 1.6s infinite; }
+.pin.w1 .t { font-weight: 650; font-size: 12px; }
+.pin.w3 .t { font-size: 10.5px; padding: 3px 8px 3px 5px; opacity: 0.88; }
+.pin.w3 .t::before { width: 6px; height: 6px; }
+.pin:hover .t, .pin:focus-visible .t { transform: translateY(-2px); border-color: var(--k); background: linear-gradient(180deg, rgba(52, 48, 44, 0.95), rgba(26, 24, 22, 0.95)); }
+.pin.sel .t {
+  color: #fff; font-weight: 700; font-size: 13px; padding: 5px 13px 5px 8px; border-color: rgba(255, 220, 200, 0.5);
+  background: linear-gradient(180deg, var(--zhu-hi), #a82a21); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 6px 18px rgba(200, 55, 45, 0.45);
+}
+.pin.sel .t::before { background: #fff; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35); }
+.pin.sel i { background: #fff; }
+.pin.sel i::after { background: var(--zhu); width: 10px; height: 10px; transform: translate(-5px, 6px); animation: pulse 1.6s infinite; }
 @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(200, 55, 45, 0.55); } 50% { box-shadow: 0 0 0 8px rgba(200, 55, 45, 0); } }
+/* light map styles: ivory pills with a kind-coloured hairline */
+:root:not([data-map=ink]) .pin .t {
+  color: #241f1a; background: linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(247, 242, 232, 0.96));
+  border-color: color-mix(in srgb, var(--k) 55%, rgba(60, 40, 20, 0.15)); box-shadow: 0 1px 1px rgba(60, 40, 20, 0.12), 0 3px 10px -2px rgba(60, 40, 20, 0.3);
+}
+:root:not([data-map=ink]) .pin:hover .t, :root:not([data-map=ink]) .pin:focus-visible .t { background: #fff; border-color: var(--k); }
+:root:not([data-map=ink]) .pin.sel .t { color: #fff; background: linear-gradient(180deg, var(--zhu-hi), #a82a21); border-color: rgba(120, 20, 10, 0.4); }
+:root:not([data-map=ink]) .pin i { background: linear-gradient(180deg, var(--k), rgba(40, 30, 20, 0.6)); }
+
+/* people of the dynasty standing on the map: a name plate under the figure, opens the person card */
+.figure {
+  pointer-events: auto; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; line-height: 1;
+  padding: 3px 8px 3px 7px; margin-bottom: -2px; color: #ffe6bd; border-radius: 3px;
+  background: linear-gradient(180deg, rgba(92, 30, 22, 0.92), rgba(60, 18, 13, 0.92)); border: 1px solid rgba(255, 210, 150, 0.45);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); transition: transform 0.15s var(--ease-out), border-color 0.15s;
+}
+.figure:hover, .figure:focus-visible { transform: translateY(-2px); border-color: #ffd590; color: #fff; }
+:lang(en) .figure { letter-spacing: 0.02em; }
 .k-prehistory { --k: var(--k-prehistory); } .k-politics { --k: var(--k-politics); } .k-war { --k: var(--k-war); }
 .k-reform { --k: var(--k-reform); } .k-culture { --k: var(--k-culture); } .k-science { --k: var(--k-science); }
 .k-economy { --k: var(--k-economy); } .k-diplomacy { --k: var(--k-diplomacy); } .k-revolution { --k: var(--k-revolution); }
@@ -204,7 +249,7 @@ h2, h3 { font-weight: 700; }
 }
 #app::before { top: 0; } #app::after { bottom: 0; }
 #app.cine-on::before, #app.cine-on::after { height: 9vh; }
-.pin, .place.minor { transition: opacity 0.5s; }
+.pin, .place.minor, .figure { transition: opacity 0.5s; }
 .story-on .pin:not(.sel), .story-on .place.minor { opacity: 0; pointer-events: none; }
 @keyframes pop { from { opacity: 0; } to { opacity: 1; } }
 
@@ -688,7 +733,7 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 /* ================================================================ narrower screens */
 /* ================================================================ small cut-corner slabs: buttons, chips, map labels
    (after the component rules so their background shorthands don't drop the cut lines) */
-.btn, .chip, .type-chip, .badge, .lg-pol, .pin .t, .work, .tag, .tl-play, .ib, .hub-card, .opt, .qz-mode, .sw, .stats > div, .ht, .seg, .seg button, .tabs, .tabs button {
+.btn, .chip, .type-chip, .badge, .lg-pol, .tag, .tl-play, .ib, .hub-card, .opt, .qz-mode, .sw, .stats > div, .ht, .seg, .seg button, .tabs, .tabs button {
   --cut: 6px; border-radius: 0 !important; clip-path: var(--pp-clip);
 }
 .ib, .seg button, .tabs button, .ht { --cut: 5px; }

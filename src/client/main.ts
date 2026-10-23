@@ -82,6 +82,7 @@ class App {
       onState: s => {
         this.caption.state(s);
         this.root.classList.toggle('story-on', s !== 'idle');
+        this.atlas.setStoryMode(s !== 'idle');
         this.card.setActive(s === 'idle');
         if (s === 'idle') { this.cine?.classList.remove('on'); this.root.classList.remove('cine-on'); }
       },
@@ -98,6 +99,7 @@ class App {
     this.timeline.set(year, true, false);
     this.atlas.onPin = e => this.openEvent(e);
     this.atlas.onPlace = p => this.openPlace(p);
+    this.atlas.onPerson = p => this.openPerson(p);
     const tip = h('div', { class: 'hovertip', hidden: true });
     this.root.append(tip);
     this.atlas.onHover = x => {
@@ -444,7 +446,7 @@ class App {
     return {
       ready: this.ready, year: this.timeline.year, lang, event: this.card.event?.id ?? null, era: this.card.era?.id ?? null,
       story: this.player.state, snapshot: this.atlas.snapshot?.id ?? null, frames: v.frames, pose: v.pose(),
-      fx: { story: this.atlas.fx.count('story'), event: this.atlas.fx.count('event'), base: this.atlas.fx.count('base'), works: this.atlas.fx.count('works') },
+      fx: { story: this.atlas.fx.count('story'), event: this.atlas.fx.count('event'), base: this.atlas.fx.count('base'), scenery: this.atlas.fx.count('scenery'), works: this.atlas.fx.count('works') },
       captions: this.caption.el.querySelector('.cap-t')?.textContent ?? '',
     };
   }

@@ -5,7 +5,7 @@ Chinese middle-school (grades 7–8, 统编版 textbooks) and high-school studen
 
 ## Principles
 1. **The map is the hero.** UI chrome is small, stays at the edges and uses a clean modern style: frosted-glass panels, a vermilion accent and foldable chronicle, legend and timeline. Panels slide away during animations, and the camera re-frames itself around open panels.
-2. **Every event can be watched.** A flagship event has a scripted animation; every other event gets an automatic fly-in, model and caption.
+2. **Animations that show something.** A flagship event has a scripted animation, and battles get an automatic march and clash. Play is offered only for these; events whose automatic story would just orbit the camera have no Play button.
 3. **Bilingual everywhere.** All content and UI strings carry `{ zh, en }`, and switching language never reloads the page.
 4. **Textbook-aligned.** Each event lists its textbook units, and the Learn drawer mirrors the books' unit structure.
 5. **Honest about uncertainty.** Borders are schematic and labelled as such, and early dates carry "c." / "约".
@@ -14,7 +14,7 @@ Chinese middle-school (grades 7–8, 统编版 textbooks) and high-school studen
 ## Features (phase 1)
 | Area | Behaviour |
 |---|---|
-| Scene | 3D terrain relief of East Asia, territory overlay with crossfades, polity labels, period place names (a modern name is never printed before it was in use), capital marker model, event pins; pan / rotate / zoom (mouse, touch, keyboard) |
+| Scene | 3D terrain relief of East Asia, territory overlay with crossfades, polity labels, period place names (a modern name is never printed before it was in use), capital marker model, the dynasty's scenery (landmark models of its key events and its famous people in period dress standing on the map), event pins; pan / rotate / zoom (mouse, touch, keyboard) |
 | Timeline | Non-linear axis about 1 Ma → today; age headings; era bands (click opens the era card); territorial-phase ticks; dots for all 907 events with tooltips; floating year flag with reign era; ‹ year › stepper with typed years (1415 / -221 / 前221 / 221 BC); drag, click, arrow keys (Shift ±10), auto-play; readout shows year, era and ruler |
 | Chronicle | Right panel listing the dynasty's events (all / textbook filter); current year highlighted and auto-scrolled; ◆ map change, ▶ scripted story; folds to a tab |
 | Phase legend | Phase i/N with jump dots, polity chips (hover highlights, click flies), phase note, line key; previous phase drawn as a dashed ghost border |

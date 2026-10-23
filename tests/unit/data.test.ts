@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { BOOKS, UNITS } from '../../src/shared/data/curriculum.ts';
 import { ERAS, RULERS } from '../../src/shared/data/eras.ts';
 import { MODEL_KINDS } from '../../src/shared/data/event-kit.ts';
-import { EVENTS, storyOf } from '../../src/shared/data/events.ts';
+import { EVENTS, hasStory, storyOf } from '../../src/shared/data/events.ts';
 import { PLACE, PLACES, isCapital, mapName, placeExists, placeName } from '../../src/shared/data/places.ts';
 import { JOURNEYS, WORKS, reignAt } from '../../src/shared/data/jiangshan.ts';
 import { POLITY, POLITIES, polityMatches } from '../../src/shared/data/polities.ts';
 import { STAGES } from '../../src/shared/data/stage.ts';
+import { sceneryOf } from '../../src/shared/data/scenery.ts';
 import { STORIES, journeyStory } from '../../src/shared/data/stories.ts';
 import { SNAPSHOTS, snapshotAt } from '../../src/shared/data/territories.ts';
 import { decodeRing } from '../../src/shared/lib/rings.ts';
@@ -185,6 +186,34 @@ describe('stories', () => {
     expect(auto.map(s => s.do)).toEqual(expect.arrayContaining(['title', 'army', 'clash', 'banner', 'caption']));
     const culture = storyOf(EVENTS.find(e => e.kind === 'culture' && !e.story)!);
     expect(culture.some(s => s.do === 'orbit')).toBe(true);
+  });
+  it('offer Play only for scripted stories and ones that move something on the map', () => {
+    expect(EVENTS.filter(e => e.story).every(hasStory)).toBe(true);
+    expect(EVENTS.filter(e => e.kind === 'war').every(hasStory)).toBe(true);
+    expect(hasStory(EVENTS.find(e => e.kind === 'culture' && !e.story)!)).toBe(false);
+  });
+});
+
+describe('dynasty scenery', () => {
+  it('stands landmarks and period-dressed people on the map, spaced apart and clear of the capital', () => {
+    let total = 0;
+    for (const era of ERAS.filter(x => x.scope === 'china')) {
+      const items = sceneryOf(era);
+      total += items.length;
+      const cap = era.capital ? PLACE.get(era.capital) : undefined;
+      const pts = cap ? [...items, cap] : items;
+      for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+        expect(Math.hypot(pts[i].lon - pts[j].lon, pts[i].lat - pts[j].lat), `${era.id} ${i}/${j}`).toBeGreaterThanOrEqual(1.5);
+      }
+      for (const it of items) {
+        const e = EVENTS.find(x => x.id === it.event)!;
+        if (it.kind === 'landmark') expect(e.kind === 'war' || ['flag', 'army'].includes(it.model.kind), it.event).toBe(false);
+        else expect(it.model.kind === 'person' && !!it.name?.zh, it.event).toBe(true);
+      }
+    }
+    expect(total).toBeGreaterThan(100);
+    const tang = sceneryOf(ERAS.find(x => x.id === 'tang')!);
+    expect(tang.some(i => i.name?.zh === '玄奘')).toBe(true);
   });
 });
 

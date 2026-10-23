@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { EVENTS } from '../../shared/data/events.ts';
 import { tr, type Lang } from '../../shared/data/i18n.ts';
-import { RIVER_LABELS, WORKS } from '../../shared/data/jiangshan.ts';
+import { RIVER_LABELS, WORKS, type Person } from '../../shared/data/jiangshan.ts';
 import { PLACE, PLACES, isCapital, mapName } from '../../shared/data/places.ts';
+import { sceneryOf } from '../../shared/data/scenery.ts';
 import { POLITY, polityMatches } from '../../shared/data/polities.ts';
 import { STAGES, type StageId } from '../../shared/data/stage.ts';
 import { snapshotAt } from '../../shared/data/territories.ts';
@@ -52,6 +53,7 @@ export class Atlas {
   pickHandler: ((lon: number, lat: number) => void) | null = null;
   onPin: (e: HistEvent) => void = () => {};
   onPlace: (p: Place) => void = () => {};
+  onPerson: (p: Person) => void = () => {};
   /** hover over the map: the administrative unit under the pointer (admin layer only) */
   onHover: (info: { unit: AdminUnit; x: number; y: number } | null) => void = () => {};
   private pins = new Map<string, Label>();
@@ -60,6 +62,10 @@ export class Atlas {
   private fade: { t: number; tex: THREE.Texture; wipe?: { dur: number; r: number } } | null = null;
   private texA: THREE.Texture | null = null;
   private capitalKey = '';
+  private sceneryKey = '';
+  /** the dynasty's landmark models by event id (hidden while that event's own model is up) */
+  private sceneryMarks = new Map<string, THREE.Object3D>();
+  private storyMode = false;
   private hiT = -1;
   private hiDur = 0;
   private hiTex: THREE.Texture | null = null;
@@ -353,7 +359,7 @@ export class Atlas {
       const text = tr(name, this.lang);
       if (l.el.dataset.text !== text || l.el.classList.contains('cap') !== cap) {
         l.el.dataset.text = text;
-        l.el.textContent = cap ? `★ ${text}` : text;
+        l.el.textContent = text;
         l.el.classList.toggle('cap', cap);
         this.labels.remeasure();
       }
@@ -432,8 +438,48 @@ export class Atlas {
     this.fx.clear('base');
     if (cap && key) {
       const modern = this.year >= 1840;
-      this.fx.spawn({ lon: cap.lon, lat: cap.lat, model: modern ? { kind: 'monument' } : { kind: 'palace' }, scale: 0.9, yaw: 0 }, 'base');
+      this.fx.spawn({ lon: cap.lon, lat: cap.lat, model: modern ? { kind: 'monument' } : { kind: 'palace' }, scale: 1.9, yaw: 0 }, 'base');
     }
+    this.updateScenery();
+  }
+
+  /** The dynasty on the map: landmarks of its key events and its famous people in period dress (see sceneryOf). */
+  private updateScenery(): void {
+    const era = eraAt(this.year);
+    const key = this.layers.models && era ? `${era.id}:${this.lang}` : '';
+    if (key === this.sceneryKey) return;
+    this.sceneryKey = key;
+    this.fx.clear('scenery');
+    this.sceneryMarks.clear();
+    if (!era || !key) return;
+    for (const s of sceneryOf(era)) {
+      const p = s.person;
+      let label: HTMLElement | undefined;
+      if (p) {
+        label = Object.assign(document.createElement('button'), { type: 'button' });
+        label.className = 'figure';
+        label.textContent = tr(p.name, this.lang);
+        label.title = tr(p.title, this.lang);
+        label.addEventListener('click', ev => { ev.stopPropagation(); this.onPerson(p); });
+      }
+      this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale: p ? 2.1 : 1.7, yaw: s.yaw, label, labelMaxD: 55 }, 'scenery').then(g => {
+        if (!g || this.sceneryKey !== key || p) return;
+        this.sceneryMarks.set(s.event, g);
+        this.syncScenery();
+      });
+    }
+  }
+
+  private syncScenery(): void {
+    for (const [id, g] of this.sceneryMarks) g.visible = !this.storyMode && !(this.selected?.id === id && this.layers.models && this.selected.model);
+  }
+
+  /** While a story plays the dynasty's scenery steps aside so the animation has the stage. */
+  setStoryMode(on: boolean): void {
+    if (on === this.storyMode) return;
+    this.storyMode = on;
+    this.fx.showLayer('scenery', !on);
+    this.syncScenery();
   }
 
   // ------------------------------------------------------------ selection
@@ -444,6 +490,7 @@ export class Atlas {
     this.selected = e;
     this.fx.clear('event');
     if (prev) { const l = this.pins.get(prev.id); if (l) { l.pinned = false; l.el.classList.remove('sel'); } }
+    this.syncScenery();
     if (!e) return;
     if (!this.pins.has(e.id)) this.addPin(e);
     const l = this.pins.get(e.id)!;
@@ -468,6 +515,7 @@ export class Atlas {
     this.buildAdminLabels();
     for (const el of this.labels.root.querySelectorAll<HTMLElement>('.river')) el.textContent = el.dataset[l] ?? '';
     this.updateWorks();
+    this.updateScenery();
     this.labels.remeasure();
   }
 

@@ -10,7 +10,8 @@ import type { Label, Labels } from './labels.ts';
 import type { View } from './view.ts';
 
 export type FxKind = 'battle' | 'fire' | 'glow' | 'flag' | 'smoke' | 'firework';
-export type Layer = 'story' | 'event' | 'base' | 'works';
+/** story: the playing animation · event: the selected event's model · base: the capital · scenery: the dynasty's landmarks and people · works */
+export type Layer = 'story' | 'event' | 'base' | 'scenery' | 'works';
 export interface ArmyOpts { trail?: boolean; from?: LonLat; to?: LonLat; pts?: LonLat[]; color: string; dur: number; count?: number; unit?: Troops; formation?: Formation; label?: string; follow?: boolean; keep?: boolean; retreat?: boolean }
 export interface ClashOpts { lon: number; lat: number; a: string; b: string; winner?: 'a' | 'b'; angle?: number; dur?: number; count?: number; labels?: [string?, string?]; units?: [Troops?, Troops?]; formations?: [Formation?, Formation?]; siege?: boolean; cam?: boolean }
 export interface FleetOpts { pts: LonLat[]; dur: number; color?: string; count?: number; model?: 'junk' | 'warship' | 'fireship' | 'boat' | 'redboat'; label?: string; follow?: boolean; keep?: boolean }
@@ -119,7 +120,16 @@ export class Fx {
   private add(it: Item): Item {
     this.items.push(it);
     this.root.add(it.obj);
+    if (this.hidden.has(it.layer)) it.obj.visible = false;
     return it;
+  }
+
+  private hidden = new Set<Layer>();
+  /** Shows or hides a whole layer (models and their labels) without rebuilding it. */
+  showLayer(layer: Layer, on: boolean): void {
+    if (on) this.hidden.delete(layer); else this.hidden.add(layer);
+    for (const it of this.items) if (it.layer === layer) it.obj.visible = on;
+    this.labels.setGroupVisible(layer, on);
   }
 
   private remove(it: Item): void {
@@ -527,7 +537,8 @@ export class Fx {
       }
     }
     if (o.label && o.labelAt) {
-      it.label = this.labels.add({ el: tag(o.label, `work k-${o.kind}`), pos: this.geo.pos(o.labelAt[0], o.labelAt[1], 0.12), prio: 26, group: 'works', maxD: 70 });
+      const el = Object.assign(document.createElement('div'), { className: `work k-${o.kind}`, textContent: o.label });
+      it.label = this.labels.add({ el, pos: this.geo.pos(o.labelAt[0], o.labelAt[1], 0.12), prio: 26, group: 'works', maxD: 70 });
     }
   }
 
@@ -969,7 +980,10 @@ export class Fx {
   }
 
   /** Spawns a model rising out of the ground with a blob shadow and an optional label. */
-  async spawn(o: { lon: number; lat: number; model: ModelRecipe; scale?: number; label?: string; labelClass?: string; yaw?: number }, layer: Layer = 'story'): Promise<THREE.Object3D | null> {
+  async spawn(o: {
+    lon: number; lat: number; model: ModelRecipe; scale?: number; yaw?: number;
+    label?: string | HTMLElement; labelClass?: string; labelMaxD?: number;
+  }, layer: Layer = 'story'): Promise<THREE.Object3D | null> {
     const g = new THREE.Group();
     const base = this.geo.pos(o.lon, o.lat, 0);
     if (!this.geo.isLand(o.lon, o.lat)) base.y = Math.max(-0.02, this.geo.height(o.lon, o.lat));
@@ -979,7 +993,10 @@ export class Fx {
     sh.renderOrder = 2;
     g.add(sh);
     const it = this.add({ layer, obj: g, own: [sh.geometry, sh.material as THREE.Material] });
-    if (o.label) it.label = this.labels.add({ el: tag(o.label, o.labelClass ?? 'model'), pos: base.clone(), prio: 80, group: layer === 'base' ? 'base' : 'story', anchor: 'above' });
+    if (o.label) {
+      const el = typeof o.label === 'string' ? tag(o.label, o.labelClass ?? 'model') : o.label;
+      it.label = this.labels.add({ el, pos: base.clone(), prio: layer === 'scenery' ? 40 : 80, group: layer === 'story' || layer === 'event' ? 'story' : layer, anchor: 'above', maxD: o.labelMaxD });
+    }
     let m: THREE.Group;
     try { m = await instance(o.model, true); } catch { this.remove(it); return null; }
     if (!this.items.includes(it)) return null;
@@ -991,7 +1008,7 @@ export class Fx {
     let grow = 0;
     const k0 = o.scale ?? 1;
     it.update = (_dt, t, sc) => {
-      const z = sc * k0 * (layer === 'base' ? 0.7 : 1);
+      const z = sc * k0 * (layer === 'base' || layer === 'scenery' ? 0.7 : 1);
       const e = easeBack(grow);
       m.scale.setScalar(Math.max(0.001, z * e));
       sh.scale.setScalar(Math.max(0.001, z * r * 2.6 * Math.min(1, grow * 2)));

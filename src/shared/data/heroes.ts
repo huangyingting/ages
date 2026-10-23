@@ -62,8 +62,8 @@ export type PersonRole = 'ruler' | 'general' | 'monk' | 'woman' | 'scholar';
 export function personRole(title: string): PersonRole {
   if (/法师|禅师|僧|大师|和尚/.test(title)) return 'monk';
   if (/皇后|太后|公主|女皇|女|夫人|妃/.test(title)) return 'woman';
-  if (/帝|皇|王(?!右军)|汗|天子|始皇|太祖|太宗/.test(title)) return 'ruler';
-  if (/将|帅|都督|军神|兵|侯|元戎|统帅/.test(title)) return 'general';
+  if (/帝|皇|王(?!右军)|汗|天子|始皇|[高世圣太]祖|太宗/.test(title)) return 'ruler';
+  if (/将|帅|都督|军神|兵|侯|元戎|统帅|武穆/.test(title)) return 'general';
   return 'scholar';
 }
 
@@ -72,5 +72,5 @@ export function personModel(p: { name: { zh: string }; title?: { zh: string }; s
   const hero = PERSON_HERO[p.name.zh];
   // dressed for the prime of their life (period costume)
   const year = p.span ? Math.min(p.span[1], p.span[0] + 40) : undefined;
-  return hero ? { kind: 'person', hero } : { kind: 'person', role: personRole(p.title?.zh ?? ''), ...(year !== undefined ? { year } : {}) };
+  return hero ? { kind: 'person', hero } : { kind: 'person', role: /[帝汗]$/.test(p.name.zh) ? 'ruler' : personRole(p.title?.zh ?? ''), ...(year !== undefined ? { year } : {}) };
 }

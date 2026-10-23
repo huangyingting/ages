@@ -830,7 +830,8 @@ export const RICH: Record<string, Builder> = {
 export function personModel(gp: THREE.Group, r: ModelRecipe): void {
   const role = str(r.role, 'scholar') as PersonRole;
   const era = eraOf(typeof r.year === 'number' ? r.year : 1000);
-  const y = figureBase(gp, '#c9b58e', '#6e5a40');
+  // `bare`: standing straight on the map (scenery) rather than on a card's plinth
+  const y = r.bare ? 0 : figureBase(gp, '#c9b58e', '#6e5a40');
   const look = costume(role, era);
   const common = { h: 0.62, x: 0, y, z: 0, hair: '#1c1714', beardColor: '#2a2420', accent: P.gold, ...look, top: str(r.color, look.top) };
   const modern = era === 'minguo' || era === 'modern';

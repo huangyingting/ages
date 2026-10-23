@@ -82,6 +82,12 @@ test.describe('Ages atlas', () => {
     await expect(page.locator('.caption')).toBeHidden();
     await expect(page.locator('.card')).toHaveCSS('opacity', '1');
     expect((await state(page)).fx.story).toBe(0);
+    // the dynasty's landmarks and people stand on the map; a story only orbiting the camera offers no Play button
+    expect((await state(page)).fx.scenery).toBeGreaterThan(3);
+    await expect(page.locator('.figure', { hasText: '秦始皇' })).toHaveCount(1);
+    await page.goto('/?lowfx=1#e=confucius&lang=zh');
+    await expect(page.locator('.card h2')).toHaveText(/孔子/);
+    await expect(page.locator('.card [data-act=play]')).toHaveCount(0);
     expect(errs).toEqual([]);
   });
 

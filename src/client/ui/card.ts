@@ -1,6 +1,6 @@
 import { BOOKS, unitOf } from '../../shared/data/curriculum.ts';
 import { ERAS } from '../../shared/data/eras.ts';
-import { EVENTS, hasScript } from '../../shared/data/events.ts';
+import { EVENTS, hasScript, hasStory } from '../../shared/data/events.ts';
 import { tr } from '../../shared/data/i18n.ts';
 import { JOURNEYS, PEOPLE, dynastyOfEra, personNamed, type Journey, type Person } from '../../shared/data/jiangshan.ts';
 import { PLACE, isCapital, placeName } from '../../shared/data/places.ts';
@@ -215,7 +215,7 @@ export class Card {
       learnBtn.setAttribute('aria-pressed', String(on));
       this.hooks.learned(e, on);
     });
-    const playBtn = h('button', { type: 'button', class: 'btn primary', 'data-act': 'play', onclick: () => this.hooks.play(e) }, icon('play'), h('span', { text: t('playStory') }));
+    const playBtn = hasStory(e) ? h('button', { type: 'button', class: 'btn primary', 'data-act': 'play', onclick: () => this.hooks.play(e) }, icon('play'), h('span', { text: t('playStory') })) : null;
     const units = e.curriculum.map(c => {
       const u = unitOf(c.book, c.unit);
       return h('li', {}, h('b', { text: tr(BOOKS[c.book].name, L) }), ' ', h('span', { text: u ? tr(u.title, L) : `#${c.unit}` }));
