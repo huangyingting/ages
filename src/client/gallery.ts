@@ -1,13 +1,15 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { buildFresh, whenModelReady, BUILDERS } from './models/kit.ts';
-import { riderGeometry, soldierGeometry, troopMaterial } from './scene/troops.ts';
+import { troopMaterial, unitGeometry, type UnitType } from './scene/troops.ts';
+import type { Era } from '../shared/data/era.ts';
 import { outdoorEnvironment } from './models/environment.ts';
 import type { ModelRecipe } from '../shared/data/types.ts';
 
-// Dev-only model gallery: /gallery.html?k=army,rider (default: every kind). Not part of the production build.
+// Dev-only model gallery: /gallery.html?k=army,rider,troop:horse@yuan,person:general@1600 (default: every kind). Not part of
+// the production build. `troop:<spear|archer|horse|chariot|gun>@<era>` shows instanced troops, `person:<role>@<year>` a costumed person.
 const q = new URLSearchParams(location.search);
-const list: ModelRecipe[] = (q.get('k')?.split(',') ?? Object.keys(BUILDERS)).map(k => (k.includes('/') ? { kind: 'palace', hero: k } : k.startsWith('person:') ? { kind: 'person', role: k.slice(7) } : { kind: k }));
+const list: ModelRecipe[] = (q.get('k')?.split(',') ?? Object.keys(BUILDERS)).map(k => (k.includes('/') ? { kind: 'palace', hero: k } : k.startsWith('person:') ? { kind: 'person', role: k.slice(7).split('@')[0], ...(k.includes('@') ? { year: Number(k.split('@')[1]) } : {}) } : { kind: k }));
 const canvas = document.getElementById('c') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1);
@@ -34,10 +36,12 @@ list.forEach(async (r, i) => {
   let m: THREE.Object3D;
   if (r.kind.startsWith('troop:')) {
     // a 3×3 block of instanced troops in two team colours
-    const geo = r.kind === 'troop:rider' ? riderGeometry() : soldierGeometry();
+    const [t, era] = r.kind.slice(6).split('@');
+    const geo = unitGeometry((t === 'rider' ? 'horse' : t === 'soldier' ? 'spear' : t) as UnitType, (era || 'suitang') as Era);
     const im = new THREE.InstancedMesh(geo, troopMaterial(), 9);
     for (let k = 0; k < 9; k++) {
-      im.setMatrixAt(k, new THREE.Matrix4().makeTranslation((k % 3 - 1) * 0.45, 0, (Math.floor(k / 3) - 1) * 0.5));
+      const sp = t === 'chariot' ? 1 : t === 'horse' || t === 'rider' ? 0.6 : 0.45;
+      im.setMatrixAt(k, new THREE.Matrix4().makeTranslation((k % 3 - 1) * sp, 0, (Math.floor(k / 3) - 1) * sp * 1.1));
       im.setColorAt(k, new THREE.Color(k < 5 ? '#b8322a' : '#2f4f8a'));
     }
     m = new THREE.Group().add(im);
@@ -49,7 +53,7 @@ list.forEach(async (r, i) => {
   m.position.set(x, 0, z);
   scene.add(m);
   const el = document.createElement('div');
-  el.textContent = (r.hero as string) ?? (r.role ? 'person:' + r.role : r.kind);
+  el.textContent = (r.hero as string) ?? (r.role ? `person:${r.role}${r.year !== undefined ? '@' + r.year : ''}` : r.kind);
   labels.append(el);
   tags.push({ el, p: new THREE.Vector3(x, 0, z + 0.7) });
   if (--pending === 0) document.body.dataset.ready = '1';

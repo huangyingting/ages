@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { add, g, mat, sweep, type Station, type V3 } from './prims.ts';
+import { add, g, mat, shade, sweep, type Station, type V3 } from './prims.ts';
 import { ik2, lerp3 } from './rig.ts';
 
 // A small, anatomically proportioned person (≈7 heads) for dioramas, crowds and athletes. Limbs are solved with
@@ -26,7 +26,19 @@ export interface HumanOpts {
   hair?: string | null;
   /** hat colour (brimmed hat), or 'cap', 'helmet', 'hood' styles via hatStyle */
   hat?: string;
-  hatStyle?: 'brim' | 'cap' | 'helmet' | 'hood' | 'conical' | 'turban';
+  /**
+   * soldier headgear by period too: `plume` helmet with a red tuft (Tang/Song), `bowl` helmet with spike and tassel
+   * (Ming), `fur` fur-brimmed Mongol helmet, `qing` red-tasselled hat, `peaked` modern cap, `knot` a bare topknot (Qin)
+   */
+  hatStyle?: 'brim' | 'cap' | 'helmet' | 'hood' | 'conical' | 'turban' | 'plume' | 'bowl' | 'fur' | 'qing' | 'peaked' | 'knot';
+  /** cap badge / tassel colour */
+  hatBadge?: string;
+  /** armour colour: a lamellar vest, shoulder guards and a plated skirt over the clothes */
+  armor?: string;
+  /** armour trim / plate-row colour */
+  armorTrim?: string;
+  /** round chest badge (Qing 号衣 兵/勇 roundel) */
+  badge?: string;
   shoes?: string;
   /** long robe / dress / skirt hiding the legs to the given level */
   dress?: 'knee' | 'ankle';
@@ -224,6 +236,23 @@ export function human(p: THREE.Object3D, x: number, y: number, z: number, o: Hum
     add(G, sk, mat(top, { flat: false }), 0, 0, top0[2] * 0.5, 1, 1, 0.8);
   }
 
+  if (o.armor) {
+    const ar = o.armor, tr = o.armorTrim ?? shade(ar, 0.6);
+    limb(G, [
+      { p: U(0.06), w: 0.092 * bw, h: 0.07 },
+      { p: U(0.15), w: 0.088 * bw, h: 0.066 },
+      { p: U(0.24), w: 0.1 * bw, h: 0.074 },
+      { p: U(0.3), w: 0.08 * bw, h: 0.054 },
+    ], ar, { radial: trad, sub: 1, up: [0, 0, 1] });
+    if (!min) for (const dy of [0.12, 0.19]) limb(G, [{ p: U(dy), w: 0.094 * bw, h: 0.071 }, { p: U(dy + 0.012), w: 0.095 * bw, h: 0.072 }], tr, { radial: trad, sub: 1, up: [0, 0, 1] });
+    // plated skirt to mid-thigh
+    const t0 = U(0.07), hem = Math.max(0.02, t0[1] - 0.2);
+    const sk = g(`hm-skirt${bw.toFixed(3)}|${t0[1].toFixed(3)}|${hem.toFixed(3)}`, () => new THREE.LatheGeometry([[0, hem], [0.13 * bw, hem], [0.095 * bw, t0[1]], [0, t0[1]]].map(([r, yy]) => new THREE.Vector2(r, yy)), min ? 6 : 8));
+    add(G, sk, mat(ar, { flat: false }), 0, 0, t0[2] * 0.5, 1, 1, 0.8);
+    for (const sx of [-1, 1]) ell(G, ar, rad, U(0.285, 0, sx * SH_X * bw * 1.05), [0.055 * bw, 0.03, 0.05]);
+  }
+  if (o.badge) ell(G, o.badge, rad, U(0.19, 0.062), [0.042, 0.042, 0.012]);
+
   // ---- arms (shoulder → elbow → wrist), hands
   const out: V3[] = [];
   for (let i = 0; i < 2; i++) {
@@ -268,6 +297,19 @@ export function human(p: THREE.Object3D, x: number, y: number, z: number, o: Hum
       const m = add(G, g('hm-cone', () => new THREE.ConeGeometry(1, 1, 10)), mat(o.hat), ht[0], ht[1] + 0.01, ht[2], 0.13, 0.07, 0.13);
       m.rotation.x = lean;
     } else if (st === 'helmet') ell(G, o.hat, hi ? 10 : 7, U(0.45, -0.004), [0.066, 0.06, 0.07]);
+    else if (st === 'plume' || st === 'bowl' || st === 'fur') {
+      ell(G, o.hat, hi ? 10 : 7, U(0.452, -0.004), [0.066, 0.058, 0.07]);
+      ell(G, st === 'fur' ? '#5a3d24' : shade(o.hat, 0.8), rad, U(0.42, -0.03), [0.075, 0.028, 0.075]); // brim / neck guard / fur
+      if (st !== 'fur') ell(G, o.hatBadge ?? '#c81e1e', rad, U(st === 'bowl' ? 0.53 : 0.515, -0.006), [0.022, st === 'bowl' ? 0.02 : 0.03, 0.022]);
+      if (st === 'bowl') add(G, g('hm-spike', () => new THREE.ConeGeometry(1, 1, 5)), mat('#d6b25e'), ...U(0.555, -0.006), 0.008, 0.05, 0.008);
+    } else if (st === 'qing') {
+      add(G, g('hm-cone', () => new THREE.ConeGeometry(1, 1, 10)), mat(o.hat), ...U(0.49, -0.004), 0.072, 0.05, 0.072);
+      add(G, g('hm-cone', () => new THREE.ConeGeometry(1, 1, 10)), mat(o.hatBadge ?? '#c81e1e'), ...U(0.5, -0.004), 0.05, 0.05, 0.05);
+    } else if (st === 'peaked') {
+      ell(G, o.hat, rad, U(0.475, -0.006), [0.064, 0.036, 0.066]);
+      ell(G, '#1c1917', rad, U(0.452, 0.058), [0.048, 0.006, 0.032]);
+      if (o.hatBadge) ell(G, o.hatBadge, 4, U(0.47, 0.066), [0.011, 0.011, 0.006]);
+    } else if (st === 'knot') ell(G, o.hat, rad, U(0.49, -0.004, 0.022), [0.026, 0.024, 0.026]);
     else if (st === 'turban') ell(G, o.hat, hi ? 10 : 7, U(0.462, -0.006), [0.068, 0.05, 0.07]);
     else if (st === 'hood') ell(G, o.hat, hi ? 10 : 7, U(0.43, -0.014), [0.07, 0.08, 0.072]);
     else { // cap with a visor

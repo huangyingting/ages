@@ -1,6 +1,6 @@
 import { formatYear } from '../lib/timeline.ts';
 import type { Journey } from './jiangshan.ts';
-import type { I18n, LonLat, StoryStep, Year } from './types.ts';
+import type { Formation, I18n, LonLat, StoryStep, Troops, Year } from './types.ts';
 
 /**
  * Scripted animations for flagship events. Each step is plain data (see StoryStep in types.ts), so stories can be
@@ -31,7 +31,9 @@ export const STORIES: Record<string, StoryStep[]> = {
     cap('周武王联合各部落，从镐京出兵东进。', 'King Wu of Zhou leads his allies east from Haojing.'),
     { do: 'army', pts: [[108.85, 34.2], [110.3, 34.55], [111.9, 34.75], [113.3, 35.05], [113.75, 35.2]], color: RED, dur: 5.5, count: 40, unit: 'mixed', label: lbl('周军', 'Zhou'), follow: true },
     fly(113.9, 35.25, 11, 0.92, 1.4),
-    { do: 'clash', lon: 113.95, lat: 35.25, a: RED, b: '#4a235a', winner: 'a', angle: 0, dur: 6.5, count: 34, labels: [lbl('周', 'Zhou'), lbl('商', 'Shang')], units: ['mixed', 'foot'] },
+    { do: 'shot', shot: 'wide', lon: 113.95, lat: 35.25, dur: 1.6 },
+    cap('周军以战车为先锋，虎贲甲士随后列阵；商军阵前倒戈。', 'Zhou war chariots lead, armoured infantry behind; the Shang ranks turn their spears.'),
+    { do: 'clash', lon: 113.95, lat: 35.25, a: RED, b: '#4a235a', winner: 'a', angle: 0, dur: 6.5, count: 34, labels: [lbl('周', 'Zhou'), lbl('商', 'Shang')], units: ['chariot', 'foot'], formations: ['line', 'square'] },
     banner(113.95, 35.25, '牧野之战', 'Battle of Muye', RED, lbl('商军阵前倒戈', 'Shang troops turn their spears')),
     { do: 'spawn', lon: 113.9, lat: 35.2, model: { kind: 'chariot' } },
     wipe(-1046, 113.95, 35.25, RED),
@@ -138,7 +140,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     cap('383年，前秦苻坚号称百万大军南下。', '383: Fu Jian of Former Qin marches south with a vast army.'),
     { do: 'army', pts: [[108.94, 34.27], [110.8, 34.1], [112.9, 33.6], [114.8, 33.0], [116.45, 32.55]], color: '#7b7d7d', dur: 6, count: 70, unit: 'mixed', label: lbl('前秦大军', 'Former Qin'), follow: true },
     fly(116.7, 32.4, 11, 0.92, 1.4),
-    { do: 'clash', lon: 116.72, lat: 32.42, a: '#2e86c1', b: '#7b7d7d', winner: 'a', angle: 225, dur: 7, count: 26, labels: [lbl('东晋北府兵', 'Jin Beifu army'), lbl('前秦', 'Former Qin')], units: ['foot', 'mixed'] },
+    { do: 'clash', lon: 116.72, lat: 32.42, a: '#2e86c1', b: '#7b7d7d', winner: 'a', angle: 225, dur: 7, count: 26, labels: [lbl('东晋北府兵', 'Jin Beifu army'), lbl('前秦', 'Former Qin')], units: ['foot', 'mixed'], formations: ['wedge', 'wings'] },
     banner(116.72, 32.42, '风声鹤唳', 'Every rustle an enemy', '#2e86c1', lbl('草木皆兵', 'every tree a soldier')),
     cap('东晋军渡淝水猛攻，秦军溃败，“风声鹤唳，草木皆兵”。', 'The Jin cross the Fei and the Qin army collapses in panic.'),
     { do: 'army', pts: [[116.5, 32.55], [115.0, 33.2], [113.6, 34.0], [112.45, 34.6]], color: '#7b7d7d', dur: 3.5, count: 14, unit: 'mixed', retreat: true },
@@ -206,7 +208,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     cap('755年，安禄山、史思明在范阳起兵。', '755: An Lushan and Shi Siming rebel at Fanyang.'),
     { do: 'army', pts: [[116.4, 39.9], [115.5, 38.2], [114.5, 36.6], [113.4, 35.2], [112.45, 34.62]], color: '#7f8c8d', dur: 5, count: 50, unit: 'horse', label: lbl('安史叛军', 'An–Shi rebels'), follow: true },
     { do: 'army', pts: [[112.45, 34.62], [111.2, 34.65], [110.35, 34.6]], color: '#7f8c8d', dur: 2.5, count: 40, unit: 'horse' },
-    { do: 'clash', lon: 110.3, lat: 34.6, a: '#7f8c8d', b: '#d4ac0d', winner: 'a', siege: true, angle: 180, dur: 5.5, count: 26, labels: [lbl('叛军', 'Rebels'), lbl('唐军', 'Tang')], units: ['horse', 'foot'] },
+    { do: 'clash', lon: 110.3, lat: 34.6, a: '#7f8c8d', b: '#d4ac0d', winner: 'a', siege: true, angle: 180, dur: 5.5, count: 26, labels: [lbl('叛军', 'Rebels'), lbl('唐军', 'Tang')], units: ['horse', 'archer'], formations: ['wedge', 'line'] },
     banner(110.3, 34.6, '潼关失守', 'Tong Pass falls', '#7f8c8d'),
     { do: 'fx', lon: 108.94, lat: 34.27, fx: 'fire', dur: 4, par: true },
     cap('洛阳、长安相继失陷，唐玄宗逃往四川。', 'Luoyang and Chang’an fall; Emperor Xuanzong flees to Sichuan.'),
@@ -246,7 +248,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'clash', lon: 106.23, lat: 38.49, a: '#1e8449', b: '#a04000', winner: 'a', siege: true, angle: 90, dur: 4, count: 22, units: ['horse', 'mixed'] },
     year(1227), banner(106.23, 38.49, '西夏亡', 'Western Xia falls', '#1e8449', lbl('1227年', '1227')),
     { do: 'army', pts: [[109.0, 48.0], [112.5, 44.0], [115.0, 40.5], [116.6, 37.0], [117.4, 34.5]], color: '#1e8449', dur: 4.5, count: 50, unit: 'horse', follow: true },
-    { do: 'clash', lon: 117.5, lat: 34.3, a: '#1e8449', b: '#b7950b', winner: 'a', angle: 90, dur: 4, count: 22, units: ['horse', 'mixed'] },
+    { do: 'clash', lon: 117.5, lat: 34.3, a: '#1e8449', b: '#b7950b', winner: 'a', angle: 90, dur: 4, count: 22, units: ['horse', 'mixed'], formations: ['wings', 'circle'] },
     year(1234), banner(117.5, 34.3, '金亡', 'Jin falls', '#1e8449', lbl('1234年', '1234')),
     fly(113, 30, 60, 0.8),
     { do: 'fleet', pts: [[114.2, 22.0], [113.4, 21.9], [113.08, 22.1]], model: 'warship', color: '#2471a3', count: 6, dur: 3, label: lbl('崖山', 'Yamen') },
@@ -498,7 +500,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     year(1950), title('抗美援朝', 'The Korean War', '1950—1953年', '1950–1953'), fly(125.8, 40, 26, 0.85),
     { do: 'army', pts: [[124.4, 40.6], [124.9, 40.1], [125.4, 39.6], [125.75, 39.1]], color: PLA, dur: 4, count: 40, label: lbl('中国人民志愿军', 'Chinese People’s Volunteers'), follow: true },
     cap('1950年10月，中国人民志愿军跨过鸭绿江。', 'October 1950: the Chinese People’s Volunteers cross the Yalu.'),
-    { do: 'clash', lon: 126.2, lat: 39.3, a: PLA, b: '#1f4e79', winner: 'a', angle: 120, dur: 5, count: 26, labels: [lbl('志愿军', 'Volunteers'), lbl('“联合国军”', '“UN Command”')] },
+    { do: 'clash', lon: 126.2, lat: 39.3, a: PLA, b: '#1f4e79', winner: 'a', angle: 120, dur: 5, count: 26, labels: [lbl('志愿军', 'Volunteers'), lbl('“联合国军”', '“UN Command”')], formations: ['wings', 'line'] },
     banner(127.5, 38.3, '三八线', '38th parallel', '#7f8c8d'),
     year(1953), cap('1953年7月签订停战协定。', 'An armistice is signed in July 1953.'),
   ],
@@ -577,11 +579,13 @@ export function autoStory(e: {
       const ang = (h >> 6) % 360, r = (ang * Math.PI) / 180, d = 1.1;
       // A marches in from its side; the battle then plays out where the event happened
       const from: LonLat = [e.lon - Math.cos(r) * d, e.lat + Math.sin(r) * d];
+      const unit: Troops = h % 3 === 0 ? 'horse' : 'mixed', foe: Troops = (['foot', 'mixed', 'archer', 'foot'] as const)[(h >> 9) % 4];
+      const forms: [Formation, Formation] = [(['line', 'wedge', 'wings'] as const)[(h >> 11) % 3], (['line', 'square', 'circle', 'line'] as const)[(h >> 13) % 4]];
       steps.push(
         { do: 'fly', lon: e.lon, lat: e.lat - 0.2, dist: 20, tilt: 0.88, dur: 2 },
-        { do: 'army', from, to: [e.lon - Math.cos(r) * 0.25, e.lat + Math.sin(r) * 0.25], color: a, dur: 3, count: 26, unit: h % 3 === 0 ? 'horse' : 'mixed' },
+        { do: 'army', from, to: [e.lon - Math.cos(r) * 0.25, e.lat + Math.sin(r) * 0.25], color: a, dur: 3, count: 26, unit },
         { do: 'fly', lon: e.lon, lat: e.lat - 0.1, dist: close - 2, tilt: 0.92, dur: 1.2, par: true },
-        { do: 'clash', lon: e.lon, lat: e.lat, a, b, winner: 'a', angle: ang, dur: 5.5, count: 22, ...(/[攻破陷围克]/.test(e.title.zh) ? { siege: true } : {}) },
+        { do: 'clash', lon: e.lon, lat: e.lat, a, b, winner: 'a', angle: ang, dur: 5.5, count: 22, units: [unit, foe], formations: forms, ...(/[攻破陷围克]/.test(e.title.zh) ? { siege: true } : {}) },
         { do: 'banner', lon: e.lon, lat: e.lat, text: e.title, color: a, dur: 5 },
         ...model, say,
       );

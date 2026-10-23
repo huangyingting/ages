@@ -26,19 +26,27 @@ export class Preview {
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'pv-gl';
     this.scene.add(this.turn);
-    this.scene.add(new THREE.HemisphereLight('#fff2d8', '#4a3a28', 1.5));
-    const sun = new THREE.DirectionalLight('#ffe6bf', 2.6);
-    sun.position.set(2.5, 4, 3);
-    this.scene.add(sun);
-    const rim = new THREE.DirectionalLight('#d9a65a', 1.1);
-    rim.position.set(-3, 1.5, -3);
-    this.scene.add(rim);
+    // pocket-planet's 3-point studio rig: warm key (casts the shadow), cool fill, golden rim, dim sky/ground bounce
+    const key = new THREE.DirectionalLight('#fffbeb', 3.0);
+    key.position.set(2.8, 4.2, 3.4);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    const c = key.shadow.camera;
+    c.left = c.bottom = -2.2; c.right = c.top = 2.2; c.near = 1; c.far = 12;
+    key.shadow.normalBias = 0.01;
+    key.shadow.intensity = 0.8;
+    const fill = new THREE.DirectionalLight('#c7d2fe', 0.9);
+    fill.position.set(-3.2, 1.8, -2.0);
+    const rim = new THREE.DirectionalLight('#fde68a', 0.9);
+    rim.position.set(0.5, 2.5, -3.5);
+    this.scene.add(key, fill, rim, new THREE.HemisphereLight('#e0f2fe', '#2a2219', 0.35));
     // a stepped bronze plinth with a hairline ring, so every model sits on the same stage
     const plinth = new THREE.Group();
     const m1 = new THREE.MeshStandardMaterial({ color: '#2a2219', roughness: 0.8, metalness: 0.2 });
     const m2 = new THREE.MeshStandardMaterial({ color: '#8a6a3a', roughness: 0.45, metalness: 0.75 });
     const a = new THREE.Mesh(new THREE.CylinderGeometry(1.22, 1.3, 0.08, 64), m1);
     a.position.y = -0.04;
+    a.receiveShadow = true;
     const ring = new THREE.Mesh(new THREE.TorusGeometry(1.24, 0.012, 6, 96), m2);
     ring.rotation.x = Math.PI / 2;
     plinth.add(a, ring);
@@ -52,8 +60,10 @@ export class Preview {
       const r = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
       r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       r.outputColorSpace = THREE.SRGBColorSpace;
-      r.toneMapping = THREE.ACESFilmicToneMapping;
-      r.toneMappingExposure = 1.05;
+      r.toneMapping = THREE.NeutralToneMapping;
+      r.toneMappingExposure = 0.95;
+      r.shadowMap.enabled = true;
+      r.shadowMap.type = THREE.PCFShadowMap;
       this.scene.environment = outdoorEnvironment(r);
       this.scene.environmentIntensity = 0.55;
       this.renderer = r;

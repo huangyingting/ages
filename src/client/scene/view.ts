@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { outdoorEnvironment } from '../models/environment.ts';
 import { MapControls } from 'three/examples/jsm/controls/MapControls.js';
 import type { Geo } from './geo.ts';
 import { HAZE } from './terrain.ts';
@@ -43,10 +44,21 @@ export class View {
 
     this.scene.add(this.sky);
 
-    this.scene.add(new THREE.HemisphereLight('#fff6e0', '#7a6a50', 1.7));
-    const sun = new THREE.DirectionalLight('#fff1d6', 2.4);
-    sun.position.set(-30, 50, -25);
-    this.scene.add(sun);
+    // studio-style lighting for the miniatures (the terrain shader does its own hillshade and ignores these):
+    // a warm key from the front-left over the camera's shoulder (the default view looks north), a cool fill from
+    // the other side, a rim from behind, and the procedural sky environment for soft light and real reflections
+    this.scene.add(new THREE.HemisphereLight('#eef4ff', '#5a4c38', 0.9));
+    const key = new THREE.DirectionalLight('#fff4e0', 2.8);
+    key.position.set(-24, 46, 34);
+    const fill = new THREE.DirectionalLight('#c7d6ff', 0.9);
+    fill.position.set(30, 22, 18);
+    const rim = new THREE.DirectionalLight('#ffe7b0', 1.1);
+    rim.position.set(6, 30, -40);
+    this.scene.add(key, fill, rim);
+    this.scene.environment = outdoorEnvironment(this.renderer);
+    this.scene.environmentIntensity = 0.7;
+    this.renderer.toneMapping = THREE.NeutralToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
 
     const ro = new ResizeObserver(() => this.resize());
     ro.observe(canvas.parentElement ?? canvas);
@@ -216,6 +228,14 @@ export class View {
 
   get flying(): boolean { return !!this.flight; }
 
+  /** Viewing distance the camera is at, or flying to. */
+  get goalDist(): number { return this.flight ? this.flight.to.dist : this.camera.position.distanceTo(this.controls.target); }
+
+  private shk = { amp: 0, t: 0, dur: 0 };
+  private shkOff = new THREE.Vector3();
+  /** Shakes the camera for `dur` seconds by `amp` × the viewing distance, easing out (impacts, charges). */
+  shake(amp: number, dur: number): void { this.shk = { amp, t: 0, dur }; }
+
   /** lon/lat under a client-space point, or null. */
   pick(clientX: number, clientY: number): [number, number] | null {
     const r = this.canvas.getBoundingClientRect();
@@ -244,7 +264,15 @@ export class View {
     this.constrain();
     this.sky.position.copy(this.camera.position);
     for (const h of this.hooks) h(dt, this.elapsed);
+    const k = this.shk, off = this.shkOff.set(0, 0, 0);
+    if (k.t < k.dur) {
+      k.t += dt;
+      const e = this.elapsed, f = k.amp * this.camera.position.distanceTo(this.controls.target) * (1 - k.t / k.dur);
+      off.set(Math.sin(e * 53) * f, Math.sin(e * 41 + 1) * f * 0.6, Math.sin(e * 61 + 2) * f);
+      this.camera.position.add(off);
+    }
     this.renderer.render(this.scene, this.camera);
+    this.camera.position.sub(off);
     this.frames++;
   }
 }

@@ -1,9 +1,9 @@
 import { tr } from '../../shared/data/i18n.ts';
-import { DYNASTIES, WORKS } from '../../shared/data/jiangshan.ts';
+import { WORKS } from '../../shared/data/jiangshan.ts';
 import { POLITY } from '../../shared/data/polities.ts';
 import type { Polity, Snapshot, Year } from '../../shared/data/types.ts';
 import { phaseAt, type Phase } from '../../shared/lib/chronicle.ts';
-import { eraAt, formatYear } from '../../shared/lib/timeline.ts';
+import { formatYear } from '../../shared/lib/timeline.ts';
 import { lang, t, type Key } from '../lib/i18n.ts';
 import { load, save } from '../lib/storage.ts';
 import { fill, h, iconBtn, setIcon } from './dom.ts';
@@ -13,8 +13,9 @@ const WORK_COLOR: Record<string, string> = { wall: '#a8916a', canal: '#2f7fc4', 
 const WORK_KEY: Record<string, Key> = { wall: 'wkWall', canal: 'wkCanal', road: 'wkRoad', sea: 'wkSea' };
 
 /**
- * The phase legend (bottom left): dynasty · phase i/N with dots to step between the phases of the dynasty, the
- * phase title and note, the polities on the map (hover holds a highlight, click frames the polity) and the lines.
+ * The map legend, embedded in the chronicle panel under the dynasty header: 疆域 · phase i/N with dots to step between
+ * the territorial phases of the dynasty, the phase title and note, the polities on the map (hover holds a highlight,
+ * click frames the polity), the line keys and the border disclaimer. Folds to its one-line header.
  */
 export class Legend {
   readonly el: HTMLElement;
@@ -31,6 +32,7 @@ export class Legend {
     this.headEl = h('div', { class: 'lg-head' });
     this.body = h('div', { class: 'lg-body' });
     this.foldBtn = iconBtn('down', t('fold'), () => this.fold(!this.folded), 'lg-fold');
+    this.headEl.addEventListener('click', () => this.fold(!this.folded));
     this.el = h('section', { class: 'legend-card', 'aria-label': t('legend') }, h('header', {}, this.headEl, this.foldBtn), this.body);
     this.fold(load<boolean>('lgFolded', matchMedia('(max-width: 720px)').matches), false);
   }
@@ -58,12 +60,8 @@ export class Legend {
   private render(ph: Phase, works: string[]): void {
     const L = lang;
     const s = ph.snap;
-    const dyn = s.dyn ? DYNASTIES.find(d => d.id === s.dyn) : undefined;
-    const era = eraAt(s.year);
-    const name = dyn ? tr(dyn.short, L) : era ? tr(era.short, L) : '';
-    const color = dyn?.color ?? era?.color ?? '#888';
     const span = `${formatYear(ph.from, L, { short: true })} – ${formatYear(ph.to, L, { short: true })}`;
-    fill(this.headEl, h('i', { class: 'dot', style: `--c:${color}` }), h('b', { text: name }),
+    fill(this.headEl, h('b', { text: t('territory') }),
       ph.group.length > 1 ? h('span', { class: 'lg-ph', text: t('phase', { i: ph.index + 1, n: ph.group.length }) }) : null,
       h('small', { text: span }));
     const dots = ph.group.length > 1 ? h('div', { class: 'lg-dots', role: 'tablist' }, ...ph.group.map((g, i) => h('button', {
@@ -86,8 +84,9 @@ export class Legend {
       dots,
       h('p', { class: 'lg-title', text: tr(s.title, L) }),
       pols.length ? h('div', { class: 'lg-pols' }, ...pols) : null,
-      s.note ? h('p', { class: 'lg-note', text: tr(s.note, L) }) : null,
-      keys);
+      s.note ? h('p', { class: 'lg-note', text: tr(s.note, L), title: t('unfold'), onclick: (ev: Event) => (ev.currentTarget as HTMLElement).classList.toggle('open') }) : null,
+      keys,
+      h('p', { class: 'lg-disc', text: t('disclaimer') }));
   }
 
   /** Distinct polities of a snapshot, most important first (neighbours collapse into one entry). */

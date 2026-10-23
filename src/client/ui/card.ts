@@ -223,12 +223,13 @@ export class Card {
     this.setHero(e.model ?? KIND_MODEL[e.kind], kindName(e.kind), `var(--k-${e.kind})`, i >= 0 ? [i + 1, list.length] : null,
       i > 0 ? () => this.hooks.open(list[i - 1]) : undefined, i >= 0 && i < list.length - 1 ? () => this.hooks.open(list[i + 1]) : undefined);
     fill(this.body,
-      this.title(place || era ? this.eyebrow(place ? tr(placeName(place, e.year), L) : null, era ? tr(era.name, L) : null) : null, tr(e.title, L), null, [
+      this.title(h('div', { class: 'eyebrow' }, h('b', { class: 'ey-y', text: when }),
+        place ? h('i', { text: '·' }) : null, place ? h('span', { class: 'ey-p' }, icon('pin'), tr(placeName(place, e.year), L)) : null,
+        era ? h('i', { text: '·' }) : null, era ? this.eraLink(era) : null), tr(e.title, L), null, [
         hasScript(e) ? h('span', { class: 'badge star', title: t('scripted'), text: '★ ' + t('scripted') }) : null,
         this.progress.watched.has(e.id) ? h('span', { class: 'badge seen', text: '✓ ' + t('watched') }) : null,
       ]),
       h('p', { class: 'sum', text: tr(e.summary, L) }),
-      this.stats([t('when'), when], era ? [t('era'), this.eraLink(era)] : place ? [t('where'), tr(placeName(place, e.year), L)] : null),
       h('div', { class: 'acts' }, playBtn, e.wiki ? this.wikiBtn(e.wiki, tr(e.title, L)) : null, learnBtn),
       e.points.length ? this.sec(t('keyPoints'), true, h('ul', { class: 'points' }, ...e.points.map(p => h('li', { text: tr(p, L) })))) : null,
       e.people?.length ? this.sec(t('people'), false, h('div', { class: 'people' }, ...e.people.map(p => this.personChip(p)))) : null,

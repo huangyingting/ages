@@ -5,6 +5,9 @@ import {
 } from './prims.ts';
 import { human, type HumanOpts, type HumanPose } from './human.ts';
 import { figure, figureBase } from './figure.ts';
+import { costume } from './costume.ts';
+import { eraOf } from '../../shared/data/era.ts';
+import type { PersonRole } from '../../shared/data/heroes.ts';
 import { horse } from './animals.ts';
 import { grp, proof, storey, hall, gourd, minipine } from './timber.ts';
 
@@ -673,6 +676,33 @@ const cannon: Builder = gp => {
   for (let i = 0; i < 5; i++) add(sm, g('rich:ico', () => new THREE.IcosahedronGeometry(1, 0)), mat('#cfc8bc', { transparent: 0.6 }), 0, 0, 0, 0.01, 0.01, 0.01);
 };
 
+const trebuchet: Builder = (gp, r) => {
+  // a traction trebuchet (砲): timber A-frames carry a pivoting throwing arm; a crew hauls the ropes, a stone waits in the sling
+  const c = str(r.color, '#7a2318');
+  ground(gp, 0.44, '#8a7a5a');
+  const wd = P.darkwood, py = 0.46;
+  rbox(gp, wd, 0, 0.03, 0, 0.36, 0.04, 0.42, 0.006);
+  for (const sx of [-1, 1]) {
+    rod(gp, [sx * 0.12, 0.07, -0.17], [sx * 0.07, py, 0], 0.014, wd, 5);
+    rod(gp, [sx * 0.12, 0.07, 0.17], [sx * 0.07, py, 0], 0.014, wd, 5);
+    rod(gp, [sx * 0.11, 0.2, -0.11], [sx * 0.11, 0.2, 0.11], 0.008, wd, 4);
+  }
+  rod(gp, [-0.1, py, 0], [0.1, py, 0], 0.016, P.iron, 6);
+  // the arm: long end swung up behind, short end down in front where the crew pull
+  const back: [number, number, number] = [0, py + 0.34, -0.36], front: [number, number, number] = [0, py - 0.12, 0.16];
+  rod(gp, front, back, 0.016, tint(wd, 0.1), 6);
+  for (const t of [0.25, 0.5, 0.75]) cyl(gp, c, 0, py + 0.22 * (t - 0.35), -0.52 * (t - 0.3), 0.02, 0.012, 8);
+  rod(gp, back, [0, py + 0.12, -0.42], 0.003, '#c8b88a', 3);
+  ellip(gp, '#8a8478', 0, py + 0.1, -0.42, 0.035);
+  for (let k = 0; k < 4; k++) {
+    const x = -0.15 + k * 0.1, z = 0.32 + (k % 2) * 0.04;
+    rod(gp, front, [x, 0.2, z], 0.003, '#c8b88a', 3);
+    human(gp, x, 0.03, z, { h: 0.2, pose: 'carry', top: k % 2 ? tint(c, -0.1) : '#6b5a3e', bottom: '#3a3128', hat: '#3a3128', hatStyle: 'cap', detail: 'lo', ry: Math.PI });
+  }
+  for (let k = 0; k < 3; k++) ellip(gp, '#8a8478', 0.24 + (k % 2) * 0.05, 0.06, 0.05 + k * 0.05, 0.035);
+  banner(gp, -0.3, 0.03, -0.25, 0.4, c, 0.1);
+};
+
 const monument: Builder = (gp, r) => {
   // a memorial: stele tower on a two-tier granite platform (Monument to the People's Heroes style)
   const c = str(r.color, '#d8d2c4');
@@ -694,24 +724,36 @@ const statue: Builder = (gp, r) => {
 
 export const RICH: Record<string, Builder> = {
   army, rider, warrior, chariot, camel, flag, beacon, wall, gate, palace, pagoda, temple, bell, ding, scroll, printing, compass, seismoscope,
-  yurt, tent, hut, junk, warship, boat, fireship, redboat, bridge, cannon, monument, statue,
+  yurt, tent, hut, junk, warship, boat, fireship, redboat, bridge, cannon, trebuchet, monument, statue,
 };
 
-/** A generic historical person for a person card, styled by role (pocket-planet figure on a round base). */
+/**
+ * A generic historical person for a person card, dressed for their role and period (`r.year`): 冕服 for early
+ * emperors, 圆领袍 and 幞头 for Tang/Song officials, 乌纱帽 with a rank badge in the Ming, 马褂 and queue in the Qing …
+ */
 export function personModel(gp: THREE.Group, r: ModelRecipe): void {
-  const role = str(r.role, 'scholar');
+  const role = str(r.role, 'scholar') as PersonRole;
+  const era = eraOf(typeof r.year === 'number' ? r.year : 1000);
   const y = figureBase(gp, '#c9b58e', '#6e5a40');
-  const robe = str(r.color, role === 'ruler' ? '#c99a2e' : role === 'general' ? '#7a2318' : role === 'monk' ? '#c2410c' : role === 'woman' ? '#a8456a' : '#3f5f7a');
-  const common = { h: 0.62, x: 0, y, z: 0, top: robe, accent: P.gold, hair: '#1c1714', beardColor: '#2a2420' };
-  if (role === 'ruler') figure(gp, { ...common, outfit: 'robe', wideSleeves: true, hat: 'crown', hatColor: '#1c1714', beard: 'long', armL: { fwd: 0.5, bend: 1.2, inward: 0.4 }, armR: { fwd: 0.5, bend: 1.2, inward: 0.4 } });
+  const look = costume(role, era);
+  const common = { h: 0.62, x: 0, y, z: 0, hair: '#1c1714', beardColor: '#2a2420', accent: P.gold, ...look, top: str(r.color, look.top) };
+  const modern = era === 'minguo' || era === 'modern';
+  if (role === 'ruler') figure(gp, { ...common, armL: { fwd: 0.5, bend: 1.2, inward: 0.4 }, armR: { fwd: 0.5, bend: 1.2, inward: 0.4 } });
   else if (role === 'general') {
-    const a = figure(gp, { ...common, outfit: 'tunic', bottom: '#3a3128', hat: 'helmet', hatColor: P.iron, beard: 'full', cape: '#7f1d1d', armR: { fwd: 0.3, side: 0.2, bend: 0.3 }, stance: 'wide' });
-    rod(gp, [a.handR[0], a.handR[1] - 0.25, a.handR[2]], [a.handR[0], a.handR[1] + 0.35, a.handR[2]], 0.006, P.darkwood, 4);
-    cone(gp, '#a8adb3', a.handR[0], a.handR[1] + 0.35, a.handR[2], 0.012, 0.06, 4);
-  } else if (role === 'monk') figure(gp, { ...common, outfit: 'robe', hairStyle: 'bald', wideSleeves: true, armL: { fwd: 0.9, bend: 1.3, inward: 0.8 }, armR: { fwd: 0.9, bend: 1.3, inward: 0.8 } });
-  else if (role === 'woman') figure(gp, { ...common, outfit: 'dress', hairStyle: 'bun', wideSleeves: true, armL: { fwd: 0.4, bend: 0.8 }, armR: { fwd: 0.4, bend: 0.8 } });
+    const a = figure(gp, { ...common, armR: { fwd: 0.3, side: 0.2, bend: 0.3 } });
+    const [hx, hy, hz] = a.handR;
+    if (!modern) {
+      rod(gp, [hx, hy - 0.25, hz], [hx, hy + 0.35, hz], 0.006, P.darkwood, 4);
+      cone(gp, '#a8adb3', hx, hy + 0.35, hz, 0.012, 0.06, 4);
+      if (era === 'xianqin' || era === 'qinhan') box(gp, '#a8adb3', hx, hy + 0.3, hz + 0.018, 0.004, 0.012, 0.03); // 戟 blade
+      else box(gp, '#b91c1c', hx, hy + 0.3, hz, 0.014, 0.028, 0.014); // red tassel under the spearhead
+    }
+  } else if (role === 'monk') figure(gp, { ...common, armL: { fwd: 0.9, bend: 1.3, inward: 0.8 }, armR: { fwd: 0.9, bend: 1.3, inward: 0.8 } });
+  else if (role === 'woman') figure(gp, { ...common, armL: { fwd: 0.4, bend: 0.8 }, armR: { fwd: 0.4, bend: 0.8 } });
   else {
-    const a = figure(gp, { ...common, outfit: 'robe', hairStyle: 'topknot', hat: 'scholar', hatColor: P.ink, beard: 'long', wideSleeves: true, armR: { fwd: 0.8, bend: 1.0 }, armL: { fwd: 0.2, bend: 0.3 } });
-    cyl(gp, P.paper, a.handR[0], a.handR[1], a.handR[2] + 0.01, 0.012, 0.12, 8).rotation.z = Math.PI / 2;
+    const a = figure(gp, { ...common, armR: { fwd: 0.8, bend: 1.0 }, armL: { fwd: 0.2, bend: 0.3 } });
+    if (modern) box(gp, '#f1ece0', a.handR[0], a.handR[1], a.handR[2] + 0.01, 0.05, 0.065, 0.012); // a book
+    else if (era === 'ming' || era === 'qing') box(gp, '#e8dcc0', a.handR[0], a.handR[1], a.handR[2] + 0.01, 0.022, 0.1, 0.006); // 笏 tablet
+    else cyl(gp, P.paper, a.handR[0], a.handR[1], a.handR[2] + 0.01, 0.012, 0.12, 8).rotation.z = Math.PI / 2;
   }
 }

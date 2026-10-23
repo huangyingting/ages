@@ -155,7 +155,13 @@ export interface HistEvent {
   mapChange?: boolean;
 }
 
-export type Troops = 'foot' | 'horse' | 'mixed';
+/** Troop mix: `foot` spearmen with archers behind, `mixed` cavalry on the wings + infantry + archers, `chariot` war chariots
+ * with attached infantry (before 307 BCE `horse`/`mixed` become chariots), rifles replace spears and bows from 1840. */
+export type Troops = 'foot' | 'horse' | 'mixed' | 'archer' | 'chariot' | 'gun';
+/** Battle formations (阵型): 横阵 line, 长蛇阵 column, 锋矢阵 wedge, 鹤翼阵 wings, 方阵 square, 圆阵 circle. */
+export type Formation = 'line' | 'column' | 'wedge' | 'wings' | 'square' | 'circle';
+/** Camera shots: establishing wide, low angle, close-up, overhead, from the flank, and a shake. */
+export type Shot = 'wide' | 'low' | 'close' | 'top' | 'side' | 'shake';
 
 /** Story DSL: steps run in order; `par: true` starts the step and moves on without waiting for it to finish. */
 export type StoryStep =
@@ -167,9 +173,15 @@ export type StoryStep =
   | { do: 'spawn'; lon: number; lat: number; model: ModelRecipe; scale?: number; label?: I18n; par?: boolean }
   | { do: 'fx'; lon: number; lat: number; fx: 'battle' | 'fire' | 'glow' | 'flag' | 'smoke' | 'firework'; color?: string; dur?: number; par?: boolean }
   /** a marching army along `pts` (or a bowed arrow from → to); foot, horse or mixed; `follow` lets the camera ride along */
-  | { do: 'army'; from?: LonLat; to?: LonLat; pts?: LonLat[]; color: string; dur: number; count?: number; unit?: Troops; label?: I18n; follow?: boolean; keep?: boolean; retreat?: boolean; par?: boolean }
-  /** a pitched battle: A charges from `angle` (degrees clockwise from west), B from the opposite side; the loser routs */
-  | { do: 'clash'; lon: number; lat: number; a: string; b: string; winner?: 'a' | 'b'; angle?: number; dur?: number; count?: number; labels?: [I18n, I18n]; units?: [Troops, Troops]; siege?: boolean; par?: boolean }
+  | { do: 'army'; from?: LonLat; to?: LonLat; pts?: LonLat[]; color: string; dur: number; count?: number; unit?: Troops; formation?: Formation; label?: I18n; follow?: boolean; keep?: boolean; retreat?: boolean; par?: boolean }
+  /**
+   * a pitched battle on a battlefield with camps: A charges from `angle` (degrees clockwise from west), B from the
+   * opposite side, each in its formation; archers loose volleys, siege engines bombard the gate; the loser routs. The
+   * camera cuts between a low flank shot, a push-in with shake and a crane up (`cam: false` keeps the camera still).
+   */
+  | { do: 'clash'; lon: number; lat: number; a: string; b: string; winner?: 'a' | 'b'; angle?: number; dur?: number; count?: number; labels?: [I18n, I18n]; units?: [Troops, Troops]; formations?: [Formation, Formation]; siege?: boolean; cam?: boolean; par?: boolean }
+  /** a camera shot around lon/lat (default: the current target); `heading` in degrees, 0 = looking north */
+  | { do: 'shot'; shot: Shot; lon?: number; lat?: number; heading?: number; dur?: number; par?: boolean }
   /** ships in V formation along a sea route, with wakes */
   | { do: 'fleet'; pts: LonLat[]; dur: number; color?: string; count?: number; model?: 'junk' | 'warship' | 'fireship' | 'boat' | 'redboat'; label?: I18n; follow?: boolean; keep?: boolean; par?: boolean }
   /** the map of `year` spreads outwards from lon/lat (conquest, unification, revolution) */

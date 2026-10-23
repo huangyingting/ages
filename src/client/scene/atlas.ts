@@ -177,6 +177,7 @@ export class Atlas {
   /** Moves the map to a year: territory snapshot, period names, capital and the events of the period. */
   setYear(y: Year, instant = false): void {
     this.year = y;
+    this.fx.year = y;
     const snap = snapshotAt(y);
     this.shapes?.hydrate(snap);
     const lakes = this.shapes?.lakes(y) ?? [];

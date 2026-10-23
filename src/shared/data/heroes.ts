@@ -68,7 +68,9 @@ export function personRole(title: string): PersonRole {
 }
 
 /** The 3D figure shown on a person card. */
-export function personModel(p: { name: { zh: string }; title?: { zh: string } }): ModelRecipe {
+export function personModel(p: { name: { zh: string }; title?: { zh: string }; span?: [number, number] }): ModelRecipe {
   const hero = PERSON_HERO[p.name.zh];
-  return hero ? { kind: 'person', hero } : { kind: 'person', role: personRole(p.title?.zh ?? '') };
+  // dressed for the prime of their life (period costume)
+  const year = p.span ? Math.min(p.span[1], p.span[0] + 40) : undefined;
+  return hero ? { kind: 'person', hero } : { kind: 'person', role: personRole(p.title?.zh ?? ''), ...(year !== undefined ? { year } : {}) };
 }

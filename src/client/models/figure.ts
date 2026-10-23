@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { box, cyl, ellip, lathe, mat, shade, sweep, tube, add, g, type Station, type V3 } from './prims.ts';
+import { box, cone, cyl, ellip, lathe, mat, shade, sweep, tube, add, g, type Station, type V3 } from './prims.ts';
 import { armFK, ik2, lerp3, type ArmPose } from './rig.ts';
 import { part } from './human.ts';
 
@@ -13,10 +13,22 @@ const tone = (c: string, d: number) => shade(c, 1 + d);
  * smooth lathes and tubes so every hero reads as one consistent toy line. Builders add their own props, scenery and base;
  * the returned anchors (hands, head) let them attach books, telescopes, brushes, flags...
  */
-export type Outfit = 'robe' | 'dress' | 'coat' | 'suit' | 'tunic';
-export type HairStyle = 'short' | 'long' | 'bun' | 'topknot' | 'bald' | 'curly' | 'wig' | 'bob' | 'braid' | 'wild';
+/**
+ * Chinese period dress: `roundrobe` 圆领袍 (Tang–Ming officials), `changshan` 长衫/长袍 with a stand collar, `magua`
+ * a Qing robe under a short dark jacket (马褂), `zhongshan` 中山装, `deel` the Mongol robe closing on the right.
+ */
+export type Outfit = 'robe' | 'dress' | 'coat' | 'suit' | 'tunic' | 'roundrobe' | 'changshan' | 'magua' | 'zhongshan' | 'deel';
+export type HairStyle = 'short' | 'long' | 'bun' | 'topknot' | 'bald' | 'curly' | 'wig' | 'bob' | 'braid' | 'wild' | 'queue' | 'highbun';
 export type Beard = 'none' | 'short' | 'long' | 'goatee' | 'moustache' | 'full';
-export type Hat = 'none' | 'scholar' | 'futou' | 'tophat' | 'beret' | 'cap' | 'crown' | 'turban' | 'helmet' | 'bicorne' | 'wreath';
+/**
+ * Chinese headwear by period: 冕冠 `mianguan` (emperors, tasselled board), 进贤冠 `jinxian` (Han officials), 软脚幞头
+ * `ruanjiao` (Tang), 展脚幞头 `zhanjiao` (Song, long straight wings), 乌纱帽 `wusha` and 翼善冠 `yishan` (Ming),
+ * 四方平定巾 `fangjin` (Ming scholars), 钹笠 `boli` and 罟罟冠 `gugu` (Yuan), 清朝官帽 `qingguan` with tassel and finial,
+ * 瓜皮帽 `guapi`, 两把头 `liangba` (Qing women), helmets with a red tassel (`plume` Tang/Song, `doumou` Ming/Qing) and
+ * the modern peaked cap.
+ */
+export type Hat = 'none' | 'scholar' | 'futou' | 'tophat' | 'beret' | 'cap' | 'crown' | 'turban' | 'helmet' | 'bicorne' | 'wreath'
+  | 'mianguan' | 'jinxian' | 'ruanjiao' | 'zhanjiao' | 'wusha' | 'yishan' | 'fangjin' | 'boli' | 'gugu' | 'qingguan' | 'guapi' | 'liangba' | 'plume' | 'doumou' | 'peaked';
 
 /** Leg stances: feet targets solved with IK so knees always bend forward and bones keep their length. */
 export type Stance = 'stand' | 'relax' | 'walk' | 'run' | 'kick' | 'kneel' | 'wide';
@@ -62,6 +74,17 @@ export interface FigureOpts {
   /** bare legs below the shorts' hem */
   shorts?: boolean;
   socks?: string;
+  /** rank badge on the chest (补子 square, or a round dragon roundel for emperors) */
+  badge?: string;
+  badgeRound?: boolean;
+  /** short jacket over a long robe (马褂) */
+  jacket?: string;
+  /** armour over the garment: lamellar body, shoulder guards and a plated skirt */
+  armor?: string;
+  /** two round breastplates (明光铠) */
+  discs?: boolean;
+  /** cap badge / hat finial colour (red star, 顶珠) */
+  hatBadge?: string;
 }
 
 export interface FigureAnchors {
@@ -122,7 +145,7 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
   const U = (v: V3): V3 => [v[0] * u, v[1] * u, v[2] * u];
 
   // ---- lower body
-  const long = outfit === 'robe' || outfit === 'dress';
+  const long = outfit === 'robe' || outfit === 'dress' || outfit === 'roundrobe' || outfit === 'changshan' || outfit === 'magua' || outfit === 'deel';
   if (long) {
     // floor-length garment with a gentle flare and hem
     flat(lathe(body, S([[0, 0.012], [0.185, 0.012], [0.192, 0.03], [0.17, 0.14], [0.145, 0.3], [0.124, 0.44], [0.12, 0.5], [0, 0.5]]), top, 0, 0, 0, 22), 0.8);
@@ -187,8 +210,50 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
     // crossed collar (交领) in the trim colour
     box(body, accent, -0.018 * u, 0.715 * u, fz, 0.016 * u, 0.13 * u, 0.008 * u, 0, 0, 0.42);
     box(body, accent, 0.022 * u, 0.735 * u, fz - 0.002 * u, 0.016 * u, 0.09 * u, 0.008 * u, 0, 0, -0.42);
+  } else if (outfit === 'roundrobe') {
+    // round collar (圆领) hugging the neck
+    add(body, g('fig-collar', () => new THREE.TorusGeometry(1, 0.22, 6, 18)), mat(tone(top, -0.15)), 0, 0.772 * u, 0, 0.062 * u, 0.062 * u * 0.72, 0.062 * u, 0, Math.PI / 2, 0);
+  } else if (outfit === 'deel') {
+    // the Mongol robe closes diagonally to the right armpit
+    box(body, accent, 0.04 * u, 0.715 * u, fz - 0.004 * u, 0.02 * u, 0.13 * u, 0.008 * u, 0, 0, 0.75);
+    flat(lathe(body, S([[0.121, 0.49], [0.127, 0.49], [0.127, 0.56], [0.121, 0.56]]), accent, 0, 0, 0, 18), 0.72);
+  } else if (outfit === 'changshan' || outfit === 'magua' || outfit === 'zhongshan') {
+    // stand collar; the 长衫 opens with a curved flap (大襟) to the right, the 中山装 has a row of buttons and four pockets
+    cyl(body, outfit === 'magua' ? o.jacket ?? tone(top, -0.4) : top, 0, 0.785 * u, 0, 0.046 * u, 0.03 * u, 12);
+    if (outfit === 'zhongshan') {
+      for (let i = 0; i < 5; i++) ellip(body, tone(top, -0.3), 0, (0.75 - i * 0.05) * u, fz + 0.004 * u, 0.007 * u);
+      for (const sx of [-1, 1]) for (const yy of [0.69, 0.55]) box(body, tone(top, -0.12), sx * 0.052 * u, yy * u, fz - (yy > 0.6 ? 0.004 : 0.0) * u, 0.044 * u, 0.04 * u, 0.006 * u);
+    } else if (outfit === 'changshan') {
+      box(body, tone(top, -0.2), 0.04 * u, 0.735 * u, fz - 0.004 * u, 0.012 * u, 0.1 * u, 0.006 * u, 0, 0, 1.1);
+    }
   } else {
     box(body, accent, 0, 0.775 * u, fz - 0.01 * u, 0.07 * u, 0.012 * u, 0.012 * u);
+  }
+  if (outfit === 'magua') {
+    // short dark jacket over the robe, buttoned down the middle
+    const jk = o.jacket ?? tone(top, -0.4);
+    flat(lathe(body, S([[0.15, 0.4], [0.156, 0.4], [0.138, 0.5], [0.126, 0.6], [0.14, 0.71], [0.134, 0.755], [0.085, 0.785], [0, 0.79]]), jk, 0, 0, 0, 18), 0.72);
+    for (let i = 0; i < 5; i++) ellip(body, '#d6b25e', 0, (0.74 - i * 0.075) * u, 0.104 * u, 0.008 * u);
+  }
+  if (o.badge) {
+    // 补子: square rank badge (officials) or a round dragon roundel (emperors)
+    if (o.badgeRound) ellip(body, o.badge, 0, 0.64 * u, 0.09 * u, 0.05 * u, 0.05 * u, 0.012 * u);
+    else box(body, o.badge, 0, 0.635 * u, fz - 0.002 * u, 0.086 * u, 0.086 * u, 0.01 * u);
+    ellip(body, tone(o.badge, -0.35), 0, 0.64 * u, fz + 0.006 * u, 0.022 * u, 0.018 * u, 0.006 * u);
+  }
+  if (o.armor) {
+    // lamellar armour: body with plate rows, shoulder guards, a plated skirt, optional round breastplates
+    const ar = o.armor, dk = tone(ar, -0.35);
+    flat(lathe(body, S([[0.128, 0.47], [0.131, 0.47], [0.124, 0.56], [0.13, 0.64], [0.146, 0.71], [0.12, 0.765], [0, 0.77]]), ar, 0, 0, 0, 18), 0.72);
+    for (const yy of [0.53, 0.6, 0.67]) flat(lathe(body, S([[0.128, yy], [0.134, yy], [0.134, yy + 0.008], [0.128, yy + 0.008]]), dk, 0, 0, 0, 18), 0.72);
+    flat(lathe(body, S([[0.16, 0.3], [0.168, 0.3], [0.15, 0.4], [0.131, 0.48], [0, 0.48]]), ar, 0, 0, 0, 18), 0.78);
+    flat(lathe(body, S([[0.164, 0.3], [0.17, 0.3], [0.17, 0.315], [0.164, 0.315]]), dk, 0, 0, 0, 18), 0.78);
+    for (const sx of [-1, 1]) {
+      ellip(body, ar, sx * 0.15 * u, 0.72 * u, 0, 0.07 * u, 0.04 * u, 0.06 * u, 0, 0, sx * -0.5);
+      ellip(body, dk, sx * 0.168 * u, 0.69 * u, 0, 0.05 * u, 0.026 * u, 0.055 * u, 0, 0, sx * -0.7);
+    }
+    if (o.discs) for (const sx of [-1, 1]) ellip(body, '#e3c26a', sx * 0.05 * u, 0.665 * u, 0.1 * u, 0.034 * u, 0.034 * u, 0.008 * u);
+    flat(lathe(body, S([[0.13, 0.5], [0.136, 0.5], [0.136, 0.53], [0.13, 0.53]]), '#3a2a1c', 0, 0, 0, 18), 0.74);
   }
   if (o.cape) {
     flat(lathe(body, S([[0.16, 0.2], [0.17, 0.2], [0.15, 0.45], [0.13, 0.7], [0.105, 0.79], [0, 0.8]]), o.cape, 0, -0.012 * u, -0.022 * u, 16), 0.7).scale.z = 0.62;
@@ -260,7 +325,7 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
   hairFor(body, o.hairStyle ?? 'short', hair, hy, hr, u);
   beardFor(body, o.beard ?? 'none', o.beardColor ?? hair, hy, hr, u);
   const topY = hy + hr * 1.12;
-  hatFor(body, o.hat ?? 'none', o.hatColor ?? '#1f2937', hy, hr, u);
+  hatFor(body, o.hat ?? 'none', o.hatColor ?? '#1f2937', hy, hr, u, o.hatBadge);
 
   // anchors to builder space
   body.updateMatrix(); fig.updateMatrix();
@@ -281,6 +346,12 @@ const mix2 = (a: string, b: string) => {
 
 function hairFor(p: THREE.Object3D, s: HairStyle, c: string, hy: number, hr: number, u: number): void {
   if (s === 'bald') { ellip(p, c, 0, hy - hr * 0.1, -hr * 0.3, hr * 1.02, hr * 0.6, hr * 0.8); return; }
+  if (s === 'queue') {
+    // Qing 辫子: front shaved, hair on the crown and back gathered into a long braid
+    ellip(p, c, 0, hy + hr * 0.3, -hr * 0.32, hr * 1.0, hr * 0.84, hr * 0.8);
+    tube(p, [[0, hy - hr * 0.2, -hr * 1.0], [0, hy - hr * 1.6, -hr * 1.3], [0, hy - hr * 3.4, -hr * 1.3], [0, hy - hr * 4.6, -hr * 1.2]], hr * 0.2, hr * 0.08, c, { radial: 7, sub: 3 });
+    return;
+  }
   // skull cap shared by most styles (pushed back so the face stays visible)
   ellip(p, c, 0, hy + hr * 0.22, -hr * 0.1, hr * 1.06, hr * 0.98, hr * 1.04);
   ellip(p, tone(c, 0.08), 0, hy + hr * 0.62, hr * 0.38, hr * 0.78, hr * 0.32, hr * 0.5); // fringe line
@@ -294,6 +365,12 @@ function hairFor(p: THREE.Object3D, s: HairStyle, c: string, hy: number, hr: num
       break;
     case 'bun':
       ellip(p, c, 0, hy + hr * 0.5, -hr * 1.05, hr * 0.42, hr * 0.42, hr * 0.38);
+      break;
+    case 'highbun': // Tang court lady: tall double bun with hairpins and a flower
+      ellip(p, c, 0, hy + hr * 1.35, -hr * 0.2, hr * 0.6, hr * 0.62, hr * 0.5);
+      for (const sx of [-1, 1]) ellip(p, c, sx * hr * 0.42, hy + hr * 1.75, -hr * 0.3, hr * 0.32, hr * 0.42, hr * 0.3, 0, 0, sx * -0.4);
+      ellip(p, '#dc2626', hr * 0.55, hy + hr * 1.2, hr * 0.15, hr * 0.2);
+      for (const sx of [-1, 1]) box(p, '#d6b25e', sx * hr * 0.5, hy + hr * 1.3, -hr * 0.1, hr * 0.9, hr * 0.05, hr * 0.05, 0, 0, sx * 0.5);
       break;
     case 'topknot':
       ellip(p, c, 0, hy + hr * 1.18, -hr * 0.1, hr * 0.32, hr * 0.32, hr * 0.32);
@@ -341,9 +418,99 @@ function beardFor(p: THREE.Object3D, s: Beard, c: string, hy: number, hr: number
   void u;
 }
 
-function hatFor(p: THREE.Object3D, s: Hat, c: string, hy: number, hr: number, u: number): void {
+function hatFor(p: THREE.Object3D, s: Hat, c: string, hy: number, hr: number, u: number, badge?: string): void {
   const ty = hy + hr * 0.95;
   switch (s) {
+    case 'mianguan': { // 冕冠: cap, a flat board tilted forward, strings of jade beads (旒) front and back, a gold pin
+      cyl(p, c, 0, ty + hr * 0.25, -hr * 0.05, hr * 0.62, hr * 0.6, 14);
+      box(p, c, 0, ty + hr * 0.6, -hr * 0.05, hr * 1.5, hr * 0.07, hr * 2.4, 0, 0.08, 0);
+      box(p, '#d6b25e', 0, ty + hr * 0.3, -hr * 0.05, hr * 1.7, hr * 0.06, hr * 0.06);
+      for (const zs of [1, -1]) for (let i = 0; i < 7; i++) {
+        const x = (i - 3) * hr * 0.22, z = -hr * 0.05 + zs * hr * 1.13, top = ty + hr * 0.6 - zs * hr * 0.09;
+        box(p, '#3f3f46', x, top - hr * 0.35, z, hr * 0.02, hr * 0.7, hr * 0.02);
+        for (let k = 0; k < 3; k++) ellip(p, k % 2 ? '#e0b23c' : '#5eead4', x, top - hr * (0.18 + k * 0.24), z, hr * 0.05);
+      }
+      break;
+    }
+    case 'jinxian': // 进贤冠: black band and a slanted front plate
+      cyl(p, c, 0, ty + hr * 0.1, -hr * 0.05, hr * 0.85, hr * 0.3, 16);
+      box(p, c, 0, ty + hr * 0.55, -hr * 0.25, hr * 0.7, hr * 0.9, hr * 0.08, 0, -0.55, 0);
+      box(p, '#d6b25e', 0, ty + hr * 0.2, -hr * 0.05, hr * 1.6, hr * 0.05, hr * 0.05);
+      break;
+    case 'ruanjiao': // Tang 软脚幞头: a high rounded crown, two soft ribbons hanging behind
+      ellip(p, c, 0, ty + hr * 0.1, -hr * 0.1, hr * 1.0, hr * 0.6, hr * 1.0);
+      ellip(p, c, 0, ty + hr * 0.55, -hr * 0.25, hr * 0.55, hr * 0.55, hr * 0.5);
+      for (const sx of [-1, 1]) tube(p, [[sx * hr * 0.25, ty, -hr * 0.95], [sx * hr * 0.35, ty - hr * 0.8, -hr * 1.15], [sx * hr * 0.4, ty - hr * 1.8, -hr * 1.05]], hr * 0.09, hr * 0.07, c, { radial: 5, sub: 2 });
+      break;
+    case 'zhanjiao': // Song 展脚幞头: a square cap with long straight wings
+      box(p, c, 0, ty + hr * 0.2, -hr * 0.05, hr * 1.9, hr * 0.75, hr * 1.85);
+      box(p, c, 0, ty + hr * 0.55, -hr * 0.35, hr * 1.5, hr * 0.6, hr * 1.0);
+      for (const sx of [-1, 1]) box(p, c, sx * hr * 2.9, ty + hr * 0.35, -hr * 0.6, hr * 3.6, hr * 0.08, hr * 0.06);
+      break;
+    case 'wusha': // Ming 乌纱帽: low front, raised back, two oval wings
+    case 'yishan': // Ming emperor 翼善冠: the same shape with two upright wings and gold trim
+      ellip(p, c, 0, ty + hr * 0.05, -hr * 0.05, hr * 1.05, hr * 0.55, hr * 1.05);
+      ellip(p, c, 0, ty + hr * 0.4, -hr * 0.45, hr * 0.85, hr * 0.6, hr * 0.6);
+      for (const sx of [-1, 1]) {
+        if (s === 'wusha') ellip(p, c, sx * hr * 1.35, ty + hr * 0.45, -hr * 0.85, hr * 0.6, hr * 0.3, hr * 0.04, sx * 0.15);
+        else ellip(p, c, sx * hr * 0.5, ty + hr * 1.0, -hr * 0.75, hr * 0.36, hr * 0.5, hr * 0.05, 0, 0, sx * -0.35);
+      }
+      if (s === 'yishan') {
+        cyl(p, '#d6b25e', 0, ty - hr * 0.12, -hr * 0.05, hr * 1.06, hr * 0.08, 18);
+        for (const sx of [-1, 1]) ellip(p, '#e0b23c', sx * hr * 0.35, ty + hr * 0.45, -hr * 0.98, hr * 0.2, hr * 0.14, hr * 0.06);
+      }
+      break;
+    case 'fangjin': { // Ming scholar 四方平定巾: a tall soft square cap
+      const m = lathe(p, [[0, 0], [hr * 0.95, 0], [hr * 1.25, hr * 1.3], [0, hr * 1.3]], c, 0, ty - hr * 0.35, -hr * 0.05, 4);
+      m.rotation.y = Math.PI / 4;
+      break;
+    }
+    case 'boli': // Yuan 钹笠: a round hat with a wide brim and a bead on top
+      cyl(p, c, 0, ty, 0, hr * 1.6, hr * 0.05, 20);
+      ellip(p, c, 0, ty + hr * 0.15, -hr * 0.03, hr * 0.95, hr * 0.65, hr * 0.95);
+      ellip(p, badge ?? '#e0b23c', 0, ty + hr * 0.85, 0, hr * 0.14);
+      break;
+    case 'gugu': // Yuan noblewoman 罟罟冠: a tall flaring headdress
+      ellip(p, c, 0, ty - hr * 0.05, -hr * 0.05, hr * 1.05, hr * 0.5, hr * 1.05);
+      lathe(p, [[0, 0], [hr * 0.45, 0], [hr * 0.3, hr * 1.4], [hr * 0.55, hr * 2.4], [0, hr * 2.4]], c, 0, ty, -hr * 0.1, 12);
+      ellip(p, '#e0b23c', 0, ty + hr * 2.45, -hr * 0.1, hr * 0.2);
+      break;
+    case 'qingguan': // Qing official hat: upturned brim, red silk tassels, a finial (顶珠)
+      lathe(p, [[0, 0], [hr * 1.25, 0], [hr * 1.32, hr * 0.38], [hr * 1.18, hr * 0.42], [hr * 0.9, hr * 0.1], [0, hr * 0.1]], c, 0, ty - hr * 0.25, 0, 18);
+      cone(p, '#b91c1c', 0, ty + hr * 0.38, 0, hr * 0.95, hr * 0.62, 16);
+      ellip(p, badge ?? '#e0b23c', 0, ty + hr * 0.78, 0, hr * 0.14);
+      break;
+    case 'guapi': // 瓜皮帽: a skullcap with a red knot
+      ellip(p, c, 0, ty - hr * 0.05, -hr * 0.05, hr * 1.08, hr * 0.6, hr * 1.08);
+      cyl(p, tone(c, -0.2), 0, ty - hr * 0.35, -hr * 0.05, hr * 1.08, hr * 0.1, 18);
+      ellip(p, badge ?? '#b91c1c', 0, ty + hr * 0.55, -hr * 0.05, hr * 0.12);
+      break;
+    case 'liangba': // Qing lady 两把头: a wide black board crowned with flowers
+      box(p, c, 0, ty + hr * 0.2, -hr * 0.2, hr * 0.7, hr * 0.7, hr * 0.6);
+      box(p, c, 0, ty + hr * 0.7, -hr * 0.2, hr * 2.8, hr * 0.75, hr * 0.35);
+      for (let i = 0; i < 3; i++) ellip(p, i === 1 ? '#dc2626' : '#f472b6', (i - 1) * hr * 0.7, ty + hr * 0.75, hr * 0.02, hr * 0.2);
+      tube(p, [[hr * 1.3, ty + hr * 0.4, -hr * 0.1], [hr * 1.4, ty - hr * 0.6, -hr * 0.1]], hr * 0.07, hr * 0.05, '#dc2626', { radial: 5, sub: 1 });
+      break;
+    case 'plume': // Tang/Song helmet: bowl, ear flaps, neck guard, red tassel on a gold spike
+      ellip(p, c, 0, ty - hr * 0.15, -hr * 0.05, hr * 1.12, hr * 0.85, hr * 1.12);
+      for (const sx of [-1, 1]) ellip(p, c, sx * hr * 1.0, hy - hr * 0.05, -hr * 0.15, hr * 0.2, hr * 0.6, hr * 0.6);
+      ellip(p, c, 0, hy - hr * 0.1, -hr * 0.85, hr * 0.9, hr * 0.55, hr * 0.35);
+      cyl(p, '#d6b25e', 0, ty + hr * 0.75, -hr * 0.05, hr * 0.06, hr * 0.3, 6);
+      ellip(p, badge ?? '#c81e1e', 0, ty + hr * 1.05, -hr * 0.1, hr * 0.22, hr * 0.35, hr * 0.22);
+      break;
+    case 'doumou': // Ming/Qing helmet: a tall spike with a red tassel and a neck curtain
+      ellip(p, c, 0, ty - hr * 0.15, -hr * 0.05, hr * 1.12, hr * 0.85, hr * 1.12);
+      cyl(p, tone(c, -0.15), 0, ty - hr * 0.5, 0, hr * 1.18, hr * 0.06, 18);
+      ellip(p, tone(c, -0.1), 0, hy - hr * 0.1, -hr * 0.6, hr * 1.1, hr * 0.7, hr * 0.6);
+      cyl(p, '#d6b25e', 0, ty + hr * 1.0, -hr * 0.05, hr * 0.04, hr * 0.8, 6);
+      ellip(p, badge ?? '#c81e1e', 0, ty + hr * 0.85, -hr * 0.05, hr * 0.26, hr * 0.2, hr * 0.26);
+      break;
+    case 'peaked': // military peaked cap with a cap badge
+      cyl(p, c, 0, ty + hr * 0.05, -hr * 0.02, hr * 1.12, hr * 0.42, 18);
+      cyl(p, tone(c, -0.25), 0, ty - hr * 0.18, 0, hr * 1.06, hr * 0.14, 18);
+      box(p, '#1c1917', 0, ty - hr * 0.26, hr * 1.05, hr * 1.1, hr * 0.05, hr * 0.6, 0, 0.25, 0);
+      if (badge) ellip(p, badge, 0, ty - hr * 0.05, hr * 1.13, hr * 0.13, hr * 0.13, hr * 0.04);
+      break;
     case 'scholar': // small square cap with a hairpin (ancient Chinese scholar)
       box(p, c, 0, ty + hr * 0.25, -hr * 0.05, hr * 0.7, hr * 0.5, hr * 0.8);
       box(p, '#d6b25e', 0, ty + hr * 0.25, -hr * 0.05, hr * 1.5, hr * 0.06, hr * 0.06);

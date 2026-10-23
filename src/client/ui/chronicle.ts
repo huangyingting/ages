@@ -8,8 +8,9 @@ import { load, save } from '../lib/storage.ts';
 import { h, icon, iconBtn, setIcon } from './dom.ts';
 
 /**
- * 大事年表: the chronicle of the current dynasty as a list (year · headline). The line at or before the timeline's
- * year is highlighted and scrolled into view; clicking a line opens the event. Folds to a slim tab.
+ * The period panel down the right edge: the current dynasty (header), the docked map legend, then 大事年表 — the
+ * chronicle as a list (year · headline). The line at or before the timeline's year is highlighted and scrolled into
+ * view; clicking a line opens the event. Folds to a slim tab that keeps the dynasty name.
  */
 export class Chronicle {
   readonly el: HTMLElement;
@@ -38,6 +39,9 @@ export class Chronicle {
   }
 
   get folded(): boolean { return this.el.classList.contains('folded'); }
+
+  /** Docks a section (the map legend) between the dynasty header and the list. */
+  mount(section: HTMLElement): void { this.el.insertBefore(section, this.list); }
 
   fold(on: boolean, persist = true): void {
     this.el.classList.toggle('folded', on);
@@ -90,7 +94,7 @@ export class Chronicle {
       type: 'button', role: 'radio', class: this.core === core ? 'on' : '', 'aria-checked': String(this.core === core), text: t(core ? 'chCore' : 'chAll'),
       onclick: () => { this.core = core; save('chCore', core); this.era = undefined; this.setYear(this.lastYear); },
     })));
-    (this.el.querySelector('.ch-tab span') as HTMLElement).textContent = t('chronicle');
+    (this.el.querySelector('.ch-tab span') as HTMLElement).textContent = era ? `${tr(era.short, L)} · ${t('chronicle')}` : t('chronicle');
     this.head.replaceChildren(
       h('div', { class: 'ch-k' }, h('span', { text: t('chronicle') }), filter),
       era ? h('button', { type: 'button', class: 'ch-era', style: `--c:${era.color}`, onclick: () => this.onEra(era.id) },

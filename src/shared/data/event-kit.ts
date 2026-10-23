@@ -5,7 +5,7 @@ import { PLACE } from './places.ts';
 export const MODEL_KINDS = [
   'cave', 'hut', 'stilt', 'jade', 'ding', 'oracle', 'chariot', 'bell', 'wall', 'beacon', 'palace', 'gate', 'pagoda', 'warrior', 'camel',
   'junk', 'boat', 'fireship', 'warship', 'weir', 'bridge', 'scroll', 'army', 'rider', 'cannon', 'flag', 'train', 'factory', 'rocket',
-  'monument', 'redboat', 'statue', 'temple', 'seismoscope', 'stadium', 'skyline', 'printing', 'compass', 'tent', 'yurt', 'dam',
+  'monument', 'redboat', 'statue', 'temple', 'seismoscope', 'stadium', 'skyline', 'printing', 'compass', 'tent', 'yurt', 'dam', 'trebuchet',
 ] as const;
 export type ModelKind = typeof MODEL_KINDS[number];
 

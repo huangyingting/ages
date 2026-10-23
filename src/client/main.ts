@@ -16,7 +16,6 @@ import { Card } from './ui/card.ts';
 import { h, iconBtn } from './ui/dom.ts';
 import { Learn } from './ui/learn.ts';
 import { Help, HubMenu, SettingsMenu } from './ui/menus.ts';
-import { eraAt, formatYear } from '../shared/lib/timeline.ts';
 import { SURFACES, type Surface } from './scene/terrain.ts';
 import { save } from './lib/storage.ts';
 import { journeyStory } from '../shared/data/stories.ts';
@@ -53,7 +52,6 @@ class App {
   ready = false;
   private langBtn!: HTMLButtonElement;
   private bar!: HTMLElement;
-  private eraChip!: HTMLButtonElement;
   private zoomLbl!: HTMLElement;
 
   constructor(private root: HTMLElement, stage: HTMLElement) {
@@ -185,13 +183,12 @@ class App {
     this.quiz.onYear = y => { this.timeline.set(y, true, false); this.atlas.setYear(y); };
     this.reader.onClose = () => {};
 
-    // top-left: brand mark and the current-period chip
-    this.eraChip = h('button', { type: 'button', class: 'era-chip', onclick: () => { const e = eraAt(this.timeline.year); if (e) this.openEra(e.id); } },
-      h('i', { class: 'dot' }), h('span', { class: 'ec-t' }, h('b'), h('small')), h('em', { class: 'ec-c' }));
+    // top-left: brand mark and search (the period lives in the timeline readout and the period panel)
     this.bar = h('div', { class: 'top-l' },
       h('div', { class: 'brand' }, h('span', { class: 'logo', 'aria-hidden': 'true' }), h('span', { class: 'brand-t' }, h('b', { text: 'Ages' }), h('span', { text: t('brandSub') }))),
-      this.search.el, this.eraChip);
-    this.timeline.onRender = y => { this.renderEraChip(y); this.chronicle.update(y); this.legend.setYear(y); };
+      this.search.el);
+    this.chronicle.mount(this.legend.el);
+    this.timeline.onRender = y => { this.chronicle.update(y); this.legend.setYear(y); };
 
     // top-right: one toolbar slab (search · language · study hall · map settings)
     this.langBtn = h('button', { type: 'button', class: 'ib lang', 'data-act': 'lang', onclick: () => setLang(lang === 'zh' ? 'en' : 'zh') });
@@ -203,18 +200,17 @@ class App {
       if ((!this.hub.el.hidden || !this.settings.el.hidden) && !top.contains(e.target as Node)) this.pop(null);
     });
 
-    // bottom corners: help; full screen and zoom
+    // bottom right: one map-control pill (full screen · home · zoom); help lives in the study-hall menu
     this.zoomLbl = h('span', { class: 'z-lbl' });
-    const zoom = h('div', { class: 'zoom-ctl' },
+    const corner = h('div', { class: 'corner-r map-ctl' },
+      iconBtn('full', t('fullscreen'), () => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen?.().catch(() => {}); }, 'b-full'),
+      iconBtn('home', t('home'), () => this.atlas.home(), 'b-home'),
+      h('i', { class: 'sep' }),
       iconBtn('plus', t('zoomIn'), () => this.atlas.view.zoomBy(0.62), 'z-in'), this.zoomLbl, iconBtn('minus', t('zoomOut'), () => this.atlas.view.zoomBy(1.6), 'z-out'));
-    const corner = h('div', { class: 'corner-r' },
-      iconBtn('full', t('fullscreen'), () => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen?.().catch(() => {}); }, 'round-btn b-full'),
-      iconBtn('home', t('home'), () => this.atlas.home(), 'round-btn b-home'),
-      zoom, iconBtn('help', t('help'), () => this.help.toggle(), 'round-btn b-help'));
     this.atlas.view.onFrame(() => { const z = 120 / this.atlas.view.pose().dist; const s = '×' + (z < 10 ? z.toFixed(1) : Math.round(z)); if (this.zoomLbl.textContent !== s) this.zoomLbl.textContent = s; });
 
-    this.root.append(this.bar, top, this.chronicle.el, this.legend.el, this.learn.el, this.card.el, this.reader.el, this.quiz.el, this.caption.el, this.timeline.el, this.help.el,
-      corner, h('div', { class: 'disc', text: t('disclaimer') }));
+    this.root.append(this.bar, top, this.chronicle.el, this.learn.el, this.card.el, this.reader.el, this.quiz.el, this.caption.el, this.timeline.el, this.help.el,
+      corner);
     this.relabel();
     onLang(l => this.onLang(l));
 
@@ -253,14 +249,6 @@ class App {
     this.settings.toggle(which === 'settings');
     this.root.querySelector('.b-hub')?.classList.toggle('on', which === 'hub');
     this.root.querySelector('.b-settings')?.classList.toggle('on', which === 'settings');
-  }
-
-  private renderEraChip(y: Year): void {
-    const era = eraAt(y);
-    this.eraChip.style.setProperty('--c', era?.color ?? '#c9a45c');
-    this.eraChip.querySelector('b')!.textContent = era ? tr(era.name, lang) : '';
-    this.eraChip.querySelector('small')!.textContent = formatYear(y, lang);
-    this.eraChip.hidden = !era;
   }
 
   private toggle(which: 'learn' | 'quiz'): void {
@@ -415,7 +403,6 @@ class App {
     if (this.learn.open) this.learn.render();
     this.settings.render();
     this.hub.render();
-    this.renderEraChip(this.timeline.year);
     this.help.render();
     this.quiz.relabel();
     this.chronicle.relabel();
@@ -447,9 +434,7 @@ class App {
     const b = this.bar.querySelector('.brand-t')!;
     b.querySelector('span')!.textContent = t('brandSub');
     const set = (cls: string, k: Parameters<typeof t>[0]) => { const el = this.root.querySelector<HTMLElement>(cls); if (el) { el.title = t(k); el.setAttribute('aria-label', t(k)); } };
-    set('.b-hub', 'hub'); set('.b-settings', 'settings'); set('.b-home', 'home'); set('.b-help', 'help'); set('.b-full', 'fullscreen'); set('.z-in', 'zoomIn'); set('.z-out', 'zoomOut');
-    const d = this.root.querySelector('.disc');
-    if (d) d.textContent = t('disclaimer');
+    set('.b-hub', 'hub'); set('.b-settings', 'settings'); set('.b-home', 'home'); set('.b-full', 'fullscreen'); set('.z-in', 'zoomIn'); set('.z-out', 'zoomOut');
     document.title = lang === 'zh' ? '长河 · 3D 中国历史地图' : 'Ages · 3D Atlas of Chinese History';
   }
 

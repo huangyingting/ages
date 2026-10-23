@@ -1,5 +1,6 @@
 import { tr, type Lang } from '../../shared/data/i18n.ts';
-import type { HistEvent, StoryStep, Year } from '../../shared/data/types.ts';
+import type { Formation, HistEvent, StoryStep, Year } from '../../shared/data/types.ts';
+import { FORMATION_NAME, defaultFormation } from '../../shared/data/era.ts';
 import { storyOf } from '../../shared/data/events.ts';
 import type { Atlas } from '../scene/atlas.ts';
 
@@ -41,6 +42,7 @@ export class StoryPlayer {
     this.stop();
     const my = ++this.token;
     this.event = e;
+    if (e) this.atlas.fx.year = e.year;
     const caps = steps.filter(s => s.do === 'caption').length;
     let ci = 0;
     this.set('playing');
@@ -88,8 +90,14 @@ export class StoryPlayer {
         return fx.fx({ ...st, dur: st.dur });
       case 'army':
         return fx.army({ ...st, label: st.label ? tr(st.label, L) : undefined });
-      case 'clash':
-        return fx.clash({ ...st, labels: st.labels ? [tr(st.labels[0], L), tr(st.labels[1], L)] : undefined });
+      case 'clash': {
+        // each side's banner names its formation (阵型)
+        const forms = ([0, 1] as const).map(i => st.formations?.[i] ?? (st.siege && i ? 'line' : defaultFormation(st.units?.[i] ?? 'foot'))) as [Formation, Formation];
+        const lab = (i: 0 | 1) => [st.labels ? tr(st.labels[i], L) : '', tr(FORMATION_NAME[forms[i]], L)].filter(Boolean).join(' · ');
+        return fx.clash({ ...st, formations: forms, labels: [lab(0), lab(1)] });
+      }
+      case 'shot':
+        return fx.shot(st);
       case 'fleet':
         return fx.fleet({ ...st, label: st.label ? tr(st.label, L) : undefined });
       case 'wipe':
