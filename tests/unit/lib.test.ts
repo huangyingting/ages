@@ -72,7 +72,7 @@ describe('quiz', () => {
   });
   it('filters by textbook', () => {
     const q = makeQuiz(EVENTS, { seed: 1, n: 6, book: 'g8b' });
-    const ids = q.flatMap(x => (x.type === 'order' ? [] : [x.event]));
+    const ids = q.flatMap(x => ('event' in x ? [x.event] : []));
     for (const id of ids) expect(EVENTS.find(e => e.id === id)!.curriculum.some(c => c.book === 'g8b')).toBe(true);
   });
   it('grades distances', () => {
