@@ -45,6 +45,33 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .place.k-mountain, .place.k-water { font-style: italic; color: #4a5d6b; }
 .place.k-water { color: #2a6188; }
 .place.cap { color: #8e1b10; font-weight: 700; font-size: 14px; }
+.place { pointer-events: auto; cursor: pointer; }
+.place:hover { text-decoration: underline dotted; }
+.place.minor { font-size: 10.5px; opacity: 0.8; }
+.river {
+  font-size: 11px; font-style: italic; color: #2a6188; letter-spacing: 0.3em; opacity: 0.85;
+  text-shadow: 0 0 2px #f4f1e6, 0 0 5px rgba(244, 241, 230, 0.9);
+}
+.river.k-trunk { font-size: 13px; font-weight: 600; letter-spacing: 0.5em; }
+:lang(en) .river { letter-spacing: 0.04em; }
+.admin {
+  font-size: 11px; color: #5b4630; letter-spacing: 0.1em; opacity: 0.85;
+  text-shadow: 0 0 2px #fbf6ea, 0 0 4px rgba(251, 246, 234, 0.9);
+}
+.admin.l1 { font-size: 12.5px; font-weight: 600; color: #4b2f17; }
+.work {
+  font-size: 11px; padding: 1px 6px; border-radius: 8px; color: #fff; background: rgba(110, 82, 50, 0.8);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.work.k-canal { background: rgba(31, 105, 168, 0.85); }
+.work.k-sea { background: rgba(23, 74, 110, 0.85); }
+.work.k-road { background: rgba(138, 90, 43, 0.85); }
+.hovertip {
+  position: fixed; z-index: 30; pointer-events: none; padding: 4px 8px; border-radius: 6px; font-size: 12px;
+  background: rgba(255, 252, 244, 0.95); color: var(--ink); box-shadow: 0 2px 6px rgba(40, 25, 10, 0.25);
+  transform: translate(12px, 12px);
+}
+.hovertip small { color: var(--ink2); margin-left: 6px; }
 .polity {
   font-weight: 700; letter-spacing: 0.25em; color: color-mix(in srgb, var(--c) 72%, #120a04);
   text-shadow: 0 0 3px rgba(255, 250, 238, 0.95), 0 0 8px rgba(255, 250, 238, 0.7); opacity: 0.9;

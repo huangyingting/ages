@@ -21,6 +21,8 @@ export interface Label {
   w?: number;
   h?: number;
   shown?: boolean;
+  /** hidden regardless of zoom (e.g. a place that does not exist in the current year) */
+  off?: boolean;
 }
 
 export class Labels {
@@ -74,7 +76,7 @@ export class Labels {
     const placed: [number, number, number, number][] = [];
     const sorted = this.items.slice().sort((a, b) => (b.pinned ? 1e9 : b.prio) - (a.pinned ? 1e9 : a.prio));
     for (const l of sorted) {
-      let show = !this.hidden.has(l.group) && dist >= (l.minD ?? 0) && dist <= (l.maxD ?? Infinity);
+      let show = !l.off && !this.hidden.has(l.group) && dist >= (l.minD ?? 0) && dist <= (l.maxD ?? Infinity);
       let x = 0, y = 0;
       if (show) {
         const p = v.project(l.pos, this.tmp);

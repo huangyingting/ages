@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { MapControls } from 'three/examples/jsm/controls/MapControls.js';
 import type { Geo } from './geo.ts';
+import { HAZE } from './terrain.ts';
 
 export interface CamPose { lon: number; lat: number; dist: number; tilt: number; heading?: number }
 type FrameFn = (dt: number, t: number) => void;
@@ -39,7 +40,8 @@ export class View {
     c.zoomSpeed = 1.2;
     c.zoomToCursor = true;
     c.addEventListener('start', () => this.cancelFlight());
-    c.addEventListener('change', () => this.clamp());
+
+    this.scene.add(this.sky);
 
     this.scene.add(new THREE.HemisphereLight('#fff6e0', '#7a6a50', 1.7));
     const sun = new THREE.DirectionalLight('#fff1d6', 2.4);
@@ -92,14 +94,44 @@ export class View {
     this.applyInset();
   }
 
-  private clamp(): void {
-    const t = this.controls.target, g = this.geo;
-    const cx = THREE.MathUtils.clamp(t.x, -g.width / 2, g.width / 2), cz = THREE.MathUtils.clamp(t.z, -g.depth / 2, g.depth / 2);
-    if (cx !== t.x || cz !== t.z) {
-      const dx = cx - t.x, dz = cz - t.z;
-      t.x = cx; t.z = cz;
-      this.camera.position.x += dx;
-      this.camera.position.z += dz;
+  private readonly sky = skyDome();
+  private ndc = [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1], [0, 1]] as const;
+  private hit = new THREE.Vector3();
+
+  /**
+   * Keeps the map filling the screen: the ground under every screen corner must lie inside the stage. Too wide a view
+   * pulls the camera in; a view over an edge slides back. Near-horizontal rays (looking at the horizon) are left to the
+   * haze of the sky dome, so tilted views still show a horizon.
+   */
+  constrain(): void {
+    const t = this.controls.target, cam = this.camera, g = this.geo;
+    const W = g.width / 2, D = g.depth / 2;
+    cam.updateMatrixWorld();
+    for (let iter = 0; iter < 4; iter++) {
+      cam.updateMatrixWorld();
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      const dist = cam.position.distanceTo(t);
+      for (const [nx, ny] of this.ndc) {
+        this.raycaster.setFromCamera(new THREE.Vector2(nx, ny), cam);
+        const r = this.raycaster.ray;
+        if (r.direction.y > -1e-3) continue;
+        const k = -r.origin.y / r.direction.y;
+        if (ny > 0 && k > dist * 2.6) continue;
+        r.at(k, this.hit);
+        x0 = Math.min(x0, this.hit.x); x1 = Math.max(x1, this.hit.x);
+        z0 = Math.min(z0, this.hit.z); z1 = Math.max(z1, this.hit.z);
+      }
+      if (!isFinite(x0)) return;
+      const fit = Math.min(1, (2 * W) / (x1 - x0), (2 * D) / (z1 - z0));
+      if (fit < 0.999) {
+        cam.position.sub(t).multiplyScalar(fit * 0.995).add(t);
+        continue;
+      }
+      const dx = x0 < -W ? -W - x0 : x1 > W ? W - x1 : 0;
+      const dz = z0 < -D ? -D - z0 : z1 > D ? D - z1 : 0;
+      if (Math.abs(dx) < 1e-4 && Math.abs(dz) < 1e-4) return;
+      t.x += dx; t.z += dz;
+      cam.position.x += dx; cam.position.z += dz;
     }
   }
 
@@ -184,8 +216,25 @@ export class View {
     this.stepInset(dt);
     this.stepFlight(dt);
     if (!this.flight) this.controls.update(dt);
+    this.constrain();
+    this.sky.position.copy(this.camera.position);
     for (const h of this.hooks) h(dt, this.elapsed);
     this.renderer.render(this.scene, this.camera);
     this.frames++;
   }
+}
+
+/** A gradient sky around the camera: haze at the horizon (matching the terrain's aerial perspective), soft blue above. */
+function skyDome(): THREE.Mesh {
+  const mat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, depthTest: false,
+    uniforms: { uHaze: { value: HAZE }, uTop: { value: new THREE.Color().setHex(0xa9c3d0, THREE.LinearSRGBColorSpace) } },
+    vertexShader: 'varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform vec3 uHaze; uniform vec3 uTop; varying vec3 vDir; void main() { float h = clamp(vDir.y, 0.0, 1.0); gl_FragColor = vec4(mix(uHaze, uTop, smoothstep(0.02, 0.45, h)), 1.0); }',
+  });
+  const m = new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16), mat);
+  m.renderOrder = -10;
+  m.frustumCulled = false;
+  m.name = 'sky';
+  return m;
 }

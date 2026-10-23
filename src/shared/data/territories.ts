@@ -1,3 +1,4 @@
+import { IMPORTED_SNAPSHOTS } from './jiangshan.ts';
 import type { LonLat, Region, Snapshot } from './types.ts';
 
 /**
@@ -208,7 +209,7 @@ const GUANGZHOU_OCC: C = [[112.6, 23.6], [114.3, 23.6], [114.4, 22.4], [112.6, 2
 const HK: C = [[113.85, 22.55], [114.45, 22.55], [114.45, 22.15], [113.85, 22.15]];
 const MACAO: C = [[113.5, 22.23], [113.62, 22.23], [113.62, 22.1], [113.5, 22.1]];
 
-export const SNAPSHOTS: Snapshot[] = [
+const CURATED: Snapshot[] = [
   { id: 'xia', scope: 'china', year: -1900, title: { zh: '夏朝（约前2070—前1600）', en: 'Xia (c. 2070–1600 BCE)' }, regions: [
     R('xia', [[[110.2, 35.8], [111.8, 36.4], [113.6, 35.6], [114.6, 34.6], [114.2, 33.6], [112.6, 33.3], [111.0, 33.8], [110.0, 34.6]]], [112.4, 34.8]),
   ] },
@@ -362,6 +363,22 @@ export const SNAPSHOTS: Snapshot[] = [
     R('prc', [MODERN, TAIWAN, HAINAN], [104.0, 34.0]),
   ] },
 ];
+
+/**
+ * The territorial timeline: our schematic maps for the early states (before 403 BCE) and for the PRC (from 1949),
+ * and in between the 165 dated phases imported from jiangshan-map (geometry loaded at runtime).
+ */
+const FIRST_IMPORTED = IMPORTED_SNAPSHOTS[0]?.year ?? Infinity;
+export const SNAPSHOTS: Snapshot[] = [
+  ...CURATED.filter(s => s.year < FIRST_IMPORTED),
+  ...IMPORTED_SNAPSHOTS,
+  // the imported phases stop at Manchukuo; the textbook map of the occupied areas covers 1937–1945
+  ...CURATED.filter(s => s.id === 'war1940').map(s => ({ ...s, end: 1945 })),
+  ...CURATED.filter(s => s.year >= 1949),
+].sort((a, b) => a.year - b.year);
+
+/** Curated schematic snapshots (also used as a fallback while imported shapes load). */
+export const SCHEMATIC = CURATED;
 
 /** Reusable outlines for stories and tests. */
 export const OUTLINES = { modern: MODERN, taiwan: TAIWAN, hainan: HAINAN, korea: KOREA, koreaN: KOREA_N, japan: JAPAN, xinjiang: XINJIANG, tibet: TIBET };

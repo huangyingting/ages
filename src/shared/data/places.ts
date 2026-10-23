@@ -1,3 +1,4 @@
+import { importedPlaces } from './jiangshan.ts';
 import type { I18n, Place, Year } from './types.ts';
 
 type Names = [from: Year, to: Year, zh: string, en: string][];
@@ -10,7 +11,7 @@ const pl = (id: string, lon: number, lat: number, zh: string, en: string, o: {
 });
 
 /** Cities, passes and sites. Names change with the period (镐京 → 长安 → 大兴 → 西安); capitals get a marker. */
-export const PLACES: Place[] = [
+const CURATED: Place[] = [
   // ---- great capitals -------------------------------------------------------------------------------------------
   pl('xian', 108.94, 34.27, '西安', 'Xi’an', { tier: 1,
     names: [[-1046, -771, '镐京', 'Haojing'], [-202, 581, '长安', 'Chang’an'], [582, 617, '大兴', 'Daxing'], [618, 1368, '长安', 'Chang’an']],
@@ -146,7 +147,13 @@ export const PLACES: Place[] = [
   pl('nansha', 114.5, 9.5, '南沙群岛', 'Spratly (Nansha) Islands', { kind: 'water', tier: 3 }),
 ];
 
+/** Curated places first, then the imported settlements, passes and city lore (which also enrich curated places). */
+export const PLACES: Place[] = [...CURATED, ...importedPlaces(CURATED)];
+
 export const PLACE = new Map(PLACES.map(p => [p.id, p]));
+
+/** Whether a place exists in `year` (period-only places vanish outside their named periods). */
+export const placeExists = (p: Place, year: Year): boolean => !p.periodOnly || !!p.names?.some(n => year >= n.from && year <= n.to);
 
 /** The name a place had in `year` (falls back to the modern name). */
 export function placeName(p: Place, year: Year): I18n {

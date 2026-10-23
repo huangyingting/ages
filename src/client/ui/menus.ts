@@ -35,6 +35,7 @@ export class Help {
       h('div', { class: 'legend' }, ...(['politics', 'war', 'reform', 'culture', 'science', 'economy', 'diplomacy', 'revolution'] as const).map(k => h('span', { class: `lg k-${k}` }, h('i'), h('span', { text: kindName(k) })))),
       h('p', { class: 'note', text: t('disclaimer') }),
       h('p', { class: 'small', text: t('credits') }),
+      h('p', { class: 'small', text: t('creditsJsm') }),
       h('p', { class: 'small', text: t('phase2') })));
   }
   toggle(on = this.el.hidden): void { this.el.hidden = !on; }

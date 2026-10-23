@@ -60,15 +60,19 @@ src/client/models   procedural model kit, builders, Web Worker baking
 src/client/story    story player (runs StoryStep scripts)
 src/client/ui       DOM components (timeline, card, reader, learn, quiz, caption, menus)
 src/client/lib      i18n, Wikipedia client, storage, deep links, speech
-scripts/            fetch-terrain.ts (rebuilds public/data/terrain/east-asia.png)
+scripts/            fetch-terrain.ts (terrain heightmap), import-jiangshan.ts (jiangshan-map content)
 docs/               product spec, roadmap, architecture & ADRs, content guide
 ```
 See [docs/README.md](docs/README.md).
 
 ## Content and accuracy
-Territory outlines are schematic simplifications of the maps in school textbooks, drawn for teaching and not authoritative boundaries. The app says so in its help panel and footer. Event content follows the national middle-school (统编版) and high-school curricula. Corrections are welcome. See [docs/content-guide.md](docs/content-guide.md).
+Territories from 403 BCE to 1949 come from jiangshan-map, which traces them from Tan Qixiang's *Historical Atlas of China*, CHGIS and other academic sources; earlier periods, 1937–1945 and the PRC are our own schematic simplifications of the textbook maps. All boundaries are for teaching, not authoritative. The app says so in its help panel and footer. Textbook events follow the national middle-school (统编版) and high-school curricula; about 750 further chronicle entries come from jiangshan-map. Corrections are welcome. See [docs/content-guide.md](docs/content-guide.md).
 
 ## Credits
 * Elevation: [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen), derived from SRTM, GMTED2010, ETOPO1 and other public-domain sources.
 * Background reading: [Wikipedia](https://www.wikipedia.org/), text under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), fetched live and attributed in the reader.
-* Inspiration: [jiangshan-map](https://github.com/DeanChensj/jiangshan-map). Architecture patterns: the Terrastra project (`../pocket-planet`).
+* Territories, administrative divisions, chronicle events, settlements, people, journeys, reign eras and great works: imported from [jiangshan-map 江山图](https://github.com/DeanChensj/jiangshan-map) by DeanChensj (GPL-3.0) with `npm run data:jiangshan`. Its CHGIS / Hartwell-derived boundaries remain academic, non-commercial use only. See [NOTICE.md](NOTICE.md).
+* Architecture patterns: the Terrastra project (`../pocket-planet`).
+
+## License
+GPL-3.0 (see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md)).

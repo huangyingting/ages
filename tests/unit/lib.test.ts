@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { decodeRing, encodeRing } from '../../src/shared/lib/rings.ts';
 import { ERAS } from '../../src/shared/data/eras.ts';
 import { EVENTS } from '../../src/shared/data/events.ts';
 import { PLACES } from '../../src/shared/data/places.ts';
@@ -70,5 +71,15 @@ describe('quiz', () => {
     expect(gradeWhere(120)).toBe('correct');
     expect(gradeWhere(500)).toBe('close');
     expect(gradeWhere(2000)).toBe('wrong');
+  });
+});
+
+describe('ring codec', () => {
+  it('round-trips rings at 0.01° precision, including negative and repeated deltas', () => {
+    const ring: [number, number][] = [[105.12, 34.56], [105.12, 34.56], [-3.5, -6.01], [159.99, 63.98], [100, 0]];
+    const back = decodeRing(encodeRing(ring));
+    expect(back).toHaveLength(ring.length);
+    back.forEach(([x, y], i) => { expect(x).toBeCloseTo(ring[i][0], 2); expect(y).toBeCloseTo(ring[i][1], 2); });
+    expect(encodeRing(ring)).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 });

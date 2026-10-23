@@ -5,7 +5,7 @@ export const SHOTS = 'docs/assets/screenshots';
 export interface AppState {
   ready: boolean; year: number; lang: 'zh' | 'en'; event: string | null; era: string | null;
   story: 'idle' | 'playing' | 'paused'; snapshot: string | null; frames: number;
-  pose: { lon: number; lat: number; dist: number }; fx: { story: number; event: number; base: number }; captions: string;
+  pose: { lon: number; lat: number; dist: number }; fx: { story: number; event: number; base: number; works: number }; captions: string;
 }
 
 /** Collects page errors and console errors so every test can assert a clean run. */

@@ -8,7 +8,7 @@ import type { Label, Labels } from './labels.ts';
 import type { View } from './view.ts';
 
 export type FxKind = 'battle' | 'fire' | 'glow' | 'flag' | 'smoke' | 'firework';
-export type Layer = 'story' | 'event' | 'base';
+export type Layer = 'story' | 'event' | 'base' | 'works';
 
 interface Item {
   layer: Layer;
@@ -283,6 +283,46 @@ export class Fx {
     };
     await this.tween(o.dur, x => { k = x; rb.reveal(x); });
     rb.reveal(1);
+  }
+
+  /** A permanent great work drawn at a fixed scale: wall (3D ramparts with towers), canal, road or sea route. */
+  work(o: { lines: LonLat[][]; kind: string; label?: string; labelAt?: LonLat | null }, layer: Layer = 'works'): void {
+    const g = new THREE.Group();
+    const it = this.add({ layer, obj: g, own: [] });
+    const s = 0.55;
+    for (const line of o.lines) {
+      if (line.length < 2) continue;
+      if (o.kind === 'wall') {
+        const path = this.path(line, 0);
+        const step = 0.16 * s, n = Math.max(2, Math.floor(path.total / step));
+        const seg = new THREE.BoxGeometry(step * 1.05, 0.12 * s, 0.08 * s).translate(0, 0.06 * s, 0);
+        const tower = new THREE.BoxGeometry(0.12 * s, 0.22 * s, 0.12 * s).translate(0, 0.11 * s, 0);
+        const mat = new THREE.MeshStandardMaterial({ color: '#a8916a', roughness: 0.9, flatShading: true });
+        const segs = new THREE.InstancedMesh(seg, mat, n), towers = new THREE.InstancedMesh(tower, mat, Math.ceil(n / 5));
+        const q = new THREE.Quaternion(), v = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), m = new THREE.Matrix4(), up = new THREE.Vector3(0, 1, 0);
+        let ti = 0;
+        for (let i = 0; i < n; i++) {
+          const a = this.at(path, (i + 0.5) / n, v);
+          q.setFromAxisAngle(up, Math.atan2(a.dir.x, a.dir.z) + Math.PI / 2);
+          m.compose(a.pos, q, one);
+          segs.setMatrixAt(i, m);
+          if (i % 5 === 0 && ti < towers.count) towers.setMatrixAt(ti++, m);
+        }
+        towers.count = ti;
+        g.add(segs, towers);
+        it.own.push(seg, tower, mat);
+      } else {
+        const path = this.path(line, 0.012);
+        const style = o.kind === 'canal' ? { w: 0.075, c: '#2f7fc4', a: 0.9 } : o.kind === 'sea' ? { w: 0.07, c: '#1f5f8b', a: 0.5 } : { w: 0.05, c: '#8a5a2b', a: 0.75 };
+        const rb = this.ribbon(path, style.w, style.c, style.a);
+        rb.reveal(1);
+        g.add(rb.mesh);
+        it.own.push(rb.mesh.geometry, rb.mat);
+      }
+    }
+    if (o.label && o.labelAt) {
+      it.label = this.labels.add({ el: tag(o.label, `work k-${o.kind}`), pos: this.geo.pos(o.labelAt[0], o.labelAt[1], 0.12), prio: 26, group: 'works', maxD: 70 });
+    }
   }
 
   /** A marching army: a big campaign arrow plus a formation of soldiers and a banner moving along it. */

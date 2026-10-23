@@ -39,6 +39,7 @@ uniform float uRelief;
 uniform float uTime;
 uniform vec4 uBounds; // west, east, south, north
 uniform vec3 uCam;
+uniform vec3 uHaze;
 varying vec2 vUv;
 varying vec3 vWorld;
 
@@ -100,25 +101,25 @@ void main() {
   float grid = 1.0 - smoothstep(0.0, 1.0, min(g.x / fw.x, g.y / fw.y));
   col = mix(col, hex(120.0, 110.0, 90.0), grid * 0.12);
 
-  // fade the outer edge into paper
-  float edge = min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y));
-  col = mix(hex(232.0, 222.0, 198.0), col, smoothstep(0.0, 0.03, edge));
-
-  // aerial perspective
+  // aerial perspective; the far edges of the stage dissolve into the haze of the sky dome
   float d = distance(uCam, vWorld);
-  col = mix(col, hex(226.0, 220.0, 204.0), smoothstep(60.0, 160.0, d) * 0.6);
+  col = mix(col, uHaze, smoothstep(40.0, 150.0, d) * 0.75);
+  vec2 e2 = min(vUv, 1.0 - vUv) * vec2(uBounds.y - uBounds.x, uBounds.w - uBounds.z);
+  col = mix(uHaze, col, smoothstep(0.0, 4.0, min(e2.x, e2.y)));
   gl_FragColor = vec4(col, 1.0); // already sRGB
 }`;
 
 export interface Terrain {
   mesh: THREE.Mesh;
-  base: THREE.Mesh;
   uniforms: Record<string, THREE.IUniform>;
 }
 
-/** Builds the relief mesh (+ a skirt so the map reads as a physical relief model) and its shader. */
+/** Haze colour shared by the terrain's aerial perspective and the horizon of the sky dome. */
+export const HAZE = new THREE.Color().setHex(0xe4dccb, THREE.LinearSRGBColorSpace); // raw sRGB (shaders write sRGB)
+
+/** Builds the relief mesh and its shader. It fills the screen: the camera never shows its edges (see View.constrain). */
 export function buildTerrain(geo: Geo, lowfx: boolean): Terrain {
-  const sx = lowfx ? 330 : 660, sz = Math.round(sx * (geo.depth / geo.width));
+  const sx = lowfx ? 450 : 900, sz = Math.round(sx * (geo.depth / geo.width));
   const pg = new THREE.PlaneGeometry(geo.width, geo.depth, sx, sz);
   pg.rotateX(-Math.PI / 2);
   const pos = pg.getAttribute('position') as THREE.BufferAttribute;
@@ -155,30 +156,11 @@ export function buildTerrain(geo: Geo, lowfx: boolean): Terrain {
     uElev: { value: elevTex }, uMask: { value: maskTex }, uTerrA: { value: blank }, uTerrB: { value: blank }, uHi: { value: blank },
     uMix: { value: 0 }, uTerrOn: { value: 1 }, uHiAmt: { value: 0 }, uHiColor: { value: new THREE.Color('#fff3b0') },
     uTexel: { value: new THREE.Vector2(1 / geo.w, 1 / geo.h) }, uRelief: { value: 18 / (2 * texelKm) * 1.4 }, uTime: { value: 0 },
-    uBounds: { value: new THREE.Vector4(b.west, b.east, b.south, b.north) }, uCam: { value: new THREE.Vector3() },
+    uBounds: { value: new THREE.Vector4(b.west, b.east, b.south, b.north) }, uCam: { value: new THREE.Vector3() }, uHaze: { value: HAZE.clone() },
   };
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms, extensions: { derivatives: true } as never });
   const mesh = new THREE.Mesh(pg, mat);
   mesh.name = 'terrain';
 
-  // skirt around the edge down to a base plate
-  const baseY = -0.9;
-  const sk: number[] = [];
-  const W = geo.width / 2, D = geo.depth / 2;
-  const edge = (x0: number, z0: number, x1: number, z1: number, n: number) => {
-    for (let i = 0; i < n; i++) {
-      const ax = x0 + ((x1 - x0) * i) / n, az = z0 + ((z1 - z0) * i) / n, bx = x0 + ((x1 - x0) * (i + 1)) / n, bz = z0 + ((z1 - z0) * (i + 1)) / n;
-      const ha = Math.max(-0.2, geo.height(geo.lon(ax), geo.lat(az))), hb = Math.max(-0.2, geo.height(geo.lon(bx), geo.lat(bz)));
-      sk.push(ax, ha, az, ax, baseY, az, bx, baseY, bz, ax, ha, az, bx, baseY, bz, bx, hb, bz);
-    }
-  };
-  edge(-W, D, W, D, sx); edge(W, D, W, -D, sz); edge(W, -D, -W, -D, sx); edge(-W, -D, -W, D, sz);
-  const sg = new THREE.BufferGeometry();
-  sg.setAttribute('position', new THREE.Float32BufferAttribute(sk, 3));
-  sg.computeVertexNormals();
-  const base = new THREE.Mesh(sg, new THREE.MeshStandardMaterial({ color: '#8a6f4e', roughness: 0.9, side: THREE.DoubleSide }));
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(geo.width + 0.02, 0.1, geo.depth + 0.02), new THREE.MeshStandardMaterial({ color: '#6b5238', roughness: 0.9 }));
-  plate.position.y = baseY - 0.05;
-  base.add(plate);
-  return { mesh, base, uniforms };
+  return { mesh, uniforms };
 }

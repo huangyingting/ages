@@ -305,7 +305,7 @@ class App {
     return {
       ready: this.ready, year: this.timeline.year, lang, event: this.card.event?.id ?? null, era: this.card.era?.id ?? null,
       story: this.player.state, snapshot: this.atlas.snapshot?.id ?? null, frames: v.frames, pose: v.pose(),
-      fx: { story: this.atlas.fx.count('story'), event: this.atlas.fx.count('event'), base: this.atlas.fx.count('base') },
+      fx: { story: this.atlas.fx.count('story'), event: this.atlas.fx.count('event'), base: this.atlas.fx.count('base'), works: this.atlas.fx.count('works') },
       captions: this.caption.el.querySelector('.cap-t')?.textContent ?? '',
     };
   }

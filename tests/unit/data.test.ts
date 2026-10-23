@@ -3,12 +3,22 @@ import { BOOKS, UNITS } from '../../src/shared/data/curriculum.ts';
 import { ERAS, RULERS } from '../../src/shared/data/eras.ts';
 import { MODEL_KINDS } from '../../src/shared/data/event-kit.ts';
 import { EVENTS, storyOf } from '../../src/shared/data/events.ts';
-import { PLACE, PLACES, isCapital, placeName } from '../../src/shared/data/places.ts';
-import { POLITY, POLITIES } from '../../src/shared/data/polities.ts';
+import { PLACE, PLACES, isCapital, placeExists, placeName } from '../../src/shared/data/places.ts';
+import { WORKS, reignAt } from '../../src/shared/data/jiangshan.ts';
+import { POLITY, POLITIES, polityMatches } from '../../src/shared/data/polities.ts';
 import { STAGES } from '../../src/shared/data/stage.ts';
 import { STORIES } from '../../src/shared/data/stories.ts';
 import { SNAPSHOTS, snapshotAt } from '../../src/shared/data/territories.ts';
-import type { I18n, LonLat, StoryStep } from '../../src/shared/data/types.ts';
+import { decodeRing } from '../../src/shared/lib/rings.ts';
+import type { I18n, LonLat, Snapshot, StoryStep } from '../../src/shared/data/types.ts';
+import { readFileSync } from 'node:fs';
+
+/** Fills imported snapshots from public/data/atlas/shapes.json the way ShapeStore does in the browser (regions only). */
+const SHAPES = JSON.parse(readFileSync(new URL('../../public/data/atlas/shapes.json', import.meta.url), 'utf8'));
+const hydrated = (s: Snapshot | null): Snapshot | null => {
+  if (!s?.shapes || s.regions.length) return s;
+  return { ...s, regions: SHAPES.snaps[s.shapes].p.map(([polity, , , , rs]: [string, unknown, unknown, unknown, number[]]) => ({ polity, rings: rs.map(i => decodeRing(SHAPES.rings[i])) })) };
+};
 
 const B = STAGES.china.bounds;
 const inStage = (lon: number, lat: number) => lon >= B.west && lon <= B.east && lat >= B.south && lat <= B.north;
@@ -60,11 +70,12 @@ describe('content is bilingual and well-formed', () => {
       for (const p of e.points) bilingual(p, e.id);
       for (const p of e.people ?? []) bilingual(p, e.id);
       expect(inStage(e.lon, e.lat), e.id).toBe(true);
-      expect(e.curriculum.length, e.id).toBeGreaterThan(0);
+      // textbook events map to curriculum units; imported chronicle entries need not
+      if (e.source !== 'jiangshan') expect(e.curriculum.length, e.id).toBeGreaterThan(0);
       for (const c of e.curriculum) expect(UNITS.some(u => u.book === c.book && u.unit === c.unit), `${e.id} ${c.book}.${c.unit}`).toBe(true);
       if (e.model) expect(MODEL_KINDS, e.id).toContain(e.model.kind);
       if (e.end !== undefined) expect(e.end, e.id).toBeGreaterThanOrEqual(e.year);
-      expect(e.wiki?.zh || e.wiki?.en, `${e.id} wiki`).toBeTruthy();
+      if (e.source !== 'jiangshan') expect(e.wiki?.zh || e.wiki?.en, `${e.id} wiki`).toBeTruthy();
     }
   });
 });
@@ -73,13 +84,15 @@ describe('territorial snapshots', () => {
   it('are sorted, reference known polities and stay on stage', () => {
     unique(SNAPSHOTS.map(s => s.id));
     for (let i = 1; i < SNAPSHOTS.length; i++) expect(SNAPSHOTS[i].year).toBeGreaterThan(SNAPSHOTS[i - 1].year);
-    for (const s of SNAPSHOTS) {
+    for (const s0 of SNAPSHOTS) {
+      const s = hydrated(s0)!;
       bilingual(s.title, s.id);
+      expect(s.regions.length, s.id).toBeGreaterThan(0);
       for (const r of s.regions) {
         expect(POLITY.has(r.polity), `${s.id}: ${r.polity}`).toBe(true);
         for (const ring of r.rings) {
           expect(ring.length, `${s.id}/${r.polity}`).toBeGreaterThanOrEqual(3);
-          for (const [lon, lat] of ring) expect(lon >= B.west - 2 && lon <= B.east + 2 && lat >= B.south - 2 && lat <= B.north + 2, `${s.id}/${r.polity} ${lon},${lat}`).toBe(true);
+          if (!s.shapes) for (const [lon, lat] of ring) expect(lon >= B.west - 2 && lon <= B.east + 2 && lat >= B.south - 2 && lat <= B.north + 2, `${s.id}/${r.polity} ${lon},${lat}`).toBe(true);
         }
       }
     }
@@ -87,11 +100,12 @@ describe('territorial snapshots', () => {
 
   it('snapshotAt picks the latest snapshot not after the year', () => {
     expect(snapshotAt(-5000)).toBeNull();
-    expect(snapshotAt(-221)?.id).toBe('qin');
-    expect(snapshotAt(-222)?.id).toBe('zhanguo');
-    expect(snapshotAt(-100)?.id).toBe('whan');
-    expect(snapshotAt(1405)?.id).toBe('ming');
-    expect(snapshotAt(1948)?.id).toBe('war1940');
+    expect(snapshotAt(-221)?.id).toBe('s_qin_a');
+    expect(snapshotAt(-222)?.id).toMatch(/^s_zhanguo/);
+    expect(snapshotAt(-100)?.id).toMatch(/^s_xihan/);
+    expect(snapshotAt(742)?.id).toMatch(/^s_tang/);
+    expect(snapshotAt(1405)?.id).toMatch(/^s_ming/);
+    expect(snapshotAt(1948)?.id).toMatch(/^s_roc/);
     expect(snapshotAt(1949)?.id).toBe('prc1950');
     expect(snapshotAt(2020)?.id).toBe('prc2000');
   });
@@ -119,9 +133,16 @@ describe('stories', () => {
   it('reference real events, polities, models and on-stage points', () => {
     for (const [id, steps] of Object.entries(STORIES)) {
       expect(EVENTS.some(e => e.id === id), id).toBe(true);
+      let at = EVENTS.find(e => e.id === id)?.year ?? 0;
       for (const s of steps) {
+        if (s.do === 'year') at = s.year;
         for (const [lon, lat] of points(s)) expect(inStage(lon, lat), `${id} ${s.do} ${lon},${lat}`).toBe(true);
-        if (s.do === 'highlight') expect(POLITY.has(s.polity), `${id} ${s.polity}`).toBe(true);
+        if (s.do === 'highlight') {
+          expect(POLITY.has(s.polity), `${id} ${s.polity}`).toBe(true);
+          // the highlighted polity must exist on the map at the story's year (curated id or an imported alias)
+          const snap = hydrated(snapshotAt(at));
+          expect(snap?.regions.some(r => polityMatches(r.polity, s.polity)), `${id} ${s.polity} @${snap?.id}`).toBe(true);
+        }
         if ((s.do === 'spawn' || s.do === 'route') && s.model) expect(MODEL_KINDS, id).toContain(s.model.kind);
         if (s.do === 'caption') bilingual(s.text, id);
         if (s.do === 'route' || s.do === 'build') expect(s.pts.length, id).toBeGreaterThanOrEqual(2);
@@ -130,5 +151,32 @@ describe('stories', () => {
   });
   it('every event can play a story', () => {
     for (const e of EVENTS) expect(storyOf(e).length, e.id).toBeGreaterThan(0);
+  });
+});
+
+describe('imported jiangshan-map content', () => {
+  it('adds chronicle events, settlements and period-aware places', () => {
+    expect(EVENTS.filter(e => e.source === 'jiangshan').length).toBeGreaterThan(500);
+    expect(PLACES.length).toBeGreaterThan(250);
+    const j = PLACES.find(p => p.periodOnly && p.names?.length)!;
+    expect(placeExists(j, j.names![0].from)).toBe(true);
+    expect(placeExists(j, -3000)).toBe(false);
+  });
+  it('maps curated story polities onto imported regimes', () => {
+    expect(polityMatches('qin', 'qin')).toBe(true);
+    const tang = POLITIES.find(p => p.id.startsWith('j') && p.name.zh === '唐');
+    if (tang) expect(polityMatches(tang.id, 'qin')).toBe(false);
+  });
+  it('names reign eras in both languages', () => {
+    expect(reignAt(627)?.label).toEqual({ zh: '唐太宗 · 贞观元年', en: 'Emp. Taizong · Zhenguan 1' });
+    expect(reignAt(1662)?.label.zh).toBe('清圣祖 · 康熙元年');
+    expect(reignAt(1950)).toBeUndefined();
+  });
+  it('dates great works and keeps them on stage', () => {
+    expect(WORKS.some(w => w.kind === 'canal' && w.span[0] <= 610 && w.span[1] >= 610)).toBe(true);
+    for (const w of WORKS) {
+      bilingual(w.name, w.id);
+      for (const l of w.lines) for (const [lon, lat] of l) expect(inStage(lon, lat), `${w.id} ${lon},${lat}`).toBe(true);
+    }
   });
 });

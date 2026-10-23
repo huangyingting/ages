@@ -24,9 +24,9 @@ export const STAGES: Record<StageId, Stage> = {
   china: {
     id: 'china',
     name: { zh: '中国与东亚', en: 'China & East Asia' },
-    bounds: { west: 66, east: 146, south: 0, north: 56 },
+    bounds: { west: 50, east: 160, south: -6, north: 64 },
     terrain: 'data/terrain/east-asia.png',
     refLat: 34,
-    home: { lon: 106, lat: 33, dist: 62, tilt: 0.95 },
+    home: { lon: 108, lat: 33, dist: 48, tilt: 0.75 },
   },
 };

@@ -1,20 +1,30 @@
 import * as THREE from 'three';
 import { EVENTS } from '../../shared/data/events.ts';
 import { tr, type Lang } from '../../shared/data/i18n.ts';
-import { PLACE, PLACES, isCapital, placeName } from '../../shared/data/places.ts';
-import { POLITY } from '../../shared/data/polities.ts';
+import { RIVER_LABELS, WORKS } from '../../shared/data/jiangshan.ts';
+import { PLACE, PLACES, isCapital, placeExists, placeName } from '../../shared/data/places.ts';
+import { POLITY, polityMatches } from '../../shared/data/polities.ts';
 import { STAGES, type StageId } from '../../shared/data/stage.ts';
 import { snapshotAt } from '../../shared/data/territories.ts';
-import type { HistEvent, Snapshot, Year } from '../../shared/data/types.ts';
+import type { AdminUnit, HistEvent, LonLat, Place, Region, Snapshot, Year } from '../../shared/data/types.ts';
 import { eraAt } from '../../shared/lib/timeline.ts';
 import { Fx } from './fx.ts';
 import { Geo } from './geo.ts';
 import { Labels, type Label } from './labels.ts';
 import { buildTerrain, loadHeightmap, type Terrain } from './terrain.ts';
+import { ShapeStore } from './shapes.ts';
 import { TerritoryPainter, regionAnchor, texture } from './territory.ts';
 import { View, type CamPose } from './view.ts';
 
-export interface Layers { territory: boolean; places: boolean; events: boolean; models: boolean }
+export interface Layers {
+  territory: boolean; places: boolean; events: boolean; models: boolean;
+  /** administrative divisions of the period (郡 / 州 / 府 / 道 / 路 / 省) */
+  admin: boolean;
+  /** modern provincial boundaries for reference */
+  modern: boolean;
+  /** walls, canals, roads and sea routes */
+  works: boolean;
+}
 
 /**
  * The 3D atlas: relief terrain, territorial snapshots that cross-fade through time, period place names, event pins,
@@ -27,14 +37,20 @@ export class Atlas {
   fx!: Fx;
   terrain!: Terrain;
   private painter!: TerritoryPainter;
+  shapes: ShapeStore | null = null;
+  private paintKey = '';
+  private worksKey = '';
   year: Year = -221;
   lang: Lang = 'zh';
-  layers: Layers = { territory: true, places: true, events: true, models: true };
+  layers: Layers = { territory: true, places: true, events: true, models: true, admin: false, modern: false, works: true };
   snapshot: Snapshot | null = null;
   selected: HistEvent | null = null;
   /** when set, map clicks report lon/lat (quiz "where" questions) instead of selecting */
   pickHandler: ((lon: number, lat: number) => void) | null = null;
   onPin: (e: HistEvent) => void = () => {};
+  onPlace: (p: Place) => void = () => {};
+  /** hover over the map: the administrative unit under the pointer (admin layer only) */
+  onHover: (info: { unit: AdminUnit; x: number; y: number } | null) => void = () => {};
   private pins = new Map<string, Label>();
   private placeLabels = new Map<string, Label>();
   private polityLabels: Label[] = [];
@@ -53,7 +69,11 @@ export class Atlas {
   async init(year: Year, lang: Lang): Promise<void> {
     this.year = year;
     this.lang = lang;
-    const hm = await loadHeightmap(import.meta.env.BASE_URL + this.geo.stage.terrain);
+    const [hm, shapes] = await Promise.all([
+      loadHeightmap(import.meta.env.BASE_URL + this.geo.stage.terrain),
+      ShapeStore.load(import.meta.env.BASE_URL + 'data/atlas/shapes.json'),
+    ]);
+    this.shapes = shapes;
     this.geo.setHeightmap(hm.rgba, hm.w, hm.h);
     const canvas = document.createElement('canvas');
     canvas.className = 'gl';
@@ -61,13 +81,14 @@ export class Atlas {
     this.view = new View(canvas, this.geo, this.lowfx);
     this.labels = new Labels(this.view, this.host);
     this.terrain = buildTerrain(this.geo, this.lowfx);
-    this.view.scene.add(this.terrain.mesh, this.terrain.base);
-    this.painter = new TerritoryPainter(this.geo);
+    this.view.scene.add(this.terrain.mesh);
+    this.painter = new TerritoryPainter(this.geo, this.lowfx ? 1536 : 3072);
     this.fx = new Fx(this.view, this.geo, this.labels);
     this.view.jump(this.geo.stage.home);
     this.view.onFrame((dt, t) => this.frame(dt, t));
     this.bindPointer(canvas);
     this.buildPlaces();
+    this.buildRivers();
     this.setYear(year, true);
   }
 
@@ -106,6 +127,27 @@ export class Atlas {
       const near = this.nearestPin(e.clientX, e.clientY);
       if (near) this.onPin(near);
     });
+    let pending = false;
+    canvas.addEventListener('pointermove', e => {
+      if (!this.layers.admin || e.buttons || pending) return;
+      pending = true;
+      requestAnimationFrame(() => {
+        pending = false;
+        const ll = this.view.pick(e.clientX, e.clientY);
+        const unit = ll ? this.adminAt(ll[0], ll[1]) : null;
+        this.onHover(unit ? { unit, x: e.clientX, y: e.clientY } : null);
+      });
+    });
+    canvas.addEventListener('pointerleave', () => this.onHover(null));
+  }
+
+  /** The finest administrative unit of the current snapshot containing lon/lat. */
+  adminAt(lon: number, lat: number): AdminUnit | null {
+    let best: AdminUnit | null = null;
+    for (const a of this.snapshot?.admin ?? []) {
+      if ((!best || a.level > best.level) && inside(a.rings, lon, lat)) best = a;
+    }
+    return best;
   }
 
   private nearestPin(cx: number, cy: number): HistEvent | null {
@@ -127,9 +169,16 @@ export class Atlas {
   setYear(y: Year, instant = false): void {
     this.year = y;
     const snap = snapshotAt(y);
-    if (snap?.id !== this.snapshot?.id || !this.texA) {
+    this.shapes?.hydrate(snap);
+    const lakes = this.shapes?.lakes(y) ?? [];
+    const key = [snap?.id, lakes.length, lakes.map(l => l.from).join(), this.layers.admin, this.layers.modern].join('|');
+    if (key !== this.paintKey || !this.texA) {
+      const snapChanged = snap?.id !== this.snapshot?.id;
+      this.paintKey = key;
       this.snapshot = snap;
-      const tex = texture(this.painter.paint(snap));
+      const tex = texture(this.painter.paint(snap, {
+        admin: this.layers.admin, provinces: this.layers.modern ? this.shapes?.provinces() : null, lakes,
+      }));
       if (instant || !this.texA) {
         this.texA?.dispose();
         this.texA = tex;
@@ -141,12 +190,15 @@ export class Atlas {
         this.terrain.uniforms.uTerrB.value = tex;
         this.fade = { t: 0, tex };
       }
-      this.buildPolityLabels();
+      if (snapChanged || !this.polityLabels.length) { this.buildPolityLabels(); this.buildAdminLabels(); }
     }
     this.updatePlaces();
+    this.updateWorks();
     const era = eraAt(y);
-    if (era?.id !== this.eraId) {
-      this.eraId = era?.id ?? '';
+    // chronicle entries follow the year in steps; textbook events follow the era
+    const pinKey = `${era?.id ?? ''}|${Math.round(y / CHRONICLE_STEP)}`;
+    if (pinKey !== this.eraId) {
+      this.eraId = pinKey;
       this.buildPins();
     }
     this.updateCapital();
@@ -163,7 +215,7 @@ export class Atlas {
 
   /** Pulses a polity's area for `dur` seconds. */
   highlight(polity: string, dur = 3, color?: string): void {
-    if (!this.snapshot || !this.snapshot.regions.some(r => r.polity === polity)) return;
+    if (!this.snapshot || !this.snapshot.regions.some(r => polityMatches(r.polity, polity))) return;
     this.hiTex?.dispose();
     this.hiTex = texture(this.painter.mask(this.snapshot, polity));
     const u = this.terrain.uniforms;
@@ -179,7 +231,8 @@ export class Atlas {
     for (const p of PLACES) {
       if (p.scope !== 'china') continue;
       const el = document.createElement('div');
-      el.className = `place k-${p.kind} t${p.tier}`;
+      el.className = `place k-${p.kind} t${p.tier}` + (p.minor ? ' minor' : '');
+      el.addEventListener('click', ev => { if (this.pickHandler) return; ev.stopPropagation(); this.onPlace(p); });
       const l = this.labels.add({
         el, pos: this.geo.pos(p.lon, p.lat, 0.05), group: 'places',
         prio: p.tier === 1 ? 40 : p.tier === 2 ? 22 : 8,
@@ -189,9 +242,48 @@ export class Atlas {
     }
   }
 
+  private buildRivers(): void {
+    for (const r of RIVER_LABELS) {
+      if (!this.geo.inBounds(r.lon, r.lat)) continue;
+      const el = document.createElement('div');
+      el.className = `river k-${r.kind}`;
+      el.dataset.zh = r.name.zh;
+      el.dataset.en = r.name.en;
+      el.textContent = tr(r.name, this.lang);
+      this.labels.add({ el, pos: this.geo.pos(r.lon, r.lat, 0.03), group: 'rivers', prio: r.kind === 'trunk' ? 18 : 6, maxD: r.kind === 'trunk' ? 90 : 30 });
+    }
+  }
+
+  /** Labels of the period's administrative divisions (admin layer). */
+  private buildAdminLabels(): void {
+    this.labels.clear('admin');
+    for (const a of this.snapshot?.admin ?? []) {
+      const at = a.anchor ?? regionAnchor({ polity: '', rings: a.rings }, this.geo.kx);
+      const [lon, lat] = Array.isArray(at) ? at : [at.lon, at.lat];
+      if (!this.geo.inBounds(lon, lat)) continue;
+      const el = document.createElement('div');
+      el.className = `admin l${a.level}`;
+      el.textContent = tr(a.name, this.lang);
+      this.labels.add({ el, pos: this.geo.pos(lon, lat, 0.06), group: 'admin', prio: a.level === 1 ? 20 : 9, maxD: a.level === 1 ? 50 : 22 });
+    }
+    this.labels.setGroupVisible('admin', this.layers.admin);
+  }
+
+  /** Walls, canals, roads and sea routes in use in the current year. */
+  private updateWorks(): void {
+    const on = WORKS.filter(w => this.layers.works && this.year >= w.span[0] && this.year <= w.span[1]);
+    const key = on.map(w => w.id).join() + this.lang;
+    if (key === this.worksKey) return;
+    this.worksKey = key;
+    this.fx.clear('works');
+    for (const w of on) this.fx.work({ lines: w.lines, kind: w.kind, label: tr(w.name, this.lang), labelAt: w.label ?? w.lines[0][Math.floor(w.lines[0].length / 2)] });
+  }
+
   private updatePlaces(): void {
     for (const [id, l] of this.placeLabels) {
       const p = PLACE.get(id)!;
+      l.off = !placeExists(p, this.year);
+      if (l.off) continue;
       const cap = isCapital(p, this.year);
       const text = tr(placeName(p, this.year), this.lang);
       if (l.el.dataset.text !== text || l.el.classList.contains('cap') !== cap) {
@@ -201,7 +293,7 @@ export class Atlas {
         this.labels.remeasure();
       }
       l.prio = cap ? 70 : p.tier === 1 ? 40 : p.tier === 2 ? 22 : 8;
-      l.maxD = cap ? Infinity : p.tier === 1 ? Infinity : p.tier === 2 ? 48 : 20;
+      l.maxD = cap ? Infinity : p.tier === 1 ? Infinity : p.tier === 2 ? 48 : p.minor ? 12 : 20;
     }
   }
 
@@ -209,24 +301,28 @@ export class Atlas {
     this.labels.clear('polity');
     this.polityLabels = [];
     if (!this.snapshot) return;
-    const seen = new Set<string>();
+    const best = new Map<string, { r: Region; a: ReturnType<typeof regionAnchor> }>();
     for (const r of this.snapshot.regions) {
-      const pol = POLITY.get(r.polity);
-      if (!pol) continue;
+      if (!POLITY.has(r.polity)) continue;
       const key = r.polity + (r.name ? tr(r.name, 'en') : '');
-      if (seen.has(key)) continue;
-      seen.add(key);
       const a = regionAnchor(r, this.geo.kx);
+      const b = best.get(key);
+      if (!b || a.area > b.a.area) best.set(key, { r, a });
+    }
+    for (const { r, a } of best.values()) {
+      const pol = POLITY.get(r.polity)!;
       if (!this.geo.inBounds(a.lon, a.lat)) continue;
+      const role = r.role ?? pol.role;
+      if (role === 'neighbor' && a.area < 6) continue;
       const el = document.createElement('div');
       const size = a.area > 250 ? 'xl' : a.area > 60 ? 'l' : a.area > 12 ? 'm' : 's';
-      el.className = `polity r-${pol.role} s-${size}`;
-      el.style.setProperty('--c', pol.color);
+      el.className = `polity r-${role} s-${size}`;
+      el.style.setProperty('--c', r.color ?? pol.color);
       el.dataset.polity = pol.id;
       el.textContent = tr(r.name ?? pol.name, this.lang);
       this.polityLabels.push(this.labels.add({
         el, pos: this.geo.pos(a.lon, a.lat, 0.25), group: 'polity',
-        prio: 30 + Math.min(25, a.area / 10) + (pol.role === 'main' ? 6 : 0),
+        prio: 30 + Math.min(25, a.area / 10) + (role === 'main' ? 6 : role === 'neighbor' ? -12 : 0),
         maxD: size === 's' ? 40 : size === 'm' ? 90 : Infinity,
         minD: size === 'xl' ? 10 : 0,
       }));
@@ -239,7 +335,8 @@ export class Atlas {
     this.labels.clear('pins');
     this.pins.clear();
     const era = eraAt(this.year);
-    const list = EVENTS.filter(e => e.scope === 'china' && (era ? e.year >= era.start && e.year <= era.end : false));
+    const near = (e: HistEvent) => Math.abs(e.year - this.year) <= CHRONICLE_WINDOW || (e.end !== undefined && e.year <= this.year && e.end >= this.year);
+    const list = EVENTS.filter(e => e.scope === 'china' && (era ? e.year >= era.start && e.year <= era.end : false) && (e.source !== 'jiangshan' || near(e)));
     if (this.selected && !list.includes(this.selected)) list.push(this.selected);
     for (const e of list) this.addPin(e);
     this.labels.setGroupVisible('pins', this.layers.events && !this.pickHandler);
@@ -255,7 +352,7 @@ export class Atlas {
     el.addEventListener('click', ev => { ev.stopPropagation(); this.onPin(e); });
     const l = this.labels.add({
       el, pos: this.geo.pos(e.lon, e.lat, 0.02), group: 'pins', anchor: 'above',
-      prio: 66 - e.weight * 10, maxD: e.weight === 1 ? Infinity : e.weight === 2 ? 75 : 38,
+      prio: 66 - e.weight * 10 - (e.source ? 4 : 0), maxD: e.weight === 1 ? Infinity : e.weight === 2 ? 75 : e.source ? 30 : 38,
       pinned: this.selected?.id === e.id,
     });
     this.pins.set(e.id, l);
@@ -303,6 +400,9 @@ export class Atlas {
     for (const lab of this.placeLabels.values()) lab.el.dataset.text = '';
     this.updatePlaces();
     this.buildPolityLabels();
+    this.buildAdminLabels();
+    for (const el of this.labels.root.querySelectorAll<HTMLElement>('.river')) el.textContent = el.dataset[l] ?? '';
+    this.updateWorks();
     this.labels.remeasure();
   }
 
@@ -312,7 +412,9 @@ export class Atlas {
       this.terrain.uniforms.uTerrOn.value = on ? 1 : 0;
       this.labels.setGroupVisible('polity', on);
     }
-    if (k === 'places') this.labels.setGroupVisible('places', on);
+    if (k === 'places') { this.labels.setGroupVisible('places', on); this.labels.setGroupVisible('rivers', on); }
+    if (k === 'admin' || k === 'modern') { this.setYear(this.year, true); this.labels.setGroupVisible('admin', this.layers.admin); if (!this.layers.admin) this.onHover(null); }
+    if (k === 'works') this.updateWorks();
     if (k === 'events') this.labels.setGroupVisible('pins', on && !this.pickHandler);
     if (k === 'models') { this.capitalKey = '-'; this.updateCapital(); if (!on) this.fx.clear('event'); }
   }
@@ -330,4 +432,19 @@ export class Atlas {
   flyTo(p: CamPose, dur?: number): Promise<void> {
     return this.view.flyTo(p, dur);
   }
+}
+
+/** Chronicle (imported) events are pinned within ±CHRONICLE_WINDOW years, re-evaluated every CHRONICLE_STEP years. */
+const CHRONICLE_WINDOW = 12, CHRONICLE_STEP = 6;
+
+/** Even-odd point-in-polygon over all rings (holes included). */
+function inside(rings: LonLat[][], x: number, y: number): boolean {
+  let c = false;
+  for (const r of rings) {
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const [xi, yi] = r[i], [xj, yj] = r[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+    }
+  }
+  return c;
 }

@@ -15,7 +15,7 @@ import { STAGES } from '../src/shared/data/stage.ts';
 
 const stage = STAGES.china;
 const Z = 6;
-const OUT_W = 1600;
+const OUT_W = 2200;
 const { west, east, south, north } = stage.bounds;
 const OUT_H = Math.round(OUT_W * (north - south) / (east - west));
 const CACHE = '.terrain-cache';
