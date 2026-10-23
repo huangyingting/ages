@@ -4,9 +4,10 @@ import { ERAS } from '../../src/shared/data/eras.ts';
 import { EVENTS } from '../../src/shared/data/events.ts';
 import { JOURNEYS, PEOPLE } from '../../src/shared/data/jiangshan.ts';
 import { PLACES } from '../../src/shared/data/places.ts';
-import { distKm, gradeWhere, makeQuiz } from '../../src/shared/lib/quiz.ts';
+import { distKm, gradeWhere, locatePoints, makeLocateQuiz, makeQuiz, rankOf } from '../../src/shared/lib/quiz.ts';
+import { CHRONICLE, chapterAt, currentEntry, phaseAt, previousSnap, stepStop } from '../../src/shared/lib/chronicle.ts';
 import { search } from '../../src/shared/lib/search.ts';
-import { ANCHORS, eraAt, formatYear, rulerAt, tToYear, ticks, yearToT } from '../../src/shared/lib/timeline.ts';
+import { ANCHORS, eraAt, formatYear, parseYear, rulerAt, tToYear, ticks, yearToT } from '../../src/shared/lib/timeline.ts';
 
 describe('timeline', () => {
   it('maps years monotonically onto [0,1] and back', () => {
@@ -89,5 +90,72 @@ describe('ring codec', () => {
     expect(back).toHaveLength(ring.length);
     back.forEach(([x, y], i) => { expect(x).toBeCloseTo(ring[i][0], 2); expect(y).toBeCloseTo(ring[i][1], 2); });
     expect(encodeRing(ring)).toMatch(/^[A-Za-z0-9_-]+$/);
+  });
+});
+
+describe('chronicle & phases', () => {
+  it('lists the events of the dynasty in view and finds the current entry', () => {
+    const { era, events } = chapterAt(1415);
+    expect(era?.name.zh).toBe('明');
+    expect(events.length).toBeGreaterThan(20);
+    expect(events.every(e => e.year >= era!.start && e.year <= era!.end)).toBe(true);
+    const cur = currentEntry(1415, events)!;
+    expect(cur.year).toBeLessThanOrEqual(1415);
+    expect(events.find(e => e.year > cur.year && e.year <= 1415)).toBeUndefined();
+    expect(CHRONICLE.some(e => e.weight === 3)).toBe(true);
+  });
+
+  it('places a year in its territorial phase and links the previous one', () => {
+    const ph = phaseAt(1415)!;
+    expect(ph.group.length).toBeGreaterThan(1);
+    expect(ph.group[ph.index]).toBe(ph.snap);
+    expect(ph.from).toBeLessThanOrEqual(1415);
+    expect(ph.to).toBeGreaterThanOrEqual(1415);
+    const prev = previousSnap(ph.snap)!;
+    expect(prev.year).toBeLessThan(ph.snap.year);
+  });
+
+  it('steps between event and phase years', () => {
+    const next = stepStop(1405, 1);
+    expect(next).toBeGreaterThan(1405);
+    expect(stepStop(next, -1)).toBe(1405);
+    expect(stepStop(-221, -1)).toBeLessThan(-221);
+  });
+
+  it('parses typed years in both languages', () => {
+    expect(parseYear('1415')).toBe(1415);
+    expect(parseYear('-221')).toBe(-221);
+    expect(parseYear('前221')).toBe(-221);
+    expect(parseYear('公元前221年')).toBe(-221);
+    expect(parseYear('221 BC')).toBe(-221);
+    expect(parseYear('221 bce')).toBe(-221);
+    expect(parseYear('abc')).toBeNull();
+  });
+});
+
+describe('ancient place quiz', () => {
+  it('asks for old names only and is reproducible', () => {
+    const a = makeLocateQuiz(PLACES, { n: 10, seed: 7 });
+    expect(a).toHaveLength(10);
+    expect(makeLocateQuiz(PLACES, { n: 10, seed: 7 })).toEqual(a);
+    for (const q of a) {
+      if (q.type !== 'locate') throw new Error('locate expected');
+      const p = PLACES.find(x => x.id === q.place)!;
+      expect(q.name.zh).not.toBe(p.modern?.zh ?? p.name.zh);
+      expect(q.prompt.zh).toContain(q.name.zh);
+      expect(q.prompt.zh).not.toContain(p.modern?.zh ?? p.name.zh);
+    }
+    for (const q of makeLocateQuiz(PLACES, { n: 1000, seed: 1 })) {
+      const p = q.type === 'locate' ? PLACES.find(x => x.id === q.place)! : null;
+      if (p && q.type === 'locate' && q.hint) expect(q.hint.zh).not.toContain(p.modern?.zh ?? p.name.zh);
+    }
+  });
+
+  it('scores by distance and awards ranks', () => {
+    expect(locatePoints(10)).toBe(100);
+    expect(locatePoints(350)).toBe(50);
+    expect(locatePoints(900)).toBe(0);
+    expect(rankOf(950, 1000).zh).toContain('太史令');
+    expect(rankOf(0, 1000).zh).toBe('书院童生');
   });
 });

@@ -1,9 +1,11 @@
-import type { Book, HistEvent, I18n } from '../data/types.ts';
+import type { Book, HistEvent, I18n, Place, Year } from '../data/types.ts';
+import { eraAt } from './timeline.ts';
 
 export type Question =
   | { type: 'when'; event: string; prompt: I18n; options: number[]; answer: number }
   | { type: 'where'; event: string; prompt: I18n; lon: number; lat: number }
-  | { type: 'order'; events: string[]; prompt: I18n; answer: string[] };
+  | { type: 'order'; events: string[]; prompt: I18n; answer: string[] }
+  | { type: 'locate'; place: string; year: Year; name: I18n; prompt: I18n; hint?: I18n; lon: number; lat: number };
 
 /** Small seeded PRNG so a quiz can be reproduced from its seed (and tested deterministically). */
 export function rng(seed: number): () => number {
@@ -59,3 +61,41 @@ export function distKm(a: [number, number], b: [number, number]): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 export const gradeWhere = (km: number): 'correct' | 'close' | 'wrong' => (km <= 300 ? 'correct' : km <= 800 ? 'close' : 'wrong');
+
+/**
+ * The place-finding challenge (古地名定位): an ancient name in its period, e.g. "唐代的「益州」在哪里？", answered by a
+ * click on the map. Modern names are never given away; a period note (唐都 · 百万人口国际都会) is the only hint.
+ */
+export function makeLocateQuiz(places: Place[], opts: { n?: number; seed?: number } = {}): Question[] {
+  const r = rng(opts.seed ?? Date.now());
+  const pool: Question[] = [];
+  for (const p of places) {
+    if (p.scope !== 'china' || p.kind !== 'city') continue;
+    const modern = p.modern?.zh ?? p.name.zh;
+    const periods = [...(p.names ?? []), ...(p.periods ?? [])].filter(n => n.name.zh && n.name.zh !== modern && !modern.startsWith(n.name.zh) && !n.name.zh.includes(modern) && n.from > -800);
+    if (!periods.length || !(p.capital?.length || p.notes?.length || p.tier <= 2)) continue;
+    const n = periods[Math.floor(r() * periods.length)];
+    const year = Math.round((n.from + Math.min(n.to, 1911)) / 2);
+    const era = eraAt(year);
+    if (!era) continue;
+    const note = p.notes?.find(x => year >= x.from && year <= x.to && !x.text.zh.includes(modern))?.text;
+    pool.push({
+      type: 'locate', place: p.id, year, name: n.name, lon: p.lon, lat: p.lat, hint: note,
+      prompt: { zh: `${era.name.zh}时期的「${n.name.zh}」在哪里？`, en: `Where was ${n.name.en} in the ${era.name.en}?` },
+    });
+  }
+  return shuffle(pool, r).slice(0, opts.n ?? 10);
+}
+
+/** Points for a locate answer: full marks within 50 km, nothing beyond 650 km. */
+export const locatePoints = (km: number): number => Math.max(0, Math.min(100, Math.round(100 - (km - 50) / 6)));
+
+/** The official title a locate score earns (out of 100 per question). */
+export const RANKS: { min: number; name: I18n }[] = [
+  { min: 0.9, name: { zh: '太史令 · 舆图大家', en: 'Grand Historian & Master Cartographer' } },
+  { min: 0.75, name: { zh: '职方郎中', en: 'Director of the Bureau of Operations' } },
+  { min: 0.55, name: { zh: '州郡从事', en: 'Prefectural Retainer' } },
+  { min: 0.35, name: { zh: '县学生员', en: 'County Scholar' } },
+  { min: 0, name: { zh: '书院童生', en: 'Academy Novice' } },
+];
+export const rankOf = (score: number, max: number): I18n => RANKS.find(x => score >= x.min * max)!.name;

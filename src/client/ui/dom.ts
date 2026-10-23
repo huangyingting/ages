@@ -42,6 +42,9 @@ const PATHS = {
   minus: 'M5 11h14v2H5z',
   full: 'M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z',
   chevron: 'M8.6 7.4 10 6l6 6-6 6-1.4-1.4 4.6-4.6z',
+  chevL: 'M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z',
+  music: 'M12 3v10.6A4 4 0 1 0 14 17V7h4V3z',
+  list: 'M4 5h2v2H4zm4 0h12v2H8zm-4 6h2v2H4zm4 0h12v2H8zm-4 6h2v2H4zm4 0h12v2H8z',
   down: 'M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z',
   up: 'M7.4 15.4 12 10.8l4.6 4.6L18 14l-6-6-6 6z',
 } as const;

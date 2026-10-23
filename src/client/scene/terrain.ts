@@ -146,7 +146,7 @@ export interface Terrain {
 export const HAZE = new THREE.Color().setHex(0xe4dccb, THREE.LinearSRGBColorSpace); // raw sRGB (shaders write sRGB)
 
 export type Surface = 'ink' | 'paper' | 'plain';
-export const SURFACES: Surface[] = ['ink', 'paper', 'plain'];
+export const SURFACES: Surface[] = ['paper', 'ink', 'plain'];
 const raw = (hex: number) => new THREE.Color().setHex(hex, THREE.LinearSRGBColorSpace);
 /** Per map style: shader index, horizon haze and sky zenith (raw sRGB). */
 export const SURFACE: Record<Surface, { style: number; haze: THREE.Color; top: THREE.Color }> = {

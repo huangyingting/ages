@@ -11,7 +11,7 @@ It is an original 3D re-imagining inspired by [jiangshan-map](https://github.com
 | ![home](docs/assets/screenshots/desktop-home-zh.jpg) | ![story](docs/assets/screenshots/desktop-story-qin.jpg) | ![journey](docs/assets/screenshots/desktop-journey.jpg) | ![mobile](docs/assets/screenshots/mobile-event.jpg) |
 
 ## Features
-* **3D terrain relief** of East Asia, generated from open elevation data, with rivers and coastlines, in ink, paper or plain styles.
+* **3D terrain relief** of East Asia, generated from open elevation data, with rivers and coastlines, in paper, ink or plain styles.
 * **Timeline** spanning about 1 million years. It is non-linear, so dense periods get more room, and shows era bands, event dots, age headings, drag/keyboard scrubbing and auto-play. **173 territory snapshots** (Xia → PRC; dated phases from 403 BCE to 1949 imported from jiangshan-map) crossfade as the year changes, and capitals, period place names (长安 / 西安, 汴京 / 开封 …), polity labels, admin divisions, walls, canals and routes follow the year. The readout shows the reign era (年号, e.g. 北宋神宗 · 元丰八年), with rival regimes' eras on hover.
 * **Full-screen map**: the 3D terrain fills the window and every panel floats over it.
 * **907 events**: 151 curriculum events plus 756 chronicle entries from jiangshan-map. Each curriculum event has a bilingual summary, key points (考点), people, location and its units in the textbooks (七年级上/下, 八年级上/下, 高中《中外历史纲要（上）》), plus a procedural 3D model.
@@ -21,11 +21,15 @@ It is an original 3D re-imagining inspired by [jiangshan-map](https://github.com
 * **41 procedural 3D models** built from primitives in Web Workers, with simple rigs (flags flap, wheels spin, smoke rises).
 * **Wikipedia reader** in Chinese (简体) or English: lead, sections, image, reading time and a link to the full article. It falls back through interlanguage links and works offline gracefully.
 * **Learn by textbook unit**: a drawer listing the units for each book, with progress (watched / learned).
-* **Quiz** with three question types: *when* (pick the year), *where* (click the map; graded by distance) and *order* (sort events). Every answer is revealed on the map.
-* **Scroll & seal interface (装裱)**: every panel is a sheet of rice paper mounted in dark brocade with a gold inner line, like a mounted painting. The info panel is a hanging scroll (立轴) with a rod and gilt-knobbed roller, the timeline is a hand scroll (手卷) with rollers at both ends, the brand is a cinnabar seal, and the current period sits on a title slip (题签). Chinese text uses the system CJK sans (PingFang / Hiragino / Noto Sans CJK / YaHei). One toolbar (search, language, a **hub** menu for learn / quiz / journeys / help, and a **settings** menu for map style and layers) keeps the screen clear. Events open the scroll with a live 3D model preview; the timeline folds to a single line. Panels slide away during stories, and the camera re-frames itself so the subject is never under a panel. On phones the panel becomes a bottom sheet.
+* **Quiz** in two modes. *History questions* has three types: *when* (pick the year), *where* (click the map; graded by distance) and *order* (sort events). *Ancient places* (古地名定位) asks where a period name was (五代十国时期的「祯州」在哪里？): place names are hidden, you click the map, score up to 100 by distance and earn an official rank (书院童生 → 太史令 · 舆图大家). Every answer is revealed on the map.
+* **Chronicle (大事年表)**: a side panel lists every event of the dynasty in view — all 907, not just the textbook ones — with a 全部 / 课本 filter, ◆ for map-changing events and ▶ for scripted stories. It follows the timeline, highlights the current year and folds to a tab.
+* **Phase legend (阶段图例)**: a bottom-left card names the territorial phase (e.g. 明 · 阶段 6/10 · 1408–1427), with dots to jump between phases, the polities on the map (click to fly there, hover to highlight), a note on what changed, and a key for walls, canals, roads and sea routes. The previous phase's borders show as a dashed red **ghost line**, so expansion and loss stand out.
+* **Year stepper**: the timeline has a floating year flag (公元1415年 · 永乐十三年) and a ‹ year › stepper; type a year (1415, -221, 前221, 221 BC) or step to the previous / next event or phase. The arrow keys do the same (Shift = ±10 years).
+* **Guqin music (雅乐)**: optional background guqin tracks from the toolbar.
+* **Modern interface**: clean frosted-glass panels on a full-screen light relief map, with Geist / system CJK sans type and a vermilion accent. One toolbar (search, music, language, a **hub** menu for learn / quiz / journeys / help, and a **settings** menu for map style and layers) keeps the screen clear. Events open a card with a live 3D model preview; the timeline and chronicle fold away. Panels slide away during stories, and the camera re-frames itself so the subject is never under a panel. On phones the card becomes a bottom sheet.
 * **No anachronistic names**: the map only prints a place name in the years it was actually used (e.g. 西安 only from 1369, 上海 from 1292, 北京 from 1403); before that it shows the period name (长安, 汴京, 燕京 …) or nothing.
-* **Map styles**: ink (dark, default), paper (parchment) and plain relief.
-* **Shareable deep links**: `#e=<event>`, `#y=<year>`, `&lang=zh|en`.
+* **Map styles**: paper (light relief, default), ink (dark) and plain.
+* **Shareable deep links**: `#e=<event>`, `#y=<year>`, `#p=<place>`, `#person=<id>`, `#j=<journey>`, `&lang=zh|en`. The same keys also work in the query string (`?year=1415`).
 
 ## Quick start
 ```bash

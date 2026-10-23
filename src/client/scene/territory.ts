@@ -17,6 +17,8 @@ export interface PaintOpts {
   provinces?: AdminUnit[] | null;
   /** lakes of the period */
   lakes?: Lake[];
+  /** the previous phase: its main polities' borders are drawn as a dashed outline */
+  ghost?: Snapshot | null;
 }
 
 export class TerritoryPainter {
@@ -111,6 +113,17 @@ export class TerritoryPainter {
       ctx.stroke();
     }
     ctx.setLineDash([]);
+    if (o.ghost) {
+      ctx.strokeStyle = 'rgba(200,55,45,0.75)';
+      ctx.lineWidth = 2 * k;
+      ctx.setLineDash([7 * k, 5 * k]);
+      for (const r of o.ghost.regions) {
+        if ((r.role ?? POLITY.get(r.polity)?.role) !== 'main') continue;
+        this.path(ctx, r.rings);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
     if (o.admin && s?.admin?.length) {
       for (const a of s.admin) {
         this.path(ctx, a.rings);

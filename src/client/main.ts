@@ -25,6 +25,9 @@ import { Quiz } from './ui/quiz.ts';
 import { Reader } from './ui/reader.ts';
 import { SearchBox } from './ui/searchbox.ts';
 import { Timeline } from './ui/timeline.ts';
+import { Chronicle } from './ui/chronicle.ts';
+import { Legend } from './ui/legend.ts';
+import { Music } from './ui/music.ts';
 
 const params = new URLSearchParams(location.search);
 const lowfx = params.has('lowfx') || (navigator.hardwareConcurrency ?? 4) <= 2;
@@ -38,6 +41,9 @@ class App {
   reader = new Reader();
   caption = new Caption(canSpeak());
   search = new SearchBox();
+  chronicle = new Chronicle();
+  legend = new Legend();
+  music = new Music();
   learn: Learn;
   settings!: SettingsMenu;
   hub!: HubMenu;
@@ -69,7 +75,9 @@ class App {
   async start(): Promise<void> {
     const link = readLink();
     const ev = link.event ? EVENT.get(link.event) : undefined;
-    const year: Year = ev?.year ?? link.year ?? load<number>('year', -221);
+    const linkPlace = link.place ? PLACE.get(link.place) : undefined;
+    const linkPerson = link.person ? PERSON.get(link.person) : undefined;
+    const year: Year = ev?.year ?? link.year ?? (linkPerson ? Math.round((linkPerson.span[0] + linkPerson.span[1]) / 2) : undefined) ?? load<number>('year', -221);
     await this.atlas.init(year, lang);
     this.player = new StoryPlayer(this.atlas, {
       onCaption: (text, i, n) => this.caption.say(text, i, n),
@@ -84,8 +92,8 @@ class App {
       speak,
     });
     this.quiz = new Quiz(this.atlas, this.progress);
-    const surf = load<Surface>('surface', 'ink');
-    const surface: Surface = SURFACES.includes(params.get('map') as Surface) ? params.get('map') as Surface : SURFACES.includes(surf) ? surf : 'ink';
+    const surf = load<Surface>('surface', 'paper');
+    const surface: Surface = SURFACES.includes(params.get('map') as Surface) ? params.get('map') as Surface : SURFACES.includes(surf) ? surf : 'paper';
     this.atlas.setSurface(surface);
     this.settings = new SettingsMenu(this.atlas.layers, surface);
     this.hub = new HubMenu();
@@ -104,6 +112,10 @@ class App {
     };
     if (ev) this.openEvent(ev, false);
     if (ev) this.atlas.view.jump({ lon: ev.lon, lat: ev.lat - 1.2, dist: 26, tilt: 0.85 });
+    else if (linkPlace) { this.atlas.view.jump({ lon: linkPlace.lon, lat: linkPlace.lat - 1, dist: 18, tilt: 0.85 }); this.openPlace(linkPlace, false); }
+    else if (linkPerson) this.openPerson(linkPerson);
+    const linkJourney = link.journey ? JOURNEYS.find(j => j.id === link.journey) : undefined;
+    if (linkJourney) setTimeout(() => void this.playJourney(linkJourney), 600);
     this.ready = true;
     document.getElementById('boot')?.classList.add('gone');
     setTimeout(() => document.getElementById('boot')?.remove(), 600);
@@ -138,6 +150,11 @@ class App {
       if (final) { this.saveYear(y); }
     };
     tl.onEvent = e => this.openEvent(e);
+    this.chronicle.onOpen = e => this.openEvent(e);
+    this.chronicle.onEra = id => this.openEra(id);
+    this.legend.onYear = y => { tl.setPlaying(false); tl.set(y, true); };
+    this.legend.onHold = (p, c) => this.atlas.hold(p, c);
+    this.legend.onPolity = p => { if (p) this.atlas.flyToPolity(p); };
     tl.onEra = id => this.openEra(id);
     tl.onPlay = on => { if (on) { this.player.stop(); this.closeCard(); } };
 
@@ -164,22 +181,23 @@ class App {
     this.settings.onSurface = s => { this.atlas.setSurface(s); save('surface', s); };
     this.hub.onPlay = j => this.playJourney(j);
     this.hub.onPick = w => { this.pop(null); if (w === 'help') this.help.toggle(true); else this.toggle(w); };
-    this.quiz.onClose = () => {};
+    this.quiz.onClose = () => this.root.classList.remove('quiz-on');
+    this.quiz.onYear = y => { this.timeline.set(y, true, false); this.atlas.setYear(y); };
     this.reader.onClose = () => {};
 
     // top-left: brand mark and the current-period chip
     this.eraChip = h('button', { type: 'button', class: 'era-chip', onclick: () => { const e = eraAt(this.timeline.year); if (e) this.openEra(e.id); } },
       h('i', { class: 'dot' }), h('span', { class: 'ec-t' }, h('b'), h('small')), h('em', { class: 'ec-c' }));
     this.bar = h('div', { class: 'top-l' },
-      h('div', { class: 'brand' }, h('span', { class: 'seal', 'aria-hidden': 'true', text: '长河' }), h('span', { class: 'brand-t' }, h('b', { text: 'Ages' }), h('span', { text: t('brandSub') }))),
-      this.eraChip);
-    this.timeline.onRender = y => this.renderEraChip(y);
+      h('div', { class: 'brand' }, h('span', { class: 'logo', 'aria-hidden': 'true' }), h('span', { class: 'brand-t' }, h('b', { text: 'Ages' }), h('span', { text: t('brandSub') }))),
+      this.search.el, this.eraChip);
+    this.timeline.onRender = y => { this.renderEraChip(y); this.chronicle.update(y); this.legend.setYear(y); };
 
     // top-right: one toolbar slab (search · language · study hall · map settings)
     this.langBtn = h('button', { type: 'button', class: 'ib lang', 'data-act': 'lang', onclick: () => setLang(lang === 'zh' ? 'en' : 'zh') });
     const hubBtn = iconBtn('grid', t('hub'), () => this.pop(this.hub.el.hidden ? 'hub' : null), 'b-hub');
     const setBtn = iconBtn('sliders', t('settings'), () => this.pop(this.settings.el.hidden ? 'settings' : null), 'b-settings');
-    const tools = h('div', { class: 'tools' }, this.search.el, h('i', { class: 'sep' }), this.langBtn, h('i', { class: 'sep' }), hubBtn, setBtn);
+    const tools = h('div', { class: 'tools' }, this.music.el, this.langBtn, hubBtn, setBtn);
     const top = h('div', { class: 'top-r' }, tools, this.hub.el, this.settings.el);
     document.addEventListener('pointerdown', e => {
       if ((!this.hub.el.hidden || !this.settings.el.hidden) && !top.contains(e.target as Node)) this.pop(null);
@@ -192,12 +210,11 @@ class App {
     const corner = h('div', { class: 'corner-r' },
       iconBtn('full', t('fullscreen'), () => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen?.().catch(() => {}); }, 'round-btn b-full'),
       iconBtn('home', t('home'), () => this.atlas.home(), 'round-btn b-home'),
-      zoom);
+      zoom, iconBtn('help', t('help'), () => this.help.toggle(), 'round-btn b-help'));
     this.atlas.view.onFrame(() => { const z = 120 / this.atlas.view.pose().dist; const s = '×' + (z < 10 ? z.toFixed(1) : Math.round(z)); if (this.zoomLbl.textContent !== s) this.zoomLbl.textContent = s; });
-    const helpBtn = iconBtn('help', t('help'), () => this.help.toggle(), 'round-btn b-help');
 
-    this.root.append(this.bar, top, this.learn.el, this.card.el, this.reader.el, this.quiz.el, this.caption.el, this.timeline.el, this.help.el,
-      helpBtn, corner, h('div', { class: 'disc', text: t('disclaimer') }));
+    this.root.append(this.bar, top, this.chronicle.el, this.legend.el, this.learn.el, this.card.el, this.reader.el, this.quiz.el, this.caption.el, this.timeline.el, this.help.el,
+      corner, h('div', { class: 'disc', text: t('disclaimer') }));
     this.relabel();
     onLang(l => this.onLang(l));
 
@@ -205,15 +222,19 @@ class App {
     const mo = new MutationObserver(inset);
     mo.observe(this.root, { attributes: true, attributeFilter: ['class'] });
     for (const el of [this.card.el, this.reader.el, this.learn.el]) mo.observe(el, { attributes: true, attributeFilter: ['hidden'] });
+    mo.observe(this.chronicle.el, { attributes: true, attributeFilter: ['class'] });
     const ro = new ResizeObserver(inset);
-    ro.observe(this.card.el); ro.observe(this.reader.el); ro.observe(this.root);
+    ro.observe(this.card.el); ro.observe(this.reader.el); ro.observe(this.root); ro.observe(this.chronicle.el);
 
     window.addEventListener('keydown', e => this.key(e));
     window.addEventListener('hashchange', () => {
       const l = readLink();
       if (l.lang && l.lang !== lang) setLang(l.lang);
       if (l.event && l.event !== this.card.event?.id) { const ev = EVENT.get(l.event); if (ev) this.openEvent(ev); }
-      else if (!l.event && l.year != null) {
+      else if (l.place && l.place !== this.card.place?.p.id) { const p = PLACE.get(l.place); if (p) this.openPlace(p); }
+      else if (l.person && l.person !== this.card.person?.id) { const p = PERSON.get(l.person); if (p) this.openPerson(p); }
+      else if (l.journey) { const j = JOURNEYS.find(x => x.id === l.journey); if (j) void this.playJourney(j); }
+      else if (!l.event && !l.place && !l.person && l.year != null) {
         this.timeline.set(l.year, true, false);
         this.atlas.setYear(l.year);
         this.closeCard();
@@ -244,7 +265,7 @@ class App {
 
   private toggle(which: 'learn' | 'quiz'): void {
     if (which === 'learn') { this.learn.toggle(); if (this.learn.open && this.quiz.open) this.quiz.toggle(false); }
-    else { if (!this.quiz.open) { this.stopStory(); this.closeCard(); this.learn.toggle(false); } this.quiz.toggle(); }
+    else { if (!this.quiz.open) { this.stopStory(); this.closeCard(); this.learn.toggle(false); } this.quiz.toggle(); this.root.classList.toggle('quiz-on', this.quiz.open); }
   }
 
   openEvent(e: HistEvent, fly = true): void {
@@ -255,6 +276,7 @@ class App {
     this.atlas.setYear(e.year);
     this.atlas.select(e, fly);
     this.timeline.select(e.id);
+    this.chronicle.select(e.id);
     this.card.showEvent(e);
     this.root.classList.add('card-on');
     writeLink({ event: e.id, lang });
@@ -283,6 +305,7 @@ class App {
     if (fly) this.atlas.flyTo({ lon: p.lon, lat: p.lat - 0.6, dist: Math.min(this.atlas.view.pose().dist, 22), tilt: 0.85 }, 1.2);
     this.card.showPlace(p, this.timeline.year);
     this.root.classList.add('card-on');
+    writeLink({ place: p.id, year: this.timeline.year, lang });
   }
 
   openPerson(p: Person): void {
@@ -291,6 +314,7 @@ class App {
     this.timeline.select(null);
     this.card.showPerson(p);
     this.root.classList.add('card-on');
+    writeLink({ person: p.id, lang });
   }
 
   closeCard(): void {
@@ -299,6 +323,7 @@ class App {
     this.reader.close();
     this.atlas.select(null);
     this.timeline.select(null);
+    this.chronicle.select(null);
     this.root.classList.remove('card-on');
     writeLink({ year: this.timeline.year, lang });
   }
@@ -367,10 +392,16 @@ class App {
       e.preventDefault();
       return;
     }
-    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && this.card.event) {
-      const list = EVENTS.filter(x => x.scope === 'china');
-      const i = list.indexOf(this.card.event) + (e.key === 'ArrowRight' ? 1 : -1);
-      if (list[i]) this.openEvent(list[i]);
+    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !e.altKey && !e.metaKey && !e.ctrlKey) {
+      if ((e.target as HTMLElement).closest('.tl-track')) return;
+      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      if (this.card.event) {
+        const list = EVENTS.filter(x => x.scope === 'china');
+        const i = list.indexOf(this.card.event) + dir;
+        if (list[i]) this.openEvent(list[i]);
+      } else if (this.player.state === 'idle' && !this.quiz.open) {
+        if (e.shiftKey) { this.timeline.setPlaying(false); this.timeline.set(this.timeline.year + dir * 10, true); } else this.timeline.step(dir);
+      }
       e.preventDefault();
     }
   }
@@ -387,6 +418,9 @@ class App {
     this.renderEraChip(this.timeline.year);
     this.help.render();
     this.quiz.relabel();
+    this.chronicle.relabel();
+    this.legend.relabel();
+    this.music.relabel();
     writeLink(this.card.event ? { event: this.card.event.id, lang: l } : { year: this.timeline.year, lang: l });
   }
 
@@ -402,6 +436,7 @@ class App {
     const left = this.card.open ? this.card.el.getBoundingClientRect().right - r.left : 0;
     let right = W;
     for (const el of [this.reader.el, this.learn.el]) if (!el.hidden) right = Math.min(right, el.getBoundingClientRect().left - r.left);
+    if (!this.chronicle.folded) right = Math.min(right, this.chronicle.el.getBoundingClientRect().left - r.left);
     this.atlas.view.setInset(Math.min(W * 0.4, left), Math.min(W * 0.45, W - right), 0);
   }
 

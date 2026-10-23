@@ -6,6 +6,7 @@ import { PLACE, PLACES, isCapital, mapName } from '../../shared/data/places.ts';
 import { POLITY, polityMatches } from '../../shared/data/polities.ts';
 import { STAGES, type StageId } from '../../shared/data/stage.ts';
 import { snapshotAt } from '../../shared/data/territories.ts';
+import { previousSnap } from '../../shared/lib/chronicle.ts';
 import type { AdminUnit, HistEvent, LonLat, Place, Region, Snapshot, Year } from '../../shared/data/types.ts';
 import { eraAt } from '../../shared/lib/timeline.ts';
 import { Fx } from './fx.ts';
@@ -24,6 +25,8 @@ export interface Layers {
   modern: boolean;
   /** walls, canals, roads and sea routes */
   works: boolean;
+  /** the previous phase's borders as a dashed outline */
+  ghost: boolean;
 }
 
 /**
@@ -42,7 +45,7 @@ export class Atlas {
   private worksKey = '';
   year: Year = -221;
   lang: Lang = 'zh';
-  layers: Layers = { territory: true, places: true, events: true, models: true, admin: false, modern: false, works: true };
+  layers: Layers = { territory: true, places: true, events: true, models: true, admin: false, modern: false, works: true, ghost: true };
   snapshot: Snapshot | null = null;
   selected: HistEvent | null = null;
   /** when set, map clicks report lon/lat (quiz "where" questions) instead of selecting */
@@ -177,13 +180,16 @@ export class Atlas {
     const snap = snapshotAt(y);
     this.shapes?.hydrate(snap);
     const lakes = this.shapes?.lakes(y) ?? [];
-    const key = [snap?.id, lakes.length, lakes.map(l => l.from).join(), this.layers.admin, this.layers.modern].join('|');
+    // the previous phase's borders as a dashed outline, so the change is visible
+    const ghost = this.layers.ghost && this.layers.territory ? previousSnap(snap) : null;
+    if (ghost) this.shapes?.hydrate(ghost);
+    const key = [snap?.id, ghost?.id, lakes.length, lakes.map(l => l.from).join(), this.layers.admin, this.layers.modern].join('|');
     if (key !== this.paintKey || !this.texA) {
       const snapChanged = snap?.id !== this.snapshot?.id;
       this.paintKey = key;
       this.snapshot = snap;
       const tex = texture(this.painter.paint(snap, {
-        admin: this.layers.admin, provinces: this.layers.modern ? this.shapes?.provinces() : null, lakes,
+        admin: this.layers.admin, provinces: this.layers.modern ? this.shapes?.provinces() : null, lakes, ghost,
       }));
       if (instant || !this.texA) {
         this.texA?.dispose();
@@ -252,6 +258,29 @@ export class Atlas {
     (u.uHiColor.value as THREE.Color).set(color ?? '#fff3b0');
     this.hiT = 0;
     this.hiDur = dur;
+  }
+
+  /** Holds a polity highlighted (legend hover) until released with null. */
+  hold(polity: string | null, color?: string): void {
+    if (polity) { this.highlight(polity, 1e9, color); return; }
+    if (this.hiT >= 0 && this.hiDur > 1e8) this.hiDur = this.hiT;
+  }
+
+  /** Frames a polity's regions in the current snapshot. */
+  flyToPolity(polity: string): void {
+    let w = Infinity, e = -Infinity, s = Infinity, n = -Infinity;
+    for (const r of this.snapshot?.regions ?? []) {
+      if (!polityMatches(r.polity, polity)) continue;
+      for (const ring of r.rings) for (const [lon, lat] of ring) {
+        if (!this.geo.inBounds(lon, lat)) continue;
+        w = Math.min(w, lon); e = Math.max(e, lon); s = Math.min(s, lat); n = Math.max(n, lat);
+      }
+    }
+    if (!isFinite(w)) return;
+    const a = this.geo.pos(w, s, 0), b = this.geo.pos(e, n, 0);
+    const span = Math.max(Math.abs(b.x - a.x), Math.abs(b.z - a.z) * 1.4);
+    this.flyTo({ lon: (w + e) / 2, lat: (s + n) / 2 - (n - s) * 0.12, dist: Math.max(10, Math.min(120, span * 1.25)), tilt: 0.85 }, 1.6);
+    this.highlight(polity, 2.5);
   }
 
   // ------------------------------------------------------------ labels
@@ -448,7 +477,7 @@ export class Atlas {
       this.labels.setGroupVisible('polity', on);
     }
     if (k === 'places') { this.labels.setGroupVisible('places', on); this.labels.setGroupVisible('rivers', on); }
-    if (k === 'admin' || k === 'modern') { this.setYear(this.year, true); this.labels.setGroupVisible('admin', this.layers.admin); if (!this.layers.admin) this.onHover(null); }
+    if (k === 'admin' || k === 'modern' || k === 'ghost') { this.setYear(this.year, true); this.labels.setGroupVisible('admin', this.layers.admin); if (!this.layers.admin) this.onHover(null); }
     if (k === 'works') this.updateWorks();
     if (k === 'events') this.labels.setGroupVisible('pins', on && !this.pickHandler);
     if (k === 'models') { this.capitalKey = '-'; this.updateCapital(); if (!on) this.fx.clear('event'); }
@@ -464,9 +493,12 @@ export class Atlas {
     document.documentElement.dataset.map = s;
   }
 
-  setPickMode(fn: ((lon: number, lat: number) => void) | null): void {
+  /** Routes the next map click to `fn`; `blind` also hides place names so they cannot give the answer away. */
+  setPickMode(fn: ((lon: number, lat: number) => void) | null, blind = false): void {
     this.pickHandler = fn;
     this.labels.setGroupVisible('pins', this.layers.events && !fn);
+    this.labels.setGroupVisible('places', this.layers.places && !(fn && blind));
+    this.labels.setGroupVisible('admin', this.layers.admin && !(fn && blind));
     this.host.classList.toggle('picking', !!fn);
   }
 

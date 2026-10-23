@@ -149,6 +149,10 @@ export interface HistEvent {
   source?: 'jiangshan';
   /** the historical site name, e.g. 桂陵（长垣） */
   site?: I18n;
+  /** the full chronicle headline of an imported entry (its title is shortened) */
+  headline?: I18n;
+  /** a chronicle entry where the territorial map changes */
+  mapChange?: boolean;
 }
 
 export type Troops = 'foot' | 'horse' | 'mixed';

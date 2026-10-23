@@ -97,7 +97,7 @@ const dynasties = (W.DYNASTY_DATA as Any[]).map(d => {
   };
 });
 
-interface SnapMeta { id: string; dyn: string; start: number; end: number; title: { zh: string; en: string } }
+interface SnapMeta { id: string; dyn: string; start: number; end: number; title: { zh: string; en: string }; note?: { zh: string; en: string } }
 const timeline: SnapMeta[] = [];
 for (const d of W.DYNASTY_DATA as Any[]) {
   const phases: Any[] = d.phases ?? [];
@@ -106,7 +106,8 @@ for (const d of W.DYNASTY_DATA as Any[]) {
     const s = SNAPS[p.snap];
     if (!s) throw new Error(`missing snapshot ${p.snap}`);
     const zh = (s.caption || p.overview || d.title).replace(/\s+/g, ' ').trim();
-    timeline.push({ id: p.snap, dyn: d.key, start, end: p.until, title: i18n(zh, DICT[s.caption] ?? DICT[p.overview]) });
+    const note = (s.note || '').replace(/\s+/g, ' ').trim();
+    timeline.push({ id: p.snap, dyn: d.key, start, end: p.until, title: i18n(zh, DICT[s.caption] ?? DICT[p.overview]), note: note ? i18n(note, DICT[s.note]) : undefined });
     start = p.until + 1;
   }
 }

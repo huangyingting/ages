@@ -11,7 +11,7 @@ import type { EventKind, HistEvent, I18n, LonLat, ModelRecipe, Place, Polity, Sn
 interface Raw {
   source: { repo: string; sha: string; license: string };
   dynasties: { id: string; name: I18n; short: I18n; start: Year; end: Year; color: string; seat: I18n; summary: I18n }[];
-  timeline: { id: string; dyn: string; start: Year; end: Year; title: I18n }[];
+  timeline: { id: string; dyn: string; start: Year; end: Year; title: I18n; note?: I18n }[];
   polities: { id: string; name: I18n; color: string | null; role: string }[];
   milestones: { id: string; dyn: string; year: Year; title: I18n; site: I18n; lon: number; lat: number; map?: boolean }[];
   landmarks: { id: string; dyn: string; year: Year; title: I18n; site: I18n; lon: number; lat: number }[];
@@ -69,7 +69,7 @@ export const IMPORTED_POLITIES: Polity[] = J.polities.map(p => ({ id: p.id, name
 
 /** Dated phases from 403 BCE to 1949; `regions` are filled from the shape store when it has loaded. */
 export const IMPORTED_SNAPSHOTS: Snapshot[] = J.timeline.map(t => ({
-  id: t.id, scope: 'china', year: t.start, end: t.end, dyn: t.dyn, title: t.title, regions: [], shapes: t.id,
+  id: t.id, scope: 'china', year: t.start, end: t.end, dyn: t.dyn, title: t.title, note: t.note, regions: [], shapes: t.id,
 }));
 // a dynasty's last phase and the next dynasty's first can share their boundary year: the new dynasty takes the next year
 for (let i = 1; i < IMPORTED_SNAPSHOTS.length; i++) {
@@ -181,7 +181,7 @@ export function importedEvents(curated: HistEvent[]): HistEvent[] {
       title: shortTitle(m.title),
       summary: site ? { zh: `${m.title.zh}（${site.zh}）`, en: `${m.title.en} (${site.en})` } : m.title,
       points: [], curriculum: [], model: modelOf(m.title.zh, kind, m.year), people: peopleIn(m.title.zh),
-      source: 'jiangshan', site,
+      source: 'jiangshan', site, headline: m.title, mapChange: ('map' in m && m.map === true) || undefined,
     } satisfies HistEvent;
   });
 }

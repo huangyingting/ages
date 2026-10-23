@@ -3,7 +3,9 @@ import { AGES, ERAS } from '../../shared/data/eras.ts';
 import { tr } from '../../shared/data/i18n.ts';
 import type { HistEvent, Year } from '../../shared/data/types.ts';
 import { reignAt, regionalReignsAt } from '../../shared/data/jiangshan.ts';
-import { eraAt, formatYear, normYear, rulerAt, tToYear, ticks, yearToT } from '../../shared/lib/timeline.ts';
+import { STOPS, stepStop } from '../../shared/lib/chronicle.ts';
+import { SNAPSHOTS } from '../../shared/data/territories.ts';
+import { eraAt, formatYear, normYear, parseYear, rulerAt, tToYear, ticks, yearToT } from '../../shared/lib/timeline.ts';
 import { lang, t } from '../lib/i18n.ts';
 import { load, save } from '../lib/storage.ts';
 import { h, iconBtn, setIcon } from './dom.ts';
@@ -26,6 +28,10 @@ export class Timeline {
   private dots: HTMLElement;
   private axis: HTMLElement;
   private agesEl: HTMLElement;
+  private phases: HTMLElement;
+  private flag: HTMLElement;
+  private input: HTMLInputElement;
+  private unit: HTMLElement;
   year: Year = 0;
   playing = false;
   onYear: (y: Year, final: boolean) => void = () => {};
@@ -46,13 +52,22 @@ export class Timeline {
     this.bands = h('div', { class: 'tl-bands' });
     this.dots = h('div', { class: 'tl-dots' });
     this.axis = h('div', { class: 'tl-axis' });
-    this.thumb = h('div', { class: 'tl-thumb' }, h('i'));
+    this.phases = h('div', { class: 'tl-phases', 'aria-hidden': 'true' });
+    this.flag = h('div', { class: 'tl-flag' });
+    this.thumb = h('div', { class: 'tl-thumb' }, h('i'), this.flag);
     this.tip = h('div', { class: 'tl-tip' });
-    this.track = h('div', { class: 'tl-track', role: 'slider', tabindex: 0, 'aria-label': t('era') }, this.agesEl, this.bands, this.dots, this.axis, this.thumb, this.tip);
+    this.track = h('div', { class: 'tl-track', role: 'slider', tabindex: 0, 'aria-label': t('era') }, this.agesEl, this.bands, this.phases, this.dots, this.axis, this.thumb, this.tip);
     this.foldBtn = iconBtn('down', t('fold'), () => this.fold(!this.el.classList.contains('folded')), 'tl-fold');
+    this.unit = h('span', { class: 'tl-unit' });
+    this.input = h('input', { class: 'tl-in', type: 'text', inputmode: 'numeric', 'aria-label': t('goYear'), title: t('goYear') });
+    this.input.addEventListener('change', () => { const y = parseYear(this.input.value); if (y != null) { this.setPlaying(false); this.set(y, true); } else this.render(); });
+    this.input.addEventListener('keydown', e => { if (e.key === 'Enter') this.input.blur(); e.stopPropagation(); });
+    const stepper = h('div', { class: 'tl-step' },
+      iconBtn('chevL', t('prevStop'), () => this.step(-1), 'tl-prev'), this.input, this.unit,
+      iconBtn('chevron', t('nextStop'), () => this.step(1), 'tl-next'));
     this.el = h('div', { class: 'tl' },
       h('div', { class: 'tl-read' }, this.playBtn, h('div', { class: 'tl-txt' }, this.yearEl, h('div', { class: 'tl-sub' }, this.eraEl, this.rulerEl))),
-      this.track, this.foldBtn);
+      this.track, stepper, this.foldBtn);
     if (load<boolean>('tlFolded', false)) this.fold(true);
     this.build();
     this.bind();
@@ -74,7 +89,9 @@ export class Timeline {
       b.append(h('span', { text: tr(e.short, lang) }));
       return b;
     }));
-    this.dots.replaceChildren(...EVENTS.filter(e => e.scope === 'china' && e.weight <= 2).map(e => {
+    this.phases.replaceChildren(...SNAPSHOTS.filter(x => x.year >= -2070).map(x => h('i', { style: `left:${yearToT(x.year) * 100}%` })));
+    // textbook events on top of the (fainter) imported chronicle entries
+    this.dots.replaceChildren(...EVENTS.filter(e => e.scope === 'china').sort((a, b) => b.weight - a.weight).map(e => {
       const d = h('button', { type: 'button', class: `tl-dot w${e.weight} k-${e.kind}`, style: `left:${yearToT(e.year) * 100}%`, 'data-id': e.id, 'aria-label': tr(e.title, lang) });
       d.addEventListener('pointerenter', () => this.showTip(e, d));
       d.addEventListener('pointerleave', () => this.tip.classList.remove('on'));
@@ -87,7 +104,7 @@ export class Timeline {
 
   private layoutAxis(): void {
     const w = this.track.clientWidth || 600;
-    this.axis.replaceChildren(...ticks(w).map(y => h('span', { style: `left:${yearToT(y) * 100}%`, text: formatYear(y, lang, { short: true }).replace('约', '').replace('c. ', '') })));
+    this.axis.replaceChildren(...ticks(w).map(y => h('span', { style: `left:${yearToT(y) * 100}%`, text: formatYear(y, lang, { short: true }).replace('约', '').replace('c. ', '').replace(' million years ago', 'M ya') })));
     // hide band labels that do not fit
     for (const b of this.bands.children as HTMLCollectionOf<HTMLElement>) {
       const s = b.firstElementChild as HTMLElement;
@@ -146,6 +163,12 @@ export class Timeline {
     if (!on) requestAnimationFrame(() => this.layoutAxis());
   }
 
+  /** Jumps to the next/previous chronicle entry or territorial phase. */
+  step(dir: 1 | -1): void {
+    this.setPlaying(false);
+    this.set(this.year < -2070 && dir > 0 ? STOPS[0] : stepStop(this.year, dir), true);
+  }
+
   setPlaying(on: boolean): void {
     if (on === this.playing) return;
     this.playing = on;
@@ -181,6 +204,9 @@ export class Timeline {
     // the orthodox reign era (年号) when known, else the curated ruler; rival regimes' eras in the tooltip
     const r = rulerAt(y), reign = reignAt(y);
     this.rulerEl.textContent = reign ? tr(reign.label, lang) : r ? tr(r.name, lang) : '';
+    this.unit.textContent = lang === 'zh' ? '年' : '';
+    this.flag.textContent = `${formatYear(y, lang)}${reign ? ' · ' + tr(reign.label, lang).replace(/^.*· /, '') : ''}`;
+    if (document.activeElement !== this.input) this.input.value = y < 0 ? (lang === 'zh' ? `前${-y}` : `${-y} BC`) : String(y);
     this.rulerEl.title = [this.rulerEl.textContent, ...regionalReignsAt(y).map(x => `${tr(x.regime, lang)}${lang === 'zh' ? '：' : ': '}${tr(x.reign.label, lang)}`)].filter(Boolean).join('\n');
     this.track.setAttribute('aria-valuetext', `${formatYear(y, lang)} ${era ? tr(era.name, lang) : ''}`);
     for (const b of this.bands.children as HTMLCollectionOf<HTMLElement>) b.classList.toggle('cur', b.dataset.era === era?.id);
@@ -195,5 +221,6 @@ export class Timeline {
     this.select(this.selected);
   }
 }
+
 
 
