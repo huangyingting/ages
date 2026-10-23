@@ -27,8 +27,9 @@ ev({ id: 'zhenghe', y: 1405, end: 1433, k: 'diplomacy', at: 'nanjing', w: 1, m: 
 Keep summaries to two or three sentences in textbook terms. Key points should be the facts an exam would ask about.
 
 ## Add a story
-Add an entry keyed by the event id to `STORIES` in `stories.ts`. Use the helpers `fly()`, `year()`, `cap()` and `lbl()` and the step types listed in [architecture](architecture/architecture.md#story-dsl). Tips:
-* Start with `year()` and `fly()`, and alternate action steps with short captions (one idea each).
+Add an entry keyed by the event id to `STORIES` in `stories.ts`. Use the helpers `fly()`, `year()`, `cap()`, `lbl()`, `title()`, `banner()`, `wipe()` and `orbit()` and the step types listed in [architecture](architecture/architecture.md#story-dsl). Tips:
+* Start with `year()`, `title()` and `fly()`, and alternate action steps with short captions (one idea each).
+* Show, don't tell: march an `army` or stage a `clash` (with `label`s), raise a `banner` where a city falls, and use `wipe()` from the victor's capital when the map changes hands.
 * Use `par: true` to run an army and a caption together.
 * Keep a story under about 40 s at 1×, and end on the outcome caption.
 

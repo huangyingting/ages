@@ -2,7 +2,8 @@ import { ERAS } from '../shared/data/eras.ts';
 import { EVENT, EVENTS } from '../shared/data/events.ts';
 import type { Lang } from '../shared/data/i18n.ts';
 import { PLACE } from '../shared/data/places.ts';
-import type { Era, HistEvent, Wiki, Year } from '../shared/data/types.ts';
+import type { Era, HistEvent, Place, Wiki, Year } from '../shared/data/types.ts';
+import { tr } from '../shared/data/i18n.ts';
 import type { Hit } from '../shared/lib/search.ts';
 import { lang, onLang, setLang, t } from './lib/i18n.ts';
 import { readLink, writeLink } from './lib/link.ts';
@@ -14,7 +15,9 @@ import { Caption } from './ui/caption.ts';
 import { Card } from './ui/card.ts';
 import { h, iconBtn } from './ui/dom.ts';
 import { Learn } from './ui/learn.ts';
-import { Help, LayersMenu } from './ui/menus.ts';
+import { Help, JourneysMenu, LayersMenu } from './ui/menus.ts';
+import { journeyStory } from '../shared/data/stories.ts';
+import { JOURNEYS, PERSON, type Journey, type Person } from '../shared/data/jiangshan.ts';
 import { Quiz } from './ui/quiz.ts';
 import { Reader } from './ui/reader.ts';
 import { SearchBox } from './ui/searchbox.ts';
@@ -34,6 +37,7 @@ class App {
   search = new SearchBox();
   learn: Learn;
   layersMenu!: LayersMenu;
+  journeysMenu!: JourneysMenu;
   help = new Help();
   quiz!: Quiz;
   player!: StoryPlayer;
@@ -50,6 +54,9 @@ class App {
       era: id => this.openEra(id),
       close: () => this.closeCard(),
       learned: () => { if (this.learn.open) this.learn.render(); },
+      journey: j => this.playJourney(j),
+      person: p => this.openPerson(p),
+      fly: (lon, lat) => this.atlas.flyTo({ lon, lat: lat - 0.6, dist: 12, tilt: 0.85 }, 1.4),
     }, this.progress);
     this.learn = new Learn(this.progress);
   }
@@ -62,19 +69,51 @@ class App {
     this.player = new StoryPlayer(this.atlas, {
       onCaption: (text, i, n) => this.caption.say(text, i, n),
       onYear: y => this.timeline.set(y, false, false),
-      onState: s => { this.caption.state(s); this.root.classList.toggle('story-on', s !== 'idle'); },
+      onState: s => { this.caption.state(s); this.root.classList.toggle('story-on', s !== 'idle'); if (s === 'idle') this.cine?.classList.remove('on'); },
+      onTitle: (text, sub, dur) => this.showTitle(text, sub, dur),
       speak,
     });
     this.quiz = new Quiz(this.atlas, this.progress);
     this.layersMenu = new LayersMenu(this.atlas.layers);
+    this.journeysMenu = new JourneysMenu();
     this.buildChrome();
     this.timeline.set(year, true, false);
     this.atlas.onPin = e => this.openEvent(e);
+    this.atlas.onPlace = p => this.openPlace(p);
+    const tip = h('div', { class: 'hovertip', hidden: true });
+    this.root.append(tip);
+    this.atlas.onHover = x => {
+      tip.hidden = !x || this.player.state !== 'idle';
+      if (!x || tip.hidden) return;
+      tip.replaceChildren(tr(x.unit.name, lang), x.unit.category.zh ? h('small', { text: tr(x.unit.category, lang) }) : '');
+      tip.style.left = `${x.x}px`;
+      tip.style.top = `${x.y}px`;
+    };
     if (ev) this.openEvent(ev, false);
     if (ev) this.atlas.view.jump({ lon: ev.lon, lat: ev.lat - 1.2, dist: 26, tilt: 0.85 });
     this.ready = true;
     document.getElementById('boot')?.classList.add('gone');
     setTimeout(() => document.getElementById('boot')?.remove(), 600);
+  }
+
+  private cine?: HTMLElement;
+  private cineTimer = 0;
+  /** Cinematic title card over the scene (story openings, battles, new dynasties). */
+  private showTitle(text: string, sub: string, dur: number): void {
+    if (!this.cine) {
+      this.cine = document.createElement('div');
+      this.cine.className = 'cine';
+      this.cine.setAttribute('aria-live', 'polite');
+      this.root.append(this.cine);
+    }
+    const c = this.cine;
+    c.replaceChildren(Object.assign(document.createElement('h2'), { textContent: text }));
+    if (sub) c.append(Object.assign(document.createElement('p'), { textContent: sub }));
+    c.classList.remove('on');
+    void c.offsetWidth;
+    c.classList.add('on');
+    clearTimeout(this.cineTimer);
+    this.cineTimer = window.setTimeout(() => c.classList.remove('on'), Math.max(1200, dur * 1000));
   }
 
   private buildChrome(): void {
@@ -92,9 +131,12 @@ class App {
     this.search.onPick = (x: Hit) => {
       if (x.type === 'event') this.openEvent(EVENT.get(x.id)!);
       else if (x.type === 'era') { this.openEra(x.id); }
+      else if (x.type === 'person') this.openPerson(PERSON.get(x.id)!);
+      else if (x.type === 'journey') this.playJourney(JOURNEYS.find(j => j.id === x.id)!);
       else {
         const p = PLACE.get(x.id)!;
         this.atlas.flyTo({ lon: p.lon, lat: p.lat - 1, dist: 18, tilt: 0.85 }, 1.6);
+        this.openPlace(p, false);
       }
     };
 
@@ -106,6 +148,7 @@ class App {
 
     this.learn.onOpen = e => { this.openEvent(e); if (matchMedia('(max-width: 720px)').matches) this.learn.toggle(false); };
     this.layersMenu.onChange = (k, on) => this.atlas.setLayer(k, on);
+    this.journeysMenu.onPlay = j => this.playJourney(j);
     this.quiz.onClose = () => {};
     this.reader.onClose = () => {};
 
@@ -114,7 +157,8 @@ class App {
       this.langBtn,
       iconBtn('book', t('learn'), () => this.toggle('learn'), 'b-learn'),
       iconBtn('quiz', t('quiz'), () => this.toggle('quiz'), 'b-quiz'),
-      h('div', { class: 'pop-wrap' }, iconBtn('layers', t('layers'), () => this.layersMenu.toggle(), 'b-layers'), this.layersMenu.el),
+      h('div', { class: 'pop-wrap' }, iconBtn('journey', t('journeys'), () => { this.layersMenu.toggle(false); this.journeysMenu.toggle(); }, 'b-journeys'), this.journeysMenu.el),
+      h('div', { class: 'pop-wrap' }, iconBtn('layers', t('layers'), () => { this.journeysMenu.toggle(false); this.layersMenu.toggle(); }, 'b-layers'), this.layersMenu.el),
       iconBtn('home', t('home'), () => this.atlas.home(), 'b-home'),
       iconBtn('help', t('help'), () => this.help.toggle(), 'b-help'));
     this.bar = h('div', { class: 'top-l' }, h('div', { class: 'brand' }, h('b', { text: t('brand') }), h('span', { text: t('brandSub') })), this.search.el);
@@ -182,6 +226,23 @@ class App {
     writeLink({ year: y, lang });
   }
 
+  openPlace(p: Place, fly = true): void {
+    if (this.player.state !== 'idle') return;
+    this.atlas.select(null);
+    this.timeline.select(null);
+    if (fly) this.atlas.flyTo({ lon: p.lon, lat: p.lat - 0.6, dist: Math.min(this.atlas.view.pose().dist, 22), tilt: 0.85 }, 1.2);
+    this.card.showPlace(p, this.timeline.year);
+    this.root.classList.add('card-on');
+  }
+
+  openPerson(p: Person): void {
+    this.stopStory();
+    this.atlas.select(null);
+    this.timeline.select(null);
+    this.card.showPerson(p);
+    this.root.classList.add('card-on');
+  }
+
   closeCard(): void {
     this.stopStory();
     this.card.hide();
@@ -209,6 +270,18 @@ class App {
         if (hadFocus) this.card.el.querySelector<HTMLElement>('[data-act=play]')?.focus({ preventScroll: true });
       }, 2500);
     }
+  }
+
+  /** Plays a journey (traveller crossing the 3D map stop by stop). */
+  async playJourney(j: Journey): Promise<void> {
+    this.closeCard();
+    this.learn.toggle(false);
+    this.reader.close();
+    this.caption.show(true);
+    this.root.classList.add('story-on');
+    this.caption.pauseBtn.focus({ preventScroll: true });
+    const done = await this.player.playSteps(journeyStory(j));
+    if (done) setTimeout(() => { if (this.player.state === 'idle') this.caption.show(false); }, 2500);
   }
 
   stopStory(): void {
@@ -259,6 +332,7 @@ class App {
     this.card.render();
     if (this.learn.open) this.learn.render();
     this.layersMenu.render();
+    this.journeysMenu.render();
     this.help.render();
     this.quiz.relabel();
     writeLink(this.card.event ? { event: this.card.event.id, lang: l } : { year: this.timeline.year, lang: l });

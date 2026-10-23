@@ -4,10 +4,10 @@ import { ERAS, RULERS } from '../../src/shared/data/eras.ts';
 import { MODEL_KINDS } from '../../src/shared/data/event-kit.ts';
 import { EVENTS, storyOf } from '../../src/shared/data/events.ts';
 import { PLACE, PLACES, isCapital, placeExists, placeName } from '../../src/shared/data/places.ts';
-import { WORKS, reignAt } from '../../src/shared/data/jiangshan.ts';
+import { JOURNEYS, WORKS, reignAt } from '../../src/shared/data/jiangshan.ts';
 import { POLITY, POLITIES, polityMatches } from '../../src/shared/data/polities.ts';
 import { STAGES } from '../../src/shared/data/stage.ts';
-import { STORIES } from '../../src/shared/data/stories.ts';
+import { STORIES, journeyStory } from '../../src/shared/data/stories.ts';
 import { SNAPSHOTS, snapshotAt } from '../../src/shared/data/territories.ts';
 import { decodeRing } from '../../src/shared/lib/rings.ts';
 import type { I18n, LonLat, Snapshot, StoryStep } from '../../src/shared/data/types.ts';
@@ -124,9 +124,9 @@ describe('places through time', () => {
 describe('stories', () => {
   const points = (s: StoryStep): LonLat[] => {
     switch (s.do) {
-      case 'fly': case 'spawn': case 'fx': return [[s.lon, s.lat]];
-      case 'route': case 'build': return s.pts;
-      case 'army': return [s.from, s.to];
+      case 'fly': case 'spawn': case 'fx': case 'clash': case 'banner': case 'wipe': return [[s.lon, s.lat]];
+      case 'route': case 'build': case 'fleet': return s.pts;
+      case 'army': return [...(s.pts ?? []), ...(s.from ? [s.from] : []), ...(s.to ? [s.to] : [])];
       default: return [];
     }
   };
@@ -135,7 +135,10 @@ describe('stories', () => {
       expect(EVENTS.some(e => e.id === id), id).toBe(true);
       let at = EVENTS.find(e => e.id === id)?.year ?? 0;
       for (const s of steps) {
-        if (s.do === 'year') at = s.year;
+        if (s.do === 'year' || s.do === 'wipe') at = s.year;
+        if (s.do === 'army') expect(!!s.pts?.length || (!!s.from && !!s.to), `${id} army route`).toBe(true);
+        if (s.do === 'title' || s.do === 'banner') bilingual(s.text, id);
+        if (s.do === 'clash' && s.labels) for (const l of s.labels) bilingual(l, id);
         for (const [lon, lat] of points(s)) expect(inStage(lon, lat), `${id} ${s.do} ${lon},${lat}`).toBe(true);
         if (s.do === 'highlight') {
           expect(POLITY.has(s.polity), `${id} ${s.polity}`).toBe(true);
@@ -151,6 +154,22 @@ describe('stories', () => {
   });
   it('every event can play a story', () => {
     for (const e of EVENTS) expect(storyOf(e).length, e.id).toBeGreaterThan(0);
+  });
+  it('turn every journey into an on-stage story', () => {
+    expect(JOURNEYS.length).toBe(7);
+    for (const j of JOURNEYS) {
+      const steps = journeyStory(j);
+      expect(steps.filter(s => s.do === 'banner').length, j.id).toBe(j.stops.length);
+      for (const s of steps) for (const [lon, lat] of points(s)) expect(inStage(lon, lat), `${j.id} ${s.do} ${lon},${lat}`).toBe(true);
+    }
+  });
+  it('open with a title, and unscripted wars stage a battle', () => {
+    for (const [id, steps] of Object.entries(STORIES)) expect(steps.some(s => s.do === 'title'), id).toBe(true);
+    const war = EVENTS.find(e => e.kind === 'war' && !e.story)!;
+    const auto = storyOf(war);
+    expect(auto.map(s => s.do)).toEqual(expect.arrayContaining(['title', 'army', 'clash', 'banner', 'caption']));
+    const culture = storyOf(EVENTS.find(e => e.kind === 'culture' && !e.story)!);
+    expect(culture.some(s => s.do === 'orbit')).toBe(true);
   });
 });
 

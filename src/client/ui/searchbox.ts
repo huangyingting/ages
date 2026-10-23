@@ -1,6 +1,7 @@
 import { ERAS } from '../../shared/data/eras.ts';
 import { EVENTS } from '../../shared/data/events.ts';
 import { tr } from '../../shared/data/i18n.ts';
+import { JOURNEYS, PEOPLE } from '../../shared/data/jiangshan.ts';
 import { PLACES } from '../../shared/data/places.ts';
 import { search, type Hit } from '../../shared/lib/search.ts';
 import { formatYear } from '../../shared/lib/timeline.ts';
@@ -22,7 +23,7 @@ export class SearchBox {
     this.el = h('div', { class: 'search' }, icon('search'), this.input, this.list);
     this.input.addEventListener('input', () => this.update());
     this.input.addEventListener('focus', () => this.update());
-    this.input.addEventListener('blur', () => setTimeout(() => (this.list.hidden = true), 150));
+    this.input.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== this.input) this.list.hidden = true; }, 150));
     this.input.addEventListener('keydown', e => {
       if (e.key === 'ArrowDown') { this.move(1); e.preventDefault(); }
       else if (e.key === 'ArrowUp') { this.move(-1); e.preventDefault(); }
@@ -34,14 +35,14 @@ export class SearchBox {
 
   private update(): void {
     const q = this.input.value.trim();
-    this.hits = q ? search(q, { events: EVENTS, eras: ERAS, places: PLACES }, 8) : [];
+    this.hits = q ? search(q, { events: EVENTS, eras: ERAS, places: PLACES, people: PEOPLE, journeys: JOURNEYS }, 8) : [];
     this.cur = 0;
     if (!q) { this.list.hidden = true; return; }
     this.list.replaceChildren(...(this.hits.length ? this.hits.map((x, i) => h('li', {
       role: 'option', class: i === this.cur ? 'cur' : '', 'aria-selected': String(i === this.cur),
       onmousedown: (e: Event) => { e.preventDefault(); this.pick(x); },
-    }, h('span', { class: `ty ty-${x.type}`, text: x.type === 'event' ? '◆' : x.type === 'era' ? '▬' : '●' }),
-      h('span', { class: 'lb', text: tr(x.label, lang) }),
+    }, h('span', { class: `ty ty-${x.type}`, text: ({ event: '◆', era: '▬', place: '●', person: '人', journey: '⇢' } as const)[x.type] }),
+      h('span', { class: 'lb', text: tr(x.label, lang) }, 'sub' in x && x.sub ? h('small', { text: ' ' + tr(x.sub, lang) }) : null),
       'year' in x ? h('span', { class: 'yr', text: formatYear(x.year, lang, { short: true }) }) : null)) : [h('li', { class: 'none', text: t('noHits') })]));
     this.list.hidden = false;
   }

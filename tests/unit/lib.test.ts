@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeRing, encodeRing } from '../../src/shared/lib/rings.ts';
 import { ERAS } from '../../src/shared/data/eras.ts';
 import { EVENTS } from '../../src/shared/data/events.ts';
+import { JOURNEYS, PEOPLE } from '../../src/shared/data/jiangshan.ts';
 import { PLACES } from '../../src/shared/data/places.ts';
 import { distKm, gradeWhere, makeQuiz } from '../../src/shared/lib/quiz.ts';
 import { search } from '../../src/shared/lib/search.ts';
@@ -48,6 +49,13 @@ describe('search', () => {
     expect(search('长安', src).some(h => h.type === 'place' && h.id === 'xian')).toBe(true);
     expect(search('tang', src).some(h => h.type === 'era' && h.id === 'tang')).toBe(true);
     expect(search('', src)).toEqual([]);
+  });
+  it('finds people (by alias), journeys and places by their old names', () => {
+    const all = { ...src, people: PEOPLE, journeys: JOURNEYS };
+    expect(search('苏东坡', all).some(h => h.type === 'person' && h.id === 'sushi')).toBe(true);
+    expect(search('Xuanzang', all).some(h => h.type === 'journey' && h.id === 'xuanzang')).toBe(true);
+    const old = search('汴梁', all).find(h => h.type === 'place');
+    expect(old && 'sub' in old && old.sub?.zh).toBe('汴梁');
   });
 });
 

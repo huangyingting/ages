@@ -2,6 +2,7 @@ import { EVENTS } from '../../shared/data/events.ts';
 import { AGES, ERAS } from '../../shared/data/eras.ts';
 import { tr } from '../../shared/data/i18n.ts';
 import type { HistEvent, Year } from '../../shared/data/types.ts';
+import { reignAt, regionalReignsAt } from '../../shared/data/jiangshan.ts';
 import { eraAt, formatYear, normYear, rulerAt, tToYear, ticks, yearToT } from '../../shared/lib/timeline.ts';
 import { lang, t } from '../lib/i18n.ts';
 import { h, iconBtn, setIcon } from './dom.ts';
@@ -162,8 +163,10 @@ export class Timeline {
     const era = eraAt(y);
     this.eraEl.textContent = era ? tr(era.name, lang) : '';
     this.eraEl.style.setProperty('--c', era?.color ?? '#888');
-    const r = rulerAt(y);
-    this.rulerEl.textContent = r ? tr(r.name, lang) : '';
+    // the orthodox reign era (年号) when known, else the curated ruler; rival regimes' eras in the tooltip
+    const r = rulerAt(y), reign = reignAt(y);
+    this.rulerEl.textContent = reign ? tr(reign.label, lang) : r ? tr(r.name, lang) : '';
+    this.rulerEl.title = [this.rulerEl.textContent, ...regionalReignsAt(y).map(x => `${tr(x.regime, lang)}${lang === 'zh' ? '：' : ': '}${tr(x.reign.label, lang)}`)].filter(Boolean).join('\n');
     this.track.setAttribute('aria-valuetext', `${formatYear(y, lang)} ${era ? tr(era.name, lang) : ''}`);
     for (const b of this.bands.children as HTMLCollectionOf<HTMLElement>) b.classList.toggle('cur', b.dataset.era === era?.id);
   }

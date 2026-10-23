@@ -6,15 +6,18 @@ A bilingual (中文 / English), animated 3D atlas for learning Chinese history a
 
 It is an original 3D re-imagining inspired by [jiangshan-map](https://github.com/DeanChensj/jiangshan-map) and does not reuse its code. **Phase 1** covers Chinese history; **phase 2** will add world history (see [docs/product/roadmap.md](docs/product/roadmap.md)).
 
-| Desktop | Story animation | Mobile |
-|---|---|---|
-| ![home](docs/assets/screenshots/desktop-home-zh.jpg) | ![story](docs/assets/screenshots/desktop-story-qin.jpg) | ![mobile](docs/assets/screenshots/mobile-event.jpg) |
+| Desktop | Story animation | Journey | Mobile |
+|---|---|---|---|
+| ![home](docs/assets/screenshots/desktop-home-zh.jpg) | ![story](docs/assets/screenshots/desktop-story-qin.jpg) | ![journey](docs/assets/screenshots/desktop-journey.jpg) | ![mobile](docs/assets/screenshots/mobile-event.jpg) |
 
 ## Features
 * **3D terrain relief** of East Asia, generated from open elevation data, with rivers, coastlines and a parchment colour scheme.
-* **Timeline** spanning about 1 million years. It is non-linear, so dense periods get more room, and shows era bands, event dots, age headings, drag/keyboard scrubbing and auto-play. **26 territory snapshots** (Xia → PRC) crossfade as the year changes, and capitals, period place names (长安 / 西安, 汴京 / 开封 …) and polity labels follow the year.
-* **151 curriculum events** in eight categories. Each has a bilingual summary, key points (考点), people, location and its units in the textbooks (七年级上/下, 八年级上/下, 高中《中外历史纲要（上）》), plus a procedural 3D model.
-* **41 scripted story animations** with camera flights, armies, campaign arrows, walls, canals, railways, ship routes, battles, fireworks and highlighted states. They have bilingual captions, optional narration (Web Speech), pause / skip / speed controls, and the playhead drives the timeline. All other events get an automatic mini-story.
+* **Timeline** spanning about 1 million years. It is non-linear, so dense periods get more room, and shows era bands, event dots, age headings, drag/keyboard scrubbing and auto-play. **173 territory snapshots** (Xia → PRC; dated phases from 403 BCE to 1949 imported from jiangshan-map) crossfade as the year changes, and capitals, period place names (长安 / 西安, 汴京 / 开封 …), polity labels, admin divisions, walls, canals and routes follow the year. The readout shows the reign era (年号, e.g. 北宋神宗 · 元丰八年), with rival regimes' eras on hover.
+* **Full-screen map**: the 3D terrain fills the window and every panel floats over it.
+* **907 events**: 151 curriculum events plus 756 chronicle entries from jiangshan-map. Each curriculum event has a bilingual summary, key points (考点), people, location and its units in the textbooks (七年级上/下, 八年级上/下, 高中《中外历史纲要（上）》), plus a procedural 3D model.
+* **41 scripted story animations, acted out in 3D**: formations of foot and horse march and clash, fleets sail with wakes, conquests spread across the map as a glowing front, banners rise over captured cities, and the camera follows, orbits and cuts to cinematic title cards. Walls, canals, railways and fireworks round them out. They have bilingual captions, optional narration (Web Speech), pause / skip / speed controls, and the playhead drives the timeline. All other events get an automatic mini-story staged by kind (a battle for wars, a model and orbit otherwise).
+* **7 journeys** (秦始皇统一, 张骞通西域, 诸葛亮北伐, 玄奘西行, 李白, 苏轼, 王阳明): the traveller crosses the map stop by stop, with what happened there and a quote from the sources.
+* **Places and people**: click a place for its names through the ages, capital years, lore and nearby events. 113 historical figures have cards linking to their events and journeys, and each period card has an overview and key figures. Search finds old names (汴梁 → 开封), aliases (苏东坡) and journeys.
 * **41 procedural 3D models** built from primitives in Web Workers, with simple rigs (flags flap, wheels spin, smoke rises).
 * **Wikipedia reader** in Chinese (简体) or English: lead, sections, image, reading time and a link to the full article. It falls back through interlanguage links and works offline gracefully.
 * **Learn by textbook unit**: a drawer listing the units for each book, with progress (watched / learned).

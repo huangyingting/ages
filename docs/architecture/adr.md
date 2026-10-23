@@ -26,6 +26,7 @@
 ### ADR-006 · Stories as data (StoryStep DSL)
 **Decision:** Animations are arrays of plain steps interpreted by `StoryPlayer` against the Atlas API. They are not imperative code.
 **Consequences:** Stories are bilingual, unit-testable (coordinates inside the stage, known polities, known model kinds) and editable by content authors. One story clock drives pause, skip and speed for everything.
+**Update (3D staging):** Stories are acted out in the 3D scene, not as overlays: formations, clashes, fleets and banners are scene objects, and conquest is a `wipe` in the terrain shader (`uWipe`) that grows the next territory texture from a point. Text overlays are limited to the caption bar and short title cards.
 
 ### ADR-007 · Bilingual by construction
 **Decision:** Every content string is `{ zh, en }`, UI strings live in one dictionary, and the language switches live, with listeners, without a reload.

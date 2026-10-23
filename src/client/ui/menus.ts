@@ -1,5 +1,7 @@
 import type { Layers } from '../scene/atlas.ts';
-import { kindName, t, type Key } from '../lib/i18n.ts';
+import { JOURNEYS, type Journey } from '../../shared/data/jiangshan.ts';
+import { tr } from '../../shared/data/i18n.ts';
+import { kindName, lang, t, type Key } from '../lib/i18n.ts';
 import { h, iconBtn } from './dom.ts';
 
 /** Layers popover. */
@@ -17,6 +19,23 @@ export class LayersMenu {
       c.addEventListener('change', () => this.onChange(k, c.checked));
       return h('label', {}, c, h('span', { text: t(k as Key) }));
     }));
+  }
+  toggle(on = this.el.hidden): void { this.el.hidden = !on; }
+}
+
+/** Journeys popover: famous travels and campaigns, each played as a 3D story. */
+export class JourneysMenu {
+  readonly el: HTMLElement;
+  onPlay: (j: Journey) => void = () => {};
+  constructor() {
+    this.el = h('div', { class: 'pop journeys', hidden: true });
+    this.render();
+  }
+  render(): void {
+    this.el.replaceChildren(h('div', { class: 'pop-h', text: t('journeys') }), ...JOURNEYS.map(j => h('button', {
+      type: 'button', class: 'jn', 'data-journey': j.id, style: `--c:${j.color}`,
+      onclick: () => { this.toggle(false); this.onPlay(j); },
+    }, h('i'), h('b', { text: tr(j.title, lang) }), h('small', { text: tr(j.span, lang).replace(/（.*）|\(.*\)/, '') }))));
   }
   toggle(on = this.el.hidden): void { this.el.hidden = !on; }
 }

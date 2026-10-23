@@ -7,6 +7,7 @@ export interface PlayerHooks {
   onCaption(text: string, i: number, n: number): void;
   onYear(y: Year): void;
   onState(s: 'playing' | 'paused' | 'idle'): void;
+  onTitle?(text: string, sub: string, dur: number): void;
   speak?(text: string, lang: Lang): Promise<void> | void;
 }
 
@@ -32,10 +33,14 @@ export class StoryPlayer {
   }
 
   async play(e: HistEvent): Promise<boolean> {
+    return this.playSteps(storyOf(e), e);
+  }
+
+  /** Plays any script (event stories, journeys). */
+  async playSteps(steps: StoryStep[], e: HistEvent | null = null): Promise<boolean> {
     this.stop();
     const my = ++this.token;
     this.event = e;
-    const steps = storyOf(e);
     const caps = steps.filter(s => s.do === 'caption').length;
     let ci = 0;
     this.set('playing');
@@ -82,7 +87,23 @@ export class StoryPlayer {
       case 'fx':
         return fx.fx({ ...st, dur: st.dur });
       case 'army':
-        return fx.army({ ...st, dur: st.dur });
+        return fx.army({ ...st, label: st.label ? tr(st.label, L) : undefined });
+      case 'clash':
+        return fx.clash({ ...st, labels: st.labels ? [tr(st.labels[0], L), tr(st.labels[1], L)] : undefined });
+      case 'fleet':
+        return fx.fleet({ ...st, label: st.label ? tr(st.label, L) : undefined });
+      case 'wipe':
+        this.hooks.onYear(st.year);
+        return a.wipeTo(st.year, st.lon, st.lat, st.dur ?? 3, st.color);
+      case 'title': {
+        const dur = st.dur ?? 2.6;
+        this.hooks.onTitle?.(tr(st.text, L), st.sub ? tr(st.sub, L) : '', dur / sp());
+        return fx.wait(dur);
+      }
+      case 'banner':
+        return fx.banner({ lon: st.lon, lat: st.lat, text: tr(st.text, L), sub: st.sub ? tr(st.sub, L) : undefined, color: st.color, dur: st.dur });
+      case 'orbit':
+        return fx.orbit(st.deg, st.dur);
       case 'highlight':
         a.highlight(st.polity, (st.dur ?? 3) / sp());
         return fx.wait(Math.min(1.2, st.dur ?? 3));

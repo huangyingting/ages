@@ -147,6 +147,8 @@ export interface HistEvent {
   site?: I18n;
 }
 
+export type Troops = 'foot' | 'horse' | 'mixed';
+
 /** Story DSL: steps run in order; `par: true` starts the step and moves on without waiting for it to finish. */
 export type StoryStep =
   | { do: 'fly'; lon: number; lat: number; dist?: number; tilt?: number; dur?: number; par?: boolean }
@@ -156,6 +158,19 @@ export type StoryStep =
   | { do: 'build'; pts: LonLat[]; dur: number; kind: 'wall' | 'canal' | 'rail'; color?: string; par?: boolean }
   | { do: 'spawn'; lon: number; lat: number; model: ModelRecipe; scale?: number; label?: I18n; par?: boolean }
   | { do: 'fx'; lon: number; lat: number; fx: 'battle' | 'fire' | 'glow' | 'flag' | 'smoke' | 'firework'; color?: string; dur?: number; par?: boolean }
-  | { do: 'army'; from: LonLat; to: LonLat; color: string; dur: number; count?: number; par?: boolean }
+  /** a marching army along `pts` (or a bowed arrow from → to); foot, horse or mixed; `follow` lets the camera ride along */
+  | { do: 'army'; from?: LonLat; to?: LonLat; pts?: LonLat[]; color: string; dur: number; count?: number; unit?: Troops; label?: I18n; follow?: boolean; keep?: boolean; retreat?: boolean; par?: boolean }
+  /** a pitched battle: A charges from `angle` (degrees clockwise from west), B from the opposite side; the loser routs */
+  | { do: 'clash'; lon: number; lat: number; a: string; b: string; winner?: 'a' | 'b'; angle?: number; dur?: number; count?: number; labels?: [I18n, I18n]; units?: [Troops, Troops]; par?: boolean }
+  /** ships in V formation along a sea route, with wakes */
+  | { do: 'fleet'; pts: LonLat[]; dur: number; color?: string; count?: number; model?: 'junk' | 'warship' | 'fireship' | 'boat' | 'redboat'; label?: I18n; follow?: boolean; keep?: boolean; par?: boolean }
+  /** the map of `year` spreads outwards from lon/lat (conquest, unification, revolution) */
+  | { do: 'wipe'; year: Year; lon: number; lat: number; dur?: number; color?: string; par?: boolean }
+  /** a cinematic title card (event name, year) */
+  | { do: 'title'; text: I18n; sub?: I18n; dur?: number; par?: boolean }
+  /** a big caption standing over a point on the map */
+  | { do: 'banner'; lon: number; lat: number; text: I18n; sub?: I18n; color?: string; dur?: number; par?: boolean }
+  /** swing the camera around the current target */
+  | { do: 'orbit'; deg: number; dur: number; par?: boolean }
   | { do: 'highlight'; polity: string; dur?: number; par?: boolean }
   | { do: 'wait'; dur: number };

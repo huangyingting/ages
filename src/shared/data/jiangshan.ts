@@ -19,7 +19,7 @@ interface Raw {
   passes: { id: string; name: I18n; modern: I18n; lon: number; lat: number; from?: Year; to?: Year; focus?: Year; range: I18n; desc: I18n }[];
   cities: { modern: I18n; lon: number; lat: number; tag: I18n; desc: I18n }[];
   gazetteer: { name: I18n; aliases: string[]; modern: I18n; lon: number; lat: number }[];
-  people: { id: string; name: I18n; title: I18n; dyn: string; span: string; aliases: string[]; tokens: string[] }[];
+  people: Person[];
   journeys: Journey[];
   reigns: [Year, string, number, string, string, string][];
   regional: { regime: I18n; polities: string[]; until: Year; spans: [Year, string, number, string, string, string][] }[];
@@ -39,7 +39,7 @@ export interface JourneyStop {
 export interface Journey { id: string; dyn: string; color: string; short: I18n; title: I18n; span: I18n; stops: JourneyStop[] }
 /** A great work: wall, canal, road or route, drawn as a line through its active years. */
 export interface Work { id: string; kind: 'wall' | 'canal' | 'road' | 'route' | 'sea' | string; name: I18n; span: [Year, Year]; summary: I18n; label: LonLat | null; lines: LonLat[][] }
-export interface Person { id: string; name: I18n; title: I18n; dyn: string; span: string; aliases: string[]; tokens: string[] }
+export interface Person { id: string; name: I18n; title: I18n; dyn: string; span: [Year, Year]; aliases: string[]; tokens: string[] }
 export interface Dynasty { id: string; name: I18n; short: I18n; start: Year; end: Year; color: string; seat: I18n; summary: I18n }
 
 export const DYNASTIES: Dynasty[] = J.dynasties;
@@ -49,6 +49,11 @@ export const PEOPLE: Person[] = J.people;
 export const RIVER_LABELS = J.rivers;
 export const MUSIC = J.music;
 export const GAZETTEER = J.gazetteer;
+export const PERSON = new Map(PEOPLE.map(p => [p.id, p]));
+const BY_NAME = new Map(PEOPLE.map(p => [p.name.zh, p]));
+export const personNamed = (zh: string): Person | undefined => BY_NAME.get(zh);
+/** The imported dynasty record for an era band (matched by its Chinese name). */
+export const dynastyOfEra = (nameZh: string): Dynasty | undefined => DYNASTIES.find(d => d.name.zh === nameZh);
 
 export const dynastyAt = (y: Year): Dynasty | undefined => {
   let best: Dynasty | undefined;

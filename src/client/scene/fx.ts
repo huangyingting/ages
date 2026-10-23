@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { LonLat, ModelRecipe } from '../../shared/data/types.ts';
+import type { LonLat, ModelRecipe, Troops } from '../../shared/data/types.ts';
 import { instance } from '../models/library.ts';
 import { animate, rig } from './animate.ts';
 import type { Geo } from './geo.ts';
@@ -9,6 +9,20 @@ import type { View } from './view.ts';
 
 export type FxKind = 'battle' | 'fire' | 'glow' | 'flag' | 'smoke' | 'firework';
 export type Layer = 'story' | 'event' | 'base' | 'works';
+export interface ArmyOpts { from?: LonLat; to?: LonLat; pts?: LonLat[]; color: string; dur: number; count?: number; unit?: Troops; label?: string; follow?: boolean; keep?: boolean; retreat?: boolean }
+export interface ClashOpts { lon: number; lat: number; a: string; b: string; winner?: 'a' | 'b'; angle?: number; dur?: number; count?: number; labels?: [string?, string?]; units?: [Troops?, Troops?] }
+export interface FleetOpts { pts: LonLat[]; dur: number; color?: string; count?: number; model?: 'junk' | 'warship' | 'fireship' | 'boat' | 'redboat'; label?: string; follow?: boolean; keep?: boolean }
+
+/** A gently bowed route between two points (opposing arrows don't overlap). */
+function bow(a: LonLat, b: LonLat): LonLat[] {
+  const mid: LonLat = [(a[0] + b[0]) / 2 - (b[1] - a[1]) * 0.12, (a[1] + b[1]) / 2 + (b[0] - a[0]) * 0.12];
+  const pts: LonLat[] = [];
+  for (let i = 0; i <= 12; i++) {
+    const u = i / 12;
+    pts.push([(1 - u) * (1 - u) * a[0] + 2 * u * (1 - u) * mid[0] + u * u * b[0], (1 - u) * (1 - u) * a[1] + 2 * u * (1 - u) * mid[1] + u * u * b[1]]);
+  }
+  return pts;
+}
 
 interface Item {
   layer: Layer;
@@ -62,6 +76,7 @@ export class Fx {
       if (tw.t >= tw.dur) { this.tweens.splice(this.tweens.indexOf(tw), 1); tw.done(); }
     }
     for (const it of this.items) it.update?.(sdt, t, this.s);
+    this.stepFollow(sdt);
     this.particles.step(sdt, this.view.renderer.getPixelRatio() * this.view.canvas.clientHeight * 0.5 * this.view.camera.projectionMatrix.elements[5]);
   }
 
@@ -92,6 +107,7 @@ export class Fx {
   clear(layer: Layer): void {
     for (const it of this.items.filter(x => x.layer === layer)) this.remove(it);
     if (layer === 'story') {
+      this.follow = null;
       const tw = this.tweens.splice(0);
       for (const x of tw) x.done();
       this.particles.clear();
@@ -325,63 +341,241 @@ export class Fx {
     }
   }
 
-  /** A marching army: a big campaign arrow plus a formation of soldiers and a banner moving along it. */
-  async army(o: { from: LonLat; to: LonLat; color: string; dur: number; count?: number }, layer: Layer = 'story'): Promise<void> {
+  /**
+   * A marching army: a campaign arrow along the route, a formation of soldiers (cavalry in front for mixed units) with
+   * a war banner, kicking up dust. `follow` makes the camera ride along.
+   */
+  async army(o: ArmyOpts, layer: Layer = 'story'): Promise<void> {
     const s = this.s;
-    const [a, b] = [o.from, o.to];
-    // bow the route a little to the left so opposing arrows don't overlap
-    const mid: LonLat = [(a[0] + b[0]) / 2 - (b[1] - a[1]) * 0.12, (a[1] + b[1]) / 2 + (b[0] - a[0]) * 0.12];
-    const pts: LonLat[] = [];
-    for (let i = 0; i <= 12; i++) {
-      const u = i / 12;
-      pts.push([(1 - u) * (1 - u) * a[0] + 2 * u * (1 - u) * mid[0] + u * u * b[0], (1 - u) * (1 - u) * a[1] + 2 * u * (1 - u) * mid[1] + u * u * b[1]]);
-    }
+    const pts = o.pts && o.pts.length >= 2 ? o.pts : bow(o.from ?? o.pts![0], o.to ?? o.pts![o.pts!.length - 1]);
     const path = this.path(pts, 0.035);
-    const rb = this.ribbon(path, 0.3 * s, o.color, 0.72, true);
+    const rb = this.ribbon(path, 0.3 * s, o.color, o.retreat ? 0.45 : 0.72, true);
     const head = this.arrowHead(o.color, 0.6 * s);
-    const n = Math.min(60, o.count ?? 24);
-    const geo = soldierGeometry();
-    const mat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7, flatShading: true });
-    const troops = new THREE.InstancedMesh(geo, mat, n);
-    const col = new THREE.Color(o.color);
-    for (let i = 0; i < n; i++) troops.setColorAt(i, col.clone().offsetHSL(0, 0, (i % 3) * 0.05 - 0.05));
+    const n = Math.min(90, o.count ?? 30);
+    const unit = o.unit ?? 'foot';
+    const troops = this.formation(n, unit, o.color);
     const g = new THREE.Group();
-    g.add(rb.mesh, head, troops);
-    const it = this.add({ layer, obj: g, own: [rb.mesh.geometry, rb.mat, head.geometry, head.material as THREE.Material, mat] });
+    g.add(rb.mesh, head, ...troops.meshes);
+    const it = this.add({ layer, obj: g, own: [rb.mesh.geometry, rb.mat, head.geometry, head.material as THREE.Material, ...troops.own] });
     let banner: THREE.Object3D | null = null, rigs: ReturnType<typeof rig> = [];
     instance({ kind: 'flag', color: o.color }, true).then(m => { if (this.items.includes(it)) { banner = m; rigs = rig(m); g.add(m); } }).catch(() => {});
-    let k = 0;
-    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), v = new THREE.Vector3(), sc = new THREE.Vector3();
-    const tmp = new THREE.Vector3();
+    if (o.label) it.label = this.labels.add({ el: tag(o.label, 'army', o.color), pos: new THREE.Vector3(), prio: 70, group: 'story', anchor: 'above' });
+    const dust = this.particles.emitter('dust', new THREE.Vector3(), () => this.s);
+    let k = 0, moving = true;
+    const q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), v = new THREE.Vector3(), tmp = new THREE.Vector3();
+    const cols = Math.max(4, Math.min(9, Math.round(Math.sqrt(n * 0.9))));
     it.update = (_dt, t, scale) => {
       const z = Math.min(scale, s * 1.5);
       const hd = this.at(path, k, tmp);
       head.position.copy(hd.pos).setY(hd.pos.y + 0.012);
-      head.rotation.y = Math.atan2(hd.dir.x, hd.dir.z);
       const yaw = Math.atan2(hd.dir.x, hd.dir.z);
+      head.rotation.y = yaw;
       q.setFromAxisAngle(up, yaw);
       const side = new THREE.Vector3().crossVectors(up, hd.dir).normalize();
-      const cols = 6, gap = 0.075 * z;
-      for (let i = 0; i < n; i++) {
+      const gap = 0.085 * z;
+      troops.place((i, out) => {
         const r = Math.floor(i / cols), c = (i % cols) - (cols - 1) / 2;
-        const back = (r + 1) * gap * 1.2;
-        const kk = Math.max(0, k - back / path.total);
-        const p = this.at(path, kk, v).pos;
-        p.addScaledVector(side, c * gap);
-        p.y = Math.max(0, this.geo.height(this.geo.lon(p.x), this.geo.lat(p.z))) + Math.abs(Math.sin(t * 9 + i * 1.7)) * 0.012 * z;
-        troops.setMatrixAt(i, m4.compose(p, q, sc.setScalar(z * 0.11)));
-      }
-      troops.instanceMatrix.needsUpdate = true;
+        const back = (r + 1) * gap * 1.25 + troops.jit[i * 2] * gap * 0.4;
+        const p = this.at(path, Math.max(0, k - back / path.total), v).pos;
+        p.addScaledVector(side, (c + troops.jit[i * 2 + 1] * 0.3) * gap);
+        p.y = Math.max(0, this.geo.height(this.geo.lon(p.x), this.geo.lat(p.z))) + (moving ? Math.abs(Math.sin(t * 9 + i * 1.7)) * 0.012 * z : 0);
+        out.compose(p, q, v.setScalar(z * 0.11));
+      });
+      const rear = this.at(path, Math.max(0, k - (Math.ceil(n / cols) + 1) * gap * 1.25 / path.total), v).pos;
+      dust.p.copy(rear);
+      dust.k = moving ? 1 : 0;
       if (banner) {
-        banner.position.copy(hd.pos).addScaledVector(hd.dir, -gap);
-        banner.scale.setScalar(z * 0.35);
+        banner.position.copy(hd.pos).addScaledVector(hd.dir, -gap * 0.5);
+        banner.scale.setScalar(z * 0.4);
         banner.rotation.y = yaw - Math.PI / 2;
         animate(rigs, t);
       }
+      if (it.label) it.label.pos.copy(hd.pos).setY(hd.pos.y + 0.55 * z);
     };
-    await this.tween(o.dur, x => { k = x; rb.reveal(x); });
+    if (o.follow) this.followWith(() => tmp);
+    await this.tween(o.dur, x => { k = 0.7 * x + 0.3 * x * x * (3 - 2 * x); rb.reveal(k); });
+    k = 1; moving = false;
     rb.reveal(1);
-    if (layer === 'story') this.tween(3).then(() => this.tween(0.8, x => { rb.mat.opacity = 0.72 * (1 - x); })).then(() => this.remove(it));
+    dust.stop = true;
+    if (o.follow) this.followWith(null);
+    if (layer === 'story' && !o.keep) this.tween(3).then(() => this.tween(0.8, x => { rb.mat.opacity = 0.72 * (1 - x); troops.fade(1 - x); })).then(() => this.remove(it));
+  }
+
+  /** Instanced soldiers (and riders) sharing a material; `place` positions slot i. */
+  private formation(n: number, unit: Troops, color: string) {
+    const nh = unit === 'horse' ? n : unit === 'mixed' ? Math.round(n * 0.35) : 0;
+    const mat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7, flatShading: true, transparent: true });
+    const horse = nh ? new THREE.InstancedMesh(riderGeometry(), mat, nh) : null;
+    const foot = n - nh ? new THREE.InstancedMesh(soldierGeometry(), mat, n - nh) : null;
+    const col = new THREE.Color(color);
+    const tint = (m: THREE.InstancedMesh | null) => { if (m) for (let i = 0; i < m.count; i++) m.setColorAt(i, col.clone().offsetHSL(0, 0, (i % 3) * 0.05 - 0.05)); };
+    tint(horse); tint(foot);
+    const jit = new Float32Array(n * 2).map(() => Math.random() - 0.5);
+    const m4 = new THREE.Matrix4();
+    return {
+      meshes: [horse, foot].filter(Boolean) as THREE.InstancedMesh[],
+      own: [mat],
+      jit,
+      place(fn: (i: number, out: THREE.Matrix4) => void) {
+        for (let i = 0; i < n; i++) {
+          fn(i, m4);
+          if (i < nh) horse!.setMatrixAt(i, m4); else foot!.setMatrixAt(i - nh, m4);
+        }
+        if (horse) horse.instanceMatrix.needsUpdate = true;
+        if (foot) foot.instanceMatrix.needsUpdate = true;
+      },
+      fade(a: number) { mat.opacity = a; },
+    };
+  }
+
+  /**
+   * A pitched battle at a point: side A and side B charge from opposite directions (`angle`: the direction A comes
+   * from, degrees clockwise from west), clash amid sparks and smoke, then the loser routs and scatters.
+   */
+  async clash(o: ClashOpts, layer: Layer = 'story'): Promise<void> {
+    const dur = o.dur ?? 6, s = this.s, n = Math.min(60, o.count ?? 28);
+    const c = this.geo.pos(o.lon, o.lat, 0);
+    const th = ((o.angle ?? 0) * Math.PI) / 180;
+    const ax = new THREE.Vector3(Math.cos(th), 0, Math.sin(th)); // from A towards B (x east, z south)
+    const up = new THREE.Vector3(0, 1, 0), side = new THREE.Vector3().crossVectors(up, ax).normalize();
+    const g = new THREE.Group();
+    const it = this.add({ layer, obj: g, own: [] });
+    const sides = (['a', 'b'] as const).map((id, si) => {
+      const color = si ? o.b : o.a;
+      const f = this.formation(n, o.units?.[si] ?? 'foot', color);
+      g.add(...f.meshes);
+      it.own.push(...f.own);
+      const dir = si ? ax.clone().negate() : ax.clone();
+      const label = o.labels?.[si] ? this.labels.add({ el: tag(o.labels[si]!, 'army', color), pos: new THREE.Vector3(), prio: 72, group: 'story', anchor: 'above' }) : undefined;
+      const fall = new Float32Array(n).map(() => Math.random());
+      return { id, f, dir, label, fall, yaw: Math.atan2(dir.x, dir.z) };
+    });
+    const D = 1.5 * s, gap = 0.085 * s, cols = 8;
+    let k = 0;
+    const loser = o.winner === 'a' ? 'b' : o.winner === 'b' ? 'a' : null;
+    const q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3(), e = new THREE.Euler();
+    let battle: ReturnType<Particles['emitter']> | null = null;
+    it.update = (_dt, t) => {
+      for (const sd of sides) {
+        const charge = Math.min(1, k / 0.35), fight = THREE.MathUtils.clamp((k - 0.35) / 0.35, 0, 1), rout = THREE.MathUtils.clamp((k - 0.7) / 0.3, 0, 1);
+        const lost = sd.id === loser, won = loser !== null && !lost;
+        // the front line: far away -> touching -> pushed back (loser) / forward (winner)
+        let front = THREE.MathUtils.lerp(D, gap * 0.6, charge * charge);
+        if (won) front -= rout * D * 0.35;
+        if (lost) front += rout * rout * D * 1.4;
+        sd.f.place((i, out) => {
+          const r = Math.floor(i / cols), cc = (i % cols) - (cols - 1) / 2;
+          const melee = fight * (1 - rout) * 0.5;
+          const scatter = lost ? rout * (0.6 + sd.fall[i]) : 0;
+          v.copy(c).addScaledVector(sd.dir, -(front + r * gap * 1.25 + scatter * gap * 2 * sd.f.jit[i * 2]))
+            .addScaledVector(side, (cc + sd.f.jit[i * 2 + 1] * (0.3 + melee + scatter * 3)) * gap);
+          v.x += Math.sin(t * 13 + i) * melee * gap * 0.4;
+          v.y = Math.max(0, this.geo.height(this.geo.lon(v.x), this.geo.lat(v.z))) + (k < 0.35 || scatter ? Math.abs(Math.sin(t * 10 + i * 1.3)) * 0.01 * s : 0);
+          const down = lost && sd.fall[i] < 0.35 ? Math.min(1, rout * 3) : 0;
+          e.set(down * Math.PI / 2, sd.yaw + (lost && rout > 0.1 && sd.fall[i] >= 0.35 ? Math.PI : 0), 0, 'YXZ');
+          q.setFromEuler(e);
+          out.compose(v, q, sc.setScalar(s * 0.11));
+        });
+        if (lost) sd.f.fade(1 - Math.max(0, rout - 0.6) / 0.4);
+        if (sd.label) sd.label.pos.copy(c).addScaledVector(sd.dir, -(front + gap * 3)).setY(c.y + 0.5 * s);
+      }
+    };
+    await this.tween(dur * 0.35, x => { k = x * 0.35; });
+    battle = this.particles.emitter('battle', c.clone().setY(c.y + 0.02), () => this.s);
+    this.ring(c.clone().setY(c.y + 0.02), '#ff5a36', dur * 0.4, layer, 0.8);
+    await this.tween(dur * 0.35, x => { k = 0.35 + x * 0.35; });
+    battle.stop = true;
+    if (loser) this.particles.emitter('smoke', c.clone(), () => this.s);
+    await this.tween(dur * 0.3, x => { k = 0.7 + x * 0.3; });
+    for (const sd of sides) if (sd.label && sd.id === loser) { this.labels.remove(sd.label); sd.label = undefined; }
+    if (layer === 'story') this.tween(4).then(() => this.tween(0.8, x => { for (const sd of sides) sd.f.fade(1 - x); })).then(() => {
+      for (const sd of sides) if (sd.label) this.labels.remove(sd.label);
+      this.remove(it);
+    });
+  }
+
+  /** A fleet sailing a sea route in V formation, leaving wakes. */
+  async fleet(o: FleetOpts, layer: Layer = 'story'): Promise<void> {
+    const s = this.s, n = Math.min(9, o.count ?? 5);
+    const path = this.path(o.pts, 0.02);
+    const rb = this.ribbon(path, 0.1 * s, o.color ?? '#1f5f8b', 0.5);
+    const g = new THREE.Group();
+    g.add(rb.mesh);
+    const it = this.add({ layer, obj: g, own: [rb.mesh.geometry, rb.mat] });
+    const ships: { m: THREE.Object3D; rigs: ReturnType<typeof rig>; wake: ReturnType<Particles['emitter']> }[] = [];
+    for (let i = 0; i < n; i++) {
+      instance({ kind: o.model ?? 'junk', color: o.color }, true).then(m => {
+        if (!this.items.includes(it)) return;
+        g.add(m);
+        ships[i] = { m, rigs: rig(m), wake: this.particles.emitter('wake', new THREE.Vector3(), () => this.s) };
+      }).catch(() => {});
+    }
+    if (o.label) it.label = this.labels.add({ el: tag(o.label, 'army', o.color ?? '#1f5f8b'), pos: new THREE.Vector3(), prio: 70, group: 'story', anchor: 'above' });
+    let k = 0, sailing = true;
+    const up = new THREE.Vector3(0, 1, 0), tmp = new THREE.Vector3(), v = new THREE.Vector3();
+    it.update = (_dt, t, scale) => {
+      const z = Math.min(scale, s * 1.4), gap = 0.42 * z;
+      const hd = this.at(path, k, tmp);
+      const sideV = new THREE.Vector3().crossVectors(up, hd.dir).normalize();
+      ships.forEach((sh, i) => {
+        if (!sh) return;
+        const rank = Math.ceil(i / 2), lr = i % 2 ? 1 : -1;
+        const a = this.at(path, Math.max(0, k - (rank * gap) / path.total), v);
+        sh.m.position.copy(a.pos).addScaledVector(sideV, lr * rank * gap * 0.7);
+        // inland rivers sit above sea level
+        sh.m.position.y = Math.max(0, this.geo.height(this.geo.lon(sh.m.position.x), this.geo.lat(sh.m.position.z))) + 0.01 + Math.sin(t * 2 + i) * 0.006 * z;
+        sh.m.rotation.set(Math.sin(t * 1.7 + i) * 0.04, Math.atan2(a.dir.x, a.dir.z), Math.sin(t * 1.3 + i) * 0.05);
+        sh.m.scale.setScalar(z * 0.8);
+        animate(sh.rigs, t);
+        sh.wake.p.copy(sh.m.position).addScaledVector(a.dir, -0.3 * z);
+        sh.wake.k = sailing ? 1 : 0.2;
+      });
+      if (it.label) it.label.pos.copy(hd.pos).setY(0.6 * z);
+    };
+    if (o.follow) this.followWith(() => tmp);
+    await this.tween(o.dur, x => { k = x; rb.reveal(x); });
+    sailing = false;
+    if (o.follow) this.followWith(null);
+    if (layer === 'story' && !o.keep) this.tween(3).then(() => { for (const sh of ships) if (sh) sh.wake.stop = true; return this.tween(0.8, x => { rb.mat.opacity = 0.5 * (1 - x); }); }).then(() => this.remove(it));
+  }
+
+  /** A large banner caption standing over a point (battle names, new dynasties). */
+  async banner(o: { lon: number; lat: number; text: string; sub?: string; color?: string; dur?: number }, layer: Layer = 'story'): Promise<void> {
+    const el = document.createElement('div');
+    el.className = 'tag tag-banner';
+    if (o.color) el.style.setProperty('--c', o.color);
+    el.append(Object.assign(document.createElement('b'), { textContent: o.text }));
+    if (o.sub) el.append(Object.assign(document.createElement('small'), { textContent: o.sub }));
+    const g = new THREE.Group();
+    const it = this.add({ layer, obj: g, own: [] });
+    it.label = this.labels.add({ el, pos: this.geo.pos(o.lon, o.lat, 0.35), prio: 96, group: 'story', anchor: 'above', pinned: true });
+    const dur = o.dur ?? 4;
+    this.tween(dur).then(() => { el.classList.add('out'); return this.tween(0.6); }).then(() => this.remove(it));
+    await this.wait(0.8);
+  }
+
+  /** Swings the camera around its target by `deg` degrees. */
+  orbit(deg: number, dur: number): Promise<void> {
+    const v = this.view, t = v.controls.target, up = new THREE.Vector3(0, 1, 0);
+    let last = 0;
+    return this.tween(dur, k => {
+      const e = k * k * (3 - 2 * k);
+      const off = v.camera.position.clone().sub(t).applyAxisAngle(up, ((e - last) * deg * Math.PI) / 180);
+      last = e;
+      v.camera.position.copy(t).add(off);
+      v.camera.lookAt(t);
+    });
+  }
+
+  private follow: (() => THREE.Vector3) | null = null;
+  /** While set, the camera target glides after the given point (marching armies, fleets). */
+  followWith(get: (() => THREE.Vector3) | null): void { this.follow = get; }
+  private stepFollow(dt: number): void {
+    if (!this.follow || this.paused || this.view.flying) return;
+    const p = this.follow(), t = this.view.controls.target;
+    const d = new THREE.Vector3(p.x - t.x, 0, p.z - t.z).multiplyScalar(1 - Math.exp(-dt * 1.8));
+    t.add(d);
+    this.view.camera.position.add(d);
   }
 
   /** Spawns a model rising out of the ground with a blob shadow and an optional label. */
@@ -469,9 +663,10 @@ export class Fx {
   }
 }
 
-function tag(text: string, cls: string): HTMLElement {
+function tag(text: string, cls: string, color?: string): HTMLElement {
   const el = document.createElement('div');
   el.className = `tag tag-${cls}`;
+  if (color) el.style.setProperty('--c', color);
   el.textContent = text;
   return el;
 }
@@ -486,6 +681,24 @@ function soldierGeometry(): THREE.BufferGeometry {
   for (const g of [body, head, spear, shield]) g.deleteAttribute('uv');
   soldier = mergeGeometries([body.toNonIndexed(), head.toNonIndexed(), spear.toNonIndexed(), shield.toNonIndexed()])!;
   return soldier;
+}
+
+let riderGeo: THREE.BufferGeometry | null = null;
+/** A horse and rider, facing +z, about the soldier's height. */
+function riderGeometry(): THREE.BufferGeometry {
+  if (riderGeo) return riderGeo;
+  const parts = [
+    new THREE.BoxGeometry(0.26, 0.26, 0.7).translate(0, 0.42, 0),            // body
+    new THREE.BoxGeometry(0.16, 0.34, 0.16).rotateX(-0.6).translate(0, 0.62, 0.38), // neck
+    new THREE.BoxGeometry(0.13, 0.13, 0.28).translate(0, 0.78, 0.52),       // head
+    ...[[-0.09, 0.25], [0.09, 0.25], [-0.09, -0.25], [0.09, -0.25]].map(([x, z]) => new THREE.BoxGeometry(0.07, 0.32, 0.07).translate(x, 0.16, z)),
+    new THREE.CylinderGeometry(0.1, 0.13, 0.36, 6).translate(0, 0.72, -0.05), // rider
+    new THREE.SphereGeometry(0.09, 6, 4).translate(0, 0.97, -0.05),
+    new THREE.CylinderGeometry(0.015, 0.015, 1.0, 4).rotateX(0.5).translate(0.16, 0.9, 0.15), // lance
+  ];
+  for (const g of parts) g.deleteAttribute('uv');
+  riderGeo = mergeGeometries(parts.map(g => (g.index ? g.toNonIndexed() : g)))!;
+  return riderGeo;
 }
 
 function blobTexture(): THREE.Texture {
@@ -503,7 +716,8 @@ function blobTexture(): THREE.Texture {
 
 // ---------------------------------------------------------------- particles
 
-interface Emitter { kind: Exclude<FxKind, 'flag' | 'glow'>; p: THREE.Vector3; scale: () => number; color?: string; acc: number; k: number; stop: boolean; age: number }
+type EmitKind = Exclude<FxKind, 'flag' | 'glow'> | 'dust' | 'wake';
+interface Emitter { kind: EmitKind; p: THREE.Vector3; scale: () => number; color?: string; acc: number; k: number; stop: boolean; age: number }
 
 const PVERT = /* glsl */ `
 attribute float aSize;
@@ -539,8 +753,8 @@ class Particles {
     this.norm = n.points;
   }
 
-  emitter(kind: FxKind, p: THREE.Vector3, scale: () => number, color?: string): Emitter {
-    const e: Emitter = { kind: kind as Emitter['kind'], p: p.clone(), scale, color, acc: 0, k: 0, stop: false, age: 0 };
+  emitter(kind: FxKind | EmitKind, p: THREE.Vector3, scale: () => number, color?: string): Emitter {
+    const e: Emitter = { kind: kind as EmitKind, p: p.clone(), scale, color, acc: 0, k: kind === 'dust' || kind === 'wake' ? 1 : 0, stop: false, age: 0 };
     this.emitters.push(e);
     return e;
   }
@@ -578,6 +792,20 @@ class Particles {
           while (e.acc > 0.06) {
             e.acc -= 0.06;
             N.spawn(e.p.x + r() * 0.25 * s, e.p.y, e.p.z + r() * 0.25 * s, r() * 0.06 * s, 0.3 * s, r() * 0.06 * s, 3.2, 0.45 * s, [0.45, 0.42, 0.4], -0.02, 0.5);
+          }
+          break;
+        case 'dust':
+          while (e.acc > 0.05) {
+            e.acc -= 0.05;
+            if (e.k <= 0) continue;
+            N.spawn(e.p.x + r() * 0.25 * s, e.p.y + 0.02 * s, e.p.z + r() * 0.25 * s, r() * 0.08 * s, 0.12 * s, r() * 0.08 * s, 2.0, 0.42 * s, [0.72, 0.62, 0.46], -0.02, 0.42);
+          }
+          break;
+        case 'wake':
+          while (e.acc > 0.07) {
+            e.acc -= 0.07;
+            if (e.k <= 0.3 && Math.random() > e.k) continue;
+            N.spawn(e.p.x + r() * 0.04 * s, e.p.y, e.p.z + r() * 0.04 * s, r() * 0.05 * s, 0, r() * 0.05 * s, 2.4, 0.16 * s, [0.97, 0.98, 1], 0, 0.6);
           }
           break;
         case 'firework':

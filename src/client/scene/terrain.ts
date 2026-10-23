@@ -31,6 +31,8 @@ uniform sampler2D uTerrA;
 uniform sampler2D uTerrB;
 uniform sampler2D uHi;
 uniform float uMix;
+uniform vec4 uWipe; // centre x, z, radius, on
+uniform vec3 uWipeColor;
 uniform float uTerrOn;
 uniform float uHiAmt;
 uniform vec3 uHiColor;
@@ -83,8 +85,12 @@ void main() {
   // territories (cross-faded snapshots), land-masked
   vec4 ta = texture2D(uTerrA, vUv);
   vec4 tb = texture2D(uTerrB, vUv);
-  vec4 t = mix(ta, tb, uMix);
+  float wd = distance(vWorld.xz, uWipe.xy) - uWipe.z;
+  float mixK = uWipe.w > 0.5 ? 1.0 - smoothstep(-0.6, 0.0, wd) : uMix;
+  vec4 t = mix(ta, tb, mixK);
   col = mix(col, t.rgb * (0.82 + 0.25 * shade), t.a * land * uTerrOn);
+  // the conquest front: a glowing ink edge sweeping outwards
+  if (uWipe.w > 0.5) col = mix(col, uWipeColor, (1.0 - smoothstep(0.0, 0.5, abs(wd + 0.25))) * 0.75 * land * smoothstep(0.0, 1.0, uWipe.z));
 
   // highlighted polity pulse
   float hi = texture2D(uHi, vUv).a;
@@ -154,7 +160,7 @@ export function buildTerrain(geo: Geo, lowfx: boolean): Terrain {
   const texelKm = ((b.north - b.south) / geo.h) * 111;
   const uniforms: Record<string, THREE.IUniform> = {
     uElev: { value: elevTex }, uMask: { value: maskTex }, uTerrA: { value: blank }, uTerrB: { value: blank }, uHi: { value: blank },
-    uMix: { value: 0 }, uTerrOn: { value: 1 }, uHiAmt: { value: 0 }, uHiColor: { value: new THREE.Color('#fff3b0') },
+    uMix: { value: 0 }, uWipe: { value: new THREE.Vector4(0, 0, 0, 0) }, uWipeColor: { value: new THREE.Color().setHex(0xc0392b, THREE.LinearSRGBColorSpace) }, uTerrOn: { value: 1 }, uHiAmt: { value: 0 }, uHiColor: { value: new THREE.Color('#fff3b0') },
     uTexel: { value: new THREE.Vector2(1 / geo.w, 1 / geo.h) }, uRelief: { value: 18 / (2 * texelKm) * 1.4 }, uTime: { value: 0 },
     uBounds: { value: new THREE.Vector4(b.west, b.east, b.south, b.north) }, uCam: { value: new THREE.Vector3() }, uHaze: { value: HAZE.clone() },
   };

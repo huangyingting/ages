@@ -40,7 +40,13 @@ A story is plain data, `StoryStep[]`:
 | `fly` | camera flight to lon/lat/dist/tilt |
 | `year` | moves the timeline (and the territory map) |
 | `caption` | bilingual caption, waits a reading time; narration if enabled |
-| `army` | bowed campaign arrow with a marching formation and banner |
+| `army` | a 3D formation (`unit`: foot / horse / mixed) marches along `pts` (or a bowed from→to arc), raising dust and leaving a trail; `follow` keeps the camera on it, `keep` leaves the trail, `retreat` reverses it |
+| `clash` | two formations charge from opposite sides (`angle` = side A comes from, clockwise from west) and fight with sparks and dust |
+| `fleet` | a line of ships with wakes sails a sea or river route |
+| `wipe` | changes the year with a glowing front that spreads the new territory map outwards from a point (conquest, unification) |
+| `title` | cinematic title card with letterbox bars |
+| `banner` | a 3D-anchored banner over a place (name + subtitle), e.g. a city falling or a capital founded |
+| `orbit` | slow camera orbit around the current target |
 | `route` | progressive dashed/solid route, optionally carrying a model (ship, camel, train) |
 | `build` | wall (segments and towers rise), canal or railway drawn along a path |
 | `spawn` | a model rises from the ground with a shadow and label |
@@ -48,7 +54,7 @@ A story is plain data, `StoryStep[]`:
 | `highlight` | pulses a polity's territory |
 | `wait` | pause |
 
-Steps run in order, and `par: true` starts a step without waiting for it. `storyOf(e)` returns the scripted story or `autoStory(e)`. `StoryPlayer` runs on the Fx story clock, so pause and speed affect everything. Skip completes the running tweens, and Stop clears the story layer.
+Steps run in order, and `par: true` starts a step without waiting for it. `storyOf(e)` returns the scripted story or `autoStory(e)`, which stages a title, then by kind a march and clash (wars), a flag and banner (revolutions) or a model and orbit, then the caption. `journeyStory(j)` turns each of the seven journeys (秦始皇, 张骞, 诸葛亮, 玄奘, 李白, 苏轼, 王阳明) into a story: the traveller (army, camel caravan or rider) crosses the map stop by stop, with a banner, a description and a quote at each stop. `StoryPlayer` runs on the Fx story clock, so pause and speed affect everything. Skip completes the running tweens, and Stop clears the story layer.
 
 ## Models
 Models are procedural. `models/kit.ts` has primitives (boxes, cylinders, lathe shapes, roofs) and shared materials. `build-ancient.ts` and `build-modern.ts` contain the builders (41 kinds). `build.worker.ts` bakes geometry in a Web Worker and `pack.ts` transfers it as typed arrays. `library.ts` caches one prototype per recipe and hands out clones. Named nodes (`spin`, `flap`, `sway`, `bob`, `flicker`, `smoke`) are animated by `scene/animate.ts`.

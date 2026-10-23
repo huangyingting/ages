@@ -6,10 +6,10 @@ test.describe('Ages atlas', () => {
     const errs = watchErrors(page);
     await openApp(page, 'y=-221&lang=en');
     let s = await state(page);
-    expect(s).toMatchObject({ ready: true, year: -221, lang: 'en', snapshot: 'qin' });
+    expect(s).toMatchObject({ ready: true, year: -221, lang: 'en', snapshot: expect.stringMatching(/qin/) });
     await expect(page.locator('.tl-year')).toHaveText('221 BCE');
     await expect(page.locator('.brand b')).toHaveText('Ages');
-    await expect(page.locator('.labels .polity[data-polity=qin]').first()).toContainText('Qin');
+    await expect(page.locator('.labels .polity', { hasText: /^Qin$/ }).first()).toBeVisible();
     await shot(page, 'desktop-home-en');
 
     await page.locator('[data-act=lang]').click();
@@ -17,7 +17,7 @@ test.describe('Ages atlas', () => {
     await expect(page.locator('.tl-year')).toHaveText('前221年');
     await expect(page.locator('.search .q')).toHaveAttribute('placeholder', /搜索/);
     await expect(page.locator('.tl-band', { hasText: '唐' })).toBeVisible();
-    await expect(page.locator('.labels .polity[data-polity=qin]').first()).toContainText('秦');
+    await expect(page.locator('.labels .polity', { hasText: /^秦$/ }).first()).toBeVisible();
     expect(page.url()).toContain('lang=zh');
     s = await state(page);
     expect(s.lang).toBe('zh');
@@ -47,7 +47,7 @@ test.describe('Ages atlas', () => {
     await expect.poll(async () => (await state(page)).event).toBe('zhenghe');
     const s = await state(page);
     expect(s.year).toBe(1405);
-    expect(s.snapshot).toBe('ming');
+    expect(s.snapshot).toMatch(/ming/);
     expect(s.fx.event).toBeGreaterThan(0);
     expect(page.url()).toContain('e=zhenghe');
 
@@ -88,7 +88,7 @@ test.describe('Ages atlas', () => {
   test('timeline scrubbing and deep links change the territory map', async ({ page }) => {
     const errs = watchErrors(page);
     await openApp(page, 'y=1405&lang=en');
-    expect((await state(page)).snapshot).toBe('ming');
+    expect((await state(page)).snapshot).toMatch(/ming/);
     await expect(page.locator('.tl-era')).toHaveText('Ming dynasty');
 
     const track = page.locator('.tl-track');
@@ -105,7 +105,7 @@ test.describe('Ages atlas', () => {
     expect(page.url()).toContain('y=');
 
     await page.goto('/?lowfx=1#y=-260&lang=en');
-    await expect.poll(async () => (await state(page)).snapshot).toBe('zhanguo');
+    await expect.poll(async () => (await state(page)).snapshot).toMatch(/zhanguo/);
     expect(errs).toEqual([]);
   });
 
@@ -170,6 +170,32 @@ test.describe('Ages atlas', () => {
     expect(errs).toEqual([]);
   });
 
+  test('journeys play as 3D stories; places and people open their own cards', async ({ page }) => {
+    const errs = watchErrors(page);
+    await openApp(page, 'y=1085&lang=zh');
+    await expect(page.locator('.tl-ruler')).toHaveText('北宋神宗 · 元丰八年');
+    await page.locator('.b-journeys').click();
+    await expect(page.locator('.journeys .jn')).toHaveCount(7);
+    await page.locator('[data-journey=sushi]').click();
+    await expect(page.locator('.caption')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => (window as any).__atlas.player.state)).toBe('playing');
+    await page.locator('.caption [aria-label=停止]').click();
+    await expect.poll(() => page.evaluate(() => (window as any).__atlas.player.state)).toBe('idle');
+
+    await page.locator('.search .q').fill('汴梁');
+    await page.locator('.hits li', { hasText: '开封' }).first().click();
+    const card = page.locator('.card');
+    await expect(card.locator('h2')).toHaveText('东京（汴梁）');
+    await expect(card).toContainText('历代名称');
+    await expect(card).toContainText('今 开封');
+
+    await page.locator('.search .q').fill('苏东坡');
+    await page.locator('.hits li', { hasText: '苏轼' }).first().click();
+    await expect(card.locator('h2')).toHaveText('苏轼');
+    await expect(card.locator('[data-act=journey]')).toBeVisible();
+    expect(errs).toEqual([]);
+  });
+
   test('learn drawer lists textbook units and opens events', async ({ page }) => {
     const errs = watchErrors(page);
     await openApp(page, 'y=1950&lang=zh');
@@ -194,7 +220,7 @@ test.describe('Ages atlas', () => {
     const card = page.locator('.card');
     await expect(card).toBeVisible();
     const vp = page.viewportSize()!;
-    await page.waitForTimeout(600); // slide-in animation
+    await card.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished))); // slide-in animation
     const cb = (await card.boundingBox())!;
     const tb = (await page.locator('.tl').boundingBox())!;
     expect(cb.y).toBeGreaterThan(vp.height * 0.4);

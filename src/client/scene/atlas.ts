@@ -54,7 +54,7 @@ export class Atlas {
   private pins = new Map<string, Label>();
   private placeLabels = new Map<string, Label>();
   private polityLabels: Label[] = [];
-  private fade: { t: number; tex: THREE.Texture } | null = null;
+  private fade: { t: number; tex: THREE.Texture; wipe?: { dur: number; r: number } } | null = null;
   private texA: THREE.Texture | null = null;
   private capitalKey = '';
   private hiT = -1;
@@ -96,7 +96,13 @@ export class Atlas {
     const u = this.terrain.uniforms;
     u.uTime.value = t;
     (u.uCam.value as THREE.Vector3).copy(this.view.camera.position);
-    if (this.fade) {
+    if (this.fade?.wipe) {
+      const w = this.fade.wipe;
+      if (!this.fx.paused) this.fade.t = Math.min(1, this.fade.t + (dt * this.fx.speed) / w.dur);
+      const k = this.fade.t;
+      (u.uWipe.value as THREE.Vector4).z = w.r * (1 - Math.pow(1 - k, 2));
+      if (k >= 1) this.finishFade();
+    } else if (this.fade) {
       this.fade.t = Math.min(1, this.fade.t + dt / 0.8);
       u.uMix.value = this.fade.t * this.fade.t * (3 - 2 * this.fade.t);
       if (this.fade.t >= 1) this.finishFade();
@@ -117,7 +123,7 @@ export class Atlas {
     canvas.addEventListener('pointerup', e => {
       if (!down) return;
       const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
-      const quick = performance.now() - down.t < 450;
+      const quick = performance.now() - down.t < 700;
       down = null;
       if (moved > 6 || !quick) return;
       const ll = this.view.pick(e.clientX, e.clientY);
@@ -204,8 +210,31 @@ export class Atlas {
     this.updateCapital();
   }
 
+  /**
+   * Moves to `y` with the new map spreading outwards from lon/lat like a conquest (or a revolution) instead of a
+   * cross-fade. Resolves when the front has swept the whole stage.
+   */
+  wipeTo(y: Year, lon: number, lat: number, dur = 3, color = '#c0392b'): Promise<void> {
+    this.finishFade();
+    this.setYear(y);
+    if (!this.fade) return Promise.resolve();
+    const u = this.terrain.uniforms;
+    const c = this.geo.pos(lon, lat, 0);
+    const r = Math.hypot(Math.max(Math.abs(c.x - this.geo.width / 2), Math.abs(c.x + this.geo.width / 2)), Math.max(Math.abs(c.z - this.geo.depth / 2), Math.abs(c.z + this.geo.depth / 2)));
+    (u.uWipe.value as THREE.Vector4).set(c.x, c.z, 0, 1);
+    (u.uWipeColor.value as THREE.Color).setStyle(color, THREE.LinearSRGBColorSpace);
+    // the visible part of the map is covered well before the far corners
+    this.fade.wipe = { dur, r: Math.min(r, 60) };
+    const f = this.fade;
+    return new Promise(done => {
+      const check = () => (this.fade === f ? requestAnimationFrame(check) : done());
+      check();
+    });
+  }
+
   private finishFade(): void {
     if (!this.fade) return;
+    (this.terrain.uniforms.uWipe.value as THREE.Vector4).set(0, 0, 0, 0);
     this.texA?.dispose();
     this.texA = this.fade.tex;
     this.terrain.uniforms.uTerrA.value = this.texA;
@@ -232,7 +261,12 @@ export class Atlas {
       if (p.scope !== 'china') continue;
       const el = document.createElement('div');
       el.className = `place k-${p.kind} t${p.tier}` + (p.minor ? ' minor' : '');
-      el.addEventListener('click', ev => { if (this.pickHandler) return; ev.stopPropagation(); this.onPlace(p); });
+      el.addEventListener('click', ev => {
+        ev.stopPropagation();
+        // while answering a "where" question a label is just part of the map: pick the point under the pointer
+        if (this.pickHandler) { const ll = this.view.pick(ev.clientX, ev.clientY); if (ll) this.pickHandler(ll[0], ll[1]); return; }
+        this.onPlace(p);
+      });
       const l = this.labels.add({
         el, pos: this.geo.pos(p.lon, p.lat, 0.05), group: 'places',
         prio: p.tier === 1 ? 40 : p.tier === 2 ? 22 : 8,
