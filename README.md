@@ -29,7 +29,7 @@ It is an original 3D re-imagining inspired by [jiangshan-map](https://github.com
 * **Modern interface**: clean frosted-glass panels on a full-screen light relief map, with Geist / system CJK sans type and a vermilion accent. One toolbar (search, music, language, a **hub** menu for learn / quiz / journeys / help, and a **settings** menu for map style and layers) keeps the screen clear. Events open a card with a live 3D model preview; the timeline and chronicle fold away. Panels slide away during stories, and the camera re-frames itself so the subject is never under a panel. On phones the card becomes a bottom sheet.
 * **No anachronistic names**: the map only prints a place name in the years it was actually used (e.g. 西安 only from 1369, 上海 from 1292, 北京 from 1403); before that it shows the period name (长安, 汴京, 燕京 …) or nothing.
 * **Map styles**: paper (light relief, default), ink (dark) and plain.
-* **Shareable deep links**: `#e=<event>`, `#y=<year>`, `#p=<place>`, `#person=<id>`, `#j=<journey>`, `&lang=zh|en`. The same keys also work in the query string (`?year=1415`).
+* **Shareable deep links**: `#e=<event>`, `#y=<year>`, `#p=<place>`, `#person=<id>`, `#life=<id>`, `#j=<journey>`, `&lang=zh|en`. The same keys also work in the query string (`?year=1415`).
 
 ## Quick start
 ```bash

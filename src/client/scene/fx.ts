@@ -81,6 +81,8 @@ export class Fx {
   paused = false;
   /** current model scale: models stay readable at every zoom */
   s = 1;
+  /** camera distance to the orbit target (drives `s` and models' `maxD`) */
+  dist = 30;
   private clock = 0;
   /** the journey traveller currently on the map (one per journey, handed from leg to leg) */
   private traveller: THREE.Object3D | null = null;
@@ -94,7 +96,8 @@ export class Fx {
   }
 
   private frame(dt: number, t: number): void {
-    this.s = scaleFor(this.view.camera.position.distanceTo(this.view.controls.target));
+    this.dist = this.view.camera.position.distanceTo(this.view.controls.target);
+    this.s = scaleFor(this.dist);
     const sdt = this.paused ? 0 : dt * this.speed;
     this.clock += sdt;
     for (const tw of this.tweens.slice()) {
@@ -983,6 +986,8 @@ export class Fx {
   async spawn(o: {
     lon: number; lat: number; model: ModelRecipe; scale?: number; yaw?: number;
     label?: string | HTMLElement; labelClass?: string; labelMaxD?: number;
+    /** shown only while the camera is within this distance (minor scenery appears as you zoom in) */
+    maxD?: number;
   }, layer: Layer = 'story'): Promise<THREE.Object3D | null> {
     const g = new THREE.Group();
     const base = this.geo.pos(o.lon, o.lat, 0);
@@ -1012,6 +1017,7 @@ export class Fx {
       const e = easeBack(grow);
       m.scale.setScalar(Math.max(0.001, z * e));
       sh.scale.setScalar(Math.max(0.001, z * r * 2.6 * Math.min(1, grow * 2)));
+      if (o.maxD !== undefined) m.visible = sh.visible = this.dist <= o.maxD;
       animate(rigs, t, seed);
       if (it.label) it.label.pos.set(base.x, base.y + h * z * e + 0.05 * z, base.z);
     };

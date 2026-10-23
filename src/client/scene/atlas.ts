@@ -4,6 +4,7 @@ import { tr, type Lang } from '../../shared/data/i18n.ts';
 import { RIVER_LABELS, WORKS, type Person } from '../../shared/data/jiangshan.ts';
 import { PLACE, PLACES, isCapital, mapName } from '../../shared/data/places.ts';
 import { sceneryOf } from '../../shared/data/scenery.ts';
+import type { LifeItem } from '../../shared/data/life.ts';
 import { POLITY, polityMatches } from '../../shared/data/polities.ts';
 import { STAGES, type StageId } from '../../shared/data/stage.ts';
 import { snapshotAt } from '../../shared/data/territories.ts';
@@ -54,6 +55,7 @@ export class Atlas {
   onPin: (e: HistEvent) => void = () => {};
   onPlace: (p: Place) => void = () => {};
   onPerson: (p: Person) => void = () => {};
+  onLife: (l: LifeItem) => void = () => {};
   /** hover over the map: the administrative unit under the pointer (admin layer only) */
   onHover: (info: { unit: AdminUnit; x: number; y: number } | null) => void = () => {};
   private pins = new Map<string, Label>();
@@ -443,7 +445,10 @@ export class Atlas {
     this.updateScenery();
   }
 
-  /** The dynasty on the map: landmarks of its key events and its famous people in period dress (see sceneryOf). */
+  /**
+   * The dynasty on the map: its curated people, buildings, customs and foods, then landmarks of its key events and
+   * more of its people in period dress (see sceneryOf). Detail (tier 2) items only stand up once zoomed in.
+   */
   private updateScenery(): void {
     const era = eraAt(this.year);
     const key = this.layers.models && era ? `${era.id}:${this.lang}` : '';
@@ -453,17 +458,19 @@ export class Atlas {
     this.sceneryMarks.clear();
     if (!era || !key) return;
     for (const s of sceneryOf(era)) {
-      const p = s.person;
+      const p = s.person, l = s.life;
       let label: HTMLElement | undefined;
-      if (p) {
+      if (p || l) {
         label = Object.assign(document.createElement('button'), { type: 'button' });
-        label.className = 'figure';
-        label.textContent = tr(p.name, this.lang);
-        label.title = tr(p.title, this.lang);
-        label.addEventListener('click', ev => { ev.stopPropagation(); this.onPerson(p); });
+        label.className = l && l.kind !== 'person' ? `life k-${l.kind}` : 'figure';
+        label.textContent = tr(l?.name ?? p!.name, this.lang);
+        label.title = l ? tr(l.desc, this.lang) || tr(l.name, this.lang) : tr(p!.title, this.lang);
+        label.addEventListener('click', ev => { ev.stopPropagation(); if (l) this.onLife(l); else this.onPerson(p!); });
       }
-      this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale: p ? 2.1 : 1.7, yaw: s.yaw, label, labelMaxD: 55 }, 'scenery').then(g => {
-        if (!g || this.sceneryKey !== key || p) return;
+      const minor = s.tier === 2;
+      const scale = s.kind === 'person' ? 2.1 : s.kind === 'food' ? 1.5 : s.kind === 'custom' ? 1.6 : 1.7;
+      this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale, yaw: s.yaw, label, labelMaxD: minor ? 30 : 55, maxD: minor ? 32 : undefined }, 'scenery').then(g => {
+        if (!g || this.sceneryKey !== key || !s.event) return;
         this.sceneryMarks.set(s.event, g);
         this.syncScenery();
       });

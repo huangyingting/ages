@@ -14,7 +14,7 @@ Chinese middle-school (grades 7–8, 统编版 textbooks) and high-school studen
 ## Features (phase 1)
 | Area | Behaviour |
 |---|---|
-| Scene | 3D terrain relief of East Asia, territory overlay with crossfades, polity labels, period place names (a modern name is never printed before it was in use), capital marker model, the dynasty's scenery (landmark models of its key events and its famous people in period dress standing on the map), event pins; pan / rotate / zoom (mouse, touch, keyboard) |
+| Scene | 3D terrain relief of East Asia, territory overlay with crossfades, polity labels, period place names (a modern name is never printed before it was in use), capital marker model, the dynasty's scenery (its representative people, buildings, customs and foods as detailed models with clickable cards, plus landmark models of its key events and more of its people in period dress; detail items appear as you zoom in), event pins; pan / rotate / zoom (mouse, touch, keyboard) |
 | Timeline | Non-linear axis about 1 Ma → today; age headings; era bands (click opens the era card); territorial-phase ticks; dots for all 907 events with tooltips; floating year flag with reign era; ‹ year › stepper with typed years (1415 / -221 / 前221 / 221 BC); drag, click, arrow keys (Shift ±10), auto-play; readout shows year, era and ruler |
 | Chronicle | Right panel listing the dynasty's events (all / textbook filter); current year highlighted and auto-scrolled; ◆ map change, ▶ scripted story; folds to a tab |
 | Phase legend | Phase i/N with jump dots, polity chips (hover highlights, click flies), phase note, line key; previous phase drawn as a dashed ghost border |
@@ -30,7 +30,7 @@ Chinese middle-school (grades 7–8, 统编版 textbooks) and high-school studen
 | Menus | Hub (learn, quiz, journeys, help) and Settings (map style paper / ink / plain, layers, narration, quality); guqin music toggle and full screen in one cut-corner toolbar (zoom by wheel or pinch); foldable timeline |
 | Layers | Territory, place names, event pins, 3D models |
 | Help | Controls, category legend, disclaimer, credits, phase 2 note |
-| Deep links | `#e=`, `#y=`, `#p=`, `#person=`, `#j=`, `&lang=`, also as query parameters (kept up to date as you browse, so the address bar is always shareable) |
+| Deep links | `#e=`, `#y=`, `#p=`, `#person=`, `#life=`, `#j=`, `&lang=`, also as query parameters (kept up to date as you browse, so the address bar is always shareable) |
 
 ## Acceptance criteria
 * The app boots to an interactive map on desktop (1440×900) and phone (Pixel 7) with no console errors.

@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { MODEL_KINDS } from '../../src/shared/data/event-kit.ts';
 import { BUILDERS, buildFresh } from '../../src/client/models/kit.ts';
 import { packModel, unpackModel } from '../../src/client/models/pack.ts';
+import { loadPack, parseHero } from '../../src/client/models/heroes/index.ts';
+import { LIFE } from '../../src/shared/data/life.ts';
 
 const stats = (o: THREE.Object3D) => {
   let meshes = 0, tris = 0;
@@ -31,4 +33,18 @@ describe('procedural models', () => {
       expect(stats(back)).toEqual(s);
     });
   }
+});
+
+describe('dynasty life models', () => {
+  it('every life item points at an existing hero builder and builds', async () => {
+    for (const l of LIFE) {
+      const ref = parseHero(l.model.hero);
+      if (ref) expect((await loadPack(ref.pack))[ref.name], `${l.id} → ${l.model.hero}`).toBeTypeOf('function');
+      const g = buildFresh(l.model);
+      const s = stats(g);
+      expect(s.tris, l.id).toBeGreaterThan(20);
+      expect(s.tris, l.id).toBeLessThan(130_000);
+      expect(g.userData.height as number, l.id).toBeGreaterThan(0.05);
+    }
+  }, 120_000);
 });

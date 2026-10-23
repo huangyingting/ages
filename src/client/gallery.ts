@@ -8,11 +8,17 @@ import type { ModelRecipe } from '../shared/data/types.ts';
 import { TRAVELLER } from '../shared/data/stories.ts';
 
 // Dev-only model gallery: /gallery.html?k=army,rider,troop:horse@yuan,person:general@1600 (default: every kind). Not part of
-// the production build. `troop:<spear|archer|horse|chariot|gun>@<era>` shows instanced troops, `person:<role>@<year>` a costumed person,
+// the production build. `troop:<spear|archer|horse|chariot|gun>@<era>` shows instanced troops, `person:<role>@<year>[+prop][+female]` a costumed person,
 // `traveller:<journey>@<year>` a journey's traveller (e.g. traveller:xuanzang@630).
 const q = new URLSearchParams(location.search);
 const journey = (k: string): ModelRecipe => { const [id, y] = k.slice(10).split('@'), t = TRAVELLER[id]; return { kind: 'traveller', year: Number(y ?? 1000), ...(typeof t === 'object' ? t : {}), label: k }; };
-const list: ModelRecipe[] = (q.get('k')?.split(',') ?? Object.keys(BUILDERS)).map(k => (k.startsWith('traveller:') ? journey(k) : k.includes('/') ? { kind: 'palace', hero: k } : k.startsWith('person:') ? { kind: 'person', role: k.slice(7).split('@')[0], ...(k.includes('@') ? { year: Number(k.split('@')[1]) } : {}) } : { kind: k }));
+/** `person:<role>@<year>+<prop>+female` */
+const person = (k: string): ModelRecipe => {
+  const [head, ...flags] = k.slice(7).split('+'), [role, y] = head.split('@');
+  const prop = flags.find(f => f !== 'female');
+  return { kind: 'person', role, ...(y ? { year: Number(y) } : {}), ...(prop ? { prop } : {}), ...(flags.includes('female') ? { female: true } : {}) };
+};
+const list: ModelRecipe[] = (q.get('k')?.split(',') ?? Object.keys(BUILDERS)).map(k => (k.startsWith('traveller:') ? journey(k) : k.includes('/') ? { kind: 'palace', hero: k } : k.startsWith('person:') ? person(k) : { kind: k }));
 const canvas = document.getElementById('c') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1);

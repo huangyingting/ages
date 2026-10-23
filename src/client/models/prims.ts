@@ -62,7 +62,12 @@ export const ball = (p: THREE.Object3D, c: string, x: number, y: number, z: numb
 
 /** Smooth-shaded ellipsoid with semi-axes (rx, ry, rz) — organic forms, eyes, noses, domes. */
 export const ellip = (p: THREE.Object3D, c: string, x: number, y: number, z: number, rx: number, ry = rx, rz = rx, roty = 0, rotx = 0, rotz = 0) =>
-  add(p, g('esph', () => new THREE.SphereGeometry(1, 22, 15)), mat(c, { flat: false }), x, y, z, rx, ry, rz, roty, rotx, rotz);
+  add(p, ESPH(Math.max(Math.abs(rx), Math.abs(ry), Math.abs(rz))), mat(c, { flat: false }), x, y, z, rx, ry, rz, roty, rotx, rotz);
+/** unit sphere for `ellip`, with fewer segments for tiny parts (fingers, beads, niche figures) that never show facets */
+const ESPH = (r: number) => r < 0.006 ? g('esph8', () => new THREE.SphereGeometry(1, 8, 6))
+  : r < 0.014 ? g('esph12', () => new THREE.SphereGeometry(1, 12, 8))
+  : r < 0.03 ? g('esph16', () => new THREE.SphereGeometry(1, 16, 11))
+  : g('esph', () => new THREE.SphereGeometry(1, 22, 15));
 
 export function shade(hex: string, f: number): string {
   const c = new THREE.Color(hex);

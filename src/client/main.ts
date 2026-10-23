@@ -20,6 +20,7 @@ import { SURFACES, type Surface } from './scene/terrain.ts';
 import { save } from './lib/storage.ts';
 import { journeyStory } from '../shared/data/stories.ts';
 import { JOURNEYS, PERSON, type Journey, type Person } from '../shared/data/jiangshan.ts';
+import { LIFE, type LifeItem } from '../shared/data/life.ts';
 import { Quiz } from './ui/quiz.ts';
 import { Reader } from './ui/reader.ts';
 import { SearchBox } from './ui/searchbox.ts';
@@ -64,6 +65,7 @@ class App {
       learned: () => { if (this.learn.open) this.learn.render(); },
       journey: j => this.playJourney(j),
       person: p => this.openPerson(p),
+      life: l => this.openLife(l),
       fly: (lon, lat) => this.atlas.flyTo({ lon, lat: lat - 0.6, dist: 12, tilt: 0.85 }, 1.4),
     }, this.progress, lowfx);
     this.learn = new Learn(this.progress);
@@ -100,6 +102,7 @@ class App {
     this.atlas.onPin = e => this.openEvent(e);
     this.atlas.onPlace = p => this.openPlace(p);
     this.atlas.onPerson = p => this.openPerson(p);
+    this.atlas.onLife = l => this.openLife(l);
     const tip = h('div', { class: 'hovertip', hidden: true });
     this.root.append(tip);
     this.atlas.onHover = x => {
@@ -113,6 +116,10 @@ class App {
     if (ev) this.atlas.view.jump({ lon: ev.lon, lat: ev.lat - 1.2, dist: 26, tilt: 0.85 });
     else if (linkPlace) { this.atlas.view.jump({ lon: linkPlace.lon, lat: linkPlace.lat - 1, dist: 18, tilt: 0.85 }); this.openPlace(linkPlace, false); }
     else if (linkPerson) this.openPerson(linkPerson);
+    else if (link.life) {
+      const x = LIFE.find(i => i.id === link.life);
+      if (x) { this.atlas.view.jump({ lon: x.lon, lat: x.lat - 0.6, dist: 14, tilt: 0.85 }); this.openLife(x); }
+    }
     const linkJourney = link.journey ? JOURNEYS.find(j => j.id === link.journey) : undefined;
     if (linkJourney) setTimeout(() => void this.playJourney(linkJourney), 600);
     this.ready = true;
@@ -224,8 +231,9 @@ class App {
       if (l.event && l.event !== this.card.event?.id) { const ev = EVENT.get(l.event); if (ev) this.openEvent(ev); }
       else if (l.place && l.place !== this.card.place?.p.id) { const p = PLACE.get(l.place); if (p) this.openPlace(p); }
       else if (l.person && l.person !== this.card.person?.id) { const p = PERSON.get(l.person); if (p) this.openPerson(p); }
+      else if (l.life && l.life !== this.card.life?.id) { const x = LIFE.find(i => i.id === l.life); if (x) this.openLife(x); }
       else if (l.journey) { const j = JOURNEYS.find(x => x.id === l.journey); if (j) void this.playJourney(j); }
-      else if (!l.event && !l.place && !l.person && l.year != null) {
+      else if (!l.event && !l.place && !l.person && !l.life && l.year != null) {
         this.timeline.set(l.year, true, false);
         this.atlas.setYear(l.year);
         this.closeCard();
@@ -289,6 +297,22 @@ class App {
     this.card.showPlace(p, this.timeline.year);
     this.root.classList.add('card-on');
     writeLink({ place: p.id, year: this.timeline.year, lang });
+  }
+
+  /** A building, custom, food or figure standing on the map: jumps time into its dynasty and opens its card. */
+  openLife(x: LifeItem): void {
+    this.stopStory();
+    this.atlas.select(null);
+    this.timeline.select(null);
+    const era = ERAS.find(e => e.id === x.era);
+    if (era && (this.timeline.year < era.start || this.timeline.year > era.end)) {
+      const y = Math.round((era.start + Math.min(era.end, 2020)) / 2);
+      this.timeline.set(y, true, false);
+      this.atlas.setYear(y);
+    }
+    this.card.showLife(x);
+    this.root.classList.add('card-on');
+    writeLink({ life: x.id, lang });
   }
 
   openPerson(p: Person): void {

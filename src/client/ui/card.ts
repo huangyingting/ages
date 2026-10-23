@@ -11,6 +11,7 @@ import type { Progress } from '../lib/storage.ts';
 import { fill, h, icon, iconBtn } from './dom.ts';
 import { Preview } from './preview.ts';
 import { personModel, placeModel } from '../../shared/data/heroes.ts';
+import { lifeOf, type LifeItem, type LifeKind } from '../../shared/data/life.ts';
 
 export interface CardHooks {
   play(e: HistEvent): void;
@@ -21,8 +22,11 @@ export interface CardHooks {
   learned(e: HistEvent, on: boolean): void;
   journey(j: Journey): void;
   person(p: Person): void;
+  life(l: LifeItem): void;
   fly(lon: number, lat: number): void;
 }
+
+const LIFE_COLOR: Record<LifeKind, string> = { person: '#b8322a', building: '#8a6a3a', custom: '#3f7f6a', food: '#c0782a' };
 
 /** A generic model for events without their own recipe. */
 const KIND_MODEL: Record<EventKind, ModelRecipe> = {
@@ -46,6 +50,7 @@ export class Card {
   era: Era | null = null;
   place: { p: Place; year: Year } | null = null;
   person: Person | null = null;
+  life: LifeItem | null = null;
 
   constructor(private hooks: CardHooks, private progress: Progress, still = false) {
     this.preview = new Preview(still);
@@ -62,11 +67,12 @@ export class Card {
   /** Pauses the turntable while a story owns the screen. */
   setActive(on: boolean): void { this.preview.active = on && this.open && !this.el.classList.contains('mini'); }
 
-  private set(o: { event?: HistEvent; era?: Era; place?: { p: Place; year: Year }; person?: Person }): void {
+  private set(o: { event?: HistEvent; era?: Era; place?: { p: Place; year: Year }; person?: Person; life?: LifeItem }): void {
     this.event = o.event ?? null;
     this.era = o.era ?? null;
     this.place = o.place ?? null;
     this.person = o.person ?? null;
+    this.life = o.life ?? null;
     this.el.hidden = false;
     this.render();
     this.body.scrollTop = 0;
@@ -77,11 +83,13 @@ export class Card {
   /** A settlement, pass or site: its names through the ages, capital years, lore, records and nearby events. */
   showPlace(p: Place, year: Year): void { this.set({ place: { p, year } }); }
   showPerson(p: Person): void { this.set({ person: p }); }
+  /** A building, custom, food or figure of a dynasty's everyday life (life.ts). */
+  showLife(l: LifeItem): void { this.set({ life: l }); }
 
   hide(): void {
     this.el.hidden = true;
     this.preview.active = false;
-    this.event = this.era = this.place = this.person = null;
+    this.event = this.era = this.place = this.person = this.life = null;
   }
 
   render(): void {
@@ -89,6 +97,7 @@ export class Card {
     else if (this.era) this.renderEra(this.era);
     else if (this.place) this.renderPlace(this.place.p, this.place.year);
     else if (this.person) this.renderPerson(this.person);
+    else if (this.life) this.renderLife(this.life);
   }
 
   // ------------------------------------------------------------ building blocks
@@ -200,6 +209,27 @@ export class Card {
     );
   }
 
+  private renderLife(l: LifeItem): void {
+    const L = lang;
+    const era = ERAS.find(e => e.id === l.era);
+    const all = lifeOf(l.era);
+    const i = all.indexOf(l);
+    const go = (k: number) => this.hooks.life(all[(i + k + all.length) % all.length]);
+    this.setHero(l.model, t(l.kind), LIFE_COLOR[l.kind], [i + 1, all.length], () => go(-1), () => go(1));
+    const others = all.filter(x => x !== l);
+    fill(this.body,
+      this.title(era ? this.eyebrow(tr(era.name, L)) : null, tr(l.name, L), l.person ? tr(l.person.title, L) : null),
+      tr(l.desc, L) ? h('p', { class: 'sum', text: tr(l.desc, L) }) : null,
+      this.stats(era ? [t('dynasty'), this.eraLink(era)] : null, [t('kind'), t(l.kind)]),
+      h('div', { class: 'acts' },
+        l.person ? h('button', { type: 'button', class: 'btn primary', onclick: () => this.hooks.person(l.person!) }, icon('book'), h('span', { text: t('person') })) : null,
+        h('button', { type: 'button', class: 'btn', onclick: () => this.hooks.fly(l.lon, l.lat) }, icon('pin'), h('span', { text: t('map') })),
+        this.wikiBtn(l.wiki, tr(l.name, L))),
+      others.length ? this.sec(t('sameEra'), true, h('div', { class: 'people' }, ...others.map(x =>
+        h('button', { type: 'button', class: `chip link life-chip k-${x.kind}`, onclick: () => this.hooks.life(x) }, tr(x.name, L))))) : null,
+    );
+  }
+
   private renderEvent(e: HistEvent): void {
     const L = lang;
     const list = EVENTS.filter(x => x.scope === 'china');
@@ -244,6 +274,7 @@ export class Card {
     const i = ERAS.indexOf(era);
     const dy = dynastyOfEra(era.name.zh);
     const figures = dy ? PEOPLE.filter(p => p.dyn === dy.id) : [];
+    const life = lifeOf(era.id).filter(x => x.kind !== 'person');
     const seat = cap ? tr(placeName(cap, era.start), L) : dy?.seat.zh ? tr(dy.seat, L) : '';
     const model: ModelRecipe = cap ? placeModel(cap) : era.start < -2000 ? { kind: 'hut' } : { kind: 'palace' };
     this.setHero(model, t('era'), era.color, [i + 1, ERAS.length],
@@ -256,6 +287,8 @@ export class Card {
       dy?.summary.zh ? this.sec(t('overview'), true, h('p', { class: 'sum', text: tr(dy.summary, L) }),
         dy.seat.zh ? h('p', { class: 'caps', text: `${t('seat')}${L === 'zh' ? '：' : ': '}${tr(dy.seat, L)}` }) : null) : null,
       figures.length ? this.sec(t('figures'), !dy?.summary.zh, h('div', { class: 'people' }, ...figures.map(p => this.personChip(p.name)))) : null,
+      life.length ? this.sec(t('lifeOf'), false, h('div', { class: 'people' }, ...life.map(x =>
+        h('button', { type: 'button', class: `chip link life-chip k-${x.kind}`, onclick: () => this.hooks.life(x) }, tr(x.name, L))))) : null,
       evs.length ? this.sec(t('events'), false, this.evList(evs)) : null,
     );
   }

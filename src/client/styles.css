@@ -208,6 +208,22 @@ h2, h3 { font-weight: 700; }
 }
 .figure:hover, .figure:focus-visible { transform: translateY(-2px); border-color: #ffd590; color: #fff; }
 :lang(en) .figure { letter-spacing: 0.02em; }
+/* the dynasty's buildings, customs and foods: a slim plate with a category lozenge, opens the life card */
+.life {
+  --k: #8a6a3a; pointer-events: auto; cursor: pointer; font: inherit; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; line-height: 1;
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px 3px 6px; margin-bottom: -2px; color: #fff4e2; border-radius: 3px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--k) 88%, #000) , color-mix(in srgb, var(--k) 62%, #000));
+  border: 1px solid color-mix(in srgb, var(--k) 40%, #ffe2b0); box-shadow: 0 2px 7px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s var(--ease-out), border-color 0.15s, opacity 0.5s;
+}
+.life::before { content: ''; width: 5px; height: 5px; transform: rotate(45deg); background: color-mix(in srgb, var(--k) 30%, #ffe8c0); flex: none; }
+.life:hover, .life:focus-visible { transform: translateY(-2px); border-color: #ffe2b0; color: #fff; }
+:lang(en) .life { letter-spacing: 0.02em; }
+.life.k-building, .life-chip.k-building { --k: #7d5a32; }
+.life.k-custom, .life-chip.k-custom { --k: #2c6e5c; }
+.life.k-food, .life-chip.k-food { --k: #b4652a; }
+.life-chip.k-person { --k: #b8322a; }
+.chip.life-chip { box-shadow: inset 3px 0 0 var(--k); padding-left: 10px; }
 .k-prehistory { --k: var(--k-prehistory); } .k-politics { --k: var(--k-politics); } .k-war { --k: var(--k-war); }
 .k-reform { --k: var(--k-reform); } .k-culture { --k: var(--k-culture); } .k-science { --k: var(--k-science); }
 .k-economy { --k: var(--k-economy); } .k-diplomacy { --k: var(--k-diplomacy); } .k-revolution { --k: var(--k-revolution); }

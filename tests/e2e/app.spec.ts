@@ -201,6 +201,14 @@ test.describe('Ages atlas', () => {
     await page.locator('.hits li', { hasText: '苏轼' }).first().click();
     await expect(card.locator('h2')).toHaveText('苏轼');
     await expect(card.locator('[data-act=journey]')).toBeVisible();
+
+    // the dynasty's buildings, customs and foods stand on the map with their own cards
+    await page.evaluate(() => { location.hash = 'life=dayanta&lang=zh'; });
+    await expect(card.locator('h2')).toHaveText('大雁塔');
+    await expect(card.locator('.type-chip')).toHaveText('建筑');
+    await card.locator('.life-chip', { hasText: '胡饼' }).click();
+    await expect(card.locator('h2')).toHaveText('胡饼');
+    await expect(page.locator('.labels button.life').first()).toBeAttached();
     expect(errs).toEqual([]);
   });
 

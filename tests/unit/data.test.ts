@@ -8,6 +8,7 @@ import { JOURNEYS, WORKS, reignAt } from '../../src/shared/data/jiangshan.ts';
 import { POLITY, POLITIES, polityMatches } from '../../src/shared/data/polities.ts';
 import { STAGES } from '../../src/shared/data/stage.ts';
 import { sceneryOf } from '../../src/shared/data/scenery.ts';
+import { LIFE, lifeOf } from '../../src/shared/data/life.ts';
 import { STORIES, journeyStory } from '../../src/shared/data/stories.ts';
 import { SNAPSHOTS, snapshotAt } from '../../src/shared/data/territories.ts';
 import { decodeRing } from '../../src/shared/lib/rings.ts';
@@ -195,25 +196,45 @@ describe('stories', () => {
 });
 
 describe('dynasty scenery', () => {
-  it('stands landmarks and period-dressed people on the map, spaced apart and clear of the capital', () => {
+  it('stands life items, landmarks and period-dressed people on the map, spaced apart and clear of the capital', () => {
     let total = 0;
     for (const era of ERAS.filter(x => x.scope === 'china')) {
       const items = sceneryOf(era);
       total += items.length;
       const cap = era.capital ? PLACE.get(era.capital) : undefined;
-      const pts = cap ? [...items, cap] : items;
+      const pts: { lon: number; lat: number; life?: unknown }[] = cap ? [...items, { ...cap, life: true }] : items;
       for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
-        expect(Math.hypot(pts[i].lon - pts[j].lon, pts[i].lat - pts[j].lat), `${era.id} ${i}/${j}`).toBeGreaterThanOrEqual(1.5);
+        const gap = pts[i].life && pts[j].life ? 1.1 : 1.5;
+        expect(Math.hypot(pts[i].lon - pts[j].lon, pts[i].lat - pts[j].lat), `${era.id} ${i}/${j}`).toBeGreaterThanOrEqual(gap - 1e-9);
       }
       for (const it of items) {
+        if (it.life) { expect(it.life.era).toBe(era.id); continue; }
         const e = EVENTS.find(x => x.id === it.event)!;
         if (it.kind === 'landmark') expect(e.kind === 'war' || ['flag', 'army'].includes(it.model.kind), it.event).toBe(false);
         else expect(it.model.kind === 'person' && !!it.name?.zh, it.event).toBe(true);
       }
+      const names = items.filter(i => i.kind === 'person').map(i => i.name!.zh);
+      expect(new Set(names).size, era.id).toBe(names.length);
     }
-    expect(total).toBeGreaterThan(100);
+    expect(total).toBeGreaterThan(200);
     const tang = sceneryOf(ERAS.find(x => x.id === 'tang')!);
     expect(tang.some(i => i.name?.zh === '玄奘')).toBe(true);
+  });
+
+  it('curates people, buildings and customs or foods for every China dynasty', () => {
+    const ids = new Set<string>();
+    for (const l of LIFE) {
+      expect(ids.has(l.id), l.id).toBe(false);
+      ids.add(l.id);
+      expect(ERAS.some(e => e.id === l.era), l.id).toBe(true);
+      expect(!!(l.name.zh && l.name.en && l.desc.zh && l.desc.en && l.wiki.zh && l.wiki.en), l.id).toBe(true);
+      expect(l.lon > 70 && l.lon < 140 && l.lat > 15 && l.lat < 55, l.id).toBe(true);
+    }
+    for (const era of ERAS.filter(e => e.scope === 'china' && !e.lane)) {
+      const kinds = new Set(lifeOf(era.id).map(l => l.kind));
+      expect(kinds.has('person') && kinds.has('building') && (kinds.has('custom') || kinds.has('food')), era.id).toBe(true);
+      expect(sceneryOf(era).filter(i => i.life).length, era.id).toBe(lifeOf(era.id).length);
+    }
   });
 });
 
