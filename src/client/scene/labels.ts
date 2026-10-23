@@ -1,0 +1,102 @@
+import * as THREE from 'three';
+import type { View } from './view.ts';
+
+/**
+ * HTML label overlay: world-anchored labels positioned each frame, hidden when off-screen, outside their zoom range
+ * or overlapping a higher-priority label. Elements are plain DOM, so text stays crisp and accessible, and clicks work.
+ */
+export interface Label {
+  el: HTMLElement;
+  pos: THREE.Vector3;
+  /** higher wins collisions */
+  prio: number;
+  /** visible only while the camera distance is in [minD, maxD] */
+  minD?: number;
+  maxD?: number;
+  /** never hidden by collisions (e.g. the selected event) */
+  pinned?: boolean;
+  /** label sits above the point (pins) rather than centred on it */
+  anchor?: 'center' | 'above';
+  group: string;
+  w?: number;
+  h?: number;
+  shown?: boolean;
+}
+
+export class Labels {
+  readonly root: HTMLElement;
+  private items: Label[] = [];
+  private tmp = new THREE.Vector3();
+  private hidden = new Set<string>();
+  dirtySize = true;
+
+  constructor(private view: View, host: HTMLElement) {
+    this.root = document.createElement('div');
+    this.root.className = 'labels';
+    host.append(this.root);
+    view.onFrame(() => this.layout());
+    window.addEventListener('resize', () => (this.dirtySize = true));
+  }
+
+  add(l: Label): Label {
+    this.items.push(l);
+    this.root.append(l.el);
+    l.el.style.visibility = 'hidden';
+    this.dirtySize = true;
+    return l;
+  }
+
+  remove(l: Label): void {
+    const i = this.items.indexOf(l);
+    if (i >= 0) this.items.splice(i, 1);
+    l.el.remove();
+  }
+
+  clear(group: string): void {
+    for (const l of this.items.filter(x => x.group === group)) this.remove(l);
+  }
+
+  setGroupVisible(group: string, on: boolean): void {
+    if (on) this.hidden.delete(group); else this.hidden.add(group);
+  }
+
+  /** Call after label text changes (sizes are cached). */
+  remeasure(): void { this.dirtySize = true; }
+
+  private layout(): void {
+    const v = this.view;
+    if (this.dirtySize) {
+      for (const l of this.items) { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }
+      this.dirtySize = false;
+    }
+    const W = v.canvas.clientWidth, H = v.canvas.clientHeight;
+    const dist = v.camera.position.distanceTo(v.controls.target);
+    const placed: [number, number, number, number][] = [];
+    const sorted = this.items.slice().sort((a, b) => (b.pinned ? 1e9 : b.prio) - (a.pinned ? 1e9 : a.prio));
+    for (const l of sorted) {
+      let show = !this.hidden.has(l.group) && dist >= (l.minD ?? 0) && dist <= (l.maxD ?? Infinity);
+      let x = 0, y = 0;
+      if (show) {
+        const p = v.project(l.pos, this.tmp);
+        x = p.x; y = p.y;
+        if (p.z > 1 || x < -40 || y < -40 || x > W + 40 || y > H + 40) show = false;
+      }
+      const w = l.w ?? 0, h = l.h ?? 0;
+      const left = x - w / 2, top = l.anchor === 'above' ? y - h : y - h / 2;
+      if (show && !l.pinned) {
+        for (const [a, b, c, d] of placed) {
+          if (left < c && left + w > a && top < d && top + h > b) { show = false; break; }
+        }
+      }
+      if (show) {
+        placed.push([left - 3, top - 2, left + w + 3, top + h + 2]);
+        l.el.style.transform = `translate3d(${left.toFixed(1)}px, ${top.toFixed(1)}px, 0)`;
+      }
+      if (show !== l.shown) {
+        l.shown = show;
+        l.el.style.visibility = show ? 'visible' : 'hidden';
+        l.el.classList.toggle('on', show);
+      }
+    }
+  }
+}

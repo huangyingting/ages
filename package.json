@@ -1,0 +1,31 @@
+{
+  "name": "shanhe-atlas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "山河史境 Shanhe Atlas: a 3D, animated, bilingual atlas for learning Chinese history (middle & high school)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:all": "npm run typecheck && npm test && npm run build && npm run test:e2e",
+    "data:terrain": "node scripts/fetch-terrain.ts"
+  },
+  "engines": { "node": ">=24" },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "@types/three": "^0.186.0",
+    "pngjs": "^7.0.0",
+    "@types/pngjs": "^6.0.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}
