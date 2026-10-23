@@ -27,7 +27,7 @@ Chinese middle-school (grades 7–8, 统编版 textbooks) and high-school studen
 | Learn | Books → units → events with progress bars; opening an event closes the drawer on phones |
 | Quiz | History mode: 9 questions per round from the chosen book: when / where (map click, graded by km) / order; best score saved. Ancient-places mode: 10 period place names to find on the map with labels hidden, 0–100 points by distance and a final rank. Every answer is revealed on the map |
 | Search | Events, eras and places, matched in both languages; `/` focuses |
-| Menus | Hub (learn, quiz, journeys, help) and Settings (map style paper / ink / plain, layers, narration, quality); guqin music toggle; one toolbar, foldable timeline |
+| Menus | Hub (learn, quiz, journeys, help) and Settings (map style paper / ink / plain, layers, narration, quality); guqin music toggle and full screen in one cut-corner toolbar (zoom by wheel or pinch); foldable timeline |
 | Layers | Territory, place names, event pins, 3D models |
 | Help | Controls, category legend, disclaimer, credits, phase 2 note |
 | Deep links | `#e=`, `#y=`, `#p=`, `#person=`, `#j=`, `&lang=`, also as query parameters (kept up to date as you browse, so the address bar is always shareable) |

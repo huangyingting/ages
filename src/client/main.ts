@@ -52,7 +52,6 @@ class App {
   ready = false;
   private langBtn!: HTMLButtonElement;
   private bar!: HTMLElement;
-  private zoomLbl!: HTMLElement;
 
   constructor(private root: HTMLElement, stage: HTMLElement) {
     this.atlas = new Atlas(stage, lowfx);
@@ -191,27 +190,20 @@ class App {
     this.chronicle.mount(this.legend.el);
     this.timeline.onRender = y => { this.chronicle.update(y); this.legend.setYear(y); };
 
-    // top-right: one toolbar slab (search · language · study hall · map settings)
+    // top-right: one toolbar slab (music · language · study hall · map settings · full screen)
     this.langBtn = h('button', { type: 'button', class: 'ib lang', 'data-act': 'lang', onclick: () => setLang(lang === 'zh' ? 'en' : 'zh') });
     const hubBtn = iconBtn('grid', t('hub'), () => this.pop(this.hub.el.hidden ? 'hub' : null), 'b-hub');
     const setBtn = iconBtn('sliders', t('settings'), () => this.pop(this.settings.el.hidden ? 'settings' : null), 'b-settings');
-    const tools = h('div', { class: 'tools' }, this.music.el, this.langBtn, hubBtn, setBtn);
+    const fullBtn = iconBtn('full', t('fullscreen'), () => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen?.().catch(() => {}); }, 'b-full');
+    fullBtn.hidden = !document.fullscreenEnabled;
+    document.addEventListener('fullscreenchange', () => fullBtn.classList.toggle('on', !!document.fullscreenElement));
+    const tools = h('div', { class: 'tools' }, this.music.el, this.langBtn, hubBtn, setBtn, fullBtn);
     const top = h('div', { class: 'top-r' }, tools, this.hub.el, this.settings.el);
     document.addEventListener('pointerdown', e => {
       if ((!this.hub.el.hidden || !this.settings.el.hidden) && !top.contains(e.target as Node)) this.pop(null);
     });
 
-    // bottom right: one map-control pill (full screen · home · zoom); help lives in the study-hall menu
-    this.zoomLbl = h('span', { class: 'z-lbl' });
-    const corner = h('div', { class: 'corner-r map-ctl' },
-      iconBtn('full', t('fullscreen'), () => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen?.().catch(() => {}); }, 'b-full'),
-      iconBtn('home', t('home'), () => this.atlas.home(), 'b-home'),
-      h('i', { class: 'sep' }),
-      iconBtn('plus', t('zoomIn'), () => this.atlas.view.zoomBy(0.62), 'z-in'), this.zoomLbl, iconBtn('minus', t('zoomOut'), () => this.atlas.view.zoomBy(1.6), 'z-out'));
-    this.atlas.view.onFrame(() => { const z = 120 / this.atlas.view.pose().dist; const s = '×' + (z < 10 ? z.toFixed(1) : Math.round(z)); if (this.zoomLbl.textContent !== s) this.zoomLbl.textContent = s; });
-
-    this.root.append(this.bar, top, this.chronicle.el, this.learn.el, this.card.el, this.reader.el, this.quiz.el, this.caption.el, this.timeline.el, this.help.el,
-      corner);
+    this.root.append(this.bar, top, this.chronicle.el, this.learn.el, this.card.el, this.reader.el, this.quiz.el, this.caption.el, this.timeline.el, this.help.el);
     this.relabel();
     onLang(l => this.onLang(l));
 
@@ -435,7 +427,7 @@ class App {
     const b = this.bar.querySelector('.brand-t')!;
     b.querySelector('span')!.textContent = t('brandSub');
     const set = (cls: string, k: Parameters<typeof t>[0]) => { const el = this.root.querySelector<HTMLElement>(cls); if (el) { el.title = t(k); el.setAttribute('aria-label', t(k)); } };
-    set('.b-hub', 'hub'); set('.b-settings', 'settings'); set('.b-home', 'home'); set('.b-full', 'fullscreen'); set('.z-in', 'zoomIn'); set('.z-out', 'zoomOut');
+    set('.b-hub', 'hub'); set('.b-settings', 'settings'); set('.b-full', 'fullscreen');
     document.title = lang === 'zh' ? '长河 · 3D 中国历史地图' : 'Ages · 3D Atlas of Chinese History';
   }
 
