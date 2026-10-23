@@ -84,7 +84,7 @@ class App {
         this.caption.state(s);
         this.root.classList.toggle('story-on', s !== 'idle');
         this.card.setActive(s === 'idle');
-        if (s === 'idle') this.cine?.classList.remove('on');
+        if (s === 'idle') { this.cine?.classList.remove('on'); this.root.classList.remove('cine-on'); }
       },
       onTitle: (text, sub, dur) => this.showTitle(text, sub, dur),
       speak,
@@ -135,8 +135,9 @@ class App {
     c.classList.remove('on');
     void c.offsetWidth;
     c.classList.add('on');
+    this.root.classList.add('cine-on');
     clearTimeout(this.cineTimer);
-    this.cineTimer = window.setTimeout(() => c.classList.remove('on'), Math.max(1200, dur * 1000));
+    this.cineTimer = window.setTimeout(() => { c.classList.remove('on'); this.root.classList.remove('cine-on'); }, Math.max(1200, dur * 1000));
   }
 
   private buildChrome(): void {
