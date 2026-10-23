@@ -168,12 +168,12 @@ export type StoryStep =
   | { do: 'fly'; lon: number; lat: number; dist?: number; tilt?: number; dur?: number; par?: boolean }
   | { do: 'year'; year: Year; par?: boolean }
   | { do: 'caption'; text: I18n; dur?: number; par?: boolean }
-  | { do: 'route'; pts: LonLat[]; dur: number; color?: string; model?: ModelRecipe; label?: I18n; dashed?: boolean; keep?: boolean; par?: boolean }
+  | { do: 'route'; pts: LonLat[]; dur: number; color?: string; model?: ModelRecipe; label?: I18n; dashed?: boolean; keep?: boolean; par?: boolean; trail?: boolean }
   | { do: 'build'; pts: LonLat[]; dur: number; kind: 'wall' | 'canal' | 'rail'; color?: string; par?: boolean }
   | { do: 'spawn'; lon: number; lat: number; model: ModelRecipe; scale?: number; label?: I18n; par?: boolean }
   | { do: 'fx'; lon: number; lat: number; fx: 'battle' | 'fire' | 'glow' | 'flag' | 'smoke' | 'firework'; color?: string; dur?: number; par?: boolean }
   /** a marching army along `pts` (or a bowed arrow from → to); foot, horse or mixed; `follow` lets the camera ride along */
-  | { do: 'army'; from?: LonLat; to?: LonLat; pts?: LonLat[]; color: string; dur: number; count?: number; unit?: Troops; formation?: Formation; label?: I18n; follow?: boolean; keep?: boolean; retreat?: boolean; par?: boolean }
+  | { do: 'army'; trail?: boolean; from?: LonLat; to?: LonLat; pts?: LonLat[]; color: string; dur: number; count?: number; unit?: Troops; formation?: Formation; label?: I18n; follow?: boolean; keep?: boolean; retreat?: boolean; par?: boolean }
   /**
    * a pitched battle on a battlefield with camps: A charges from `angle` (degrees clockwise from west), B from the
    * opposite side, each in its formation; archers loose volleys, siege engines bombard the gate; the loser routs. The

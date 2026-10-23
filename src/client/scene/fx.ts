@@ -11,7 +11,7 @@ import type { View } from './view.ts';
 
 export type FxKind = 'battle' | 'fire' | 'glow' | 'flag' | 'smoke' | 'firework';
 export type Layer = 'story' | 'event' | 'base' | 'works';
-export interface ArmyOpts { from?: LonLat; to?: LonLat; pts?: LonLat[]; color: string; dur: number; count?: number; unit?: Troops; formation?: Formation; label?: string; follow?: boolean; keep?: boolean; retreat?: boolean }
+export interface ArmyOpts { trail?: boolean; from?: LonLat; to?: LonLat; pts?: LonLat[]; color: string; dur: number; count?: number; unit?: Troops; formation?: Formation; label?: string; follow?: boolean; keep?: boolean; retreat?: boolean }
 export interface ClashOpts { lon: number; lat: number; a: string; b: string; winner?: 'a' | 'b'; angle?: number; dur?: number; count?: number; labels?: [string?, string?]; units?: [Troops?, Troops?]; formations?: [Formation?, Formation?]; siege?: boolean; cam?: boolean }
 export interface FleetOpts { pts: LonLat[]; dur: number; color?: string; count?: number; model?: 'junk' | 'warship' | 'fireship' | 'boat' | 'redboat'; label?: string; follow?: boolean; keep?: boolean }
 
@@ -24,6 +24,17 @@ function bow(a: LonLat, b: LonLat): LonLat[] {
     pts.push([(1 - u) * (1 - u) * a[0] + 2 * u * (1 - u) * mid[0] + u * u * b[0], (1 - u) * (1 - u) * a[1] + 2 * u * (1 - u) * mid[1] + u * u * b[1]]);
   }
   return pts;
+}
+
+type Path = { p: THREE.Vector3[]; len: number[]; total: number };
+
+/** A path arrow: `reveal` grows it, `frame` places the head each frame (sc: current model scale), `fade` 0..1 hides it. */
+interface Arrow {
+  obj: THREE.Object3D;
+  own: { dispose(): void }[];
+  reveal(k: number): void;
+  frame(k: number, sc: number, carried: boolean): void;
+  fade(x: number): void;
 }
 
 interface Item {
@@ -70,6 +81,8 @@ export class Fx {
   /** current model scale: models stay readable at every zoom */
   s = 1;
   private clock = 0;
+  /** the journey traveller currently on the map (one per journey, handed from leg to leg) */
+  private traveller: THREE.Object3D | null = null;
 
   constructor(private view: View, private geo: Geo, private labels: Labels) {
     this.root.name = 'fx';
@@ -123,6 +136,7 @@ export class Fx {
     if (layer === 'story') {
       this.epoch++;
       this.follow = null;
+      this.traveller = null;
       const tw = this.tweens.splice(0);
       for (const x of tw) x.done();
       this.particles.clear();
@@ -143,7 +157,7 @@ export class Fx {
   // ---------------------------------------------------------------- paths
 
   /** Dense path on the terrain surface (so lines climb mountains), with cumulative lengths. */
-  path(pts: LonLat[], lift: number): { p: THREE.Vector3[]; len: number[]; total: number } {
+  path(pts: LonLat[], lift: number): Path {
     const p: THREE.Vector3[] = [];
     for (let i = 0; i < pts.length; i++) {
       const [a, b] = pts[i];
@@ -161,7 +175,7 @@ export class Fx {
     return { p, len, total: len[len.length - 1] || 1e-6 };
   }
 
-  private at(path: { p: THREE.Vector3[]; len: number[]; total: number }, k: number, out = new THREE.Vector3()): { pos: THREE.Vector3; dir: THREE.Vector3; i: number } {
+  private at(path: Path, k: number, out = new THREE.Vector3()): { pos: THREE.Vector3; dir: THREE.Vector3; i: number } {
     const d = THREE.MathUtils.clamp(k, 0, 1) * path.total;
     let i = 1;
     while (i < path.len.length - 1 && path.len[i] < d) i++;
@@ -172,27 +186,33 @@ export class Fx {
     return { pos: out, dir: b.clone().sub(a).setY(0).normalize(), i };
   }
 
-  /** A flat ribbon along a path (optionally tapering), revealed progressively via drawRange. */
-  private ribbon(path: { p: THREE.Vector3[]; len: number[]; total: number }, width: number, color: string, opacity: number, taper = false): { mesh: THREE.Mesh; reveal: (k: number) => void; mat: THREE.MeshBasicMaterial } {
+  /** A flat ribbon along a path (optionally tapering), revealed progressively via drawRange; `setWidth` re-lays it. */
+  private ribbon(path: Path, width: number, color: string, opacity: number, taper = false): { mesh: THREE.Mesh; reveal: (k: number) => void; mat: THREE.MeshBasicMaterial; setWidth: (w: number) => void } {
     const n = path.p.length;
     const pos = new Float32Array(n * 2 * 3);
+    const attr = new THREE.BufferAttribute(pos, 3);
     const side = new THREE.Vector3(), dir = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-    for (let i = 0; i < n; i++) {
-      const a = path.p[Math.max(0, i - 1)], b = path.p[Math.min(n - 1, i + 1)];
-      dir.copy(b).sub(a).setY(0).normalize();
-      side.crossVectors(up, dir).normalize();
-      const w = (width / 2) * (taper ? 0.45 + 0.55 * (path.len[i] / path.total) : 1);
-      for (let s = 0; s < 2; s++) {
-        const sx = path.p[i].x + side.x * w * (s ? -1 : 1), sz = path.p[i].z + side.z * w * (s ? -1 : 1);
-        const y = Math.max(path.p[i].y, Math.max(0, this.geo.height(this.geo.lon(sx), this.geo.lat(sz))) + 0.02);
-        pos.set([sx, y, sz], (i * 2 + s) * 3);
+    const lay = (width: number) => {
+      for (let i = 0; i < n; i++) {
+        const a = path.p[Math.max(0, i - 1)], b = path.p[Math.min(n - 1, i + 1)];
+        dir.copy(b).sub(a).setY(0).normalize();
+        side.crossVectors(up, dir).normalize();
+        const w = (width / 2) * (taper ? 0.45 + 0.55 * (path.len[i] / path.total) : 1);
+        for (let s = 0; s < 2; s++) {
+          const sx = path.p[i].x + side.x * w * (s ? -1 : 1), sz = path.p[i].z + side.z * w * (s ? -1 : 1);
+          const y = Math.max(path.p[i].y, Math.max(0, this.geo.height(this.geo.lon(sx), this.geo.lat(sz))) + 0.02);
+          pos.set([sx, y, sz], (i * 2 + s) * 3);
+        }
       }
-    }
+      attr.needsUpdate = true;
+      g.boundingSphere = null;
+    };
     const idx: number[] = [];
     for (let i = 0; i < n - 1; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
     const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('position', attr);
     g.setIndex(idx);
+    lay(width);
     const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
     const mesh = new THREE.Mesh(g, mat);
     mesh.renderOrder = 3;
@@ -203,7 +223,7 @@ export class Fx {
       g.setDrawRange(0, Math.max(0, i) * 6);
     };
     reveal(0);
-    return { mesh, reveal, mat };
+    return { mesh, reveal, mat, setWidth: lay };
   }
 
   private arrowHead(color: string, size: number): THREE.Mesh {
@@ -214,16 +234,78 @@ export class Fx {
     return m;
   }
 
+  /** The classic story arrow: a ribbon fixed at the scale it was drawn at, with its head riding the tip. */
+  private thinArrow(path: Path, color: string, width: number, head: number, opacity: number, taper: boolean): Arrow {
+    const rb = this.ribbon(path, width, color, opacity, taper);
+    const hd = this.arrowHead(color, head);
+    const obj = new THREE.Group().add(rb.mesh, hd);
+    const tmp = new THREE.Vector3();
+    return {
+      obj, own: [rb.mesh.geometry, rb.mat, hd.geometry, hd.material as THREE.Material],
+      reveal: rb.reveal,
+      frame: (k, _sc, carried) => {
+        const a = this.at(path, k, tmp);
+        hd.position.copy(a.pos).setY(a.pos.y + 0.012);
+        hd.rotation.y = Math.atan2(a.dir.x, a.dir.z);
+        hd.visible = k < 0.999 || !carried;
+      },
+      fade: x => { rb.mat.opacity = opacity * (1 - x); hd.visible = false; },
+    };
+  }
+
+  /**
+   * A journey leg: a bold, light-haloed shaft that keeps its on-screen width at every zoom (so earlier legs still read in
+   * the closing overview) and a large arrowhead whose tip stays on the stop, so each leg reads as its own arrow.
+   */
+  private trailArrow(path: Path, color: string): Arrow {
+    const W = 0.34, EDGE = 0.14, H = 1.05, HALO = '#fff8e6';
+    let built = this.s;
+    const edge = this.ribbon(path, (W + EDGE) * built, HALO, 0.85);
+    const shaft = this.ribbon(path, W * built, color, 0.95);
+    edge.mesh.renderOrder = 3; shaft.mesh.renderOrder = 4;
+    const rim = this.arrowHead(HALO, 1), hd = this.arrowHead(color, 1);
+    (rim.material as THREE.MeshBasicMaterial).opacity = 0.9;
+    (hd.material as THREE.MeshBasicMaterial).opacity = 1;
+    for (const m of [rim, hd]) Object.assign(m.material, { polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+    rim.renderOrder = 5; hd.renderOrder = 6;
+    const obj = new THREE.Group().add(edge.mesh, shaft.mesh, rim, hd);
+    const tmp = new THREE.Vector3();
+    return {
+      obj, own: [edge.mesh.geometry, edge.mat, shaft.mesh.geometry, shaft.mat, rim.geometry, rim.material as THREE.Material, hd.geometry, hd.material as THREE.Material],
+      reveal: x => { edge.reveal(x); shaft.reveal(x); },
+      frame: (x, sc) => {
+        if (Math.abs(sc / built - 1) > 0.06) { built = sc; edge.setWidth((W + EDGE) * sc); shaft.setWidth(W * sc); }
+        const size = H * sc;
+        // the shaft stops under the head, whose tip lands exactly on the revealed end
+        const back = size * 0.5 / path.total;
+        edge.reveal(Math.max(0, x - back)); shaft.reveal(Math.max(0, x - back));
+        const a = this.at(path, x, tmp);
+        hd.visible = rim.visible = x * path.total > size * 0.6;
+        hd.position.copy(a.pos).addScaledVector(a.dir, -size * 0.9);
+        // flat heads float over the highest ground beneath them so slopes don't swallow their wings
+        let y = a.pos.y;
+        for (const [f, sd] of [[0.9, 0], [0, 0], [-0.35, 0.72], [-0.35, -0.72], [0.3, 0.35], [0.3, -0.35]]) {
+          const x = hd.position.x + (a.dir.x * f + a.dir.z * sd) * size, z = hd.position.z + (a.dir.z * f - a.dir.x * sd) * size;
+          y = Math.max(y, this.geo.height(this.geo.lon(x), this.geo.lat(z)));
+        }
+        hd.position.y = y + 0.04;
+        rim.position.copy(hd.position).addScaledVector(a.dir, -size * 0.15).setY(y + 0.035);
+        hd.rotation.y = rim.rotation.y = Math.atan2(a.dir.x, a.dir.z);
+        hd.scale.setScalar(size); rim.scale.setScalar(size * 1.22);
+      },
+      fade: x => { shaft.mat.opacity = 0.95 * (1 - x); edge.mat.opacity = 0.85 * (1 - x); hd.visible = rim.visible = false; },
+    };
+  }
+
   /** Animated route: a tapered arrow that grows along the path, optionally carrying a model at its head. */
-  async route(o: { pts: LonLat[]; dur: number; color?: string; model?: ModelRecipe; label?: string; dashed?: boolean; keep?: boolean }, layer: Layer = 'story'): Promise<void> {
+  async route(o: { pts: LonLat[]; dur: number; color?: string; model?: ModelRecipe; label?: string; dashed?: boolean; keep?: boolean; trail?: boolean }, layer: Layer = 'story'): Promise<void> {
     const color = o.color ?? '#c0392b';
     const s = this.s;
     const path = this.path(o.pts, 0.03);
-    const rb = this.ribbon(path, 0.16 * s, color, o.dashed ? 0.55 : 0.8, !o.dashed);
-    const head = this.arrowHead(color, 0.32 * s);
+    const line = o.trail ? this.trailArrow(path, color) : this.thinArrow(path, color, 0.16 * s, 0.32 * s, o.dashed ? 0.55 : 0.8, !o.dashed);
     const g = new THREE.Group();
-    g.add(rb.mesh, head);
-    const it = this.add({ layer, obj: g, own: [rb.mesh.geometry, rb.mat, head.geometry, head.material as THREE.Material] });
+    g.add(line.obj);
+    const it = this.add({ layer, obj: g, own: line.own });
     let carrier: THREE.Object3D | null = null;
     let rigs: ReturnType<typeof rig> = [];
     if (o.model) {
@@ -232,17 +314,17 @@ export class Fx {
         carrier = m;
         rigs = rig(m);
         g.add(m);
+        // a journey has one traveller: it walks on from the stop where the last leg left it
+        if (o.trail) { this.traveller?.removeFromParent(); this.traveller = m; }
       }).catch(() => {});
     }
     if (o.label) it.label = this.labels.add({ el: tag(o.label, 'route'), pos: path.p[Math.floor(path.p.length / 2)].clone().setY(path.p[Math.floor(path.p.length / 2)].y + 0.2), prio: 50, group: 'story' });
     const tmp = new THREE.Vector3();
     let k = 0;
     it.update = (_dt, t, sc) => {
-      const a = this.at(path, k, tmp);
-      head.position.copy(a.pos).setY(a.pos.y + 0.01);
-      head.rotation.y = Math.atan2(a.dir.x, a.dir.z);
-      head.visible = k < 0.999 || !carrier;
+      line.frame(k, sc, !!carrier);
       if (carrier) {
+        const a = this.at(path, k, tmp);
         carrier.position.copy(a.pos);
         carrier.position.y = Math.max(a.pos.y - 0.03, -0.02);
         carrier.rotation.y = Math.atan2(a.dir.x, a.dir.z);
@@ -250,10 +332,11 @@ export class Fx {
         animate(rigs, t);
       }
     };
-    await this.tween(o.dur, x => { k = easeOut(x) * 0.15 + x * 0.85; rb.reveal(k); });
-    rb.reveal(1);
+    await this.tween(o.dur, x => { k = easeOut(x) * 0.15 + x * 0.85; line.reveal(k); });
+    k = 1;
+    line.reveal(1);
     if (!o.keep && layer === 'story') {
-      this.tween(2.5).then(() => this.tween(0.8, x => { rb.mat.opacity = 0.8 * (1 - x); head.visible = false; })).then(() => { if (!carrier) this.remove(it); });
+      this.tween(2.5).then(() => this.tween(0.8, x => line.fade(x))).then(() => { if (!carrier) this.remove(it); });
     }
   }
 
@@ -368,14 +451,13 @@ export class Fx {
     const s = scaleFor(this.view.goalDist);
     const pts = o.pts && o.pts.length >= 2 ? o.pts : bow(o.from ?? o.pts![0], o.to ?? o.pts![o.pts!.length - 1]);
     const path = this.path(pts, 0.035);
-    const rb = this.ribbon(path, 0.3 * s, o.color, o.retreat ? 0.45 : 0.72, true);
-    const head = this.arrowHead(o.color, 0.6 * s);
+    const line = o.trail ? this.trailArrow(path, o.color) : this.thinArrow(path, o.color, 0.3 * s, 0.6 * s, o.retreat ? 0.45 : 0.72, true);
     const n = Math.min(48, o.count ?? 30);
     const unit = o.unit ?? 'foot';
     const troops = this.formation(deploy(o.formation ?? 'column', unit, n, this.year), o.color, unit);
     const g = new THREE.Group();
-    g.add(rb.mesh, head, ...troops.meshes);
-    const it = this.add({ layer, obj: g, own: [rb.mesh.geometry, rb.mat, head.geometry, head.material as THREE.Material, ...troops.own] });
+    g.add(line.obj, ...troops.meshes);
+    const it = this.add({ layer, obj: g, own: [...line.own, ...troops.own] });
     let banner: THREE.Object3D | null = null, rigs: ReturnType<typeof rig> = [];
     let general: THREE.Object3D | null = null, grigs: ReturnType<typeof rig> = [], fk = 1;
     instance({ kind: 'flag', color: o.color }, true).then(m => { if (this.items.includes(it)) { banner = m; rigs = rig(m); g.add(m); } }).catch(() => {});
@@ -386,10 +468,9 @@ export class Fx {
     const q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), v = new THREE.Vector3(), sc = new THREE.Vector3(), tmp = new THREE.Vector3();
     it.update = (_dt, t, scale) => {
       const z = Math.min(scale, s * 1.5);
+      line.frame(k, scale, false);
       const hd = this.at(path, k, tmp);
-      head.position.copy(hd.pos).setY(hd.pos.y + 0.012);
       const yaw = Math.atan2(hd.dir.x, hd.dir.z);
-      head.rotation.y = yaw;
       q.setFromAxisAngle(up, yaw);
       const side = new THREE.Vector3().crossVectors(up, hd.dir).normalize();
       const gap = GAP * z;
@@ -419,12 +500,12 @@ export class Fx {
       if (it.label) it.label.pos.copy(hd.pos).setY(hd.pos.y + 1.3 * z);
     };
     if (o.follow) this.followWith(() => tmp);
-    await this.tween(o.dur, x => { k = 0.7 * x + 0.3 * x * x * (3 - 2 * x); rb.reveal(k); });
+    await this.tween(o.dur, x => { k = 0.7 * x + 0.3 * x * x * (3 - 2 * x); line.reveal(k); });
     k = 1; moving = false;
-    rb.reveal(1);
+    line.reveal(1);
     dust.stop = true;
     if (o.follow) this.followWith(null);
-    if (layer === 'story' && !o.keep) this.tween(3).then(() => this.tween(0.8, x => { rb.mat.opacity = 0.72 * (1 - x); troops.fade(1 - x); fk = 1 - x; })).then(() => this.remove(it));
+    if (layer === 'story' && !o.keep) this.tween(3).then(() => this.tween(0.8, x => { line.fade(x); troops.fade(1 - x); fk = 1 - x; })).then(() => this.remove(it));
   }
 
   /**

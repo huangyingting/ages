@@ -645,8 +645,8 @@ export function journeyStory(j: Journey): StoryStep[] {
         dist: Math.min(80, Math.max(16, span * 2.6 + 10)), tilt: 0.85, dur: 2, par: true });
       if (s.year !== prev.year) steps.push({ do: 'year', year: s.year });
       steps.push(who === 'army'
-        ? { do: 'army', pts, color: j.color, dur, count: 26, unit: 'mixed', keep: true, ...(i === 1 ? { label: j.short } : {}) }
-        : { do: 'route', pts, color: j.color, dur, keep: true, model: { kind: who }, ...(i === 1 ? { label: j.short } : {}) });
+        ? { do: 'army', pts, color: j.color, dur, count: 26, unit: 'mixed', keep: true, trail: true, ...(i === 1 ? { label: j.short } : {}) }
+        : { do: 'route', pts, color: j.color, dur, keep: true, trail: true, model: { kind: who }, ...(i === 1 ? { label: j.short } : {}) });
     }
     steps.push(
       { do: 'banner', lon: s.lon, lat: s.lat, text: s.name, sub: s.title, color: j.color, dur: 6 },
