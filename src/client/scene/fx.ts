@@ -37,6 +37,18 @@ interface Arrow {
   fade(x: number): void;
 }
 
+/** A unit "›" chevron lying flat and pointing +z, about 1 wide and 0.5 long. */
+function chevron(): THREE.BufferGeometry {
+  const g = new THREE.BufferGeometry();
+  // outer L, tip, R then inner L, tip, R
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+    -0.45, 0, -0.1, 0, 0, 0.4, 0.45, 0, -0.1,
+    -0.45, 0, -0.38, 0, 0, 0.12, 0.45, 0, -0.38,
+  ]), 3));
+  g.setIndex([0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4]);
+  return g;
+}
+
 interface Item {
   layer: Layer;
   obj: THREE.Object3D;
@@ -254,24 +266,39 @@ export class Fx {
   }
 
   /**
-   * A journey leg: a bold, light-haloed shaft that keeps its on-screen width at every zoom (so earlier legs still read in
-   * the closing overview) and a large arrowhead whose tip stays on the stop, so each leg reads as its own arrow.
+   * A journey leg: a thick, vividly coloured, dark-outlined shaft that keeps its on-screen width at every zoom (so earlier
+   * legs still read in the closing overview), white chevrons flowing along it in the direction of travel, and a large
+   * outlined arrowhead whose tip stays on the stop, so each leg reads as its own arrow.
    */
   private trailArrow(path: Path, color: string): Arrow {
-    const W = 0.34, EDGE = 0.14, H = 1.05, HALO = '#fff8e6';
+    const W = 0.62, EDGE = 0.22, H = 1.35, INK = '#1d1209';
+    // journey colours are muted map inks; the trail uses a saturated, mid-bright version of the same hue
+    const hsl = { h: 0, s: 0, l: 0 };
+    new THREE.Color(color).getHSL(hsl);
+    const vivid = new THREE.Color().setHSL(hsl.h, Math.max(hsl.s, 0.85), THREE.MathUtils.clamp(hsl.l, 0.5, 0.56));
     let built = this.s;
-    const edge = this.ribbon(path, (W + EDGE) * built, HALO, 0.85);
-    const shaft = this.ribbon(path, W * built, color, 0.95);
+    const edge = this.ribbon(path, (W + EDGE) * built, INK, 0.9);
+    const shaft = this.ribbon(path, W * built, '#' + vivid.getHexString(), 1);
     edge.mesh.renderOrder = 3; shaft.mesh.renderOrder = 4;
-    const rim = this.arrowHead(HALO, 1), hd = this.arrowHead(color, 1);
-    (rim.material as THREE.MeshBasicMaterial).opacity = 0.9;
+    const rim = this.arrowHead(INK, 1), hd = this.arrowHead('#' + vivid.getHexString(), 1);
+    (rim.material as THREE.MeshBasicMaterial).opacity = 0.95;
     (hd.material as THREE.MeshBasicMaterial).opacity = 1;
     for (const m of [rim, hd]) Object.assign(m.material, { polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
-    rim.renderOrder = 5; hd.renderOrder = 6;
-    const obj = new THREE.Group().add(edge.mesh, shaft.mesh, rim, hd);
-    const tmp = new THREE.Vector3();
+    rim.renderOrder = 6; hd.renderOrder = 7;
+    // flowing chevrons: one instance every GAP shaft-widths, placed each frame within the revealed shaft
+    const GAP = 2.4, MIN_S = 0.09;
+    const max = Math.ceil(path.total / (GAP * W * MIN_S)) + 1;
+    const chevG = chevron();
+    const chevM = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.92, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+    const chev = new THREE.InstancedMesh(chevG, chevM, max);
+    chev.frustumCulled = false;
+    chev.renderOrder = 5;
+    chev.count = 0;
+    const obj = new THREE.Group().add(edge.mesh, shaft.mesh, chev, rim, hd);
+    const tmp = new THREE.Vector3(), cp = new THREE.Vector3(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(), m4 = new THREE.Matrix4();
+    let shown = true;
     return {
-      obj, own: [edge.mesh.geometry, edge.mat, shaft.mesh.geometry, shaft.mat, rim.geometry, rim.material as THREE.Material, hd.geometry, hd.material as THREE.Material],
+      obj, own: [edge.mesh.geometry, edge.mat, shaft.mesh.geometry, shaft.mat, rim.geometry, rim.material as THREE.Material, hd.geometry, hd.material as THREE.Material, chevG, chevM],
       reveal: x => { edge.reveal(x); shaft.reveal(x); },
       frame: (x, sc) => {
         if (Math.abs(sc / built - 1) > 0.06) { built = sc; edge.setWidth((W + EDGE) * sc); shaft.setWidth(W * sc); }
@@ -280,20 +307,33 @@ export class Fx {
         const back = size * 0.5 / path.total;
         edge.reveal(Math.max(0, x - back)); shaft.reveal(Math.max(0, x - back));
         const a = this.at(path, x, tmp);
-        hd.visible = rim.visible = x * path.total > size * 0.6;
+        hd.visible = rim.visible = shown && x * path.total > size * 0.6;
         hd.position.copy(a.pos).addScaledVector(a.dir, -size * 0.9);
         // flat heads float over the highest ground beneath them so slopes don't swallow their wings
         let y = a.pos.y;
-        for (const [f, sd] of [[0.9, 0], [0, 0], [-0.35, 0.72], [-0.35, -0.72], [0.3, 0.35], [0.3, -0.35]]) {
-          const x = hd.position.x + (a.dir.x * f + a.dir.z * sd) * size, z = hd.position.z + (a.dir.z * f - a.dir.x * sd) * size;
-          y = Math.max(y, this.geo.height(this.geo.lon(x), this.geo.lat(z)));
+        for (const [f, sd] of [[0.95, 0], [0, 0], [-0.35, 0.75], [-0.35, -0.75], [0.3, 0.38], [0.3, -0.38]]) {
+          const px = hd.position.x + (a.dir.x * f + a.dir.z * sd) * size, pz = hd.position.z + (a.dir.z * f - a.dir.x * sd) * size;
+          y = Math.max(y, this.geo.height(this.geo.lon(px), this.geo.lat(pz)));
         }
-        hd.position.y = y + 0.04;
-        rim.position.copy(hd.position).addScaledVector(a.dir, -size * 0.15).setY(y + 0.035);
+        hd.position.y = y + 0.05;
+        rim.position.copy(hd.position).addScaledVector(a.dir, -size * 0.1).setY(y + 0.045);
         hd.rotation.y = rim.rotation.y = Math.atan2(a.dir.x, a.dir.z);
-        hd.scale.setScalar(size); rim.scale.setScalar(size * 1.22);
+        hd.scale.setScalar(size); rim.scale.setScalar(size * 1.18);
+        // chevrons drift forward along the drawn part of the shaft
+        const gap = GAP * W * sc, end = x * path.total - size * 1.1;
+        let n = 0;
+        if (shown) {
+          for (let d = ((this.clock * 0.5 * sc) % gap) + gap * 0.5; d < end && n < max; d += gap, n++) {
+            const c = this.at(path, d / path.total, cp);
+            q.setFromAxisAngle(up, Math.atan2(c.dir.x, c.dir.z));
+            m4.compose(c.pos.setY(c.pos.y + 0.03), q, one.setScalar(W * sc * 0.8));
+            chev.setMatrixAt(n, m4);
+          }
+        }
+        chev.count = n;
+        chev.instanceMatrix.needsUpdate = true;
       },
-      fade: x => { shaft.mat.opacity = 0.95 * (1 - x); edge.mat.opacity = 0.85 * (1 - x); hd.visible = rim.visible = false; },
+      fade: x => { shaft.mat.opacity = 1 - x; edge.mat.opacity = 0.9 * (1 - x); shown = false; hd.visible = rim.visible = false; },
     };
   }
 
@@ -328,7 +368,8 @@ export class Fx {
         carrier.position.copy(a.pos);
         carrier.position.y = Math.max(a.pos.y - 0.03, -0.02);
         carrier.rotation.y = Math.atan2(a.dir.x, a.dir.z);
-        carrier.scale.setScalar(sc * 0.75);
+        // journey travellers are drawn larger so they lead the eye along the trail
+        carrier.scale.setScalar(sc * (o.trail ? 1.6 : 0.75));
         animate(rigs, t);
       }
     };
@@ -467,7 +508,7 @@ export class Fx {
     let k = 0, moving = true;
     const q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), v = new THREE.Vector3(), sc = new THREE.Vector3(), tmp = new THREE.Vector3();
     it.update = (_dt, t, scale) => {
-      const z = Math.min(scale, s * 1.5);
+      const z = Math.min(scale, s * 1.5) * (o.trail ? 1.4 : 1);
       line.frame(k, scale, false);
       const hd = this.at(path, k, tmp);
       const yaw = Math.atan2(hd.dir.x, hd.dir.z);
