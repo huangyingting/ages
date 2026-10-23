@@ -418,6 +418,12 @@ function beardFor(p: THREE.Object3D, s: Beard, c: string, hy: number, hr: number
   void u;
 }
 
+/** Period headwear and beard for a head of radius `hr` centred at the origin of `p` (dresses `human()` riders). */
+export function headwear(p: THREE.Object3D, hat: Hat, c: string, hr: number, o: { badge?: string; beard?: Beard; beardColor?: string } = {}): void {
+  hatFor(p, hat, c, 0, hr, hr / 0.106, o.badge);
+  if (o.beard) beardFor(p, o.beard, o.beardColor ?? '#2a2420', 0, hr, hr / 0.106);
+}
+
 function hatFor(p: THREE.Object3D, s: Hat, c: string, hy: number, hr: number, u: number, badge?: string): void {
   const ty = hy + hr * 0.95;
   switch (s) {

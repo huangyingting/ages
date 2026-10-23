@@ -253,47 +253,135 @@ export class Fx {
     };
   }
 
+  /** Journey-trail colour: the journey's own hue, enriched just enough to read on the terrain (neutral inks stay ink). */
+  private trailColors(color: string): { body: THREE.Color; rim: THREE.Color; light: THREE.Color; dark: THREE.Color } {
+    const hsl = { h: 0, s: 0, l: 0 };
+    new THREE.Color(color).getHSL(hsl, THREE.SRGBColorSpace);
+    const ink = hsl.s < 0.12;
+    const s = ink ? hsl.s : THREE.MathUtils.clamp(hsl.s * 1.1, 0.45, 0.8), l = THREE.MathUtils.clamp(hsl.l, ink ? 0.22 : 0.38, ink ? 0.3 : 0.5);
+    const mk = (dl: number, ds = 0) => new THREE.Color().setHSL(hsl.h, THREE.MathUtils.clamp(s + ds, 0, 1), THREE.MathUtils.clamp(l + dl, 0, 1), THREE.SRGBColorSpace);
+    return { body: mk(0), rim: mk(-l * 0.6, 0.05), light: mk(ink ? 0.12 : 0.1, -0.05), dark: mk(-l * 0.25) };
+  }
+
   /**
-   * A journey leg: a bold, light-haloed shaft that keeps its on-screen width at every zoom (so earlier legs still read in
-   * the closing overview) and a large arrowhead whose tip stays on the stop, so each leg reads as its own arrow.
+   * A journey leg drawn like a brush stroke on the sand table: a rich body with a fine dark rim and a soft shadow, paper
+   * dashes flowing along its spine in the direction of travel, and a barbed two-tone arrowhead whose tip lands on the
+   * stop. Its on-screen width is kept at every zoom so earlier legs still read in the closing overview.
    */
   private trailArrow(path: Path, color: string): Arrow {
-    const W = 0.34, EDGE = 0.14, H = 1.05, HALO = '#fff8e6';
-    let built = this.s;
-    const edge = this.ribbon(path, (W + EDGE) * built, HALO, 0.85);
-    const shaft = this.ribbon(path, W * built, color, 0.95);
-    edge.mesh.renderOrder = 3; shaft.mesh.renderOrder = 4;
-    const rim = this.arrowHead(HALO, 1), hd = this.arrowHead(color, 1);
-    (rim.material as THREE.MeshBasicMaterial).opacity = 0.9;
-    (hd.material as THREE.MeshBasicMaterial).opacity = 1;
-    for (const m of [rim, hd]) Object.assign(m.material, { polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
-    rim.renderOrder = 5; hd.renderOrder = 6;
-    const obj = new THREE.Group().add(edge.mesh, shaft.mesh, rim, hd);
-    const tmp = new THREE.Vector3();
-    return {
-      obj, own: [edge.mesh.geometry, edge.mat, shaft.mesh.geometry, shaft.mat, rim.geometry, rim.material as THREE.Material, hd.geometry, hd.material as THREE.Material],
-      reveal: x => { edge.reveal(x); shaft.reveal(x); },
-      frame: (x, sc) => {
-        if (Math.abs(sc / built - 1) > 0.06) { built = sc; edge.setWidth((W + EDGE) * sc); shaft.setWidth(W * sc); }
-        const size = H * sc;
-        // the shaft stops under the head, whose tip lands exactly on the revealed end
-        const back = size * 0.5 / path.total;
-        edge.reveal(Math.max(0, x - back)); shaft.reveal(Math.max(0, x - back));
-        const a = this.at(path, x, tmp);
-        hd.visible = rim.visible = x * path.total > size * 0.6;
-        hd.position.copy(a.pos).addScaledVector(a.dir, -size * 0.9);
-        // flat heads float over the highest ground beneath them so slopes don't swallow their wings
-        let y = a.pos.y;
-        for (const [f, sd] of [[0.9, 0], [0, 0], [-0.35, 0.72], [-0.35, -0.72], [0.3, 0.35], [0.3, -0.35]]) {
-          const x = hd.position.x + (a.dir.x * f + a.dir.z * sd) * size, z = hd.position.z + (a.dir.z * f - a.dir.x * sd) * size;
-          y = Math.max(y, this.geo.height(this.geo.lon(x), this.geo.lat(z)));
+    // half-widths in model-scale units: body, rim and shadow (the ribbon spans all three)
+    const BODY = 0.2, RIM = 0.25, SHADOW = 0.34, H = 0.95;
+    const C = this.trailColors(color);
+    const n = path.p.length;
+    const pos = new Float32Array(n * 2 * 3), side = new Float32Array(n * 2), dist = new Float32Array(n * 2), lift = new Float32Array(n);
+    const attr = new THREE.BufferAttribute(pos, 3);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', attr);
+    g.setAttribute('aSide', new THREE.BufferAttribute(side, 1));
+    g.setAttribute('aDist', new THREE.BufferAttribute(dist, 1));
+    const idx: number[] = [];
+    for (let i = 0; i < n - 1; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+    g.setIndex(idx);
+    const sv = new THREE.Vector3(), dv = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+    const lay = (sc: number) => {
+      const brush = Math.min(path.total * 0.2, 1.6 * sc);
+      for (let i = 0; i < n; i++) {
+        const a = path.p[Math.max(0, i - 1)], b = path.p[Math.min(n - 1, i + 1)];
+        dv.copy(b).sub(a).setY(0).normalize();
+        sv.crossVectors(up, dv).normalize();
+        // the stroke starts slim like a brush touching paper, then swells to full width
+        const t = THREE.MathUtils.smoothstep(path.len[i], 0, brush);
+        const w = SHADOW * sc * (0.45 + 0.55 * t);
+        // level cross-sections over the higher bank, so the stroke lies flat instead of folding on slopes
+        let y = path.p[i].y;
+        for (let s = 0; s < 2; s++) {
+          const sx = path.p[i].x + sv.x * w * (s ? -1 : 1), sz = path.p[i].z + sv.z * w * (s ? -1 : 1);
+          y = Math.max(y, Math.max(0, this.geo.height(this.geo.lon(sx), this.geo.lat(sz))) + 0.02);
+          pos.set([sx, 0, sz], (i * 2 + s) * 3);
+          side[i * 2 + s] = s ? -1 : 1;
+          dist[i * 2 + s] = path.len[i];
         }
-        hd.position.y = y + 0.04;
-        rim.position.copy(hd.position).addScaledVector(a.dir, -size * 0.15).setY(y + 0.035);
-        hd.rotation.y = rim.rotation.y = Math.atan2(a.dir.x, a.dir.z);
-        hd.scale.setScalar(size); rim.scale.setScalar(size * 1.22);
+        lift[i] = y;
+      }
+      // a short running max smooths ridges into gentle humps
+      for (let i = 0; i < n; i++) {
+        let y = lift[i];
+        for (let d = -2; d <= 2; d++) y = Math.max(y, lift[Math.min(n - 1, Math.max(0, i + d))] - Math.abs(d) * 0.01);
+        pos[i * 6 + 1] = pos[i * 6 + 4] = y;
+      }
+      attr.needsUpdate = true;
+      g.boundingSphere = null;
+    };
+    let built = this.s;
+    lay(built);
+    // the shader writes sRGB directly (like the terrain), while THREE.Color holds linear values
+    const v3 = (c: THREE.Color) => { const k = c.clone().convertLinearToSRGB(); return new THREE.Vector3(k.r, k.g, k.b); };
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: TRAIL_VERT, fragmentShader: TRAIL_FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+      uniforms: {
+        uBody: { value: v3(C.body) }, uRim: { value: v3(C.rim) }, uLight: { value: v3(C.light) }, uPaper: { value: new THREE.Vector3(0.984, 0.953, 0.875) },
+        uB: { value: BODY / SHADOW }, uR: { value: RIM / SHADOW }, uFlow: { value: 0 }, uPeriod: { value: 0.8 * built }, uOpacity: { value: 1 },
       },
-      fade: x => { shaft.mat.opacity = 0.95 * (1 - x); edge.mat.opacity = 0.85 * (1 - x); hd.visible = rim.visible = false; },
+    });
+    const mesh = new THREE.Mesh(g, mat);
+    mesh.renderOrder = 4;
+    const reveal = (k: number) => {
+      const d = k * path.total;
+      let i = 0;
+      while (i < n - 1 && path.len[i + 1] <= d) i++;
+      g.setDrawRange(0, Math.max(0, i) * 6);
+    };
+    reveal(0);
+
+    // the arrowhead: a barbed dart (tip, wings and a notch) with a lit and a shaded half, a dark rim and a soft shadow
+    const dart = (pts: number[][], cols: THREE.Color[] | null, c: string | THREE.Color, opacity: number, order: number) => {
+      const hg = new THREE.BufferGeometry();
+      hg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts.flatMap(([x, z]) => [x, 0, z])), 3));
+      if (cols) hg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(cols.flatMap(k => [k.r, k.g, k.b])), 3));
+      const m = new THREE.Mesh(hg, new THREE.MeshBasicMaterial({
+        color: cols ? '#ffffff' : c, vertexColors: !!cols, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
+        polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+      }));
+      m.renderOrder = order;
+      return m;
+    };
+    const T = [0, 1], R = [0.55, -0.2], N = [0, 0.14], L = [-0.55, -0.2];
+    const grow = (k: number, [x, z]: number[]) => [x * k, 0.2 + (z - 0.2) * k];
+    const tri = (k: number) => [T, L, N, T, N, R].map(p => grow(k, p));
+    const face = dart(tri(1), [C.light, C.light, C.light, C.dark, C.dark, C.dark], '#fff', 1, 7);
+    const rim = dart(tri(1.16), null, '#' + C.rim.getHexString(THREE.SRGBColorSpace), 1, 6);
+    const shadow = dart(tri(1.3), null, '#1c140c', 0.22, 5);
+    const head = new THREE.Group().add(shadow, rim, face);
+    shadow.position.set(0.05, -0.002, -0.06);
+    const obj = new THREE.Group().add(mesh, head);
+    const tmp = new THREE.Vector3();
+    let flow = 0, last = this.clock;
+    return {
+      obj, own: [g, mat, ...[face, rim, shadow].flatMap(m => [m.geometry, m.material as THREE.Material])],
+      reveal,
+      frame: (x, sc) => {
+        if (Math.abs(sc / built - 1) > 0.06) { built = sc; lay(sc); mat.uniforms.uPeriod.value = 0.8 * sc; }
+        flow += Math.max(0, this.clock - last) * 0.55 * sc;
+        last = this.clock;
+        mat.uniforms.uFlow.value = flow;
+        const size = H * sc;
+        // the stroke ends beneath the head, whose tip lands exactly on the revealed end
+        reveal(Math.max(0, x - (size * 0.75) / path.total));
+        const a = this.at(path, x, tmp);
+        head.visible = x * path.total > size * 0.6;
+        head.position.copy(a.pos).addScaledVector(a.dir, -size);
+        // a flat head floats over the highest ground beneath it so slopes don't swallow its wings
+        let y = a.pos.y;
+        for (const [f, sd] of [[1, 0], [0.2, 0], [-0.2, 0.64], [-0.2, -0.64], [0.5, 0.35], [0.5, -0.35]]) {
+          const px = head.position.x + (a.dir.x * f + a.dir.z * sd) * size, pz = head.position.z + (a.dir.z * f - a.dir.x * sd) * size;
+          y = Math.max(y, this.geo.height(this.geo.lon(px), this.geo.lat(pz)));
+        }
+        head.position.y = y + 0.04;
+        head.rotation.y = Math.atan2(a.dir.x, a.dir.z);
+        head.scale.setScalar(size);
+      },
+      fade: x => { mat.uniforms.uOpacity.value = 1 - x; head.visible = false; },
     };
   }
 
@@ -328,7 +416,7 @@ export class Fx {
         carrier.position.copy(a.pos);
         carrier.position.y = Math.max(a.pos.y - 0.03, -0.02);
         carrier.rotation.y = Math.atan2(a.dir.x, a.dir.z);
-        carrier.scale.setScalar(sc * 0.75);
+        carrier.scale.setScalar(sc * (o.trail ? 1.2 : 0.75));
         animate(rigs, t);
       }
     };
@@ -1067,6 +1155,50 @@ class Missiles {
 
 type EmitKind = Exclude<FxKind, 'flag' | 'glow'> | 'dust' | 'wake';
 interface Emitter { kind: EmitKind; p: THREE.Vector3; scale: () => number; color?: string; acc: number; k: number; stop: boolean; age: number }
+
+/** Journey trail: rich body, fine dark rim, soft shadow and paper dashes flowing along the spine (colours are sRGB). */
+const TRAIL_VERT = /* glsl */ `
+attribute float aSide;
+attribute float aDist;
+varying float vSide;
+varying float vDist;
+void main() {
+  vSide = aSide;
+  vDist = aDist;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+
+const TRAIL_FRAG = /* glsl */ `
+uniform vec3 uBody;
+uniform vec3 uRim;
+uniform vec3 uLight;
+uniform vec3 uPaper;
+uniform float uB;
+uniform float uR;
+uniform float uFlow;
+uniform float uPeriod;
+uniform float uOpacity;
+varying float vSide;
+varying float vDist;
+void main() {
+  float a = abs(vSide);
+  float aa = max(fwidth(a), 1e-4);
+  float body = 1.0 - smoothstep(uB - aa, uB + aa, a);
+  float stroke = 1.0 - smoothstep(uR - aa, uR + aa, a);
+  // lit from the upper left like the terrain: a soft sheen on one flank of the stroke
+  float lit = smoothstep(-uB, uB, vSide) * (1.0 - smoothstep(uB * 0.55, uB, a));
+  vec3 c = mix(uBody, uLight, lit * 0.55);
+  c = mix(uRim, c, body);
+  // flowing paper dashes on the spine show the direction of travel
+  float ph = fract((vDist - uFlow) / uPeriod);
+  float dash = smoothstep(0.0, 0.06, ph) * (1.0 - smoothstep(0.42, 0.48, ph));
+  float spine = 1.0 - smoothstep(0.17 * uB - aa, 0.17 * uB + aa, a);
+  c = mix(c, uPaper, dash * spine * 0.92);
+  float shadow = (1.0 - smoothstep(uR, 1.0, a)) * 0.38;
+  float alpha = stroke + (1.0 - stroke) * shadow;
+  vec3 col = mix(vec3(0.11, 0.08, 0.05), c, stroke / max(alpha, 1e-4));
+  gl_FragColor = vec4(col, alpha * uOpacity);
+}`;
 
 const PVERT = /* glsl */ `
 attribute float aSize;

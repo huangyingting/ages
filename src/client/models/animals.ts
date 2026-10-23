@@ -1090,7 +1090,7 @@ function zebra(gp: THREE.Group, _r: Rec): void {
 }
 
 /** A saddled horse (zebra frame, plain coat) without habitat; returns the saddle height. Faces +z. Used by Ages. */
-export function horse(gp: THREE.Group, coat = '#6b4426', mane = '#2a1a10', o: { stride?: number; saddle?: string; cloth?: string } = {}): number {
+export function horse(gp: THREE.Group, coat = '#6b4426', mane = '#2a1a10', o: { stride?: number; saddle?: string; cloth?: string; donkey?: boolean } = {}): number {
   const F = quad(gp, {
     c: coat, span: 0.38, leg: 0.3, bw: 0.088, bh: 0.11, R: 0.026, tuck: 0.12, feet: 'hoof', foot: '#1c1917',
     neck: 0.22, neckA: 0.95, neckW: 0.044, neckH: 1.35, arch: 0.12, stride: o.stride ?? 0.035,
@@ -1101,7 +1101,8 @@ export function horse(gp: THREE.Group, coat = '#6b4426', mane = '#2a1a10', o: { 
     drop(gp, mane, [0, y, z], [0, y + 0.03, z - 0.03], 0.012, 0.016);
   }
   const h = headGroup(gp, F, 0, 1.0);
-  longHead(h, coat, { muz: sh(coat, 0.6), earH: 0.06, earW: 0.022, earIn: sh(coat, 0.7), len: 1.02 });
+  // a donkey: long ears and a pale muzzle
+  longHead(h, coat, o.donkey ? { muz: '#e7e1d6', earH: 0.13, earW: 0.028, earIn: '#e7e1d6', len: 0.95, wide: 1.08 } : { muz: sh(coat, 0.6), earH: 0.06, earW: 0.022, earIn: sh(coat, 0.7), len: 1.02 });
   const [tip, dir] = tailOf(gp, F, coat, 0.26, 0.012, { droop: 0.7, curl: 0, side: 0.05 });
   tuft(gp, mane, tip, dir, 0.14, 0.022, 7, 0.25);
   const top = F.by + F.bh;

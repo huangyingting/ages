@@ -1,6 +1,6 @@
 import { formatYear } from '../lib/timeline.ts';
 import type { Journey } from './jiangshan.ts';
-import type { Formation, I18n, LonLat, StoryStep, Troops, Year } from './types.ts';
+import type { Formation, I18n, LonLat, ModelRecipe, StoryStep, Troops, Year } from './types.ts';
 
 /**
  * Scripted animations for flagship events. Each step is plain data (see StoryStep in types.ts), so stories can be
@@ -618,15 +618,28 @@ export function autoStory(e: {
   return steps;
 }
 
-/** Who travels on a journey: marching armies for campaigns, camel caravans on the Silk Road, riders otherwise. */
-const TRAVELLER: Record<string, 'army' | 'camel' | 'rider'> = { qinshihuang: 'army', zhugeliang: 'army', zhangqian: 'camel', xuanzang: 'camel' };
+/**
+ * Who travels on a journey: marching armies for campaigns, otherwise one traveller dressed for the period (the
+ * `traveller` model takes its costume from the role and the stop's year): Zhang Qian as a Han envoy holding the 节 with
+ * a pack camel, Xuanzang as a pilgrim monk on foot under a bamboo 笈, Li Bai in 软脚幞头 with sword and wine gourd, Su
+ * Shi in a tall 东坡巾 on a donkey, Wang Yangming in a Ming scholar's 四方平定巾.
+ */
+export const TRAVELLER: Record<string, 'army' | Omit<ModelRecipe, 'kind'>> = {
+  qinshihuang: 'army',
+  zhugeliang: 'army',
+  zhangqian: { role: 'scholar', mount: 'horse', coat: '#8a5a32', gear: 'jie', pack: true },
+  xuanzang: { role: 'monk', mount: 'foot', gear: 'ji', robe: '#7a5c3e', trim: '#9b3a22' },
+  libai: { role: 'scholar', mount: 'horse', coat: '#e6dccb', robe: '#ece6d6', trim: '#5b6472', gear: 'sword' },
+  sushi: { role: 'scholar', mount: 'donkey', robe: '#5a4a3a', trim: '#2f3b45', hat: 'fangjin', gear: 'scroll' },
+  wangyangming: { role: 'scholar', mount: 'horse', coat: '#5a3a22', robe: '#2f4a6b', trim: '#1f2937', hat: 'fangjin' },
+};
 
 /**
  * A journey (张骞通西域, 玄奘西行, 苏轼贬谪 …) as a 3D story: the traveller crosses the map stop by stop, leaving a
  * trail; each stop raises a banner, tells what happened there and quotes the sources.
  */
 export function journeyStory(j: Journey): StoryStep[] {
-  const who = TRAVELLER[j.id] ?? 'rider';
+  const who = TRAVELLER[j.id] ?? { role: 'scholar', mount: 'horse' };
   const st = j.stops;
   const read = (t: I18n, min = 4): number => Math.min(9, Math.max(min, t.zh.length / 15));
   const steps: StoryStep[] = [
@@ -646,7 +659,7 @@ export function journeyStory(j: Journey): StoryStep[] {
       if (s.year !== prev.year) steps.push({ do: 'year', year: s.year });
       steps.push(who === 'army'
         ? { do: 'army', pts, color: j.color, dur, count: 26, unit: 'mixed', keep: true, trail: true, ...(i === 1 ? { label: j.short } : {}) }
-        : { do: 'route', pts, color: j.color, dur, keep: true, trail: true, model: { kind: who }, ...(i === 1 ? { label: j.short } : {}) });
+        : { do: 'route', pts, color: j.color, dur, keep: true, trail: true, model: { kind: 'traveller', year: s.year, ...who }, ...(i === 1 ? { label: j.short } : {}) });
     }
     steps.push(
       { do: 'banner', lon: s.lon, lat: s.lat, text: s.name, sub: s.title, color: j.color, dur: 6 },

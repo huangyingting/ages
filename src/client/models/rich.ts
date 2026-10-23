@@ -4,7 +4,7 @@ import {
   type Builder, type V3, mat, box, tbox, cyl, cone, rbox, rod, skin, slab, lathe, prism, gable, tube, shade, hash3, sweep, add, g,
 } from './prims.ts';
 import { human, type HumanOpts, type HumanPose } from './human.ts';
-import { figure, figureBase } from './figure.ts';
+import { figure, figureBase, headwear, type Hat } from './figure.ts';
 import { costume } from './costume.ts';
 import { eraOf } from '../../shared/data/era.ts';
 import type { PersonRole } from '../../shared/data/heroes.ts';
@@ -228,7 +228,7 @@ const camel: Builder = (gp, r) => {
     human(G, -0.01, 0.52 - 0.42 * 0.45, 0, { h: 0.42, ry: Math.PI / 2, pose: 'sit', top: str(r.robe, '#5d4a7a'), bottom: '#3a3128', hat: '#e9dcc0', hatStyle: 'turban', detail: 'lo', feet: [[-0.2, 0.05, 0.12], [0.2, 0.05, 0.12]] });
   }
   // a walking driver in front
-  human(G, 0.5, 0, 0.18, { h: 0.42, ry: Math.PI / 2, pose: 'walk', phase: 0.3, top: '#6b5a3e', bottom: '#4a3e2c', hat: '#3a3128', hatStyle: 'brim', detail: 'lo' });
+  if (r.driver !== false) human(G, 0.5, 0, 0.18, { h: 0.42, ry: Math.PI / 2, pose: 'walk', phase: 0.3, top: '#6b5a3e', bottom: '#4a3e2c', hat: '#3a3128', hatStyle: 'brim', detail: 'lo' });
 };
 
 const flag: Builder = (gp, r) => {
@@ -722,9 +722,105 @@ const statue: Builder = (gp, r) => {
   figure(gp, { h: 0.6, x: 0, y, z: 0, top: str(r.color, '#8a7a5a'), bottom: str(r.color, '#8a7a5a'), skin: tint(str(r.color, '#8a7a5a'), 0.1), hair: tint(str(r.color, '#8a7a5a'), -0.2), hairStyle: 'topknot', beard: 'long', beardColor: tint(str(r.color, '#8a7a5a'), -0.2), outfit: 'robe', wideSleeves: true, hat: 'scholar', hatColor: tint(str(r.color, '#8a7a5a'), -0.2), armL: { fwd: 0.6, bend: 1.4, inward: 0.5 }, armR: { fwd: 0.6, bend: 1.4, inward: 0.5 } });
 };
 
+/**
+ * A journey traveller dressed for their period (`r.year`) and role (`r.role`, see `costume`): a Han envoy in 进贤冠
+ * holding the 节 staff of his mission, a Tang pilgrim monk on foot under a bamboo 笈 book-frame, a Tang poet in 软脚幞头
+ * with sword and wine gourd, a Song scholar in a tall 东坡巾 on a donkey, a Ming official in 乌纱帽 …
+ * `r.mount`: 'horse' | 'donkey' | 'camel' | 'foot'; `r.gear`: 'jie' | 'ji' | 'sword' | 'scroll'; `r.hat` overrides the
+ * period headwear; `r.pack` adds a laden pack camel behind.
+ */
+const traveller: Builder = (gp, r) => {
+  const role = str(r.role, 'scholar') as PersonRole;
+  const era = eraOf(typeof r.year === 'number' ? r.year : 1000);
+  const look = costume(role, era);
+  const robe = str(r.robe, look.top), trim = str(r.trim, look.accent ?? shade(robe, 0.6));
+  const hat = str(r.hat, look.hat ?? 'none') as Hat, hatC = look.hatColor ?? '#1c1917';
+  const mount = str(r.mount, 'horse'), gear = str(r.gear, ''), monk = role === 'monk';
+  const skin = '#dcae86', hair = monk ? null : '#1c1714';
+
+  if (mount === 'foot') {
+    // walking pilgrim: robe, staff in hand and (for 'ji') a bamboo book-frame with a canopy over the head
+    const h = 0.78;
+    const a = figure(gp, {
+      ...look, h, top: robe, accent: trim, skin, hair: hair ?? undefined, beardColor: '#2a2420', stance: 'walk', lean: 0.06,
+      armR: { fwd: 0.45, side: 0.12, bend: 0.7 }, armL: { fwd: -0.2, bend: 0.4 }, hat: monk ? 'none' : hat, hatColor: hatC,
+    });
+    const [hx, hy, hz] = a.handR;
+    rod(gp, [hx, 0.01, hz + 0.05], [hx, hy + 0.3, hz - 0.01], 0.006, P.darkwood, 5);
+    if (monk) { // 锡杖 rings
+      const ring = add(gp, g('rich:ring', () => new THREE.TorusGeometry(1, 0.14, 5, 12)), mat('#c9a24a', { metal: 0.6 }), hx, hy + 0.33, hz - 0.01, 0.03, 0.03, 0.03);
+      ring.rotation.y = Math.PI / 2;
+    }
+    if (gear === 'ji') {
+      const bz = -0.11 * h / 0.62, top = h * 1.12;
+      for (const sx of [-1, 1]) rod(gp, [sx * 0.07, h * 0.25, bz - 0.02], [sx * 0.07, top, bz - 0.02], 0.007, '#8a6a3a', 4);
+      rbox(gp, '#b08a4e', 0, h * 0.6, bz - 0.04, 0.15, h * 0.42, 0.09, 0.01);
+      for (let k = 0; k < 4; k++) box(gp, '#6e5226', 0, h * 0.42 + k * h * 0.11, bz + 0.006, 0.152, 0.008, 0.008);
+      for (let k = 0; k < 3; k++) cyl(gp, ['#e8dcc0', '#c9b58e', '#e8dcc0'][k], -0.04 + k * 0.04, h * 0.84, bz - 0.04, 0.016, 0.07, 6).rotation.z = Math.PI / 2;
+      // canopy arching over the head, with a small lamp hanging from its front edge
+      const cz = bz + 0.1;
+      rbox(gp, '#c9a86a', 0, top + 0.01, cz, 0.24, 0.012, 0.26, 0.004).rotation.x = -0.18;
+      for (const sx of [-1, 1]) rod(gp, [sx * 0.11, top + 0.01, cz + 0.12], [sx * 0.11, top - 0.04, cz + 0.13], 0.003, '#7a1f1f', 3);
+      rod(gp, [0, top - 0.01, cz + 0.12], [0, top - 0.08, cz + 0.12], 0.002, '#3a2a1a', 3);
+      ellip(gp, '#f5c542', 0, top - 0.1, cz + 0.12, 0.016, 0.022, 0.016);
+    }
+    return;
+  }
+
+  // mounted: a horse, a small long-eared donkey or a Bactrian camel, all facing +z
+  let seat: number;
+  if (mount === 'camel') {
+    const C = grp(gp, 0, 0.0, 0);
+    camel(C, { kind: 'camel', rider: false, driver: false, color: '#b48a5a' });
+    seat = 0.55;
+  } else {
+    const donkey = mount === 'donkey', M = grp(gp, 0, 0, 0);
+    const k = donkey ? 0.8 : 1;
+    M.scale.setScalar(k);
+    const coat = str(r.coat, donkey ? '#7d746a' : '#f1ece2');
+    seat = horse(M, coat, donkey ? '#3a332c' : '#cfc6b6', { cloth: shade(trim, 0.9), saddle: '#3b2414', donkey }) * k;
+  }
+  const h = 0.5;
+  const rg = human(gp, 0, seat - h * 0.45, -0.02, {
+    h, pose: 'sit', top: robe, bottom: '#2f2a25', skin, hair, shoes: '#1c1714', detail: 'hi',
+    feet: [[-0.2, 0.05, 0.12], [0.2, 0.05, 0.12]], hands: gear === 'jie' ? [[-0.1, 0.42, 0.3], [0.13, 0.5, 0.18]] : [[-0.1, 0.42, 0.3], [0.1, 0.42, 0.3]],
+  });
+  // a sash in the trim colour and the period headwear
+  const waistY = seat - h * 0.45 + h * 0.33;
+  cyl(gp, trim, 0, waistY, -0.02, h * 0.105, h * 0.04, 12);
+  const head = new THREE.Group();
+  head.position.set(...rg.head);
+  gp.add(head);
+  headwear(head, hat, hatC, h * 0.074, { beard: look.beard && look.beard !== 'none' ? look.beard : undefined, badge: look.hatBadge });
+  rod(gp, rg.handL, [0, seat + 0.03, 0.26], 0.002, '#2a1a10', 3);
+  const [hx, hy, hz] = rg.handR;
+  if (gear === 'jie') {
+    // 节: the envoy's staff of office, crowned with three tiers of yak-tail tassels
+    rod(gp, [hx, hy - 0.2, hz], [hx, hy + 0.5, hz - 0.02], 0.006, P.darkwood, 5);
+    for (let k = 0; k < 3; k++) {
+      const ty = hy + 0.46 - k * 0.09;
+      add(gp, g('rich:cone8', () => new THREE.ConeGeometry(0.5, 1, 8).translate(0, 0.5, 0)), mat(k === 1 ? '#c2410c' : '#9b1c1c'), hx, ty - 0.07, hz - 0.02, 0.05, 0.08, 0.05);
+      cyl(gp, '#d6b25e', hx, ty + 0.005, hz - 0.02, 0.012, 0.012, 6);
+    }
+  } else if (gear === 'sword') {
+    // a sword slung at the left hip, hilt forward, and a wine gourd at the saddle
+    rod(gp, [-0.1, waistY + 0.03, 0.07], [-0.13, waistY - 0.1, -0.24], 0.006, '#2a2420', 4);
+    box(gp, '#d6b25e', -0.1, waistY + 0.02, 0.04, 0.04, 0.008, 0.008);
+    gourd(gp, 0.1, seat - 0.13, -0.1, 0.035, '#d9a441');
+  } else if (gear === 'scroll') {
+    cyl(gp, P.paper, hx, hy, hz + 0.01, 0.012, 0.1, 8).rotation.z = Math.PI / 2;
+  }
+  if (r.pack) {
+    // a laden pack camel following behind
+    const B = grp(gp, 0.26, -0.62, 0);
+    B.scale.setScalar(0.78);
+    camel(B, { kind: 'camel', rider: false, driver: false, color: '#b48a5a' });
+  }
+};
+
 export const RICH: Record<string, Builder> = {
   army, rider, warrior, chariot, camel, flag, beacon, wall, gate, palace, pagoda, temple, bell, ding, scroll, printing, compass, seismoscope,
-  yurt, tent, hut, junk, warship, boat, fireship, redboat, bridge, cannon, trebuchet, monument, statue,
+  yurt, tent, hut, junk, warship, boat, fireship, redboat, bridge, cannon, trebuchet, monument, statue, traveller,
 };
 
 /**

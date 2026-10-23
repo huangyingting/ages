@@ -5,11 +5,14 @@ import { troopMaterial, unitGeometry, type UnitType } from './scene/troops.ts';
 import type { Era } from '../shared/data/era.ts';
 import { outdoorEnvironment } from './models/environment.ts';
 import type { ModelRecipe } from '../shared/data/types.ts';
+import { TRAVELLER } from '../shared/data/stories.ts';
 
 // Dev-only model gallery: /gallery.html?k=army,rider,troop:horse@yuan,person:general@1600 (default: every kind). Not part of
-// the production build. `troop:<spear|archer|horse|chariot|gun>@<era>` shows instanced troops, `person:<role>@<year>` a costumed person.
+// the production build. `troop:<spear|archer|horse|chariot|gun>@<era>` shows instanced troops, `person:<role>@<year>` a costumed person,
+// `traveller:<journey>@<year>` a journey's traveller (e.g. traveller:xuanzang@630).
 const q = new URLSearchParams(location.search);
-const list: ModelRecipe[] = (q.get('k')?.split(',') ?? Object.keys(BUILDERS)).map(k => (k.includes('/') ? { kind: 'palace', hero: k } : k.startsWith('person:') ? { kind: 'person', role: k.slice(7).split('@')[0], ...(k.includes('@') ? { year: Number(k.split('@')[1]) } : {}) } : { kind: k }));
+const journey = (k: string): ModelRecipe => { const [id, y] = k.slice(10).split('@'), t = TRAVELLER[id]; return { kind: 'traveller', year: Number(y ?? 1000), ...(typeof t === 'object' ? t : {}), label: k }; };
+const list: ModelRecipe[] = (q.get('k')?.split(',') ?? Object.keys(BUILDERS)).map(k => (k.startsWith('traveller:') ? journey(k) : k.includes('/') ? { kind: 'palace', hero: k } : k.startsWith('person:') ? { kind: 'person', role: k.slice(7).split('@')[0], ...(k.includes('@') ? { year: Number(k.split('@')[1]) } : {}) } : { kind: k }));
 const canvas = document.getElementById('c') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1);
@@ -53,7 +56,7 @@ list.forEach(async (r, i) => {
   m.position.set(x, 0, z);
   scene.add(m);
   const el = document.createElement('div');
-  el.textContent = (r.hero as string) ?? (r.role ? `person:${r.role}${r.year !== undefined ? '@' + r.year : ''}` : r.kind);
+  el.textContent = (r.label as string) ?? (r.hero as string) ?? (r.role ? `person:${r.role}${r.year !== undefined ? '@' + r.year : ''}` : r.kind);
   labels.append(el);
   tags.push({ el, p: new THREE.Vector3(x, 0, z + 0.7) });
   if (--pending === 0) document.body.dataset.ready = '1';
