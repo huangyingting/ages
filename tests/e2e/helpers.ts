@@ -50,3 +50,22 @@ export async function mockWikipedia(page: Page, mode: 'ok' | 'offline' = 'ok'): 
   });
   return seen;
 }
+
+/** Screen points (page coordinates) of the 3D map objects currently standing in view, with their tooltip titles. */
+export function markPoints(page: Page): Promise<{ key: string; title: string; x: number; y: number }[]> {
+  return page.evaluate(() => {
+    const a = (window as any).__atlas.atlas, r = a.view.canvas.getBoundingClientRect();
+    const out: { key: string; title: string; x: number; y: number }[] = [];
+    for (const m of a.marks) {
+      const ud = m.g.userData;
+      let on = !!m.g.parent && ud.shown;
+      for (let o = m.g; o && on; o = o.parent) on = o.visible;
+      if (!on) continue;
+      const v = m.g.position.clone();
+      v.y += ud.top * 0.5;
+      a.view.project(v, v);
+      out.push({ key: m.key, title: m.info().title, x: v.x + r.left, y: v.y + r.top });
+    }
+    return out;
+  });
+}

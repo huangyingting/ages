@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { mockWikipedia, openApp, shot, state, watchErrors } from './helpers.ts';
+import { markPoints, mockWikipedia, openApp, shot, state, watchErrors } from './helpers.ts';
 
 test.describe('Ages atlas', () => {
   test('boots into the map and switches between English and Chinese', async ({ page }) => {
@@ -84,7 +84,7 @@ test.describe('Ages atlas', () => {
     expect((await state(page)).fx.story).toBe(0);
     // the dynasty's landmarks and people stand on the map; a story only orbiting the camera offers no Play button
     expect((await state(page)).fx.scenery).toBeGreaterThan(3);
-    await expect(page.locator('.figure', { hasText: '秦始皇' })).toHaveCount(1);
+    await expect.poll(async () => (await markPoints(page)).some(m => m.title === '秦始皇')).toBe(true);
     await page.goto('/?lowfx=1#e=confucius&lang=zh');
     await expect(page.locator('.card h2')).toHaveText(/孔子/);
     await expect(page.locator('.card [data-act=play]')).toHaveCount(0);
@@ -208,7 +208,37 @@ test.describe('Ages atlas', () => {
     await expect(card.locator('.type-chip')).toHaveText('建筑');
     await card.locator('.life-chip', { hasText: '胡饼' }).click();
     await expect(card.locator('h2')).toHaveText('胡饼');
-    await expect(page.locator('.labels button.life').first()).toBeAttached();
+    await expect.poll(() => page.evaluate(() => (window as any).__atlas.atlas.selKey)).toBe('life:hubing');
+
+    // models carry no name plates: hovering one grows it and shows the map tooltip, a click opens its card
+    await page.keyboard.press('Escape');
+    await expect(card).toBeHidden();
+    const tip = page.locator('.maptip');
+    let free: { key: string; title: string; x: number; y: number } | undefined;
+    await expect.poll(async () => {
+      const pts = (await markPoints(page)).filter(m => m.key.startsWith('life:') && m.x > 80 && m.x < 1050 && m.y > 120 && m.y < 620);
+      const onCanvas = await page.evaluate(ps => ps.map(m => document.elementFromPoint(m.x, m.y)?.tagName === 'CANVAS'), pts);
+      for (const [i, m] of pts.entries()) {
+        if (!onCanvas[i] || pts.some(o => o !== m && Math.hypot(o.x - m.x, o.y - m.y) < 50)) continue;
+        await page.mouse.move(m.x - 60, m.y);
+        await page.mouse.move(m.x, m.y, { steps: 5 });
+        await page.waitForTimeout(400);
+        if (await tip.isVisible() && (await tip.locator('b').textContent()) === m.title) { free = m; return true; }
+      }
+      return false;
+    }, { timeout: 60_000 }).toBe(true);
+    await page.mouse.click(free!.x, free!.y);
+    await expect(card.locator('h2')).toHaveText(free!.title);
+    await expect(tip).toBeHidden();
+    // event pins are kind badges: hovering one shows its title in the same tooltip
+    const pinId = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.labels .pin:not(.sel)')].find(el => {
+      const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 3;
+      return r.width > 0 && document.elementFromPoint(x, y)?.closest('.pin') === el;
+    })?.dataset.id);
+    const pin = page.locator(`.labels .pin[data-id="${pinId}"]`);
+    await pin.hover();
+    await expect(tip).toBeVisible();
+    await expect(tip.locator('b')).toHaveText((await pin.getAttribute('aria-label'))!);
     expect(errs).toEqual([]);
   });
 

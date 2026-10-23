@@ -156,73 +156,79 @@ h2, h3 { font-weight: 700; }
 .hovertip { position: fixed; z-index: 30; pointer-events: none; padding: 5px 10px; font-size: 12.5px; border-radius: 0; transform: translate(14px, 14px); }
 .hovertip small { color: var(--ink-3); margin-left: 8px; font-size: 11px; }
 
-/* event pins: rounded lacquer-ink pills with a glowing kind-coloured dot, on a hairline stem ending in a map dot */
+/* event pins: round lacquer badges with the event kind's glyph on a hairline stem; the title shows in the map tooltip
+   on hover and stays open beside the badge when the event is selected */
 .pin {
   pointer-events: auto; border: 0; background: none; padding: 0 0 6px; display: flex; flex-direction: column; align-items: center;
-  --k: var(--k-politics); color: var(--ink); font: inherit;
+  --k: var(--k-politics); --d: 22px; color: var(--ink); font: inherit;
 }
-.pin .t {
-  display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 500; line-height: 1; letter-spacing: 0.02em;
-  padding: 4px 10px 4px 6px; border-radius: 999px; max-width: 13em; overflow: hidden; text-overflow: ellipsis;
-  color: #f6f0e4; background: linear-gradient(180deg, rgba(38, 36, 34, 0.9), rgba(20, 19, 18, 0.9));
-  border: 1px solid color-mix(in srgb, var(--k) 45%, rgba(255, 255, 255, 0.12));
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.25), 0 4px 12px -2px rgba(0, 0, 0, 0.45);
-  transition: transform 0.15s var(--ease-out), background 0.15s, border-color 0.15s;
+.pin .b {
+  display: flex; align-items: center; height: var(--d); min-width: var(--d); border-radius: 999px; padding: 0; box-sizing: border-box;
+  color: color-mix(in srgb, var(--k) 35%, #fff); background: radial-gradient(circle at 50% 30%, rgba(52, 48, 44, 0.96), rgba(18, 17, 16, 0.94));
+  border: 1.5px solid color-mix(in srgb, var(--k) 80%, #fff);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--k) 22%, transparent), 0 3px 9px -1px rgba(0, 0, 0, 0.5);
+  transition: transform 0.18s var(--ease-out), box-shadow 0.18s, background 0.18s, color 0.18s;
 }
-.pin .t::before {
-  content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--k);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--k) 30%, transparent), 0 0 6px color-mix(in srgb, var(--k) 80%, transparent);
-}
-.pin i { display: block; width: 1px; height: 8px; background: linear-gradient(180deg, color-mix(in srgb, var(--k) 70%, #fff), rgba(255, 255, 255, 0.85)); }
+.pin .b svg { flex: none; width: calc(var(--d) - 3px); height: calc(var(--d) - 9px); padding: 0 3px; box-sizing: border-box; }
+.pin .t { display: none; font-size: 12.5px; font-weight: 700; line-height: 1; letter-spacing: 0.02em; padding: 0 11px 0 1px; max-width: 13em; overflow: hidden; text-overflow: ellipsis; }
+.pin i { display: block; width: 1.5px; height: 7px; background: linear-gradient(180deg, color-mix(in srgb, var(--k) 70%, #fff), rgba(255, 255, 255, 0.85)); }
 .pin i::after {
-  content: ''; display: block; width: 6px; height: 6px; background: var(--k); border: 1.5px solid #fff; border-radius: 50%; transform: translate(-3px, 7px);
+  content: ''; display: block; width: 6px; height: 6px; background: var(--k); border: 1.5px solid #fff; border-radius: 50%; transform: translate(-2.75px, 6px);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
-.pin.w1 .t { font-weight: 650; font-size: 12px; }
-.pin.w3 .t { font-size: 10.5px; padding: 3px 8px 3px 5px; opacity: 0.88; }
-.pin.w3 .t::before { width: 6px; height: 6px; }
-.pin:hover .t, .pin:focus-visible .t { transform: translateY(-2px); border-color: var(--k); background: linear-gradient(180deg, rgba(52, 48, 44, 0.95), rgba(26, 24, 22, 0.95)); }
-.pin.sel .t {
-  color: #fff; font-weight: 700; font-size: 13px; padding: 5px 13px 5px 8px; border-color: rgba(255, 220, 200, 0.5);
-  background: linear-gradient(180deg, var(--zhu-hi), #a82a21); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 6px 18px rgba(200, 55, 45, 0.45);
+.pin.w1 { --d: 26px; }
+.pin.w1 .b { border-width: 2px; }
+.pin.w3 { --d: 18px; }
+.pin.w3 .b { opacity: 0.92; }
+.pin.w3 .b svg { padding: 0 2px; }
+.pin:hover .b, .pin.hot .b, .pin:focus-visible .b {
+  transform: translateY(-3px) scale(1.18); color: #fff; background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--k) 75%, #fff), var(--k));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--k) 35%, transparent), 0 0 14px color-mix(in srgb, var(--k) 70%, transparent), 0 6px 14px -2px rgba(0, 0, 0, 0.5);
 }
-.pin.sel .t::before { background: #fff; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35); }
+.pin.sel { z-index: 2; }
+.pin.sel .b {
+  color: #fff; border-color: rgba(255, 225, 200, 0.85); background: linear-gradient(180deg, var(--zhu-hi), #a82a21);
+  box-shadow: 0 0 0 3px rgba(200, 55, 45, 0.25), 0 6px 18px rgba(200, 55, 45, 0.5);
+}
+.pin.sel .b svg { width: calc(var(--d) + 1px); padding-left: 6px; }
+.pin.sel .t { display: block; }
 .pin.sel i { background: #fff; }
-.pin.sel i::after { background: var(--zhu); width: 10px; height: 10px; transform: translate(-5px, 6px); animation: pulse 1.6s infinite; }
+.pin.sel i::after { background: var(--zhu); width: 10px; height: 10px; transform: translate(-4.75px, 5px); animation: pulse 1.6s infinite; }
 @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(200, 55, 45, 0.55); } 50% { box-shadow: 0 0 0 8px rgba(200, 55, 45, 0); } }
-/* light map styles: ivory pills with a kind-coloured hairline */
-:root:not([data-map=ink]) .pin .t {
-  color: #241f1a; background: linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(247, 242, 232, 0.96));
-  border-color: color-mix(in srgb, var(--k) 55%, rgba(60, 40, 20, 0.15)); box-shadow: 0 1px 1px rgba(60, 40, 20, 0.12), 0 3px 10px -2px rgba(60, 40, 20, 0.3);
+/* light map styles: ivory badges with a kind-coloured glyph */
+:root:not([data-map=ink]) .pin:not(.sel):not(.hot):not(:hover):not(:focus-visible) .b {
+  color: color-mix(in srgb, var(--k) 85%, #000); background: radial-gradient(circle at 50% 30%, #fffdf8, #f1e9da);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--k) 18%, transparent), 0 2px 7px -1px rgba(60, 40, 20, 0.4);
 }
-:root:not([data-map=ink]) .pin:hover .t, :root:not([data-map=ink]) .pin:focus-visible .t { background: #fff; border-color: var(--k); }
-:root:not([data-map=ink]) .pin.sel .t { color: #fff; background: linear-gradient(180deg, var(--zhu-hi), #a82a21); border-color: rgba(120, 20, 10, 0.4); }
 :root:not([data-map=ink]) .pin i { background: linear-gradient(180deg, var(--k), rgba(40, 30, 20, 0.6)); }
 
-/* people of the dynasty standing on the map: a name plate under the figure, opens the person card */
-.figure {
-  pointer-events: auto; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; line-height: 1;
-  padding: 3px 8px 3px 7px; margin-bottom: -2px; color: #ffe6bd; border-radius: 3px;
-  background: linear-gradient(180deg, rgba(92, 30, 22, 0.92), rgba(60, 18, 13, 0.92)); border: 1px solid rgba(255, 210, 150, 0.45);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); transition: transform 0.15s var(--ease-out), border-color 0.15s;
+/* the map tooltip for anything on the map (3D models and event badges): glyph, name, and a subtitle */
+.maptip {
+  --k: #8a6a3a; position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 999px;
+  color: #f8f2e6; background: linear-gradient(180deg, rgba(36, 33, 30, 0.94), rgba(16, 15, 14, 0.94));
+  border: 1px solid color-mix(in srgb, var(--k) 55%, rgba(255, 255, 255, 0.2));
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.55), 0 0 0 3px color-mix(in srgb, var(--k) 18%, transparent);
+  animation: tipIn 0.16s var(--ease-out);
 }
-.figure:hover, .figure:focus-visible { transform: translateY(-2px); border-color: #ffd590; color: #fff; }
-:lang(en) .figure { letter-spacing: 0.02em; }
-/* the dynasty's buildings, customs and foods: a slim plate with a category lozenge, opens the life card */
-.life {
-  --k: #8a6a3a; pointer-events: auto; cursor: pointer; font: inherit; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; line-height: 1;
-  display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px 3px 6px; margin-bottom: -2px; color: #fff4e2; border-radius: 3px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--k) 88%, #000) , color-mix(in srgb, var(--k) 62%, #000));
-  border: 1px solid color-mix(in srgb, var(--k) 40%, #ffe2b0); box-shadow: 0 2px 7px rgba(0, 0, 0, 0.35);
-  transition: transform 0.15s var(--ease-out), border-color 0.15s, opacity 0.5s;
+.maptip[hidden] { display: none; }
+.maptip::after {
+  content: ''; position: absolute; left: 50%; bottom: -5px; width: 8px; height: 8px; margin-left: -4px; transform: rotate(45deg);
+  background: rgb(16, 15, 14); border-right: 1px solid color-mix(in srgb, var(--k) 55%, rgba(255, 255, 255, 0.2));
+  border-bottom: 1px solid color-mix(in srgb, var(--k) 55%, rgba(255, 255, 255, 0.2));
 }
-.life::before { content: ''; width: 5px; height: 5px; transform: rotate(45deg); background: color-mix(in srgb, var(--k) 30%, #ffe8c0); flex: none; }
-.life:hover, .life:focus-visible { transform: translateY(-2px); border-color: #ffe2b0; color: #fff; }
-:lang(en) .life { letter-spacing: 0.02em; }
-.life.k-building, .life-chip.k-building { --k: #7d5a32; }
-.life.k-custom, .life-chip.k-custom { --k: #2c6e5c; }
-.life.k-food, .life-chip.k-food { --k: #b4652a; }
-.life-chip.k-person { --k: #b8322a; }
+.maptip .ic { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #fff; background: var(--k); flex: none; }
+.maptip .ic svg { width: 15px; height: 15px; }
+.maptip b { font-size: 13.5px; font-weight: 650; letter-spacing: 0.04em; }
+.maptip small { font-size: 11.5px; color: rgba(248, 242, 230, 0.62); }
+.maptip small::before { content: ''; display: inline-block; width: 1px; height: 10px; margin: 0 8px -1px 0; background: rgba(255, 255, 255, 0.22); }
+:lang(en) .maptip b { letter-spacing: 0.01em; }
+@keyframes tipIn { from { opacity: 0; margin-top: 4px; } }
+:root:not([data-map=ink]) .maptip { color: #241f1a; background: linear-gradient(180deg, #fffdf9, #f6efe2); box-shadow: 0 8px 22px -4px rgba(60, 40, 20, 0.35), 0 0 0 3px color-mix(in srgb, var(--k) 16%, transparent); }
+:root:not([data-map=ink]) .maptip::after { background: #f6efe2; }
+:root:not([data-map=ink]) .maptip small { color: #7a6a58; }
+:root:not([data-map=ink]) .maptip small::before { background: rgba(60, 40, 20, 0.2); }
+.k-building { --k: #7d5a32; } .k-custom { --k: #2c6e5c; } .k-food { --k: #b4652a; } .k-person { --k: #b8322a; } .k-capital { --k: #b8322a; }
 .chip.life-chip { box-shadow: inset 3px 0 0 var(--k); padding-left: 10px; }
 .k-prehistory { --k: var(--k-prehistory); } .k-politics { --k: var(--k-politics); } .k-war { --k: var(--k-war); }
 .k-reform { --k: var(--k-reform); } .k-culture { --k: var(--k-culture); } .k-science { --k: var(--k-science); }
@@ -265,7 +271,7 @@ h2, h3 { font-weight: 700; }
 }
 #app::before { top: 0; } #app::after { bottom: 0; }
 #app.cine-on::before, #app.cine-on::after { height: 9vh; }
-.pin, .place.minor, .figure { transition: opacity 0.5s; }
+.pin, .place.minor { transition: opacity 0.5s; }
 .story-on .pin:not(.sel), .story-on .place.minor { opacity: 0; pointer-events: none; }
 @keyframes pop { from { opacity: 0; } to { opacity: 1; } }
 

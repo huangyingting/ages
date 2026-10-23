@@ -295,6 +295,7 @@ class App {
     this.timeline.select(null);
     if (fly) this.atlas.flyTo({ lon: p.lon, lat: p.lat - 0.6, dist: Math.min(this.atlas.view.pose().dist, 22), tilt: 0.85 }, 1.2);
     this.card.showPlace(p, this.timeline.year);
+    this.atlas.focus(`capital:${p.id}`);
     this.root.classList.add('card-on');
     writeLink({ place: p.id, year: this.timeline.year, lang });
   }
@@ -311,6 +312,7 @@ class App {
       this.atlas.setYear(y);
     }
     this.card.showLife(x);
+    this.atlas.focus(`life:${x.id}`);
     this.root.classList.add('card-on');
     writeLink({ life: x.id, lang });
   }
@@ -320,6 +322,7 @@ class App {
     this.atlas.select(null);
     this.timeline.select(null);
     this.card.showPerson(p);
+    this.atlas.focus(`person:${p.id}`);
     this.root.classList.add('card-on');
     writeLink({ person: p.id, lang });
   }

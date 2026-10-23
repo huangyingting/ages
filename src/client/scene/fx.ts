@@ -38,6 +38,9 @@ interface Arrow {
   fade(x: number): void;
 }
 
+/** Live state of a spawned model (in its group's userData), read by the atlas for hover picking and highlights. */
+export interface SpawnState { boost: number; k: number; top: number; rad: number; shown: boolean }
+
 interface Item {
   layer: Layer;
   obj: THREE.Object3D;
@@ -1012,12 +1015,18 @@ export class Fx {
     const r = (m.userData.radius as number | undefined) ?? 0.5, h = (m.userData.height as number | undefined) ?? 1;
     let grow = 0;
     const k0 = o.scale ?? 1;
-    it.update = (_dt, t, sc) => {
-      const z = sc * k0 * (layer === 'base' || layer === 'scenery' ? 0.7 : 1);
+    // hover / pick state shared with the atlas: `boost` is the wanted size bump (1 = none), `top` and `rad` the model's
+    // current height and footprint radius in world units, `shown` whether it is standing at this zoom
+    const ud = g.userData as SpawnState;
+    ud.boost = 1; ud.k = 1; ud.top = 0; ud.rad = 0; ud.shown = true;
+    it.update = (dt, t, sc) => {
+      ud.k += (ud.boost - ud.k) * Math.min(1, dt * 14);
+      const z = sc * k0 * (layer === 'base' || layer === 'scenery' ? 0.7 : 1) * ud.k;
       const e = easeBack(grow);
       m.scale.setScalar(Math.max(0.001, z * e));
       sh.scale.setScalar(Math.max(0.001, z * r * 2.6 * Math.min(1, grow * 2)));
       if (o.maxD !== undefined) m.visible = sh.visible = this.dist <= o.maxD;
+      ud.top = h * z * e; ud.rad = r * z; ud.shown = m.visible;
       animate(rigs, t, seed);
       if (it.label) it.label.pos.set(base.x, base.y + h * z * e + 0.05 * z, base.z);
     };
