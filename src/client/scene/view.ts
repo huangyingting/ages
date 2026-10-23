@@ -70,6 +70,19 @@ export class View {
     this.applyInset();
   }
 
+  /** Recolours the sky dome (horizon haze and zenith, raw sRGB). */
+  setSky(haze: THREE.Color, top: THREE.Color): void {
+    const u = (this.sky.material as THREE.ShaderMaterial).uniforms;
+    (u.uHaze.value as THREE.Color).copy(haze);
+    (u.uTop.value as THREE.Color).copy(top);
+  }
+
+  /** Dollies the camera towards (k < 1) or away from (k > 1) the target. */
+  zoomBy(k: number): Promise<void> {
+    const p = this.pose();
+    return this.flyTo({ ...p, dist: Math.min(this.controls.maxDistance, Math.max(this.controls.minDistance, p.dist * k)) }, 0.45);
+  }
+
   /** Keeps the scene centred in the screen area not covered by `left` / `right` / `bottom` px of UI panels. */
   setInset(left: number, right: number, bottom: number): void {
     this.inset.tx = (Math.max(0, right) - Math.max(0, left)) / 2;
@@ -97,6 +110,8 @@ export class View {
   private readonly sky = skyDome();
   private ndc = [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1], [0, 1]] as const;
   private hit = new THREE.Vector3();
+  private tmp = new THREE.Vector3();
+  private sph = new THREE.Spherical();
 
   /**
    * Keeps the map filling the screen: the ground under every screen corner must lie inside the stage. Too wide a view
@@ -130,6 +145,16 @@ export class View {
       const dx = x0 < -W ? -W - x0 : x1 > W ? W - x1 : 0;
       const dz = z0 < -D ? -D - z0 : z1 > D ? D - z1 : 0;
       if (Math.abs(dx) < 1e-4 && Math.abs(dz) < 1e-4) return;
+      // the top of the view runs past the northern edge: look down a little rather than sliding the subject away
+      if (dz > 0.05 && iter < 3) {
+        this.sph.setFromVector3(this.tmp.copy(cam.position).sub(t));
+        if (this.sph.phi > 0.32) {
+          this.sph.phi = Math.max(0.32, this.sph.phi - Math.min(0.2, (dz / dist) * 1.5));
+          cam.position.copy(t).add(this.tmp.setFromSpherical(this.sph));
+          cam.lookAt(t);
+          continue;
+        }
+      }
       t.x += dx; t.z += dz;
       cam.position.x += dx; cam.position.z += dz;
     }
@@ -228,7 +253,7 @@ export class View {
 function skyDome(): THREE.Mesh {
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, depthTest: false,
-    uniforms: { uHaze: { value: HAZE }, uTop: { value: new THREE.Color().setHex(0xa9c3d0, THREE.LinearSRGBColorSpace) } },
+    uniforms: { uHaze: { value: HAZE.clone() }, uTop: { value: new THREE.Color().setHex(0xa9c3d0, THREE.LinearSRGBColorSpace) } },
     vertexShader: 'varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
     fragmentShader: 'uniform vec3 uHaze; uniform vec3 uTop; varying vec3 vDir; void main() { float h = clamp(vDir.y, 0.0, 1.0); gl_FragColor = vec4(mix(uHaze, uTop, smoothstep(0.02, 0.45, h)), 1.0); }',
   });

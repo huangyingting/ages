@@ -1,41 +1,65 @@
 import type { Layers } from '../scene/atlas.ts';
+import { SURFACES, type Surface } from '../scene/terrain.ts';
 import { JOURNEYS, type Journey } from '../../shared/data/jiangshan.ts';
 import { tr } from '../../shared/data/i18n.ts';
 import { kindName, lang, t, type Key } from '../lib/i18n.ts';
-import { h, iconBtn } from './dom.ts';
+import { h, icon, iconBtn, type IconName } from './dom.ts';
 
-/** Layers popover. */
-export class LayersMenu {
+/** Map settings popover: 01 map style, 02 layers. */
+export class SettingsMenu {
   readonly el: HTMLElement;
   onChange: (k: keyof Layers, on: boolean) => void = () => {};
-  constructor(private layers: Layers) {
-    this.el = h('div', { class: 'pop layers', hidden: true });
+  onSurface: (s: Surface) => void = () => {};
+  constructor(private layers: Layers, public surface: Surface) {
+    this.el = h('div', { class: 'pop menu settings', hidden: true, role: 'dialog', 'aria-label': t('settings') });
     this.render();
   }
   render(): void {
-    this.el.replaceChildren(...(Object.keys(this.layers) as (keyof Layers)[]).map(k => {
+    const sw = h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': t('mapStyle') }, ...SURFACES.map(s => h('button', {
+      type: 'button', role: 'radio', class: `sw sw-${s}` + (s === this.surface ? ' on' : ''), 'aria-checked': String(s === this.surface), 'data-surface': s,
+      onclick: () => { this.surface = s; this.onSurface(s); this.render(); },
+    }, h('i'), h('span', { text: t(({ ink: 'sInk', paper: 'sPaper', plain: 'sPlain' } as const)[s]) }))));
+    const layers = h('div', { class: 'switches' }, ...(Object.keys(this.layers) as (keyof Layers)[]).map(k => {
       const c = h('input', { type: 'checkbox', 'data-layer': k });
       c.checked = this.layers[k];
       c.addEventListener('change', () => this.onChange(k, c.checked));
-      return h('label', {}, c, h('span', { text: t(k as Key) }));
+      return h('label', { class: 'switch-card' }, h('span', { text: t(k as Key) }), c, h('i', { class: 'sw-track' }));
     }));
+    this.el.replaceChildren(h('h3', { text: t('mapStyle') }), sw, h('h3', { text: t('layers') }), layers);
   }
   toggle(on = this.el.hidden): void { this.el.hidden = !on; }
 }
 
-/** Journeys popover: famous travels and campaigns, each played as a 3D story. */
-export class JourneysMenu {
+/** Study hall popover: tabs for study tools (textbook, quiz, help) and the journeys of historical figures. */
+export class HubMenu {
   readonly el: HTMLElement;
+  private tab: 'study' | 'journeys' = 'study';
   onPlay: (j: Journey) => void = () => {};
+  onPick: (what: 'learn' | 'quiz' | 'help') => void = () => {};
   constructor() {
-    this.el = h('div', { class: 'pop journeys', hidden: true });
+    this.el = h('div', { class: 'pop menu hub', hidden: true, role: 'dialog', 'aria-label': t('hub') });
     this.render();
   }
+  private card(cls: string, ic: IconName, title: string, desc: string, onclick: () => void, extra?: Node): HTMLElement {
+    return h('button', { type: 'button', class: `hub-card ${cls}`, onclick }, icon(ic), h('span', { class: 'hc-t' }, h('b', { text: title }), h('small', { text: desc })), extra ?? null);
+  }
   render(): void {
-    this.el.replaceChildren(h('div', { class: 'pop-h', text: t('journeys') }), ...JOURNEYS.map(j => h('button', {
-      type: 'button', class: 'jn', 'data-journey': j.id, style: `--c:${j.color}`,
-      onclick: () => { this.toggle(false); this.onPlay(j); },
-    }, h('i'), h('b', { text: tr(j.title, lang) }), h('small', { text: tr(j.span, lang).replace(/（.*）|\(.*\)/, '') }))));
+    const tabs = h('div', { class: 'hub-tabs', role: 'tablist' },
+      ...([['study', 'book', 'study'], ['journeys', 'journey', 'journeys']] as const).map(([id, ic, k]) => h('button', {
+        type: 'button', role: 'tab', class: `ht ht-${id}` + (id === 'journeys' ? ' b-journeys' : '') + (this.tab === id ? ' on' : ''), 'aria-selected': String(this.tab === id),
+        onclick: () => { this.tab = id; this.render(); },
+      }, icon(ic), h('span', { text: t(k) }))));
+    const body = this.tab === 'study'
+      ? h('div', { class: 'hub-list' },
+        this.card('b-learn', 'book', t('learnTitle'), t('learnDesc'), () => this.onPick('learn')),
+        this.card('b-quiz', 'quiz', t('quizTitle'), t('quizDesc'), () => this.onPick('quiz')),
+        this.card('b-journeys-go', 'journey', t('journeys'), t('journeysDesc'), () => { this.tab = 'journeys'; this.render(); }, h('em', { text: String(JOURNEYS.length) })),
+        this.card('b-help2', 'help', t('helpTitle'), t('helpDesc'), () => this.onPick('help')))
+      : h('div', { class: 'hub-list journeys' }, ...JOURNEYS.map((j, i) => h('button', {
+        type: 'button', class: 'jn', 'data-journey': j.id, style: `--c:${j.color}`,
+        onclick: () => { this.toggle(false); this.onPlay(j); },
+      }, h('i', { text: String(i + 1).padStart(2, '0') }), h('b', { text: tr(j.title, lang) }), h('small', { text: tr(j.span, lang).replace(/（.*）|\(.*\)/, '') }))));
+    this.el.replaceChildren(tabs, body);
   }
   toggle(on = this.el.hidden): void { this.el.hidden = !on; }
 }

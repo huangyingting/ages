@@ -11,7 +11,7 @@ import { eraAt } from '../../shared/lib/timeline.ts';
 import { Fx } from './fx.ts';
 import { Geo } from './geo.ts';
 import { Labels, type Label } from './labels.ts';
-import { buildTerrain, loadHeightmap, type Terrain } from './terrain.ts';
+import { buildTerrain, loadHeightmap, SURFACE, type Surface, type Terrain } from './terrain.ts';
 import { ShapeStore } from './shapes.ts';
 import { TerritoryPainter, regionAnchor, texture } from './territory.ts';
 import { View, type CamPose } from './view.ts';
@@ -451,6 +451,16 @@ export class Atlas {
     if (k === 'works') this.updateWorks();
     if (k === 'events') this.labels.setGroupVisible('pins', on && !this.pickHandler);
     if (k === 'models') { this.capitalKey = '-'; this.updateCapital(); if (!on) this.fx.clear('event'); }
+  }
+
+  /** Map style: terrain palette, sky and (via the root's data-map attribute) label colours. */
+  setSurface(s: Surface): void {
+    const k = SURFACE[s] ?? SURFACE.ink;
+    const u = this.terrain.uniforms;
+    u.uStyle.value = k.style;
+    (u.uHaze.value as THREE.Color).copy(k.haze);
+    this.view.setSky(k.haze, k.top);
+    document.documentElement.dataset.map = s;
   }
 
   setPickMode(fn: ((lon: number, lat: number) => void) | null): void {

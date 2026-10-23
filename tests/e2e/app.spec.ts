@@ -142,6 +142,7 @@ test.describe('Ages atlas', () => {
   test('quiz: answers when / where / order questions and shows the score', async ({ page }) => {
     const errs = watchErrors(page);
     await openApp(page, 'y=700&lang=en');
+    await page.locator('.b-hub').click();
     await page.locator('.b-quiz').click();
     await page.locator('[data-act=start]').click();
     const quiz = page.locator('.quiz');
@@ -174,6 +175,7 @@ test.describe('Ages atlas', () => {
     const errs = watchErrors(page);
     await openApp(page, 'y=1085&lang=zh');
     await expect(page.locator('.tl-ruler')).toHaveText('北宋神宗 · 元丰八年');
+    await page.locator('.b-hub').click();
     await page.locator('.b-journeys').click();
     await expect(page.locator('.journeys .jn')).toHaveCount(7);
     await page.locator('[data-journey=sushi]').click();
@@ -199,6 +201,7 @@ test.describe('Ages atlas', () => {
   test('learn drawer lists textbook units and opens events', async ({ page }) => {
     const errs = watchErrors(page);
     await openApp(page, 'y=1950&lang=zh');
+    await page.locator('.b-hub').click();
     await page.locator('.b-learn').click();
     const drawer = page.locator('.drawer');
     await expect(drawer).toBeVisible();

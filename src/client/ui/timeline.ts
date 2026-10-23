@@ -5,6 +5,7 @@ import type { HistEvent, Year } from '../../shared/data/types.ts';
 import { reignAt, regionalReignsAt } from '../../shared/data/jiangshan.ts';
 import { eraAt, formatYear, normYear, rulerAt, tToYear, ticks, yearToT } from '../../shared/lib/timeline.ts';
 import { lang, t } from '../lib/i18n.ts';
+import { load, save } from '../lib/storage.ts';
 import { h, iconBtn, setIcon } from './dom.ts';
 
 /**
@@ -31,6 +32,9 @@ export class Timeline {
   onEvent: (e: HistEvent) => void = () => {};
   onEra: (eraId: string) => void = () => {};
   onPlay: (on: boolean) => void = () => {};
+  /** Fires on every readout change (year, era), e.g. for the era chip in the top bar. */
+  onRender: (y: Year) => void = () => {};
+  private foldBtn: HTMLButtonElement;
   private selected: string | null = null;
 
   constructor() {
@@ -45,9 +49,11 @@ export class Timeline {
     this.thumb = h('div', { class: 'tl-thumb' }, h('i'));
     this.tip = h('div', { class: 'tl-tip' });
     this.track = h('div', { class: 'tl-track', role: 'slider', tabindex: 0, 'aria-label': t('era') }, this.agesEl, this.bands, this.dots, this.axis, this.thumb, this.tip);
+    this.foldBtn = iconBtn('down', t('fold'), () => this.fold(!this.el.classList.contains('folded')), 'tl-fold');
     this.el = h('div', { class: 'tl' },
       h('div', { class: 'tl-read' }, this.playBtn, h('div', { class: 'tl-txt' }, this.yearEl, h('div', { class: 'tl-sub' }, this.eraEl, this.rulerEl))),
-      this.track);
+      this.track, this.foldBtn);
+    if (load<boolean>('tlFolded', false)) this.fold(true);
     this.build();
     this.bind();
     new ResizeObserver(() => this.layoutAxis()).observe(this.track);
@@ -131,6 +137,15 @@ export class Timeline {
     requestAnimationFrame(tick);
   }
 
+  /** Collapses the bar to its readout (the map gets the whole screen). */
+  fold(on: boolean): void {
+    this.el.classList.toggle('folded', on);
+    setIcon(this.foldBtn, on ? 'up' : 'down');
+    this.foldBtn.title = this.foldBtn.ariaLabel = t(on ? 'unfold' : 'fold');
+    save('tlFolded', on);
+    if (!on) requestAnimationFrame(() => this.layoutAxis());
+  }
+
   setPlaying(on: boolean): void {
     if (on === this.playing) return;
     this.playing = on;
@@ -169,11 +184,13 @@ export class Timeline {
     this.rulerEl.title = [this.rulerEl.textContent, ...regionalReignsAt(y).map(x => `${tr(x.regime, lang)}${lang === 'zh' ? '：' : ': '}${tr(x.reign.label, lang)}`)].filter(Boolean).join('\n');
     this.track.setAttribute('aria-valuetext', `${formatYear(y, lang)} ${era ? tr(era.name, lang) : ''}`);
     for (const b of this.bands.children as HTMLCollectionOf<HTMLElement>) b.classList.toggle('cur', b.dataset.era === era?.id);
+    this.onRender(y);
   }
 
   relabel(): void {
     this.track.setAttribute('aria-label', t('era'));
     this.playBtn.title = this.playBtn.ariaLabel = t(this.playing ? 'pause' : 'play');
+    this.foldBtn.title = this.foldBtn.ariaLabel = t(this.el.classList.contains('folded') ? 'unfold' : 'fold');
     this.build();
     this.select(this.selected);
   }

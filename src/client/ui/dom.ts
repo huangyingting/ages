@@ -36,6 +36,14 @@ const PATHS = {
   ext: 'M14 3h7v7h-2V6.4l-9.3 9.3-1.4-1.4L17.6 5H14zM5 5h6v2H7v10h10v-4h2v6H5z',
   journey: 'M5 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm14 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM5 9c-1 0-2 .8-2 2v1h2v-1h8a3 3 0 0 1 0 6H9v2h4a5 5 0 0 0 0-10zm6-6v2h4a3 3 0 0 1 3 3h2a5 5 0 0 0-5-5z',
   pin: 'M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z',
+  grid: 'M4 4h7v7H4zm2 2v3h3V6zm7-2h7v7h-7zm2 2v3h3V6zM4 13h7v7H4zm2 2v3h3v-3zm7-2h7v7h-7zm2 2v3h3v-3z',
+  sliders: 'M3 6h9.2a3 3 0 0 1 5.6 0H21v2h-3.2a3 3 0 0 1-5.6 0H3zm12 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM3 16h3.2a3 3 0 0 1 5.6 0H21v2h-9.2a3 3 0 0 1-5.6 0H3zm6 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z',
+  plus: 'M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z',
+  minus: 'M5 11h14v2H5z',
+  full: 'M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z',
+  chevron: 'M8.6 7.4 10 6l6 6-6 6-1.4-1.4 4.6-4.6z',
+  down: 'M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z',
+  up: 'M7.4 15.4 12 10.8l4.6 4.6L18 14l-6-6-6 6z',
 } as const;
 export type IconName = keyof typeof PATHS;
 

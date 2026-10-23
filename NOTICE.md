@@ -32,3 +32,6 @@ under GPL-3.0.
 * Elevation: [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen), derived from SRTM, GMTED2010,
   ETOPO1 and other public-domain sources.
 * Background reading: [Wikipedia](https://www.wikipedia.org/), text under CC BY-SA 4.0, fetched live and attributed in the reader.
+* Fonts: Chakra Petch (Copyright 2018 The Chakra Petch Project Authors) and Geist / Geist Mono (Copyright 2023 Vercel, with basement.studio),
+  bundled in `src/client/fonts/` under the SIL Open Font License 1.1 (licence texts alongside the font files).
+* Design language and low-poly model kit adapted from the pocket-planet (Terrastra) project.

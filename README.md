@@ -11,7 +11,7 @@ It is an original 3D re-imagining inspired by [jiangshan-map](https://github.com
 | ![home](docs/assets/screenshots/desktop-home-zh.jpg) | ![story](docs/assets/screenshots/desktop-story-qin.jpg) | ![journey](docs/assets/screenshots/desktop-journey.jpg) | ![mobile](docs/assets/screenshots/mobile-event.jpg) |
 
 ## Features
-* **3D terrain relief** of East Asia, generated from open elevation data, with rivers, coastlines and a parchment colour scheme.
+* **3D terrain relief** of East Asia, generated from open elevation data, with rivers and coastlines, in ink, paper or plain styles.
 * **Timeline** spanning about 1 million years. It is non-linear, so dense periods get more room, and shows era bands, event dots, age headings, drag/keyboard scrubbing and auto-play. **173 territory snapshots** (Xia → PRC; dated phases from 403 BCE to 1949 imported from jiangshan-map) crossfade as the year changes, and capitals, period place names (长安 / 西安, 汴京 / 开封 …), polity labels, admin divisions, walls, canals and routes follow the year. The readout shows the reign era (年号, e.g. 北宋神宗 · 元丰八年), with rival regimes' eras on hover.
 * **Full-screen map**: the 3D terrain fills the window and every panel floats over it.
 * **907 events**: 151 curriculum events plus 756 chronicle entries from jiangshan-map. Each curriculum event has a bilingual summary, key points (考点), people, location and its units in the textbooks (七年级上/下, 八年级上/下, 高中《中外历史纲要（上）》), plus a procedural 3D model.
@@ -22,7 +22,8 @@ It is an original 3D re-imagining inspired by [jiangshan-map](https://github.com
 * **Wikipedia reader** in Chinese (简体) or English: lead, sections, image, reading time and a link to the full article. It falls back through interlanguage links and works offline gracefully.
 * **Learn by textbook unit**: a drawer listing the units for each book, with progress (watched / learned).
 * **Quiz** with three question types: *when* (pick the year), *where* (click the map; graded by distance) and *order* (sort events). Every answer is revealed on the map.
-* **Compact UI**: two small toolbars, a slim timeline and panels that slide away during stories. The camera re-frames itself so the subject is never under a panel. On phones the card becomes a bottom sheet.
+* **Lacquer & bronze HUD**: black-lacquer slabs with bronze hairlines and cinnabar seal accents, in the cut-corner style of pocket-planet. One toolbar (search, language, a **hub** menu for learn / quiz / journeys / help, and a **settings** menu for map style, layers, narration and quality) keeps the screen clear. Events open an info panel with a live 3D model preview; the timeline folds to a single line. Panels slide away during stories, and the camera re-frames itself so the subject is never under a panel. On phones the panel becomes a bottom sheet.
+* **Map styles**: ink (dark, default), paper (parchment) and plain relief.
 * **Shareable deep links**: `#e=<event>`, `#y=<year>`, `&lang=zh|en`.
 
 ## Quick start
@@ -75,7 +76,8 @@ Territories from 403 BCE to 1949 come from jiangshan-map, which traces them from
 * Elevation: [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen), derived from SRTM, GMTED2010, ETOPO1 and other public-domain sources.
 * Background reading: [Wikipedia](https://www.wikipedia.org/), text under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), fetched live and attributed in the reader.
 * Territories, administrative divisions, chronicle events, settlements, people, journeys, reign eras and great works: imported from [jiangshan-map 江山图](https://github.com/DeanChensj/jiangshan-map) by DeanChensj (GPL-3.0) with `npm run data:jiangshan`. Its CHGIS / Hartwell-derived boundaries remain academic, non-commercial use only. See [NOTICE.md](NOTICE.md).
-* Architecture patterns: the Terrastra project (`../pocket-planet`).
+* Architecture patterns, HUD design language and the low-poly model kit (figures, timber buildings, ships, animals): adapted from the pocket-planet (Terrastra) project.
+* Fonts: [Chakra Petch](https://fonts.google.com/specimen/Chakra+Petch) (Cadson Demak) and [Geist / Geist Mono](https://vercel.com/font) (Vercel), both under the SIL Open Font License 1.1.
 
 ## License
 GPL-3.0 (see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md)).

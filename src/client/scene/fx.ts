@@ -107,6 +107,7 @@ export class Fx {
   clear(layer: Layer): void {
     for (const it of this.items.filter(x => x.layer === layer)) this.remove(it);
     if (layer === 'story') {
+      this.epoch++;
       this.follow = null;
       const tw = this.tweens.splice(0);
       for (const x of tw) x.done();
@@ -118,6 +119,9 @@ export class Fx {
   finishTweens(): void {
     for (const x of this.tweens.splice(0)) { x.fn(1); x.done(); }
   }
+
+  /** Bumped whenever the story layer is cleared, so multi-step effects stop after an awaited step unwinds. */
+  private epoch = 0;
 
   count(layer: Layer): number { return this.items.filter(x => x.layer === layer).length; }
 
@@ -480,13 +484,22 @@ export class Fx {
         if (sd.label) sd.label.pos.copy(c).addScaledVector(sd.dir, -(front + gap * 3)).setY(c.y + 0.5 * s);
       }
     };
+    const ep = this.epoch;
+    const gone = () => {
+      if (this.items.includes(it) && (layer !== 'story' || ep === this.epoch)) return false;
+      for (const sd of sides) if (sd.label) { this.labels.remove(sd.label); sd.label = undefined; }
+      return true;
+    };
     await this.tween(dur * 0.35, x => { k = x * 0.35; });
+    if (gone()) return;
     battle = this.particles.emitter('battle', c.clone().setY(c.y + 0.02), () => this.s);
     this.ring(c.clone().setY(c.y + 0.02), '#ff5a36', dur * 0.4, layer, 0.8);
     await this.tween(dur * 0.35, x => { k = 0.35 + x * 0.35; });
     battle.stop = true;
+    if (gone()) return;
     if (loser) this.particles.emitter('smoke', c.clone(), () => this.s);
     await this.tween(dur * 0.3, x => { k = 0.7 + x * 0.3; });
+    if (gone()) return;
     for (const sd of sides) if (sd.label && sd.id === loser) { this.labels.remove(sd.label); sd.label = undefined; }
     if (layer === 'story') this.tween(4).then(() => this.tween(0.8, x => { for (const sd of sides) sd.f.fade(1 - x); })).then(() => {
       for (const sd of sides) if (sd.label) this.labels.remove(sd.label);

@@ -16,13 +16,14 @@ Chinese middle-school (grades 7–8, 统编版 textbooks) and high-school studen
 |---|---|
 | Scene | 3D terrain relief of East Asia, territory overlay with crossfades, polity labels, period place names, capital marker model, event pins; pan / rotate / zoom (mouse, touch, keyboard) |
 | Timeline | Non-linear axis about 1 Ma → today; age headings; era bands (click opens the era card); event dots with tooltips; drag, click, arrow keys, auto-play; readout shows year, era and ruler |
-| Event card | Category, year, place, importance, watched status; summary; key points; people; textbook units; prev/next; Play animation; Wikipedia; mark as learned |
+| Event card | Info panel with a live 3D model preview (turntable); category, year, place, importance, watched status; summary; key points; people; textbook units; prev/next; Play animation; Wikipedia; mark as learned |
 | Era card | Era summary, dates, capital, prev/next era, Wikipedia, list of its events |
 | Stories | Scripted steps (fly, year, caption, army, route, build, spawn, fx, highlight); pause, skip, speed (1× / 1.5× / 2× / 0.75×), narration, stop; captions bilingual |
 | Wikipedia reader | zh-CN / en switch; lead, sections, image, reading time; licence line; offline / missing states |
 | Learn | Books → units → events with progress bars; opening an event closes the drawer on phones |
 | Quiz | 9 questions per round from the chosen book: when / where (map click, graded by km) / order; every answer is revealed on the map; best score saved |
 | Search | Events, eras and places, matched in both languages; `/` focuses |
+| Menus | Hub (learn, quiz, journeys, help) and Settings (map style ink / paper / plain, layers, narration, quality); one toolbar, foldable timeline |
 | Layers | Territory, place names, event pins, 3D models |
 | Help | Controls, category legend, disclaimer, credits, phase 2 note |
 | Deep links | `#e=`, `#y=`, `&lang=` (kept up to date as you browse, so the address bar is always shareable) |

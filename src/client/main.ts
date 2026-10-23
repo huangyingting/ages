@@ -15,7 +15,10 @@ import { Caption } from './ui/caption.ts';
 import { Card } from './ui/card.ts';
 import { h, iconBtn } from './ui/dom.ts';
 import { Learn } from './ui/learn.ts';
-import { Help, JourneysMenu, LayersMenu } from './ui/menus.ts';
+import { Help, HubMenu, SettingsMenu } from './ui/menus.ts';
+import { eraAt, formatYear } from '../shared/lib/timeline.ts';
+import { SURFACES, type Surface } from './scene/terrain.ts';
+import { save } from './lib/storage.ts';
 import { journeyStory } from '../shared/data/stories.ts';
 import { JOURNEYS, PERSON, type Journey, type Person } from '../shared/data/jiangshan.ts';
 import { Quiz } from './ui/quiz.ts';
@@ -36,14 +39,16 @@ class App {
   caption = new Caption(canSpeak());
   search = new SearchBox();
   learn: Learn;
-  layersMenu!: LayersMenu;
-  journeysMenu!: JourneysMenu;
+  settings!: SettingsMenu;
+  hub!: HubMenu;
   help = new Help();
   quiz!: Quiz;
   player!: StoryPlayer;
   ready = false;
   private langBtn!: HTMLButtonElement;
   private bar!: HTMLElement;
+  private eraChip!: HTMLButtonElement;
+  private zoomLbl!: HTMLElement;
 
   constructor(private root: HTMLElement, stage: HTMLElement) {
     this.atlas = new Atlas(stage, lowfx);
@@ -57,7 +62,7 @@ class App {
       journey: j => this.playJourney(j),
       person: p => this.openPerson(p),
       fly: (lon, lat) => this.atlas.flyTo({ lon, lat: lat - 0.6, dist: 12, tilt: 0.85 }, 1.4),
-    }, this.progress);
+    }, this.progress, lowfx);
     this.learn = new Learn(this.progress);
   }
 
@@ -69,13 +74,21 @@ class App {
     this.player = new StoryPlayer(this.atlas, {
       onCaption: (text, i, n) => this.caption.say(text, i, n),
       onYear: y => this.timeline.set(y, false, false),
-      onState: s => { this.caption.state(s); this.root.classList.toggle('story-on', s !== 'idle'); if (s === 'idle') this.cine?.classList.remove('on'); },
+      onState: s => {
+        this.caption.state(s);
+        this.root.classList.toggle('story-on', s !== 'idle');
+        this.card.setActive(s === 'idle');
+        if (s === 'idle') this.cine?.classList.remove('on');
+      },
       onTitle: (text, sub, dur) => this.showTitle(text, sub, dur),
       speak,
     });
     this.quiz = new Quiz(this.atlas, this.progress);
-    this.layersMenu = new LayersMenu(this.atlas.layers);
-    this.journeysMenu = new JourneysMenu();
+    const surf = load<Surface>('surface', 'ink');
+    const surface: Surface = SURFACES.includes(params.get('map') as Surface) ? params.get('map') as Surface : SURFACES.includes(surf) ? surf : 'ink';
+    this.atlas.setSurface(surface);
+    this.settings = new SettingsMenu(this.atlas.layers, surface);
+    this.hub = new HubMenu();
     this.buildChrome();
     this.timeline.set(year, true, false);
     this.atlas.onPin = e => this.openEvent(e);
@@ -147,23 +160,44 @@ class App {
     this.caption.onVoice = on => { this.player.narrate = on; if (!on) speechSynthesis.cancel(); };
 
     this.learn.onOpen = e => { this.openEvent(e); if (matchMedia('(max-width: 720px)').matches) this.learn.toggle(false); };
-    this.layersMenu.onChange = (k, on) => this.atlas.setLayer(k, on);
-    this.journeysMenu.onPlay = j => this.playJourney(j);
+    this.settings.onChange = (k, on) => this.atlas.setLayer(k, on);
+    this.settings.onSurface = s => { this.atlas.setSurface(s); save('surface', s); };
+    this.hub.onPlay = j => this.playJourney(j);
+    this.hub.onPick = w => { this.pop(null); if (w === 'help') this.help.toggle(true); else this.toggle(w); };
     this.quiz.onClose = () => {};
     this.reader.onClose = () => {};
 
+    // top-left: brand mark and the current-period chip
+    this.eraChip = h('button', { type: 'button', class: 'era-chip', onclick: () => { const e = eraAt(this.timeline.year); if (e) this.openEra(e.id); } },
+      h('i', { class: 'dot' }), h('span', { class: 'ec-t' }, h('b'), h('small')), h('em', { class: 'ec-c' }));
+    this.bar = h('div', { class: 'top-l' },
+      h('div', { class: 'brand' }, h('span', { class: 'seal', 'aria-hidden': 'true', text: '长河' }), h('span', { class: 'brand-t' }, h('b', { text: 'Ages' }), h('span', { text: t('brandSub') }))),
+      this.eraChip);
+    this.timeline.onRender = y => this.renderEraChip(y);
+
+    // top-right: one toolbar slab (search · language · study hall · map settings)
     this.langBtn = h('button', { type: 'button', class: 'ib lang', 'data-act': 'lang', onclick: () => setLang(lang === 'zh' ? 'en' : 'zh') });
-    const top = h('div', { class: 'top-r' },
-      this.langBtn,
-      iconBtn('book', t('learn'), () => this.toggle('learn'), 'b-learn'),
-      iconBtn('quiz', t('quiz'), () => this.toggle('quiz'), 'b-quiz'),
-      h('div', { class: 'pop-wrap' }, iconBtn('journey', t('journeys'), () => { this.layersMenu.toggle(false); this.journeysMenu.toggle(); }, 'b-journeys'), this.journeysMenu.el),
-      h('div', { class: 'pop-wrap' }, iconBtn('layers', t('layers'), () => { this.journeysMenu.toggle(false); this.layersMenu.toggle(); }, 'b-layers'), this.layersMenu.el),
-      iconBtn('home', t('home'), () => this.atlas.home(), 'b-home'),
-      iconBtn('help', t('help'), () => this.help.toggle(), 'b-help'));
-    this.bar = h('div', { class: 'top-l' }, h('div', { class: 'brand' }, h('b', { text: t('brand') }), h('span', { text: t('brandSub') })), this.search.el);
+    const hubBtn = iconBtn('grid', t('hub'), () => this.pop(this.hub.el.hidden ? 'hub' : null), 'b-hub');
+    const setBtn = iconBtn('sliders', t('settings'), () => this.pop(this.settings.el.hidden ? 'settings' : null), 'b-settings');
+    const tools = h('div', { class: 'tools' }, this.search.el, h('i', { class: 'sep' }), this.langBtn, h('i', { class: 'sep' }), hubBtn, setBtn);
+    const top = h('div', { class: 'top-r' }, tools, this.hub.el, this.settings.el);
+    document.addEventListener('pointerdown', e => {
+      if ((!this.hub.el.hidden || !this.settings.el.hidden) && !top.contains(e.target as Node)) this.pop(null);
+    });
+
+    // bottom corners: help; full screen and zoom
+    this.zoomLbl = h('span', { class: 'z-lbl' });
+    const zoom = h('div', { class: 'zoom-ctl' },
+      iconBtn('plus', t('zoomIn'), () => this.atlas.view.zoomBy(0.62), 'z-in'), this.zoomLbl, iconBtn('minus', t('zoomOut'), () => this.atlas.view.zoomBy(1.6), 'z-out'));
+    const corner = h('div', { class: 'corner-r' },
+      iconBtn('full', t('fullscreen'), () => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen?.().catch(() => {}); }, 'round-btn b-full'),
+      iconBtn('home', t('home'), () => this.atlas.home(), 'round-btn b-home'),
+      zoom);
+    this.atlas.view.onFrame(() => { const z = 120 / this.atlas.view.pose().dist; const s = '×' + (z < 10 ? z.toFixed(1) : Math.round(z)); if (this.zoomLbl.textContent !== s) this.zoomLbl.textContent = s; });
+    const helpBtn = iconBtn('help', t('help'), () => this.help.toggle(), 'round-btn b-help');
+
     this.root.append(this.bar, top, this.learn.el, this.card.el, this.reader.el, this.quiz.el, this.caption.el, this.timeline.el, this.help.el,
-      h('div', { class: 'disc', text: t('disclaimer') }));
+      helpBtn, corner, h('div', { class: 'disc', text: t('disclaimer') }), h('div', { class: 'frame', 'aria-hidden': 'true' }));
     this.relabel();
     onLang(l => this.onLang(l));
 
@@ -190,6 +224,22 @@ class App {
   private saveYear(y: Year): void {
     try { localStorage.setItem('ages:year', String(y)); } catch { /* ignore */ }
     if (!this.card.event) writeLink({ year: y, lang });
+  }
+
+  /** Opens one toolbar popover (or none). */
+  private pop(which: 'hub' | 'settings' | null): void {
+    this.hub.toggle(which === 'hub');
+    this.settings.toggle(which === 'settings');
+    this.root.querySelector('.b-hub')?.classList.toggle('on', which === 'hub');
+    this.root.querySelector('.b-settings')?.classList.toggle('on', which === 'settings');
+  }
+
+  private renderEraChip(y: Year): void {
+    const era = eraAt(y);
+    this.eraChip.style.setProperty('--c', era?.color ?? '#c9a45c');
+    this.eraChip.querySelector('b')!.textContent = era ? tr(era.name, lang) : '';
+    this.eraChip.querySelector('small')!.textContent = formatYear(y, lang);
+    this.eraChip.hidden = !era;
   }
 
   private toggle(which: 'learn' | 'quiz'): void {
@@ -303,7 +353,8 @@ class App {
     if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
     if (e.key === '/') { this.search.input.focus(); e.preventDefault(); return; }
     if (e.key === 'Escape') {
-      if (!this.help.el.hidden) this.help.toggle(false);
+      if (!this.hub.el.hidden || !this.settings.el.hidden) this.pop(null);
+      else if (!this.help.el.hidden) this.help.toggle(false);
       else if (this.reader.open) this.reader.close();
       else if (this.player.state !== 'idle') this.stopStory();
       else if (this.quiz.open) this.quiz.toggle(false);
@@ -331,8 +382,9 @@ class App {
     this.search.relabel();
     this.card.render();
     if (this.learn.open) this.learn.render();
-    this.layersMenu.render();
-    this.journeysMenu.render();
+    this.settings.render();
+    this.hub.render();
+    this.renderEraChip(this.timeline.year);
     this.help.render();
     this.quiz.relabel();
     writeLink(this.card.event ? { event: this.card.event.id, lang: l } : { year: this.timeline.year, lang: l });
@@ -346,21 +398,21 @@ class App {
       const top = this.card.open ? this.card.el.getBoundingClientRect().top : H;
       return this.atlas.view.setInset(0, 0, Math.min(H * 0.6, H - top));
     }
-    let left = W;
-    for (const el of [this.card.el, this.reader.el]) if (!el.hidden) left = Math.min(left, el.getBoundingClientRect().left);
-    const right = this.learn.el.hidden ? 0 : this.learn.el.getBoundingClientRect().right;
-    this.atlas.view.setInset(Math.min(W * 0.3, right), Math.min(W * 0.5, W - left), 0);
+    const r = this.root.getBoundingClientRect();
+    const left = this.card.open ? this.card.el.getBoundingClientRect().right - r.left : 0;
+    let right = W;
+    for (const el of [this.reader.el, this.learn.el]) if (!el.hidden) right = Math.min(right, el.getBoundingClientRect().left - r.left);
+    this.atlas.view.setInset(Math.min(W * 0.4, left), Math.min(W * 0.45, W - right), 0);
   }
 
   private relabel(): void {
     this.langBtn.textContent = t('lang');
     this.langBtn.title = t('langTitle');
     this.langBtn.setAttribute('aria-label', t('langTitle'));
-    const b = this.bar.querySelector('.brand')!;
-    b.querySelector('b')!.textContent = t('brand');
+    const b = this.bar.querySelector('.brand-t')!;
     b.querySelector('span')!.textContent = t('brandSub');
     const set = (cls: string, k: Parameters<typeof t>[0]) => { const el = this.root.querySelector<HTMLElement>(cls); if (el) { el.title = t(k); el.setAttribute('aria-label', t(k)); } };
-    set('.b-learn', 'learn'); set('.b-quiz', 'quiz'); set('.b-layers', 'layers'); set('.b-home', 'home'); set('.b-help', 'help');
+    set('.b-hub', 'hub'); set('.b-settings', 'settings'); set('.b-home', 'home'); set('.b-help', 'help'); set('.b-full', 'fullscreen'); set('.z-in', 'zoomIn'); set('.z-out', 'zoomOut');
     const d = this.root.querySelector('.disc');
     if (d) d.textContent = t('disclaimer');
     document.title = lang === 'zh' ? '长河 · 3D 中国历史地图' : 'Ages · 3D Atlas of Chinese History';
