@@ -197,7 +197,7 @@ class App {
     const helpBtn = iconBtn('help', t('help'), () => this.help.toggle(), 'round-btn b-help');
 
     this.root.append(this.bar, top, this.learn.el, this.card.el, this.reader.el, this.quiz.el, this.caption.el, this.timeline.el, this.help.el,
-      helpBtn, corner, h('div', { class: 'disc', text: t('disclaimer') }), h('div', { class: 'frame', 'aria-hidden': 'true' }));
+      helpBtn, corner, h('div', { class: 'disc', text: t('disclaimer') }));
     this.relabel();
     onLang(l => this.onLang(l));
 

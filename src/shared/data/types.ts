@@ -97,6 +97,10 @@ export interface Place {
   tier: 1 | 2 | 3;
   /** small settlement: labelled only when zoomed in close */
   minor?: boolean;
+  /** the modern name is in use from this year (earlier years show only period names) */
+  since?: Year;
+  /** not labelled on the map after this year (prehistoric sites) */
+  until?: Year;
   /** only exists (and is labelled) during its `names` periods */
   periodOnly?: boolean;
   /** modern name / location, e.g. 运城·夏县 */
@@ -161,7 +165,7 @@ export type StoryStep =
   /** a marching army along `pts` (or a bowed arrow from → to); foot, horse or mixed; `follow` lets the camera ride along */
   | { do: 'army'; from?: LonLat; to?: LonLat; pts?: LonLat[]; color: string; dur: number; count?: number; unit?: Troops; label?: I18n; follow?: boolean; keep?: boolean; retreat?: boolean; par?: boolean }
   /** a pitched battle: A charges from `angle` (degrees clockwise from west), B from the opposite side; the loser routs */
-  | { do: 'clash'; lon: number; lat: number; a: string; b: string; winner?: 'a' | 'b'; angle?: number; dur?: number; count?: number; labels?: [I18n, I18n]; units?: [Troops, Troops]; par?: boolean }
+  | { do: 'clash'; lon: number; lat: number; a: string; b: string; winner?: 'a' | 'b'; angle?: number; dur?: number; count?: number; labels?: [I18n, I18n]; units?: [Troops, Troops]; siege?: boolean; par?: boolean }
   /** ships in V formation along a sea route, with wakes */
   | { do: 'fleet'; pts: LonLat[]; dur: number; color?: string; count?: number; model?: 'junk' | 'warship' | 'fireship' | 'boat' | 'redboat'; label?: I18n; follow?: boolean; keep?: boolean; par?: boolean }
   /** the map of `year` spreads outwards from lon/lat (conquest, unification, revolution) */

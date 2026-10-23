@@ -3,7 +3,7 @@ import { BOOKS, UNITS } from '../../src/shared/data/curriculum.ts';
 import { ERAS, RULERS } from '../../src/shared/data/eras.ts';
 import { MODEL_KINDS } from '../../src/shared/data/event-kit.ts';
 import { EVENTS, storyOf } from '../../src/shared/data/events.ts';
-import { PLACE, PLACES, isCapital, placeExists, placeName } from '../../src/shared/data/places.ts';
+import { PLACE, PLACES, isCapital, mapName, placeExists, placeName } from '../../src/shared/data/places.ts';
 import { JOURNEYS, WORKS, reignAt } from '../../src/shared/data/jiangshan.ts';
 import { POLITY, POLITIES, polityMatches } from '../../src/shared/data/polities.ts';
 import { STAGES } from '../../src/shared/data/stage.ts';
@@ -118,6 +118,21 @@ describe('places through time', () => {
     expect(placeName(xian, 2000).zh).toBe('西安');
     expect(isCapital(xian, 700)).toBe(true);
     expect(isCapital(xian, 1500)).toBe(false);
+  });
+
+  it('never prints a modern name on the map before it was in use', () => {
+    const at = (id: string, y: number) => mapName(PLACE.get(id)!, y)?.zh ?? null;
+    expect(at('shanghai', -221)).toBeNull();
+    expect(at('hongkong', 1500)).toBeNull();
+    expect(at('kaifeng', -300)).toBe('大梁');
+    expect(at('kaifeng', 750)).toBe('汴州');
+    expect(at('shanghai', 2000)).toBe('上海');
+    expect(at('banpo', -4000)).toBe('半坡');
+    expect(at('banpo', 1500)).toBeNull();
+    for (const p of PLACES) for (const y of [-221, 750, 1100]) {
+      const n = mapName(p, y);
+      if (n && n === p.name && p.since != null) expect(y).toBeGreaterThanOrEqual(p.since);
+    }
   });
 });
 

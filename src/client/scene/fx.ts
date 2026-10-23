@@ -10,7 +10,7 @@ import type { View } from './view.ts';
 export type FxKind = 'battle' | 'fire' | 'glow' | 'flag' | 'smoke' | 'firework';
 export type Layer = 'story' | 'event' | 'base' | 'works';
 export interface ArmyOpts { from?: LonLat; to?: LonLat; pts?: LonLat[]; color: string; dur: number; count?: number; unit?: Troops; label?: string; follow?: boolean; keep?: boolean; retreat?: boolean }
-export interface ClashOpts { lon: number; lat: number; a: string; b: string; winner?: 'a' | 'b'; angle?: number; dur?: number; count?: number; labels?: [string?, string?]; units?: [Troops?, Troops?] }
+export interface ClashOpts { lon: number; lat: number; a: string; b: string; winner?: 'a' | 'b'; angle?: number; dur?: number; count?: number; labels?: [string?, string?]; units?: [Troops?, Troops?]; siege?: boolean }
 export interface FleetOpts { pts: LonLat[]; dur: number; color?: string; count?: number; model?: 'junk' | 'warship' | 'fireship' | 'boat' | 'redboat'; label?: string; follow?: boolean; keep?: boolean }
 
 /** A gently bowed route between two points (opposing arrows don't overlap). */
@@ -36,6 +36,12 @@ interface Item {
 }
 
 interface Tween { dur: number; t: number; fn: (k: number) => void; done: () => void }
+
+/**
+ * Sand-table miniatures: figure scale and file spacing relative to the screen-constant model scale `s`, so soldiers
+ * stand about 20 px tall at every zoom and read as real 3D figures rather than specks.
+ */
+const FIG = 0.7, GAP = 0.5;
 
 const easeOut = (k: number) => 1 - Math.pow(1 - k, 3);
 const easeBack = (k: number) => { const c = 1.9; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
@@ -355,14 +361,16 @@ export class Fx {
     const path = this.path(pts, 0.035);
     const rb = this.ribbon(path, 0.3 * s, o.color, o.retreat ? 0.45 : 0.72, true);
     const head = this.arrowHead(o.color, 0.6 * s);
-    const n = Math.min(90, o.count ?? 30);
+    const n = Math.min(48, o.count ?? 30);
     const unit = o.unit ?? 'foot';
     const troops = this.formation(n, unit, o.color);
     const g = new THREE.Group();
     g.add(rb.mesh, head, ...troops.meshes);
     const it = this.add({ layer, obj: g, own: [rb.mesh.geometry, rb.mat, head.geometry, head.material as THREE.Material, ...troops.own] });
     let banner: THREE.Object3D | null = null, rigs: ReturnType<typeof rig> = [];
+    let general: THREE.Object3D | null = null, grigs: ReturnType<typeof rig> = [], fk = 1;
     instance({ kind: 'flag', color: o.color }, true).then(m => { if (this.items.includes(it)) { banner = m; rigs = rig(m); g.add(m); } }).catch(() => {});
+    if (!o.retreat) instance({ kind: 'rider', color: o.color }, true).then(m => { if (this.items.includes(it)) { general = m; grigs = rig(m); g.add(m); } }).catch(() => {});
     if (o.label) it.label = this.labels.add({ el: tag(o.label, 'army', o.color), pos: new THREE.Vector3(), prio: 70, group: 'story', anchor: 'above' });
     const dust = this.particles.emitter('dust', new THREE.Vector3(), () => this.s);
     let k = 0, moving = true;
@@ -376,25 +384,32 @@ export class Fx {
       head.rotation.y = yaw;
       q.setFromAxisAngle(up, yaw);
       const side = new THREE.Vector3().crossVectors(up, hd.dir).normalize();
-      const gap = 0.085 * z;
+      const gap = GAP * z;
       troops.place((i, out) => {
         const r = Math.floor(i / cols), c = (i % cols) - (cols - 1) / 2;
-        const back = (r + 1) * gap * 1.25 + troops.jit[i * 2] * gap * 0.4;
+        const back = (r + 2) * gap * 1.25 + troops.jit[i * 2] * gap * 0.4;
         const p = this.at(path, Math.max(0, k - back / path.total), v).pos;
         p.addScaledVector(side, (c + troops.jit[i * 2 + 1] * 0.3) * gap);
         p.y = Math.max(0, this.geo.height(this.geo.lon(p.x), this.geo.lat(p.z))) + (moving ? Math.abs(Math.sin(t * 9 + i * 1.7)) * 0.012 * z : 0);
-        out.compose(p, q, v.setScalar(z * 0.11));
+        out.compose(p, q, v.setScalar(z * FIG));
       });
-      const rear = this.at(path, Math.max(0, k - (Math.ceil(n / cols) + 1) * gap * 1.25 / path.total), v).pos;
+      const rear = this.at(path, Math.max(0, k - (Math.ceil(n / cols) + 2) * gap * 1.25 / path.total), v).pos;
       dust.p.copy(rear);
       dust.k = moving ? 1 : 0;
+      if (general) {
+        general.position.copy(hd.pos).addScaledVector(hd.dir, -gap * 0.6);
+        general.position.y = Math.max(0, hd.pos.y) + (moving ? Math.abs(Math.sin(t * 7)) * 0.02 * z : 0);
+        general.scale.setScalar(Math.max(0.001, z * 0.95 * fk));
+        general.rotation.y = yaw;
+        animate(grigs, t);
+      }
       if (banner) {
-        banner.position.copy(hd.pos).addScaledVector(hd.dir, -gap * 0.5);
-        banner.scale.setScalar(z * 0.4);
+        banner.position.copy(hd.pos).addScaledVector(hd.dir, -gap * 1.5).addScaledVector(side, gap * 0.9);
+        banner.scale.setScalar(Math.max(0.001, z * 1.1 * fk));
         banner.rotation.y = yaw - Math.PI / 2;
         animate(rigs, t);
       }
-      if (it.label) it.label.pos.copy(hd.pos).setY(hd.pos.y + 0.55 * z);
+      if (it.label) it.label.pos.copy(hd.pos).setY(hd.pos.y + 1.3 * z);
     };
     if (o.follow) this.followWith(() => tmp);
     await this.tween(o.dur, x => { k = 0.7 * x + 0.3 * x * x * (3 - 2 * x); rb.reveal(k); });
@@ -402,7 +417,7 @@ export class Fx {
     rb.reveal(1);
     dust.stop = true;
     if (o.follow) this.followWith(null);
-    if (layer === 'story' && !o.keep) this.tween(3).then(() => this.tween(0.8, x => { rb.mat.opacity = 0.72 * (1 - x); troops.fade(1 - x); })).then(() => this.remove(it));
+    if (layer === 'story' && !o.keep) this.tween(3).then(() => this.tween(0.8, x => { rb.mat.opacity = 0.72 * (1 - x); troops.fade(1 - x); fk = 1 - x; })).then(() => this.remove(it));
   }
 
   /** Instanced soldiers (and riders) sharing a material; `place` positions slot i. */
@@ -437,7 +452,7 @@ export class Fx {
    * from, degrees clockwise from west), clash amid sparks and smoke, then the loser routs and scatters.
    */
   async clash(o: ClashOpts, layer: Layer = 'story'): Promise<void> {
-    const dur = o.dur ?? 6, s = this.s, n = Math.min(60, o.count ?? 28);
+    const dur = o.dur ?? 6, s = this.s, n = Math.min(40, o.count ?? 28);
     const c = this.geo.pos(o.lon, o.lat, 0);
     const th = ((o.angle ?? 0) * Math.PI) / 180;
     const ax = new THREE.Vector3(Math.cos(th), 0, Math.sin(th)); // from A towards B (x east, z south)
@@ -452,9 +467,26 @@ export class Fx {
       const dir = si ? ax.clone().negate() : ax.clone();
       const label = o.labels?.[si] ? this.labels.add({ el: tag(o.labels[si]!, 'army', color), pos: new THREE.Vector3(), prio: 72, group: 'story', anchor: 'above' }) : undefined;
       const fall = new Float32Array(n).map(() => Math.random());
-      return { id, f, dir, label, fall, yaw: Math.atan2(dir.x, dir.z) };
+      const sd = { id, f, dir, label, fall, yaw: Math.atan2(dir.x, dir.z), flag: null as THREE.Object3D | null, rigs: [] as ReturnType<typeof rig> };
+      instance({ kind: 'flag', color }, true).then(m => { if (this.items.includes(it)) { sd.flag = m; sd.rigs = rig(m); g.add(m); } }).catch(() => {});
+      return sd;
     });
-    const D = 1.5 * s, gap = 0.085 * s, cols = 8;
+    const D = 3.2 * s, gap = GAP * s, cols = 8;
+    // a siege: the defenders' city gate stands behind side B; the winner's flag goes up over it
+    let gate: THREE.Object3D | null = null;
+    // in a siege the defenders hold the ground just before their gate and the attackers charge from further out
+    const start = (id: 'a' | 'b') => (o.siege ? (id === 'b' ? D * 0.3 : D * 1.15) : D);
+    const gatePos = c.clone().addScaledVector(ax, start('b') + Math.ceil(n / cols) * gap * 0.75 + gap);
+    gatePos.y = Math.max(0, this.geo.height(this.geo.lon(gatePos.x), this.geo.lat(gatePos.z)));
+    if (o.siege) instance({ kind: 'gate', color: o.b }, true).then(m => {
+      if (!this.items.includes(it)) return;
+      gate = m;
+      m.position.copy(gatePos);
+      m.rotation.y = Math.atan2(-ax.x, -ax.z);
+      m.scale.setScalar(s * 1.25);
+      g.add(m);
+    }).catch(() => {});
+    let fk = 1;
     let k = 0;
     const loser = o.winner === 'a' ? 'b' : o.winner === 'b' ? 'a' : null;
     const q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3(), e = new THREE.Euler();
@@ -464,7 +496,7 @@ export class Fx {
         const charge = Math.min(1, k / 0.35), fight = THREE.MathUtils.clamp((k - 0.35) / 0.35, 0, 1), rout = THREE.MathUtils.clamp((k - 0.7) / 0.3, 0, 1);
         const lost = sd.id === loser, won = loser !== null && !lost;
         // the front line: far away -> touching -> pushed back (loser) / forward (winner)
-        let front = THREE.MathUtils.lerp(D, gap * 0.6, charge * charge);
+        let front = THREE.MathUtils.lerp(start(sd.id), gap * 0.6, charge * charge);
         if (won) front -= rout * D * 0.35;
         if (lost) front += rout * rout * D * 1.4;
         sd.f.place((i, out) => {
@@ -478,9 +510,17 @@ export class Fx {
           const down = lost && sd.fall[i] < 0.35 ? Math.min(1, rout * 3) : 0;
           e.set(down * Math.PI / 2, sd.yaw + (lost && rout > 0.1 && sd.fall[i] >= 0.35 ? Math.PI : 0), 0, 'YXZ');
           q.setFromEuler(e);
-          out.compose(v, q, sc.setScalar(s * 0.11));
+          out.compose(v, q, sc.setScalar(s * FIG));
         });
         if (lost) sd.f.fade(1 - Math.max(0, rout - 0.6) / 0.4);
+        if (sd.flag) {
+          const down = lost ? Math.min(1, rout * 2) : 0;
+          sd.flag.position.copy(c).addScaledVector(sd.dir, -(front + Math.ceil(n / cols) * gap * 1.25 + gap)).addScaledVector(side, gap * 2.5);
+          sd.flag.position.y = Math.max(0, this.geo.height(this.geo.lon(sd.flag.position.x), this.geo.lat(sd.flag.position.z)));
+          sd.flag.rotation.set(0, sd.yaw - Math.PI / 2, down * 1.3);
+          sd.flag.scale.setScalar(Math.max(0.001, s * 1.1 * fk * (1 - (lost ? Math.max(0, rout - 0.7) / 0.3 : 0))));
+          animate(sd.rigs, t);
+        }
         if (sd.label) sd.label.pos.copy(c).addScaledVector(sd.dir, -(front + gap * 3)).setY(c.y + 0.5 * s);
       }
     };
@@ -501,7 +541,21 @@ export class Fx {
     await this.tween(dur * 0.3, x => { k = 0.7 + x * 0.3; });
     if (gone()) return;
     for (const sd of sides) if (sd.label && sd.id === loser) { this.labels.remove(sd.label); sd.label = undefined; }
-    if (layer === 'story') this.tween(4).then(() => this.tween(0.8, x => { for (const sd of sides) sd.f.fade(1 - x); })).then(() => {
+    if (o.siege && loser === 'b') {
+      const top = gatePos.clone();
+      top.y += s * 1.25 * 0.55;
+      instance({ kind: 'flag', color: o.a }, true).then(m => {
+        if (!this.items.includes(it)) return;
+        const r = rig(m);
+        m.position.copy(top);
+        m.rotation.y = sides[0].yaw - Math.PI / 2;
+        g.add(m);
+        const start = this.clock;
+        const prev = it.update;
+        it.update = (dt, t, sc) => { prev?.(dt, t, sc); m.scale.setScalar(Math.max(0.001, s * 1.2 * fk * Math.min(1, (this.clock - start) / 0.6))); animate(r, t); };
+      }).catch(() => {});
+    }
+    if (layer === 'story') this.tween(4).then(() => this.tween(0.8, x => { fk = 1 - x; if (gate) gate.scale.setScalar(Math.max(0.001, s * 1.25 * (1 - x))); for (const sd of sides) sd.f.fade(1 - x); })).then(() => {
       for (const sd of sides) if (sd.label) this.labels.remove(sd.label);
       this.remove(it);
     });
@@ -527,7 +581,7 @@ export class Fx {
     let k = 0, sailing = true;
     const up = new THREE.Vector3(0, 1, 0), tmp = new THREE.Vector3(), v = new THREE.Vector3();
     it.update = (_dt, t, scale) => {
-      const z = Math.min(scale, s * 1.4), gap = 0.42 * z;
+      const z = Math.min(scale, s * 1.4), gap = 0.75 * z;
       const hd = this.at(path, k, tmp);
       const sideV = new THREE.Vector3().crossVectors(up, hd.dir).normalize();
       ships.forEach((sh, i) => {
@@ -538,12 +592,12 @@ export class Fx {
         // inland rivers sit above sea level
         sh.m.position.y = Math.max(0, this.geo.height(this.geo.lon(sh.m.position.x), this.geo.lat(sh.m.position.z))) + 0.01 + Math.sin(t * 2 + i) * 0.006 * z;
         sh.m.rotation.set(Math.sin(t * 1.7 + i) * 0.04, Math.atan2(a.dir.x, a.dir.z), Math.sin(t * 1.3 + i) * 0.05);
-        sh.m.scale.setScalar(z * 0.8);
+        sh.m.scale.setScalar(z * 1.35);
         animate(sh.rigs, t);
-        sh.wake.p.copy(sh.m.position).addScaledVector(a.dir, -0.3 * z);
+        sh.wake.p.copy(sh.m.position).addScaledVector(a.dir, -0.55 * z);
         sh.wake.k = sailing ? 1 : 0.2;
       });
-      if (it.label) it.label.pos.copy(hd.pos).setY(0.6 * z);
+      if (it.label) it.label.pos.copy(hd.pos).setY(1.3 * z);
     };
     if (o.follow) this.followWith(() => tmp);
     await this.tween(o.dur, x => { k = x; rb.reveal(x); });

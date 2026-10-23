@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { EVENTS } from '../../shared/data/events.ts';
 import { tr, type Lang } from '../../shared/data/i18n.ts';
 import { RIVER_LABELS, WORKS } from '../../shared/data/jiangshan.ts';
-import { PLACE, PLACES, isCapital, placeExists, placeName } from '../../shared/data/places.ts';
+import { PLACE, PLACES, isCapital, mapName } from '../../shared/data/places.ts';
 import { POLITY, polityMatches } from '../../shared/data/polities.ts';
 import { STAGES, type StageId } from '../../shared/data/stage.ts';
 import { snapshotAt } from '../../shared/data/territories.ts';
@@ -316,10 +316,11 @@ export class Atlas {
   private updatePlaces(): void {
     for (const [id, l] of this.placeLabels) {
       const p = PLACE.get(id)!;
-      l.off = !placeExists(p, this.year);
-      if (l.off) continue;
+      const name = mapName(p, this.year);
+      l.off = !name;
+      if (!name) continue;
       const cap = isCapital(p, this.year);
-      const text = tr(placeName(p, this.year), this.lang);
+      const text = tr(name, this.lang);
       if (l.el.dataset.text !== text || l.el.classList.contains('cap') !== cap) {
         l.el.dataset.text = text;
         l.el.textContent = cap ? `★ ${text}` : text;

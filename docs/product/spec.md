@@ -4,7 +4,7 @@
 Chinese middle-school (grades 7–8, 统编版 textbooks) and high-school students (《中外历史纲要（上）》), plus their teachers. They should be able to **see** history in space and time: where and when an event happened, what the country looked like then, and how events connect. The app helps students review exam points (考点) rather than replacing the textbook.
 
 ## Principles
-1. **The map is the hero.** UI chrome is small and translucent, and stays at the edges. Panels slide away during animations, and the camera re-frames itself around open panels.
+1. **The map is the hero.** UI chrome is small, stays at the edges and is styled as mounted paper scrolls (装裱): rice-paper panels in brocade mounts, a hanging-scroll info panel, a hand-scroll timeline and a cinnabar seal. Panels slide away during animations, and the camera re-frames itself around open panels.
 2. **Every event can be watched.** A flagship event has a scripted animation; every other event gets an automatic fly-in, model and caption.
 3. **Bilingual everywhere.** All content and UI strings carry `{ zh, en }`, and switching language never reloads the page.
 4. **Textbook-aligned.** Each event lists its textbook units, and the Learn drawer mirrors the books' unit structure.
@@ -14,7 +14,7 @@ Chinese middle-school (grades 7–8, 统编版 textbooks) and high-school studen
 ## Features (phase 1)
 | Area | Behaviour |
 |---|---|
-| Scene | 3D terrain relief of East Asia, territory overlay with crossfades, polity labels, period place names, capital marker model, event pins; pan / rotate / zoom (mouse, touch, keyboard) |
+| Scene | 3D terrain relief of East Asia, territory overlay with crossfades, polity labels, period place names (a modern name is never printed before it was in use), capital marker model, event pins; pan / rotate / zoom (mouse, touch, keyboard) |
 | Timeline | Non-linear axis about 1 Ma → today; age headings; era bands (click opens the era card); event dots with tooltips; drag, click, arrow keys, auto-play; readout shows year, era and ruler |
 | Event card | Info panel with a live 3D model preview (turntable); category, year, place, importance, watched status; summary; key points; people; textbook units; prev/next; Play animation; Wikipedia; mark as learned |
 | Era card | Era summary, dates, capital, prev/next era, Wikipedia, list of its events |

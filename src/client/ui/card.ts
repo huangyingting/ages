@@ -98,7 +98,7 @@ export class Card {
     void this.preview.show(model);
     fill(this.heroTag,
       h('span', { class: 'type-chip', style: `--k:${color}`, text: tag }),
-      idx ? h('span', { class: 'cat-idx' }, `#${String(idx[0]).padStart(4, '0')}`, h('small', { text: ` / ${idx[1]}` })) : null);
+      idx ? h('span', { class: 'cat-idx' }, String(idx[0]), h('small', { text: ` / ${idx[1]}` })) : null);
     const mini = this.el.classList.contains('mini');
     fill(this.nav,
       prev ? iconBtn('prev', t('prev'), prev) : null,
