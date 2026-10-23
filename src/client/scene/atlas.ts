@@ -3,7 +3,7 @@ import { EVENTS } from '../../shared/data/events.ts';
 import { tr, type Lang } from '../../shared/data/i18n.ts';
 import { RIVER_LABELS, WORKS, type Person } from '../../shared/data/jiangshan.ts';
 import { PLACE, PLACES, isCapital, mapName } from '../../shared/data/places.ts';
-import { sceneryOf } from '../../shared/data/scenery.ts';
+import { lifeEvent, sceneryOf } from '../../shared/data/scenery.ts';
 import type { LifeItem } from '../../shared/data/life.ts';
 import { POLITY, polityMatches } from '../../shared/data/polities.ts';
 import { STAGES, type StageId } from '../../shared/data/stage.ts';
@@ -29,6 +29,8 @@ import { View, type CamPose } from './view.ts';
 interface Mark {
   key: string;
   g: THREE.Object3D;
+  /** the event whose pin this model stands in for (its landmark or model, or a life item about the same thing) */
+  event?: string;
   icon: string;
   info: () => { title: string; sub: string };
   open: () => void;
@@ -123,7 +125,7 @@ export class Atlas {
     this.fx = new Fx(this.view, this.geo, this.labels);
     this.view.jump(this.geo.stage.home);
     this.hoverHalo = new Halo(this.geo, '#22c3e6', '#7fe3ff', 6);
-    this.selHalo = new Halo(this.geo, '#e0402f', '#ffc23a', 3.2);
+    this.selHalo = new Halo(this.geo, '#e0402f', '#ffc23a', 3.2, 0.1);
     this.view.scene.add(this.hoverHalo.obj, this.selHalo.obj);
     this.tip = document.createElement('div');
     this.tip.className = 'maptip';
@@ -193,6 +195,10 @@ export class Atlas {
       this.tip.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y - lift - 10)}px) translate(-50%, -100%)`;
     }
     this.hoverHalo.on = !!hv && !this.storyMode;
+    // a pin steps aside while a model on the map stands for its event: the model takes the hover and the click
+    const rep = new Set<string>();
+    if (!this.storyMode) for (const m of this.marks) if (m.event && Atlas.live(m)) rep.add(m.event);
+    for (const [id, l] of this.pins) l.off = rep.has(id);
     // the selection ring sits under the open card's object, or at the selected event's spot
     const sm = this.selKey ? this.marks.find(m => m.key === this.selKey && Atlas.live(m)) : undefined;
     if (sm) {
@@ -589,7 +595,7 @@ export class Atlas {
     el.querySelector('.t')!.textContent = tr(e.title, this.lang);
     el.setAttribute('aria-label', tr(e.title, this.lang));
     el.addEventListener('click', ev => { ev.stopPropagation(); this.setHover(null); this.onPin(e); });
-    const enter = () => { if (!this.storyMode && !el.classList.contains('sel')) this.setHover({ pin: e, label: this.pins.get(e.id)! }); };
+    const enter = () => { if (!this.storyMode) this.setHover({ pin: e, label: this.pins.get(e.id)! }); };
     const leave = () => { if (this.hover && 'pin' in this.hover && this.hover.pin === e) this.setHover(null); };
     el.addEventListener('pointerenter', enter);
     el.addEventListener('pointerleave', leave);
@@ -644,19 +650,21 @@ export class Atlas {
       const scale = s.kind === 'person' ? 2.1 : s.kind === 'food' ? 1.5 : s.kind === 'custom' ? 1.6 : 1.7;
       this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale, yaw: s.yaw, maxD: minor ? 32 : undefined }, 'scenery').then(g => {
         if (!g || this.sceneryKey !== key) return;
+        const twin = l ? lifeEvent(l) : undefined;
         if (l) {
           this.addMark({
-            key: `life:${l.id}`, g, icon: l.kind, open: () => this.onLife(l),
+            key: `life:${l.id}`, g, icon: l.kind, event: twin?.id, open: () => this.onLife(l),
             info: () => ({ title: tr(l.name, this.lang), sub: l.kind === 'person' && l.person ? tr(l.person.title, this.lang) : `${ui(l.kind)} · ${tr(era.name, this.lang)}` }),
           });
         } else if (p) {
           this.addMark({ key: `person:${p.id}`, g, icon: 'person', open: () => this.onPerson(p), info: () => ({ title: tr(p.name, this.lang), sub: tr(p.title, this.lang) }) });
         } else if (ev) {
-          this.addMark({ key: `event:${ev.id}`, g, icon: ev.kind, open: () => this.onPin(ev), info: () => ({ title: tr(ev.title, this.lang), sub: this.eventSub(ev) }) });
+          this.addMark({ key: `event:${ev.id}`, g, icon: ev.kind, event: ev.id, open: () => this.onPin(ev), info: () => ({ title: tr(ev.title, this.lang), sub: this.eventSub(ev) }) });
         }
-        // only a landmark steps aside for its event's own model; people stand apart and stay
-        if (s.kind !== 'landmark' || !s.event) return;
-        this.sceneryMarks.set(s.event, g);
+        // a landmark (or a life item about the same thing) steps aside for its event's own model; people stay
+        const stand = s.kind === 'landmark' ? s.event : twin?.id;
+        if (!stand) return;
+        this.sceneryMarks.set(stand, g);
         this.syncScenery();
       });
     }
@@ -677,7 +685,7 @@ export class Atlas {
 
   // ------------------------------------------------------------ selection
 
-  /** Selects an event: highlights its pin, raises its model and (optionally) flies there. */
+  /** Selects an event: lights its pin, raises its model (the pin then steps aside), rings it and (optionally) flies there. */
   select(e: HistEvent | null, fly = true): void {
     const prev = this.selected;
     this.selected = e;
@@ -693,10 +701,9 @@ export class Atlas {
     l.el.classList.add('sel');
     if (this.layers.models && e.model) {
       this.fx.spawn({ lon: e.lon, lat: e.lat, model: e.model }, 'event').then(g => {
-        if (g) this.addMark({ key: `event:${e.id}`, g, icon: e.kind, open: () => this.onPin(e), info: () => ({ title: tr(e.title, this.lang), sub: this.eventSub(e) }) });
+        if (g) this.addMark({ key: `event:${e.id}`, g, icon: e.kind, event: e.id, open: () => this.onPin(e), info: () => ({ title: tr(e.title, this.lang), sub: this.eventSub(e) }) });
       });
     }
-    this.fx.ring(this.geo.pos(e.lon, e.lat, 0.02), '#ffd76a', 1.2, 'event');
     if (fly) this.view.flyTo({ lon: e.lon, lat: e.lat - 1.2, dist: Math.min(this.view.pose().dist, 26), tilt: 0.85 }, 1.6);
   }
 

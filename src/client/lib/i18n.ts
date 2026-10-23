@@ -58,6 +58,7 @@ const S = {
   food: { zh: '饮食', en: 'Food' },
   lifeOf: { zh: '建筑 · 风俗 · 饮食', en: 'Buildings, customs & food' },
   sameEra: { zh: '同时代风物', en: 'More from this age' },
+  relEvent: { zh: '相关史事', en: 'Related event' },
   journey: { zh: '行迹', en: 'Journey' },
   help: { zh: '帮助', en: 'Help' },
   territory: { zh: '疆域', en: 'Territories' },

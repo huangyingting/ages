@@ -12,6 +12,7 @@ import { fill, h, icon, iconBtn } from './dom.ts';
 import { Preview } from './preview.ts';
 import { personModel, placeModel } from '../../shared/data/heroes.ts';
 import { lifeOf, type LifeItem, type LifeKind } from '../../shared/data/life.ts';
+import { lifeEvent } from '../../shared/data/scenery.ts';
 
 export interface CardHooks {
   play(e: HistEvent): void;
@@ -217,6 +218,7 @@ export class Card {
     const go = (k: number) => this.hooks.life(all[(i + k + all.length) % all.length]);
     this.setHero(l.model, t(l.kind), LIFE_COLOR[l.kind], [i + 1, all.length], () => go(-1), () => go(1));
     const others = all.filter(x => x !== l);
+    const twin = lifeEvent(l);
     fill(this.body,
       this.title(era ? this.eyebrow(tr(era.name, L)) : null, tr(l.name, L), l.person ? tr(l.person.title, L) : null),
       tr(l.desc, L) ? h('p', { class: 'sum', text: tr(l.desc, L) }) : null,
@@ -225,6 +227,7 @@ export class Card {
         l.person ? h('button', { type: 'button', class: 'btn primary', onclick: () => this.hooks.person(l.person!) }, icon('book'), h('span', { text: t('person') })) : null,
         h('button', { type: 'button', class: 'btn', onclick: () => this.hooks.fly(l.lon, l.lat) }, icon('pin'), h('span', { text: t('map') })),
         this.wikiBtn(l.wiki, tr(l.name, L))),
+      twin ? this.sec(t('relEvent'), true, this.evList([twin])) : null,
       others.length ? this.sec(t('sameEra'), true, h('div', { class: 'people' }, ...others.map(x =>
         h('button', { type: 'button', class: `chip link life-chip k-${x.kind}`, onclick: () => this.hooks.life(x) }, tr(x.name, L))))) : null,
     );

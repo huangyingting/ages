@@ -8,6 +8,7 @@ import { animate, rig } from './animate.ts';
 import type { Geo } from './geo.ts';
 import type { Label, Labels } from './labels.ts';
 import type { View } from './view.ts';
+import { INK, ink } from './ink.ts';
 
 export type FxKind = 'battle' | 'fire' | 'glow' | 'flag' | 'smoke' | 'firework';
 /** story: the playing animation · event: the selected event's model · base: the capital · scenery: the dynasty's landmarks and people · works */
@@ -229,9 +230,9 @@ export class Fx {
     g.setAttribute('position', attr);
     g.setIndex(idx);
     lay(width);
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const mat = ink(new THREE.MeshBasicMaterial({ color, opacity, side: THREE.DoubleSide }));
     const mesh = new THREE.Mesh(g, mat);
-    mesh.renderOrder = 3;
+    mesh.renderOrder = INK.ribbon;
     const reveal = (k: number) => {
       const d = k * path.total;
       let i = 0;
@@ -245,8 +246,8 @@ export class Fx {
   private arrowHead(color: string, size: number): THREE.Mesh {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-size * 0.6, 0, -size * 0.2, size * 0.6, 0, -size * 0.2, 0, 0, size * 0.9]), 3));
-    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide }));
-    m.renderOrder = 4;
+    const m = new THREE.Mesh(g, ink(new THREE.MeshBasicMaterial({ color, opacity: 0.95, side: THREE.DoubleSide })));
+    m.renderOrder = INK.dart;
     return m;
   }
 
@@ -332,16 +333,15 @@ export class Fx {
     lay(built);
     // the shader writes sRGB directly (like the terrain), while THREE.Color holds linear values
     const v3 = (c: THREE.Color) => { const k = c.clone().convertLinearToSRGB(); return new THREE.Vector3(k.r, k.g, k.b); };
-    const mat = new THREE.ShaderMaterial({
-      vertexShader: TRAIL_VERT, fragmentShader: TRAIL_FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide,
-      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+    const mat = ink(new THREE.ShaderMaterial({
+      vertexShader: TRAIL_VERT, fragmentShader: TRAIL_FRAG, side: THREE.DoubleSide,
       uniforms: {
         uBody: { value: v3(C.body) }, uRim: { value: v3(C.rim) }, uLight: { value: v3(C.light) }, uPaper: { value: new THREE.Vector3(0.984, 0.953, 0.875) },
         uB: { value: BODY / SHADOW }, uR: { value: RIM / SHADOW }, uFlow: { value: 0 }, uPeriod: { value: 0.8 * built }, uOpacity: { value: 1 },
       },
-    });
+    }));
     const mesh = new THREE.Mesh(g, mat);
-    mesh.renderOrder = 4;
+    mesh.renderOrder = INK.trail;
     const reveal = (k: number) => {
       const d = k * path.total;
       let i = 0;
@@ -355,19 +355,18 @@ export class Fx {
       const hg = new THREE.BufferGeometry();
       hg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts.flatMap(([x, z]) => [x, 0, z])), 3));
       if (cols) hg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(cols.flatMap(k => [k.r, k.g, k.b])), 3));
-      const m = new THREE.Mesh(hg, new THREE.MeshBasicMaterial({
-        color: cols ? '#ffffff' : c, vertexColors: !!cols, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
-        polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
-      }));
+      const m = new THREE.Mesh(hg, ink(new THREE.MeshBasicMaterial({
+        color: cols ? '#ffffff' : c, vertexColors: !!cols, opacity, side: THREE.DoubleSide, toneMapped: false,
+      })));
       m.renderOrder = order;
       return m;
     };
     const T = [0, 1], R = [0.55, -0.2], N = [0, 0.14], L = [-0.55, -0.2];
     const grow = (k: number, [x, z]: number[]) => [x * k, 0.2 + (z - 0.2) * k];
     const tri = (k: number) => [T, L, N, T, N, R].map(p => grow(k, p));
-    const face = dart(tri(1), [C.light, C.light, C.light, C.dark, C.dark, C.dark], '#fff', 1, 7);
-    const rim = dart(tri(1.16), null, '#' + C.rim.getHexString(THREE.SRGBColorSpace), 1, 6);
-    const shadow = dart(tri(1.3), null, '#1c140c', 0.22, 5);
+    const face = dart(tri(1), [C.light, C.light, C.light, C.dark, C.dark, C.dark], '#fff', 1, INK.dart);
+    const rim = dart(tri(1.16), null, '#' + C.rim.getHexString(THREE.SRGBColorSpace), 1, INK.dartRim);
+    const shadow = dart(tri(1.3), null, '#1c140c', 0.22, INK.dartShadow);
     const head = new THREE.Group().add(shadow, rim, face);
     shadow.position.set(0.05, -0.002, -0.06);
     const obj = new THREE.Group().add(mesh, head);
@@ -881,9 +880,9 @@ export class Fx {
     }
     geo.computeVertexNormals();
     const alpha = 0.7;
-    const mat = new THREE.MeshBasicMaterial({ map: fieldTexture(), transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, side: THREE.DoubleSide });
+    const mat = ink(new THREE.MeshBasicMaterial({ map: fieldTexture(), opacity: 0, side: THREE.DoubleSide }));
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.renderOrder = 1;
+    mesh.renderOrder = INK.field;
     return { mesh, mat, alpha, show: (dur: number) => { void this.tween(dur, x => { mat.opacity = alpha * x; }); } };
   }
 
@@ -1064,9 +1063,9 @@ export class Fx {
     const g = new THREE.Group();
     g.position.copy(p);
     for (let i = 0; i < 3; i++) {
-      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+      const mat = ink(new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }), true);
       const m = new THREE.Mesh(geo, mat);
-      m.renderOrder = 5;
+      m.renderOrder = INK.ring;
       mats.push(mat);
       g.add(m);
     }

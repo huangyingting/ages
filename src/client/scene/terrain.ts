@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Geo, heightOf } from './geo.ts';
+import { INK } from './ink.ts';
 
 /** Loads the stage heightmap PNG as raw bytes (no colour-space conversion or premultiplication). */
 export async function loadHeightmap(url: string): Promise<{ rgba: Uint8Array; w: number; h: number }> {
@@ -199,6 +200,8 @@ export function buildTerrain(geo: Geo, lowfx: boolean): Terrain {
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms, extensions: { derivatives: true } as never });
   const mesh = new THREE.Mesh(pg, mat);
   mesh.name = 'terrain';
+  // drawn first so map ink (routes, rings) can paint over it without depth testing
+  mesh.renderOrder = INK.terrain;
 
   return { mesh, uniforms };
 }

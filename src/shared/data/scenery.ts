@@ -1,7 +1,8 @@
 import { EVENTS } from './events.ts';
 import { personModel } from './heroes.ts';
 import { personNamed, type Person } from './jiangshan.ts';
-import { lifeOf, type LifeItem, type LifeKind } from './life.ts';
+import { LIFE, lifeOf, type LifeItem, type LifeKind } from './life.ts';
+import { ERAS } from './eras.ts';
 import { PLACE } from './places.ts';
 import type { Era, HistEvent, I18n, ModelRecipe } from './types.ts';
 
@@ -108,4 +109,23 @@ export function sceneryOf(era: Era, events: HistEvent[] = EVENTS): SceneryItem[]
     people.push({ event: e.id, kind: 'person', ...at, model: bare(personModel(p)), name: p.name, person: p, tier: 2, yaw: -0.4 });
   }
   return [...life, ...marks, ...people];
+}
+
+let twins: Map<string, HistEvent> | null = null;
+/**
+ * The textbook event a life item stands for (same Wikipedia article or title, in its dynasty, on the same spot):
+ * 赵州桥 the building and 赵州桥 the event. On the map the model then speaks for the event and its pin steps aside.
+ */
+export function lifeEvent(l: LifeItem): HistEvent | undefined {
+  if (!twins) {
+    twins = new Map();
+    for (const x of LIFE) {
+      const era = ERAS.find(e => e.id === x.era);
+      if (!era) continue;
+      const e = EVENTS.find(e => e.scope === 'china' && e.year >= era.start && e.year <= era.end && Math.hypot(e.lon - x.lon, e.lat - x.lat) < 0.3 &&
+        ((!!e.wiki?.zh && e.wiki.zh === x.wiki?.zh) || e.title.zh === x.name.zh));
+      if (e) twins.set(x.id, e);
+    }
+  }
+  return twins.get(l.id);
 }
