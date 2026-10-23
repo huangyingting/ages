@@ -1,9 +1,9 @@
 {
-  "name": "shanhe-atlas",
+  "name": "ages",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "山河史境 Shanhe Atlas: a 3D, animated, bilingual atlas for learning Chinese history (middle & high school)",
+  "description": "长河 Ages: a 3D, animated, bilingual atlas for learning Chinese history (middle & high school)",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && vite build",

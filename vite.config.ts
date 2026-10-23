@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 
-// BASE_PATH: URL prefix when hosted below the domain root (e.g. "/shanhe/" on GitHub Pages).
+// BASE_PATH: URL prefix when hosted below the domain root (e.g. "/ages/" on GitHub Pages).
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
   server: { port: 5174, hmr: process.env.NOHMR ? false : undefined },

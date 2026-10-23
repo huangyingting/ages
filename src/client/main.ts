@@ -144,7 +144,7 @@ class App {
   }
 
   private saveYear(y: Year): void {
-    try { localStorage.setItem('shanhe:year', String(y)); } catch { /* ignore */ }
+    try { localStorage.setItem('ages:year', String(y)); } catch { /* ignore */ }
     if (!this.card.event) writeLink({ year: y, lang });
   }
 
@@ -289,7 +289,7 @@ class App {
     set('.b-learn', 'learn'); set('.b-quiz', 'quiz'); set('.b-layers', 'layers'); set('.b-home', 'home'); set('.b-help', 'help');
     const d = this.root.querySelector('.disc');
     if (d) d.textContent = t('disclaimer');
-    document.title = lang === 'zh' ? '山河 · 3D 中国历史地图' : 'Shanhe · 3D Atlas of Chinese History';
+    document.title = lang === 'zh' ? '长河 · 3D 中国历史地图' : 'Ages · 3D Atlas of Chinese History';
   }
 
   /** Test/automation hook: CSS-pixel position of a map point. */

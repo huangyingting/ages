@@ -3,7 +3,7 @@ import type { EventKind, Lang } from '../../shared/data/types.ts';
 import { load, save } from './storage.ts';
 
 const S = {
-  brand: { zh: '山河', en: 'Shanhe' },
+  brand: { zh: '长河', en: 'Ages' },
   brandSub: { zh: '3D 中国历史地图', en: '3D Atlas of Chinese History' },
   search: { zh: '搜索事件、朝代、地点…', en: 'Search events, dynasties, places…' },
   noHits: { zh: '没有找到', en: 'No matches' },
@@ -82,7 +82,7 @@ const S = {
   credits: { zh: '地形：AWS Terrain Tiles（SRTM、GMTED、ETOPO1）。背景阅读：维基百科（CC BY-SA）。', en: 'Terrain: AWS Terrain Tiles (SRTM, GMTED, ETOPO1). Background reading: Wikipedia (CC BY-SA).' },
   phase2: { zh: '即将推出：世界历史。', en: 'Coming next: world history.' },
   webgl: { zh: '你的浏览器不支持 WebGL，无法显示 3D 地图。', en: 'Your browser does not support WebGL, so the 3D map cannot be shown.' },
-  loadingMap: { zh: '正在加载山河…', en: 'Loading the map…' },
+  loadingMap: { zh: '正在加载长河…', en: 'Loading the map…' },
 } satisfies Record<string, Record<Lang, string>>;
 
 export type Key = keyof typeof S;

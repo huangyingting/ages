@@ -1,6 +1,6 @@
 /** Small localStorage wrapper (silently in-memory when storage is unavailable, e.g. private mode). */
 const mem = new Map<string, string>();
-const KEY = 'shanhe:';
+const KEY = 'ages:';
 
 export function load<T>(k: string, d: T): T {
   try {

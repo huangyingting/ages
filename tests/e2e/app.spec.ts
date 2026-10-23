@@ -1,14 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { mockWikipedia, openApp, shot, state, watchErrors } from './helpers.ts';
 
-test.describe('Shanhe atlas', () => {
+test.describe('Ages atlas', () => {
   test('boots into the map and switches between English and Chinese', async ({ page }) => {
     const errs = watchErrors(page);
     await openApp(page, 'y=-221&lang=en');
     let s = await state(page);
     expect(s).toMatchObject({ ready: true, year: -221, lang: 'en', snapshot: 'qin' });
     await expect(page.locator('.tl-year')).toHaveText('221 BCE');
-    await expect(page.locator('.brand b')).toHaveText('Shanhe');
+    await expect(page.locator('.brand b')).toHaveText('Ages');
     await expect(page.locator('.labels .polity[data-polity=qin]').first()).toContainText('Qin');
     await shot(page, 'desktop-home-en');
 

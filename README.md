@@ -1,4 +1,6 @@
-# 山河 Shanhe · 3D Atlas of Chinese History
+# 长河 Ages · 3D Atlas of Chinese History
+
+**Live:** https://huangyingting.github.io/ages/
 
 A bilingual (中文 / English), animated 3D atlas for learning Chinese history at middle-school and high-school level. Drag the timeline from the Stone Age to today and the territory map repaints itself on a real terrain relief. Tap an event to read its key points and the textbook units it belongs to. Press **Play animation** to watch the event unfold: armies march, walls and canals build themselves, and fleets sail across the map. Procedural 3D models (palaces, chariots, treasure ships, steam trains, rockets) mark each event, and Wikipedia sits one click away for background reading.
 
@@ -27,7 +29,7 @@ npm run dev            # http://localhost:5173
 npm run build          # typecheck + production build → dist/
 npm run preview        # serve dist/ on http://localhost:4173
 ```
-The app is fully static: deploy `dist/` to any static host. Only the Wikipedia reader needs network access, and it calls the public MediaWiki API directly from the browser.
+The app is fully static: deploy `dist/` to any static host. Pushes to `main` publish to GitHub Pages via `.github/workflows/pages.yml` (built with `BASE_PATH=/ages/`). Only the Wikipedia reader needs network access, and it calls the public MediaWiki API directly from the browser.
 
 ## URL flags
 | Flag | Effect |

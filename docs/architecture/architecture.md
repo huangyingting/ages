@@ -66,7 +66,7 @@ Content carries `I18n = { zh, en }`. UI strings live in `client/lib/i18n.ts`. `s
 The card, reader and drawer cover parts of the screen. `App.updateInset()` measures them and calls `View.setInset(left, right, bottom)`, which shifts the projection centre with `camera.setViewOffset`. Every flight and story frames its subject in the visible area, with no per-call maths. During stories the panels hide and the inset eases back to zero.
 
 ## Persistence
-Persistence uses `localStorage` with the `shanhe:` prefix: language, last year, chosen book, and progress (watched, learned, best quiz score). There is no backend.
+Persistence uses `localStorage` with the `ages:` prefix: language, last year, chosen book, and progress (watched, learned, best quiz score). There is no backend.
 
 ## Testing
 * **Vitest** (`tests/unit`): data integrity (ids, references, coordinates inside the stage, bilingual completeness, curriculum refs, story steps, snapshot order), timeline/search/quiz logic, and that every model kind builds.
