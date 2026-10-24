@@ -6,6 +6,7 @@ import { PLACE, PLACES, isCapital, mapName, riverName } from '../../shared/data/
 import { lifeEvent, sceneryOf } from '../../shared/data/scenery.ts';
 import type { LifeItem } from '../../shared/data/life.ts';
 import { POLITY, polityMatches } from '../../shared/data/polities.ts';
+import { capitalModel } from '../../shared/data/heroes.ts';
 import { STAGES, type StageId } from '../../shared/data/stage.ts';
 import { snapshotAt } from '../../shared/data/territories.ts';
 import { previousSnap } from '../../shared/lib/chronicle.ts';
@@ -204,6 +205,15 @@ export class Atlas {
     const rep = new Set<string>();
     if (!this.storyMode) for (const m of this.marks) if (m.event && Atlas.live(m)) rep.add(m.event);
     for (const [id, l] of this.pins) l.off = rep.has(id);
+    // the capital's name stands just above its model, so the name and the building never cover each other
+    for (const m of this.marks) {
+      if (!m.key.startsWith('capital:')) continue;
+      const l = this.placeLabels.get(m.key.slice(8));
+      if (!l) continue;
+      const ud = m.g.userData as SpawnState;
+      if (Atlas.live(m)) { l.pos.copy(m.g.position); l.pos.y += ud.top + 0.04; l.anchor = 'above'; }
+      else if (l.anchor) { const p = PLACE.get(m.key.slice(8))!; this.geo.pos(p.lon, p.lat, 0.05, l.pos); l.anchor = undefined; }
+    }
     // the selection ring sits under the open card's object, or at its spot on the map
     const sm = this.selKey ? this.marks.find(m => m.key === this.selKey && Atlas.live(m)) : undefined;
     if (sm) {
@@ -638,9 +648,8 @@ export class Atlas {
     this.capitalKey = key;
     this.fx.clear('base');
     if (cap && key) {
-      const modern = this.year >= 1840;
       const eraName = era!.name;
-      this.fx.spawn({ lon: cap.lon, lat: cap.lat, model: modern ? { kind: 'monument' } : { kind: 'palace' }, scale: 1.9, yaw: 0 }, 'base').then(g => {
+      this.fx.spawn({ lon: cap.lon, lat: cap.lat, model: capitalModel(era!), scale: 1.9, yaw: 0, ring: KIND_COLOR.capital }, 'base').then(g => {
         if (!g) return;
         this.addMark({
           key: `capital:${cap.id}`, g, icon: 'capital', open: () => this.onPlace(cap),
@@ -673,7 +682,7 @@ export class Atlas {
       const ev = !p && !l && s.event ? EVENTS.find(x => x.id === s.event) : undefined;
       const minor = s.tier === 2;
       const scale = s.kind === 'person' ? 2.1 : s.kind === 'food' ? 1.5 : s.kind === 'custom' ? 1.6 : 1.7;
-      this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale, yaw: s.yaw, maxD: minor ? 32 : undefined }, 'scenery').then(g => {
+      this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale, yaw: s.yaw, maxD: minor ? 32 : undefined, ring: KIND_COLOR[s.kind] }, 'scenery').then(g => {
         if (!g || this.sceneryKey !== key) return;
         const twin = l ? lifeEvent(l) : undefined;
         if (l) {
@@ -725,7 +734,7 @@ export class Atlas {
     l.pinned = true;
     l.el.classList.add('sel');
     if (this.layers.models && e.model) {
-      this.fx.spawn({ lon: e.lon, lat: e.lat, model: e.model }, 'event').then(g => {
+      this.fx.spawn({ lon: e.lon, lat: e.lat, model: e.model, ring: KIND_COLOR.landmark }, 'event').then(g => {
         if (g) this.addMark({ key: `event:${e.id}`, g, icon: e.kind, event: e.id, open: () => this.onPin(e), info: () => ({ title: tr(e.title, this.lang), sub: this.eventSub(e) }) });
       });
     }
@@ -794,6 +803,11 @@ export class Atlas {
 
 /** Chronicle (imported) events are pinned within ±CHRONICLE_WINDOW years, re-evaluated every CHRONICLE_STEP years. */
 const CHRONICLE_WINDOW = 12, CHRONICLE_STEP = 6;
+
+/** Type colours of map items: the base ring each model stands in, matching the tooltip glyphs (.k-* in styles.css). */
+const KIND_COLOR: Record<string, string> = {
+  capital: '#b8322a', person: '#b8322a', building: '#7d5a32', landmark: '#7d5a32', custom: '#2c6e5c', food: '#b4652a',
+};
 
 /** Even-odd point-in-polygon over all rings (holes included). */
 function inside(rings: LonLat[][], x: number, y: number): boolean {

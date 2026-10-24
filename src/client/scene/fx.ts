@@ -60,6 +60,18 @@ interface Tween { dur: number; t: number; fn: (k: number) => void; done: () => v
  * stand about 20 px tall at every zoom and read as real 3D figures rather than specks.
  */
 const FIG = 0.7, GAP = 0.5;
+/** Animation timing standard (seconds): models rise in RISE, story marks hold HOLD after they finish, then fade over FADE. */
+const RISE = 0.7, HOLD = 3, FADE = 0.8;
+/** Variants of the one route stroke: weight (1 = journey), dashes for planned/uncertain routes, dimmed for a retreat. */
+interface StrokeOpts { weight?: number; dashed?: boolean; dim?: boolean }
+/** One style per kind of great work, shared by the build animation and the permanent works layer (widths are world units). */
+const WORK = {
+  wall: { w: 0, c: '#a8916a', a: 1 },
+  canal: { w: 0.075, c: '#2f7fc4', a: 0.9 },
+  sea: { w: 0.07, c: '#1f5f8b', a: 0.5 },
+  road: { w: 0.05, c: '#8a5a2b', a: 0.75 },
+  rail: { w: 0.05, c: '#3d3229', a: 0.9 },
+} as const;
 
 /** Model scale for a viewing distance. */
 const scaleFor = (d: number) => THREE.MathUtils.clamp(d * 0.028, 0.09, 1.5);
@@ -81,6 +93,8 @@ export class Fx {
   private particles: Particles;
   private missiles = new Missiles();
   private shadowTex = blobTexture();
+  /** shared geometry of the base rings map items stand in */
+  private baseRing = new THREE.RingGeometry(0.92, 1, 64).rotateX(-Math.PI / 2);
   /** the story year: troops are equipped for its period */
   year = 1000;
   speed = 1;
@@ -245,33 +259,6 @@ export class Fx {
     return { mesh, reveal, mat, setWidth: lay };
   }
 
-  private arrowHead(color: string, size: number): THREE.Mesh {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-size * 0.6, 0, -size * 0.2, size * 0.6, 0, -size * 0.2, 0, 0, size * 0.9]), 3));
-    const m = new THREE.Mesh(g, ink(new THREE.MeshBasicMaterial({ color, opacity: 0.95, side: THREE.DoubleSide })));
-    m.renderOrder = INK.dart;
-    return m;
-  }
-
-  /** The classic story arrow: a ribbon fixed at the scale it was drawn at, with its head riding the tip. */
-  private thinArrow(path: Path, color: string, width: number, head: number, opacity: number, taper: boolean): Arrow {
-    const rb = this.ribbon(path, width, color, opacity, taper);
-    const hd = this.arrowHead(color, head);
-    const obj = new THREE.Group().add(rb.mesh, hd);
-    const tmp = new THREE.Vector3();
-    return {
-      obj, own: [rb.mesh.geometry, rb.mat, hd.geometry, hd.material as THREE.Material],
-      reveal: rb.reveal,
-      frame: (k, _sc, carried) => {
-        const a = this.at(path, k, tmp);
-        hd.position.copy(a.pos).setY(a.pos.y + 0.012);
-        hd.rotation.y = Math.atan2(a.dir.x, a.dir.z);
-        hd.visible = k < 0.999 || !carried;
-      },
-      fade: x => { rb.mat.opacity = opacity * (1 - x); hd.visible = false; },
-    };
-  }
-
   /** Journey-trail colour: the journey's own hue, enriched just enough to read on the terrain (neutral inks stay ink). */
   private trailColors(color: string): { body: THREE.Color; rim: THREE.Color; light: THREE.Color; dark: THREE.Color } {
     const hsl = { h: 0, s: 0, l: 0 };
@@ -285,11 +272,13 @@ export class Fx {
   /**
    * A journey leg drawn like a brush stroke on the sand table: a rich body with a fine dark rim and a soft shadow, paper
    * dashes flowing along its spine in the direction of travel, and a barbed two-tone arrowhead whose tip lands on the
-   * stop. Its on-screen width is kept at every zoom so earlier legs still read in the closing overview.
+   * stop. Its on-screen width is kept at every zoom so earlier legs still read in the closing overview. This is the one
+   * line design of every moving thing (journeys, routes, armies, fleets); variants only change its weight, break the
+   * body into dashes (a planned or uncertain route) or dim it (a retreat). See docs/design/map-design.md.
    */
-  private trailArrow(path: Path, color: string): Arrow {
+  private trailArrow(path: Path, color: string, v: StrokeOpts = {}): Arrow {
     // half-widths in model-scale units: body, rim and shadow (the ribbon spans all three)
-    const BODY = 0.2, RIM = 0.25, SHADOW = 0.34, H = 0.95;
+    const wk = v.weight ?? 1, BODY = 0.2, RIM = 0.25, SHADOW = 0.34 * wk, H = 0.95 * wk, OPACITY = v.dim ? 0.55 : 1;
     const C = this.trailColors(color);
     const n = path.p.length;
     const pos = new Float32Array(n * 2 * 3), side = new Float32Array(n * 2), dist = new Float32Array(n * 2), lift = new Float32Array(n);
@@ -339,7 +328,8 @@ export class Fx {
       vertexShader: TRAIL_VERT, fragmentShader: TRAIL_FRAG, side: THREE.DoubleSide,
       uniforms: {
         uBody: { value: v3(C.body) }, uRim: { value: v3(C.rim) }, uLight: { value: v3(C.light) }, uPaper: { value: new THREE.Vector3(0.984, 0.953, 0.875) },
-        uB: { value: BODY / SHADOW }, uR: { value: RIM / SHADOW }, uFlow: { value: 0 }, uPeriod: { value: 0.8 * built }, uOpacity: { value: 1 },
+        uB: { value: (BODY * wk) / SHADOW }, uR: { value: (RIM * wk) / SHADOW }, uFlow: { value: 0 }, uPeriod: { value: 0.8 * built }, uOpacity: { value: OPACITY },
+        uGap: { value: v.dashed ? 1.1 * built : 0 },
       },
     }));
     const mesh = new THREE.Mesh(g, mat);
@@ -370,6 +360,7 @@ export class Fx {
     const rim = dart(tri(1.16), null, '#' + C.rim.getHexString(THREE.SRGBColorSpace), 1, INK.dartRim);
     const shadow = dart(tri(1.3), null, '#1c140c', 0.22, INK.dartShadow);
     const head = new THREE.Group().add(shadow, rim, face);
+    if (v.dim) for (const m of [face, rim, shadow]) (m.material as THREE.MeshBasicMaterial).opacity *= OPACITY;
     shadow.position.set(0.05, -0.002, -0.06);
     const obj = new THREE.Group().add(mesh, head);
     const tmp = new THREE.Vector3();
@@ -378,7 +369,11 @@ export class Fx {
       obj, own: [g, mat, ...[face, rim, shadow].flatMap(m => [m.geometry, m.material as THREE.Material])],
       reveal,
       frame: (x, sc) => {
-        if (Math.abs(sc / built - 1) > 0.06) { built = sc; lay(sc); mat.uniforms.uPeriod.value = 0.8 * sc; }
+        if (Math.abs(sc / built - 1) > 0.06) {
+          built = sc; lay(sc);
+          mat.uniforms.uPeriod.value = 0.8 * sc;
+          if (v.dashed) mat.uniforms.uGap.value = 1.1 * sc;
+        }
         flow += Math.max(0, this.clock - last) * 0.55 * sc;
         last = this.clock;
         mat.uniforms.uFlow.value = flow;
@@ -398,16 +393,15 @@ export class Fx {
         head.rotation.y = Math.atan2(a.dir.x, a.dir.z);
         head.scale.setScalar(size);
       },
-      fade: x => { mat.uniforms.uOpacity.value = 1 - x; head.visible = false; },
+      fade: x => { mat.uniforms.uOpacity.value = OPACITY * (1 - x); head.visible = false; },
     };
   }
 
-  /** Animated route: a tapered arrow that grows along the path, optionally carrying a model at its head. */
+  /** Animated route: the route stroke grows along the path, optionally carrying a model at its head. */
   async route(o: { pts: LonLat[]; dur: number; color?: string; model?: ModelRecipe; label?: string; dashed?: boolean; keep?: boolean; trail?: boolean }, layer: Layer = 'story'): Promise<void> {
     const color = o.color ?? '#c0392b';
-    const s = this.s;
     const path = this.path(o.pts, 0.03);
-    const line = o.trail ? this.trailArrow(path, color) : this.thinArrow(path, color, 0.16 * s, 0.32 * s, o.dashed ? 0.55 : 0.8, !o.dashed);
+    const line = this.trailArrow(path, color, { dashed: o.dashed, weight: o.trail ? 1 : 0.8 });
     const g = new THREE.Group();
     g.add(line.obj);
     const it = this.add({ layer, obj: g, own: line.own });
@@ -441,7 +435,7 @@ export class Fx {
     k = 1;
     line.reveal(1);
     if (!o.keep && layer === 'story') {
-      this.tween(2.5).then(() => this.tween(0.8, x => line.fade(x))).then(() => { if (!carrier) this.remove(it); });
+      this.tween(HOLD).then(() => this.tween(FADE, x => line.fade(x))).then(() => { if (!carrier) this.remove(it); });
     }
   }
 
@@ -456,7 +450,7 @@ export class Fx {
       const n = Math.max(2, Math.floor(path.total / step));
       const seg = new THREE.BoxGeometry(step * 1.05, 0.1 * s, 0.07 * s).translate(0, 0.05 * s, 0);
       const tower = new THREE.BoxGeometry(0.11 * s, 0.17 * s, 0.11 * s).translate(0, 0.085 * s, 0);
-      const mat = new THREE.MeshStandardMaterial({ color: o.color ?? '#b8a27c', roughness: 0.9, flatShading: true });
+      const mat = new THREE.MeshStandardMaterial({ color: o.color ?? WORK.wall.c, roughness: 0.9, flatShading: true });
       const segs = new THREE.InstancedMesh(seg, mat, n), towers = new THREE.InstancedMesh(tower, mat, Math.ceil(n / 6) + 1);
       const mats: THREE.Matrix4[] = [], tmats: THREE.Matrix4[] = [];
       const q = new THREE.Quaternion(), v = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1);
@@ -486,7 +480,8 @@ export class Fx {
       return;
     }
     const canal = o.kind === 'canal';
-    const rb = this.ribbon(path, (canal ? 0.13 : 0.08) * s, o.color ?? (canal ? '#2f7fc4' : '#3d3229'), 0.92);
+    const st = WORK[o.kind];
+    const rb = this.ribbon(path, st.w, o.color ?? st.c, st.a);
     g.add(rb.mesh);
     it.own.push(rb.mesh.geometry, rb.mat);
     let mover: THREE.Object3D | null = null, rigs: ReturnType<typeof rig> = [];
@@ -520,7 +515,7 @@ export class Fx {
         const step = 0.16 * s, n = Math.max(2, Math.floor(path.total / step));
         const seg = new THREE.BoxGeometry(step * 1.05, 0.12 * s, 0.08 * s).translate(0, 0.06 * s, 0);
         const tower = new THREE.BoxGeometry(0.12 * s, 0.22 * s, 0.12 * s).translate(0, 0.11 * s, 0);
-        const mat = new THREE.MeshStandardMaterial({ color: '#a8916a', roughness: 0.9, flatShading: true });
+        const mat = new THREE.MeshStandardMaterial({ color: WORK.wall.c, roughness: 0.9, flatShading: true });
         const segs = new THREE.InstancedMesh(seg, mat, n), towers = new THREE.InstancedMesh(tower, mat, Math.ceil(n / 5));
         const q = new THREE.Quaternion(), v = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), m = new THREE.Matrix4(), up = new THREE.Vector3(0, 1, 0);
         let ti = 0;
@@ -536,7 +531,7 @@ export class Fx {
         it.own.push(seg, tower, mat);
       } else {
         const path = this.path(line, 0.012);
-        const style = o.kind === 'canal' ? { w: 0.075, c: '#2f7fc4', a: 0.9 } : o.kind === 'sea' ? { w: 0.07, c: '#1f5f8b', a: 0.5 } : { w: 0.05, c: '#8a5a2b', a: 0.75 };
+        const style = WORK[o.kind as keyof typeof WORK] ?? WORK.road;
         const rb = this.ribbon(path, style.w, style.c, style.a);
         rb.reveal(1);
         g.add(rb.mesh);
@@ -557,7 +552,7 @@ export class Fx {
     const s = scaleFor(this.view.goalDist);
     const pts = o.pts && o.pts.length >= 2 ? o.pts : bow(o.from ?? o.pts![0], o.to ?? o.pts![o.pts!.length - 1]);
     const path = this.path(pts, 0.035);
-    const line = o.trail ? this.trailArrow(path, o.color) : this.thinArrow(path, o.color, 0.3 * s, 0.6 * s, o.retreat ? 0.45 : 0.72, true);
+    const line = this.trailArrow(path, o.color, { dim: o.retreat, weight: o.trail ? 1 : 1.15 });
     const n = Math.min(48, o.count ?? 30);
     const unit = o.unit ?? 'foot';
     const troops = this.formation(deploy(o.formation ?? 'column', unit, n, this.year), o.color, unit);
@@ -611,7 +606,7 @@ export class Fx {
     line.reveal(1);
     dust.stop = true;
     if (o.follow) this.followWith(null);
-    if (layer === 'story' && !o.keep) this.tween(3).then(() => this.tween(0.8, x => { line.fade(x); troops.fade(1 - x); fk = 1 - x; })).then(() => this.remove(it));
+    if (layer === 'story' && !o.keep) this.tween(HOLD).then(() => this.tween(FADE, x => { line.fade(x); troops.fade(1 - x); fk = 1 - x; })).then(() => this.remove(it));
   }
 
   /**
@@ -858,7 +853,7 @@ export class Fx {
         it.update = (dt, t, sc) => { prev?.(dt, t, sc); m.scale.setScalar(Math.max(0.001, s * 1.2 * fk * Math.min(1, (this.clock - start) / 0.6))); animate(r, t); };
       }).catch(() => {});
     }
-    if (layer === 'story') this.tween(4).then(() => this.tween(0.8, x => {
+    if (layer === 'story') this.tween(HOLD + 1).then(() => this.tween(FADE, x => {
       fk = 1 - x;
       field.mat.opacity = field.alpha * (1 - x);
       for (const p of props) p.m.scale.setScalar(Math.max(0.001, s * p.k * (1 - x)));
@@ -906,10 +901,10 @@ export class Fx {
   async fleet(o: FleetOpts, layer: Layer = 'story'): Promise<void> {
     const s = this.s, n = Math.min(9, o.count ?? 5);
     const path = this.path(o.pts, 0.02);
-    const rb = this.ribbon(path, 0.1 * s, o.color ?? '#1f5f8b', 0.5);
+    const line = this.trailArrow(path, o.color ?? '#1f5f8b');
     const g = new THREE.Group();
-    g.add(rb.mesh);
-    const it = this.add({ layer, obj: g, own: [rb.mesh.geometry, rb.mat] });
+    g.add(line.obj);
+    const it = this.add({ layer, obj: g, own: line.own });
     const ships: { m: THREE.Object3D; rigs: ReturnType<typeof rig>; wake: ReturnType<Particles['emitter']> }[] = [];
     for (let i = 0; i < n; i++) {
       instance({ kind: o.model ?? 'junk', color: o.color }, true).then(m => {
@@ -922,6 +917,7 @@ export class Fx {
     let k = 0, sailing = true;
     const up = new THREE.Vector3(0, 1, 0), tmp = new THREE.Vector3(), v = new THREE.Vector3();
     it.update = (_dt, t, scale) => {
+      line.frame(k, scale, true);
       const z = Math.min(scale, s * 1.4), gap = 0.75 * z;
       const hd = this.at(path, k, tmp);
       const sideV = new THREE.Vector3().crossVectors(up, hd.dir).normalize();
@@ -941,10 +937,10 @@ export class Fx {
       if (it.label) it.label.pos.copy(hd.pos).setY(1.3 * z);
     };
     if (o.follow) this.followWith(() => tmp);
-    await this.tween(o.dur, x => { k = x; rb.reveal(x); });
+    await this.tween(o.dur, x => { k = x; line.reveal(x); });
     sailing = false;
     if (o.follow) this.followWith(null);
-    if (layer === 'story' && !o.keep) this.tween(3).then(() => { for (const sh of ships) if (sh) sh.wake.stop = true; return this.tween(0.8, x => { rb.mat.opacity = 0.5 * (1 - x); }); }).then(() => this.remove(it));
+    if (layer === 'story' && !o.keep) this.tween(HOLD).then(() => { for (const sh of ships) if (sh) sh.wake.stop = true; return this.tween(FADE, x => line.fade(x)); }).then(() => this.remove(it));
   }
 
   /** A large banner caption standing over a point (battle names, new dynasties). */
@@ -992,6 +988,8 @@ export class Fx {
     label?: string | HTMLElement; labelClass?: string; labelMaxD?: number;
     /** shown only while the camera is within this distance (minor scenery appears as you zoom in) */
     maxD?: number;
+    /** colour of the thin base ring every map item stands in (its type colour, see docs/design/map-design.md) */
+    ring?: string;
   }, layer: Layer = 'story'): Promise<THREE.Object3D | null> {
     const g = new THREE.Group();
     const base = this.geo.pos(o.lon, o.lat, 0);
@@ -1002,6 +1000,13 @@ export class Fx {
     sh.renderOrder = 2;
     g.add(sh);
     const it = this.add({ layer, obj: g, own: [sh.geometry, sh.material as THREE.Material] });
+    let base0: THREE.Mesh | null = null;
+    if (o.ring) {
+      base0 = new THREE.Mesh(this.baseRing, ink(new THREE.MeshBasicMaterial({ color: o.ring, opacity: 0.65, side: THREE.DoubleSide })));
+      base0.renderOrder = INK.ring;
+      g.add(base0);
+      it.own.push(base0.material as THREE.Material);
+    }
     if (o.label) {
       const el = typeof o.label === 'string' ? tag(o.label, o.labelClass ?? 'model') : o.label;
       it.label = this.labels.add({ el, pos: base.clone(), prio: layer === 'scenery' ? 40 : 80, group: layer === 'story' || layer === 'event' ? 'story' : layer, anchor: 'above', maxD: o.labelMaxD });
@@ -1026,7 +1031,9 @@ export class Fx {
       const e = easeBack(grow);
       m.scale.setScalar(Math.max(0.001, z * e));
       sh.scale.setScalar(Math.max(0.001, z * r * 2.6 * Math.min(1, grow * 2)));
+      if (base0) base0.scale.setScalar(Math.max(0.001, z * THREE.MathUtils.clamp(r, 0.22, 0.5) * 1.15 * Math.min(1, grow * 2)));
       if (o.maxD !== undefined) m.visible = sh.visible = this.dist <= o.maxD;
+      if (base0) base0.visible = m.visible;
       ud.top = h * z * e; ud.rad = r * z; ud.shown = m.visible;
       animate(rigs, t, seed);
       if (it.label) it.label.pos.set(base.x, base.y + h * z * e + 0.05 * z, base.z);
@@ -1035,7 +1042,7 @@ export class Fx {
     // the rise uses real time when paused so selected-event models still appear
     const start = performance.now();
     const step = () => {
-      grow = Math.min(1, (performance.now() - start) / 700);
+      grow = Math.min(1, (performance.now() - start) / (RISE * 1000));
       if (grow < 1 && this.items.includes(it)) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
@@ -1211,9 +1218,16 @@ uniform float uR;
 uniform float uFlow;
 uniform float uPeriod;
 uniform float uOpacity;
+uniform float uGap;
 varying float vSide;
 varying float vDist;
 void main() {
+  // a dashed variant breaks the whole stroke into even dashes (planned or uncertain routes)
+  float on = 1.0;
+  if (uGap > 0.0) {
+    float g = fract(vDist / uGap), w = max(fwidth(vDist / uGap), 1e-4);
+    on = smoothstep(0.0, w, g) * (1.0 - smoothstep(0.62 - w, 0.62 + w, g));
+  }
   float a = abs(vSide);
   float aa = max(fwidth(a), 1e-4);
   float body = 1.0 - smoothstep(uB - aa, uB + aa, a);
@@ -1230,7 +1244,7 @@ void main() {
   float shadow = (1.0 - smoothstep(uR, 1.0, a)) * 0.38;
   float alpha = stroke + (1.0 - stroke) * shadow;
   vec3 col = mix(vec3(0.11, 0.08, 0.05), c, stroke / max(alpha, 1e-4));
-  gl_FragColor = vec4(col, alpha * uOpacity);
+  gl_FragColor = vec4(col, alpha * on * uOpacity);
 }`;
 
 const PVERT = /* glsl */ `

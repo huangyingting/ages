@@ -48,6 +48,22 @@ export function withHero(e: HistEvent): HistEvent {
   return { ...e, model: { kind: 'monument', ...e.model, hero } };
 }
 
+/**
+ * The capital's model on the map, one per architectural period so each dynasty's seat looks like its own age: rammed-earth
+ * halls of Erlitou, Zhou terraces, Qin–Han terrace palaces with que towers, the Tang Hanyuan Hall, the Song Xuande Gate,
+ * Yuan Dadu, then the Forbidden City (Ming–Qing) and a monument for modern capitals.
+ */
+export function capitalModel(era: { id: string; start: number }): ModelRecipe {
+  const by: Record<string, string> = {
+    xia: 'cap_erlitou', shang: 'cap_erlitou', wzhou: 'cap_zhou', chunqiu: 'cap_zhou', zhanguo: 'cap_zhou',
+    qin: 'cap_qinhan', whan: 'cap_qinhan', xin: 'cap_qinhan', ehan: 'cap_qinhan', sanguo: 'cap_qinhan', wjin: 'cap_qinhan', ejin: 'cap_qinhan', nanbei: 'cap_qinhan',
+    sui: 'cap_tang', tang: 'cap_tang', wudai: 'cap_tang', liao: 'cap_tang', bsong: 'cap_song', nsong: 'cap_song', xixia: 'cap_song', jin: 'cap_song', yuan: 'cap_yuan',
+  };
+  if (era.start >= 1912) return { kind: 'monument' };
+  const h = by[era.id];
+  return h ? { kind: 'palace', hero: 'capitals/' + h } : { kind: 'palace' };
+}
+
 /** The 3D model shown on a place card: its landmark, else a generic one by kind. */
 export function placeModel(p: Place): ModelRecipe {
   const hero = PLACE_HERO[p.name.zh];

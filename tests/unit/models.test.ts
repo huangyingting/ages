@@ -5,6 +5,8 @@ import { BUILDERS, buildFresh } from '../../src/client/models/kit.ts';
 import { packModel, unpackModel } from '../../src/client/models/pack.ts';
 import { loadPack, parseHero } from '../../src/client/models/heroes/index.ts';
 import { LIFE } from '../../src/shared/data/life.ts';
+import { ERAS } from '../../src/shared/data/eras.ts';
+import { capitalModel } from '../../src/shared/data/heroes.ts';
 
 const stats = (o: THREE.Object3D) => {
   let meshes = 0, tris = 0;
@@ -45,6 +47,24 @@ describe('dynasty life models', () => {
       expect(s.tris, l.id).toBeGreaterThan(20);
       expect(s.tris, l.id).toBeLessThan(130_000);
       expect(g.userData.height as number, l.id).toBeGreaterThan(0.05);
+    }
+  }, 120_000);
+});
+
+describe('period capitals', () => {
+  it('gives each dynasty a capital in its own architecture, built from an existing hero', async () => {
+    const at = (id: string) => capitalModel(ERAS.find(e => e.id === id)!);
+    expect(at('shang').hero).toBe('capitals/cap_erlitou');
+    expect(at('whan').hero).toBe('capitals/cap_qinhan');
+    expect(at('tang').hero).toBe('capitals/cap_tang');
+    expect(at('bsong').hero).toBe('capitals/cap_song');
+    expect(at('qing')).toEqual({ kind: 'palace' });
+    expect(at('prc')).toEqual({ kind: 'monument' });
+    for (const e of ERAS) {
+      const ref = parseHero(capitalModel(e).hero);
+      if (!ref) continue;
+      expect((await loadPack(ref.pack))[ref.name], `${e.id}`).toBeTypeOf('function');
+      expect(stats(buildFresh(capitalModel(e))).tris, e.id).toBeLessThan(130_000);
     }
   }, 120_000);
 });

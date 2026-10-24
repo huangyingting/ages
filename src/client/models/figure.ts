@@ -451,7 +451,8 @@ function hatFor(p: THREE.Object3D, s: Hat, c: string, hy: number, hr: number, u:
     case 'zhanjiao': // Song 展脚幞头: a square cap with long straight wings
       box(p, c, 0, ty + hr * 0.2, -hr * 0.05, hr * 1.9, hr * 0.75, hr * 1.85);
       box(p, c, 0, ty + hr * 0.55, -hr * 0.35, hr * 1.5, hr * 0.6, hr * 1.0);
-      for (const sx of [-1, 1]) box(p, c, sx * hr * 2.9, ty + hr * 0.35, -hr * 0.6, hr * 3.6, hr * 0.08, hr * 0.06);
+      // broad flat straps rather than hairlines, so on the map they read as the hat and not a stray line
+      for (const sx of [-1, 1]) box(p, c, sx * hr * 2.1, ty + hr * 0.35, -hr * 0.6, hr * 2.4, hr * 0.26, hr * 0.06);
       break;
     case 'wusha': // Ming 乌纱帽: low front, raised back, two oval wings
     case 'yishan': // Ming emperor 翼善冠: the same shape with two upright wings and gold trim
