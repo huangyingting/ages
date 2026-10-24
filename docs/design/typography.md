@@ -43,7 +43,8 @@ Polity names are sized by territory area (`s-xl` 26, `s-l` 19, `s-m` 14, `s-s` 1
 
 Interactive text such as tooltips (`.maptip`) and model tags (`.tag`) belongs to the UI, not the map, and is not covered by these tokens.
 
-Clickable names are semantic buttons with a small circular location anchor. When the place has a model, its base ring
+Clickable names are semantic buttons with the same 22 px circular icon as other compact markers; capitals are no larger.
+Hover and keyboard focus highlight only the circle, without underlining text or resizing the icon. When the place has a model, its base ring
 replaces that anchor and the same name sits above the model; both open the same card. Model bounds participate in label
 avoidance, so unrelated names never cover models. There are no separate importance-based model name plates.
 

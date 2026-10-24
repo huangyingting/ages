@@ -339,16 +339,16 @@ export class Atlas {
         } else {
           const l = m.nameLabel?.shown ? m.nameLabel : m.label;
           v.copy(l.pos);
-          this.hoverHalo.place(v.x, v.z, minR * 0.8);
           lift = l.anchor === 'above' ? l.el.offsetHeight : l.el.offsetHeight / 2;
         }
       } else v.copy(hv.at);
       const p = this.view.project(v, v);
       this.tip.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y - lift - 10)}px) translate(-50%, -100%)`;
     }
-    this.hoverHalo.on = !!hv && 'target' in hv && !this.isSelected(hv.target) && !this.storyMode;
+    this.hoverHalo.on = !!hv && 'target' in hv && Atlas.live(hv.target) && !this.isSelected(hv.target) && !this.storyMode;
     // the selection ring sits under the open card's object, or at its spot on the map
     const sm = this.selKey ? this.marks.find(m => this.isSelected(m) && Atlas.onMap(m)) : undefined;
+    const target = sm ?? (this.selKey ? [...this.places.values(), ...this.pins.values()].find(m => this.isSelected(m) && Atlas.onMap(m)) : undefined);
     if (sm && !Atlas.live(sm)) {
       this.selHalo.place(sm.label.pos.x, sm.label.pos.z, minR * 0.9);
     } else if (sm) {
@@ -358,7 +358,7 @@ export class Atlas {
       const p = this.geo.pos(this.selAt[0], this.selAt[1], 0, v);
       this.selHalo.place(p.x, p.z, minR * 0.9);
     }
-    this.selHalo.on = !this.storyMode && !this.pickHandler && (!!sm || !!this.selAt);
+    this.selHalo.on = !this.storyMode && !this.pickHandler && (!target || Atlas.live(target)) && (!!sm || !!this.selAt);
     this.hoverHalo.tick(dt);
     this.selHalo.tick(dt);
   }
@@ -632,6 +632,7 @@ export class Atlas {
       el.type = 'button';
       el.className = `place k-${p.kind} t${p.tier}` + (p.minor ? ' minor' : '');
       el.dataset.place = p.id;
+      el.innerHTML = '<span class="b" aria-hidden="true"></span><span class="t"></span>';
       const l = this.labels.add({
         el, pos: this.geo.pos(p.lon, p.lat, 0.05), group: 'places',
         prio: p.tier === 1 ? 40 : p.tier === 2 ? 22 : 8,
@@ -706,7 +707,8 @@ export class Atlas {
       const text = tr(name, this.lang);
       if (l.el.dataset.text !== text || l.el.classList.contains('cap') !== cap) {
         l.el.dataset.text = text;
-        l.el.textContent = text;
+        l.el.querySelector('.b')!.innerHTML = glyph(target.icon);
+        l.el.querySelector('.t')!.textContent = text;
         l.el.setAttribute('aria-label', text);
         l.el.classList.toggle('cap', cap);
         this.labels.remeasure();

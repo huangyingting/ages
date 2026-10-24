@@ -245,6 +245,78 @@ test.describe('Ages atlas', () => {
     expect(errs).toEqual([]);
   });
 
+  test('location icons match compact markers and highlight only their rings', async ({ page }) => {
+    const errs = watchErrors(page);
+    await openApp(page, 'y=700&lang=en');
+    await page.evaluate(() => {
+      const a = (window as unknown as { __atlas: { atlas: { setLayer(k: 'models', on: boolean): void } } }).__atlas.atlas;
+      a.setLayer('models', false);
+    });
+    await setMapPose(page, { lon: 110, lat: 34, dist: 30, tilt: 0.8 });
+    const capital = page.locator('.place.cap.on').first();
+    await expect(capital.locator('.b')).toBeVisible();
+    const offset = await capital.locator('.b').evaluate(el => {
+      type Vector3 = import('three').Vector3;
+      const a = (window as unknown as { __atlas: { atlas: {
+        places: Map<string, { label: { pos: Vector3 } }>;
+        view: { canvas: HTMLCanvasElement; project(v: Vector3): Vector3 };
+      } } }).__atlas.atlas;
+      const id = el.closest<HTMLElement>('.place')!.dataset.place!;
+      const p = a.view.project(a.places.get(id)!.label.pos), r = el.getBoundingClientRect();
+      const canvas = a.view.canvas.getBoundingClientRect();
+      return Math.hypot(r.x + r.width / 2 - p.x - canvas.x, r.y + r.height / 2 - p.y - canvas.y);
+    });
+    expect(offset).toBeLessThan(1);
+    const placeId = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('.place.on:not(.cap)')].find(el => {
+        const r = el.querySelector('.b')!.getBoundingClientRect();
+        return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('.place') === el;
+      })?.dataset.place);
+    expect(placeId).toBeTruthy();
+    const place = page.locator(`.place[data-place="${placeId}"]`);
+    const pin = page.locator('.pin.on:not(.model-hit)').first();
+    for (const button of [capital, pin, place]) {
+      const icon = button.locator('.b');
+      const normal = await icon.evaluate(el => {
+        const s = getComputedStyle(el), r = el.getBoundingClientRect();
+        return { width: r.width, height: r.height, background: s.backgroundImage, shadow: s.boxShadow };
+      });
+      expect(normal.width).toBeCloseTo(22, 2);
+      expect(normal.height).toBeCloseTo(22, 2);
+      await button.focus();
+      if (button === place) await button.hover();
+      await expect(button).toHaveCSS('text-decoration-line', 'none');
+      await expect(icon).toHaveCSS('transform', 'none');
+      await expect(icon).toHaveCSS('background-image', normal.background);
+      await expect.poll(() => icon.evaluate(el => getComputedStyle(el).boxShadow)).not.toBe(normal.shadow);
+      for (const size of await icon.evaluate(el => [el.getBoundingClientRect().width, el.getBoundingClientRect().height])) {
+        expect(size).toBeCloseTo(22, 2);
+      }
+      await expect(page.getByRole('tooltip')).toBeVisible();
+    }
+    await page.keyboard.press('Enter');
+    await expect(place).toHaveAttribute('aria-pressed', 'true');
+    await expect(place.locator('.b')).toHaveCSS('border-color', 'rgb(200, 55, 45)');
+    await expect.poll(() => page.evaluate(() => {
+      const a = (window as unknown as { __atlas: { atlas: { hoverHalo: { obj: { visible: boolean } }; selHalo: { obj: { visible: boolean } } } } }).__atlas.atlas;
+      return a.hoverHalo.obj.visible || a.selHalo.obj.visible;
+    })).toBe(false);
+    await page.keyboard.press('Escape');
+    await page.locator('[data-act=lang]').click();
+    for (const dist of [48, 14]) {
+      await setMapPose(page, { lon: 110, lat: 34, dist, tilt: 0.8 });
+      const sizes = await page.locator('.place.on:not(.modeled) .b, .pin.on:not(.model-hit) .b').evaluateAll(els =>
+        [...new Set(els.map(el => { const r = el.getBoundingClientRect(); return `${r.width.toFixed(2)}x${r.height.toFixed(2)}`; }))]);
+      expect(sizes).toEqual(['22.00x22.00']);
+    }
+    await capital.focus();
+    await expect(page.getByRole('tooltip')).toBeVisible();
+    await expect(capital).toHaveCSS('text-decoration-line', 'none');
+    await expect(capital.locator('.b')).toHaveCSS('border-color', 'rgb(34, 195, 230)');
+    await page.screenshot({ path: test.info().outputPath('uniform-location-icons.png') });
+    expect(errs).toEqual([]);
+  });
+
   test('unifies place names, models and compact markers without overlapping map content', async ({ page }) => {
     const errs = watchErrors(page);
     await openApp(page, 'y=700&lang=zh');

@@ -37,13 +37,15 @@ From the ground up (`scene/ink.ts` `INK` orders, then depth-tested models, then 
 | Foods | dish model or compact marker | `#b4652a` | same |
 | Events | kind-glyph pin | kind colour | weight 1 always; weight 2 within distance 75; others within 38; all subject to layout |
 | Selected event | its existing landmark, or an event model if none stands for it | `#7d5a32` | while selected |
-| Clickable places | small circular location anchor and name; a model's base ring replaces the anchor | see typography | by tier and zoom |
+| Clickable places | circular location icon and name; a model's base ring replaces the icon | see typography | by tier and zoom |
 | Works | line and italic label | water blue, road brown, wall stone | the works layer |
 
 **Two forms, one interaction.** The compact form is a round kind glyph, without a stem, glow or second dot. The
 expanded form is a model. Both use the same `MapTarget` interaction path. There is no intermediate dot state.
 Only geographical names remain on the map; people, events, customs and foods introduce themselves in the tooltip.
 Plain river, polity and administrative text is not styled as a button.
+All compact icons, including geographical locations and capitals without models, share a 22 px diameter. Their size
+stays fixed when hovered or focused; only the ring changes. Text is never underlined.
 
 **Importance sets priority, not name plates.** `sceneryOf` retains three priority levels, but they no longer dictate
 three different appearances or sizes. Up to six representative items are given leading priority; this is not a quota
@@ -78,14 +80,15 @@ Invisible keyboard targets follow visible models without reserving extra space.
 
 | Gesture | Result |
 |---|---|
-| Hover or keyboard focus on a model, marker or clickable name | one tooltip (type glyph, name, short subtitle), gentle ×1.06 model/marker growth and one ground highlight |
+| Hover or keyboard focus on a model, marker or clickable name | one tooltip and one highlighted ring; models may grow gently ×1.06, compact icons and text stay unchanged |
 | Hover over open land with the admin layer on | the same tooltip names the area |
 | Click, tap, Enter or Space on a focused object | opens the card directly; the object gets one selection ring, with no second name plate or hover ring |
 | Esc | closes the card and clears the selection |
 
 The model's transparent keyboard target does not intercept map dragging. When its geographical name is visible, only
 the name is in the tab order. Place text uses semantic buttons with a circular anchor; passive map annotations do not.
-Hover and selection use the same thin circle and faint tint, with no repeating pulses or extra outer rings.
+Compact icons highlight their own circular border; models use a ground ring. They never show both highlights at once.
+Hover and selection use a thin circle and faint tint, with no repeating pulses.
 While a story plays, the dynasty scenery steps aside and map-object activation is suspended.
 
 ## 4. Lines: one route stroke

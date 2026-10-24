@@ -22,6 +22,7 @@ export interface Label {
   group: string;
   w?: number;
   h?: number;
+  markerX?: number;
   shown?: boolean;
   /** hidden regardless of zoom (e.g. a place that does not exist in the current year) */
   off?: boolean;
@@ -85,7 +86,11 @@ export class Labels {
       this.dirtySize = true;
     }
     if (this.dirtySize) {
-      for (const l of this.items) { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }
+      for (const l of this.items) {
+        l.w = l.el.offsetWidth; l.h = l.el.offsetHeight;
+        const marker = l.el.querySelector<HTMLElement>('.b');
+        l.markerX = marker ? marker.offsetLeft + marker.offsetWidth / 2 : l.w / 2;
+      }
       this.dirtySize = false;
     }
     const candidates = new Map<Label, LayoutItem>();
@@ -98,7 +103,7 @@ export class Labels {
         if (p.z < -1 || p.z > 1 || x < -40 || y < -40 || x > W + 40 || y > H + 40) show = false;
       }
       const w = l.w ?? 0, h = l.h ?? 0;
-      const left = l.anchor === 'beside' ? x - 7 : x - w / 2, top = l.anchor === 'above' ? y - h : y - h / 2;
+      const left = x - (l.anchor === 'beside' ? l.markerX ?? w / 2 : w / 2), top = l.anchor === 'above' ? y - h : y - h / 2;
       if (show) {
         const bounds = l.modelHit && l.model ? l.model.bounds : { left, top, right: left + w, bottom: top + h };
         candidates.set(l, { bounds, prio: l.prio, pinned: l.pinned, primary: l.primary, owner: l.owner, model: l.model, passive: l.modelHit });

@@ -12,6 +12,10 @@ Chinese middle-school (grades 7–8, 统编版 textbooks) and high-school studen
 6. **Light and offline-friendly.** The app is a static site. Only the Wikipedia reader needs the network, and it fails gracefully without it.
 
 ## Features (phase 1)
+
+Compact map icons, including geographical locations, share a 22 px diameter. Hover and focus change only their ring,
+not their size or text decoration.
+
 | Area | Behaviour |
 |---|---|
 | Scene | 3D terrain relief of East Asia, territory overlay with crossfades, polity labels, period place, river and lake names (a modern name is never printed before it was in use; shifted Yellow River courses and vanished lakes show only in their years), one label type scale ([typography](../design/typography.md)), finer terrain relief streamed in close up, models and labels that grow as you zoom in, a capital model in its period's architecture (Erlitou halls, Zhou terraces, Qin–Han que palace, Tang Hanyuan Hall, Song Xuande Gate, Yuan Dadu, the Forbidden City, then a monument); dynasty people, buildings, customs, foods and event landmarks use one of two forms: compact circular marker or model with a thin type-coloured base ring. Importance controls display priority, and models and labels share screen-space avoidance; only geographical names remain on the map. Clickable names have a small circular location anchor, replaced by their model's base ring; name and model share one tooltip, card and selection ring. Related event pins step aside, and geographical cards retain dynasty-specific background and reading links. Hover or keyboard focus shows a short tooltip and gentle highlight; click, tap, Enter or Space opens the card directly. Selection persists through zoom and takes priority over surrounding content. Routes, trails and rings are painted on the map as unbroken lines and perfect circles that hills never cut; pan / rotate / zoom (mouse, touch, keyboard) |
