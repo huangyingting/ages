@@ -5,7 +5,8 @@
  *
  *   public/data/atlas/shapes.json      geometry, loaded lazily by the scene: deduplicated rings (VLQ, 0.01°),
  *                                      polity / first-level region / prefecture shapes per snapshot, modern
- *                                      provinces (without the nine-dash line, see ADR-009) and lakes.
+ *                                      provinces (without the nine-dash line, see ADR-009), lakes, and the precise
+ *                                      geometry of our own 1940 and PRC maps (`x_*`, derived from the provinces).
  *   src/shared/data/gen/jiangshan.json content bundled with the app: dynasties, snapshot timeline, polities,
  *                                      chronicle events, settlements, passes, city lore, gazetteer, people,
  *                                      journeys, reign eras (年号), walls / canals / routes, river labels, music.
@@ -15,6 +16,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import vm from 'node:vm';
+import pc from 'polygon-clipping';
 import { pinyin } from 'pinyin-pro';
 import { encodeRing } from '../src/shared/lib/rings.ts';
 
@@ -164,6 +166,55 @@ for (const id of Object.keys(shapeSnaps)) {
 const provinces = (W.PROVINCE_OUTLINES as Any[])
   .filter(p => !String(p.code).includes('_JD'))
   .map(p => [nameRef(p.title), p.hub ? pt(p.hub) : null, shapeRings({ type: 'MultiPolygon', coordinates: p.rings })]);
+
+// ------------------------------------------------------------------ modern-era maps from precise outlines
+
+// Our own maps for 1937–45 and the PRC (see src/shared/data/territories.ts) take their borders from the modern
+// provincial outlines: the PRC is their union, and neighbours are clipped against it so shared borders coincide.
+const toMulti = (sh: Shape): Pt[][][] => (sh.type === 'Polygon' ? [sh.coordinates] : sh.coordinates);
+const ringArea = (r: Pt[]) => { let a = 0; for (let i = 0, j = r.length - 1; i < r.length; j = i++) a += r[j][0] * r[i][1] - r[i][0] * r[j][1]; return Math.abs(a / 2); };
+// provinces do not tile perfectly: drop the pinholes their union leaves (< ~100 km²)
+const multiRings = (m: Pt[][][]): number[] => shapeRings({ type: 'MultiPolygon', coordinates: m.map(([outer, ...holes]) => [outer, ...holes.filter(h => ringArea(h) > 0.01)]) });
+const largest = (m: Pt[][][]): Pt[][][] => [m.reduce((a, b) => (ringArea(b[0]) > ringArea(a[0]) ? b : a))];
+const PROV = W.PROVINCE_OUTLINES as Any[];
+const provShape = (p: Any): Pt[][][] => p.rings;
+const isColony = (p: Any) => /香港|澳门/.test(p.title);
+const real = PROV.filter(p => !String(p.code).includes('_JD'));
+const PRC_ALL = pc.union(...(real.map(provShape) as [Pt[][][]])) as Pt[][][];
+const PRC_1950 = pc.union(...(real.filter(p => !isColony(p)).map(provShape) as [Pt[][][]])) as Pt[][][];
+const provOf = (re: RegExp): Pt[][][] => provShape(real.find(p => re.test(p.title)));
+const polityShape = (snap: string, re: RegExp): Pt[][][] => toMulti(SNAPS[snap].polities.find((p: Any) => re.test(p.title)).shape);
+// Mongolia: the 1946 outline widened southwards, then cut by the PRC so the two meet exactly
+const MONGOLIA = largest(pc.difference(pc.union(polityShape('s_roc_d', /^蒙古人民共和国$/), [[[[88, 40], [120, 40], [120, 46.2], [88, 46.2], [88, 40]]]]), PRC_ALL) as Pt[][][]);
+// 1940: the textbook front line (Baotou – Shanxi – the 1938 Yellow River flood – Wuhan salient to Yichang – Nanchang –
+// south of the lower Yangtze – Hangzhou), drawn generously outside it and clipped to the Republic and Manchukuo
+const FRONT_1940: Pt[] = [[122.5, 30.0], [124.0, 33.5], [127.0, 39.0], [135.0, 45.0], [135.0, 54.0], [108.5, 54.0], [109.0, 42.5], [109.6, 41.2],
+  [110.0, 40.5], [110.8, 39.8], [111.2, 39.0], [111.4, 38.3], [111.6, 37.6], [111.7, 36.8], [111.5, 36.1], [111.3, 35.6], [111.0, 35.2],
+  [111.5, 35.35], [112.1, 35.35], [112.7, 35.2], [113.3, 35.05], [113.7, 34.9], [114.0, 34.5], [114.3, 34.1], [114.8, 33.6], [115.4, 33.15],
+  [115.9, 32.8], [116.4, 32.55], [116.8, 32.3], [117.2, 31.95], [117.0, 31.5], [116.8, 31.15], [116.5, 30.7], [116.1, 30.3], [115.7, 30.15],
+  [115.3, 30.4], [114.9, 30.85], [114.6, 31.3], [114.4, 31.7], [114.2, 32.2], [113.8, 32.15], [113.5, 31.95], [113.3, 31.7], [112.9, 31.45],
+  [112.5, 31.2], [112.0, 31.05], [111.6, 30.95], [111.2, 30.75], [111.4, 30.45], [111.9, 30.3], [112.4, 30.15], [112.8, 29.85], [113.0, 29.5],
+  [113.3, 29.25], [113.8, 29.15], [114.3, 29.05], [114.8, 28.85], [115.3, 28.6], [115.75, 28.5], [116.05, 28.8], [116.3, 29.3], [116.6, 29.75],
+  [117.0, 30.15], [117.5, 30.5], [118.0, 30.8], [118.5, 31.0], [118.9, 31.2], [119.3, 31.1], [119.6, 30.8], [119.85, 30.45], [120.05, 30.15],
+  [120.4, 30.0], [121.2, 29.9], [122.5, 30.0]];
+const OCC_SOUTH: Pt[][] = [
+  [[112.6, 23.75], [113.3, 23.8], [113.9, 23.55], [114.35, 23.1], [114.25, 22.6], [113.6, 22.2], [113.1, 22.1], [112.6, 22.6], [112.6, 23.75]], // Pearl River delta
+  [[116.45, 23.55], [116.85, 23.6], [117.1, 23.3], [116.75, 23.05], [116.4, 23.2], [116.45, 23.55]], // Shantou
+  [[117.95, 24.65], [118.3, 24.65], [118.3, 24.35], [117.95, 24.35], [117.95, 24.65]], // Xiamen
+];
+const ROC_1940 = pc.union(polityShape('s_roc', /^中华民国$/), polityShape('s_roc', /伪满洲国/));
+const OCC_1940 = pc.union(
+  pc.intersection(ROC_1940, [[FRONT_1940], ...OCC_SOUTH.map(r => [r])] as Pt[][][]),
+  provOf(/海南/),
+) as Pt[][][];
+const PRC_TW_HAINAN = multiRings(PRC_1950);
+const modernSnaps: Record<string, Any> = {
+  x_prc1950: { p: [['mongolia', null, null, [103.0, 46.8], multiRings(MONGOLIA)], ['prc', null, null, [104.0, 34.0], PRC_TW_HAINAN],
+    ['colony_uk', null, null, null, multiRings(provOf(/香港/))], ['colony_pt', null, null, null, multiRings(provOf(/澳门/))]], g: [], f: [] },
+  x_prc2000: { p: [['mongolia', null, null, [103.0, 46.8], multiRings(MONGOLIA)], ['prc', null, null, [104.0, 34.0], multiRings(PRC_ALL)]], g: [], f: [] },
+  x_war1940: { p: [...shapeSnaps.s_roc.p, ['jp_occ', null, null, [116.6, 36.4], multiRings(OCC_1940)]], g: [], f: [] },
+};
+Object.assign(shapeSnaps, modernSnaps);
 
 const lakes = (W.HYDRO_DATA.lakes as Any[]).map(l => {
   const rs = (l.rings as Pt[][]).map(ringRef).filter((x): x is number => x !== null);

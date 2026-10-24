@@ -16,10 +16,10 @@ import { decodeRing } from '../../src/shared/lib/rings.ts';
 import type { I18n, LonLat, Snapshot, StoryStep } from '../../src/shared/data/types.ts';
 import { readFileSync } from 'node:fs';
 
-/** Fills imported snapshots from public/data/atlas/shapes.json the way ShapeStore does in the browser (regions only). */
+/** Fills snapshots from public/data/atlas/shapes.json the way ShapeStore does in the browser (regions only). */
 const SHAPES = JSON.parse(readFileSync(new URL('../../public/data/atlas/shapes.json', import.meta.url), 'utf8'));
 const hydrated = (s: Snapshot | null): Snapshot | null => {
-  if (!s?.shapes || s.regions.length) return s;
+  if (!s?.shapes || !SHAPES.snaps[s.shapes]) return s;
   return { ...s, regions: SHAPES.snaps[s.shapes].p.map(([polity, , , , rs]: [string, unknown, unknown, unknown, number[]]) => ({ polity, rings: rs.map(i => decodeRing(SHAPES.rings[i])) })) };
 };
 
@@ -99,6 +99,27 @@ describe('territorial snapshots', () => {
         }
       }
     }
+  });
+
+  it('modern maps use the precise provincial outlines, with neighbours clipped to them', () => {
+    const inside = (rings: LonLat[][], [x, y]: LonLat) => {
+      let c = false;
+      for (const r of rings) for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+        if ((r[i][1] > y) !== (r[j][1] > y) && x < ((r[j][0] - r[i][0]) * (y - r[i][1])) / (r[j][1] - r[i][1]) + r[i][0]) c = !c;
+      }
+      return c;
+    };
+    const region = (id: string, polity: string) => hydrated(SNAPSHOTS.find(s => s.id === id)!)!.regions.find(r => r.polity === polity)!.rings;
+    const beijing: LonLat = [116.4, 39.9], hk: LonLat = [114.17, 22.3], chongqing: LonLat = [106.5, 29.6], wuhan: LonLat = [114.3, 30.6];
+    const prc = region('prc2000', 'prc');
+    expect(prc.reduce((n, r) => n + r.length, 0)).toBeGreaterThan(3000);
+    expect(inside(prc, beijing) && inside(prc, hk)).toBe(true);
+    expect(inside(region('prc1950', 'prc'), hk)).toBe(false);
+    expect(inside(region('prc1950', 'colony_uk'), hk)).toBe(true);
+    expect(inside(region('prc2000', 'mongolia'), [106.9, 47.9])).toBe(true);
+    const occ = region('war1940', 'jp_occ');
+    expect(inside(occ, beijing) && inside(occ, wuhan)).toBe(true);
+    expect(inside(occ, chongqing)).toBe(false);
   });
 
   it('snapshotAt picks the latest snapshot not after the year', () => {

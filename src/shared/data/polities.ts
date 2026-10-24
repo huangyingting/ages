@@ -9,8 +9,8 @@ export const POLITIES: Polity[] = [
   // early states
   P('xia', '夏', 'Xia', '#c0703a'),
   P('shang', '商', 'Shang', '#b4793a'),
-  P('zhou', '周', 'Zhou', '#c0392b'),
-  P('zhouwang', '周王畿', 'Zhou royal domain', '#c0392b'),
+  P('zhou', '周', 'Zhou', '#9a7d3a'),
+  P('zhouwang', '周王畿', 'Zhou royal domain', '#8e3b5c'),
   // Spring & Autumn / Warring States
   P('qin_s', '秦', 'Qin', '#34495e', 'rival'),
   P('jin_s', '晋', 'Jin', '#7d5ba6', 'rival'),
@@ -19,8 +19,8 @@ export const POLITIES: Polity[] = [
   P('yan_s', '燕', 'Yan', '#17a589', 'rival'),
   P('lu_s', '鲁', 'Lu', '#d68910', 'rival'),
   P('song_s', '宋', 'Song', '#a04000', 'rival'),
-  P('zheng_s', '郑', 'Zheng', '#ca6f1e', 'rival'),
-  P('wey_s', '卫', 'Wey', '#af7ac5', 'rival'),
+  P('zheng_s', '郑', 'Zheng', '#c47c9a', 'rival'),
+  P('wey_s', '卫', 'Wey', '#48a99a', 'rival'),
   P('wu_s', '吴', 'Wu', '#16a085', 'rival'),
   P('yue_s', '越', 'Yue', '#229954', 'rival'),
   P('zhao_s', '赵', 'Zhao', '#7d3c98', 'rival'),
@@ -28,6 +28,15 @@ export const POLITIES: Polity[] = [
   P('han_s', '韩', 'Han', '#dc7633', 'rival'),
   P('shu_s', '蜀', 'Shu', '#6e2c00', 'neighbor'),
   P('ba_s', '巴', 'Ba', '#935116', 'neighbor'),
+  P('chen_s', '陈', 'Chen', '#5b7f95', 'rival'),
+  P('cai_s', '蔡', 'Cai', '#148f77', 'rival'),
+  P('xu_s', '许', 'Xu', '#8d8741', 'rival'),
+  P('cao_s', '曹', 'Cao', '#1a5276', 'rival'),
+  P('ju_s', '莒', 'Ju', '#6c3483', 'rival'),
+  P('zhongshan_s', '中山', 'Zhongshan', '#b9770e', 'rival'),
+  // early non-Zhou peoples (regions override the name: 鬼方, 犬戎, 狄, 山戎, 淮夷, 莱 …)
+  P('rongdi', '戎狄', 'Rong and Di', '#a6a28a', 'neighbor'),
+  P('dongyi', '东夷', 'Dong Yi', '#a3b5a0', 'neighbor'),
   // empires
   P('qin', '秦朝', 'Qin Empire', '#34495e'),
   P('whan', '西汉', 'Western Han', '#b03a2e'),

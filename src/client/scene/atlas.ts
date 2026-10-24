@@ -22,7 +22,8 @@ import type { LayoutItem, ScreenBox } from './layout.ts';
 import { buildTerrain, loadHeightmap, SURFACE, type Surface, type Terrain } from './terrain.ts';
 import { TerrainDetail } from './detail.ts';
 import { ShapeStore } from './shapes.ts';
-import { TerritoryPainter, regionAnchor, texture } from './territory.ts';
+import { TerritoryPainter, regionAnchor, texture, type PaintOpts } from './territory.ts';
+import { TerritoryDetail } from './territory-detail.ts';
 import { View, type CamPose } from './view.ts';
 
 interface MapTarget {
@@ -67,6 +68,9 @@ export interface Layers {
  * The 3D atlas: relief terrain, territorial snapshots that cross-fade through time, period place names, event pins,
  * the current capital and the story FX layer. UI code talks to this class only.
  */
+/** What a territory texture was painted from (the close-up detail repaints the same). */
+interface TexSource { key: string; snap: Snapshot | null; opts: PaintOpts }
+
 export class Atlas {
   geo: Geo;
   view!: View;
@@ -74,6 +78,7 @@ export class Atlas {
   fx!: Fx;
   terrain!: Terrain;
   private painter!: TerritoryPainter;
+  private tdetail: TerritoryDetail | null = null;
   shapes: ShapeStore | null = null;
   private paintKey = '';
   private worksKey = '';
@@ -92,7 +97,7 @@ export class Atlas {
   private places = new Map<string, MapTarget>();
   private riverLabels: [RiverLabel, Label][] = [];
   private polityLabels: Label[] = [];
-  private fade: { t: number; tex: THREE.Texture; wipe?: { dur: number; r: number } } | null = null;
+  private fade: { t: number; tex: THREE.Texture; src: TexSource; wipe?: { dur: number; r: number } } | null = null;
   private texA: THREE.Texture | null = null;
   private capitalKey = '';
   private sceneryKey = '';
@@ -134,6 +139,7 @@ export class Atlas {
     this.view.scene.add(this.terrain.mesh);
     if (!this.lowfx) new TerrainDetail(this.view, this.geo, this.terrain.uniforms);
     this.painter = new TerritoryPainter(this.geo, this.lowfx ? 1536 : 3072);
+    if (!this.lowfx) this.tdetail = new TerritoryDetail(this.view, this.painter, this.terrain.uniforms);
     this.fx = new Fx(this.view, this.geo, this.labels);
     this.view.jump(this.geo.stage.home);
     this.hoverHalo = new Halo(this.geo, '#22c3e6');
@@ -527,19 +533,20 @@ export class Atlas {
       const snapChanged = snap?.id !== this.snapshot?.id;
       this.paintKey = key;
       this.snapshot = snap;
-      const tex = texture(this.painter.paint(snap, {
-        admin: this.layers.admin, provinces: this.layers.modern ? this.shapes?.provinces() : null, lakes, ghost,
-      }));
+      const opts: PaintOpts = { admin: this.layers.admin, provinces: this.layers.modern ? this.shapes?.provinces() : null, lakes, ghost };
+      const src: TexSource = { key, snap, opts };
+      const tex = texture(this.painter.paint(snap, opts));
       if (instant || !this.texA) {
         this.texA?.dispose();
         this.texA = tex;
         this.terrain.uniforms.uTerrA.value = tex;
         this.terrain.uniforms.uMix.value = 0;
         this.fade = null;
+        this.tdetail?.source(key, snap, opts);
       } else {
         if (this.fade) this.finishFade();
         this.terrain.uniforms.uTerrB.value = tex;
-        this.fade = { t: 0, tex };
+        this.fade = { t: 0, tex, src };
       }
       if (snapChanged || !this.polityLabels.length) { this.buildPolityLabels(); this.buildAdminLabels(); }
     }
@@ -585,6 +592,8 @@ export class Atlas {
     this.texA = this.fade.tex;
     this.terrain.uniforms.uTerrA.value = this.texA;
     this.terrain.uniforms.uMix.value = 0;
+    const { key, snap, opts } = this.fade.src;
+    this.tdetail?.source(key, snap, opts);
     this.fade = null;
   }
 

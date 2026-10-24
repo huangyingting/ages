@@ -46,11 +46,17 @@ export class ShapeStore {
     return l.map(([n, c, a, rs]) => ({ name: this.name(n), category: this.name(c), anchor: a ?? undefined, rings: rs.map(i => this.ring(i)), level }));
   }
 
-  /** Fills `regions` and `admin` of an imported snapshot (no-op for curated ones or when already done). */
+  private done = new WeakSet<Snapshot>();
+
+  /**
+   * Fills `regions` and `admin` of a snapshot that names stored geometry: imported phases, and our modern maps whose
+   * schematic regions are replaced by precise ones (no-op otherwise or when already done).
+   */
   hydrate(s: Snapshot | null): void {
-    if (!s?.shapes || s.regions.length) return;
+    if (!s?.shapes || this.done.has(s)) return;
     const raw = this.raw.snaps[s.shapes];
     if (!raw) return;
+    this.done.add(s);
     s.regions = raw.p.map(([polity, color, role, label, rs]): Region => ({
       polity, color: color ?? undefined, role: (role ?? undefined) as Region["role"], label: label ?? undefined, rings: rs.map(i => this.ring(i)), evenodd: true,
     }));

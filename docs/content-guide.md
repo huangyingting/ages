@@ -34,7 +34,7 @@ Add an entry keyed by the event id to `STORIES` in `stories.ts`. Use the helpers
 * Keep a story under about 40 s at 1×, and end on the outcome caption.
 
 ## Add or fix a territory snapshot
-Snapshots in `territories.ts` are listed in time order. `year` is when the map starts to apply, and `title` names the year the outline depicts. Regions paint in order, so put large polities first and carve neighbours after them. Use `hatch: true` for occupied areas and a `label` point when the centroid falls in a bad place. Outlines are deliberately simplified (about 10–40 points per ring), so trace them from a textbook map at small scale.
+Snapshots in `territories.ts` are listed in time order. `year` is when the map starts to apply, and `title` names the year the outline depicts. Regions paint in order, so put large polities first and carve neighbours after them. Use `hatch: true` for occupied areas and a `label` point when the centroid falls in a bad place. Borders are drawn crisply at close zoom, so trace outlines from a textbook map with enough points to follow rivers and ridges (roughly 40–150 per state), and let neighbouring states share one border chain so they meet without gaps. Sea-side vertices may sit a little offshore (the land mask trims them). A curated snapshot can also name precise geometry in the shape store with `shapes` (the modern maps use the union of the official provincial outlines, built by `scripts/import-jiangshan.ts`); its own regions are then only the fallback while shapes load.
 
 ## Places
 `places.ts` defines cities and sites with period names (`names: [[from, to, zh, en]]`) and capital periods (`capital: [[from, to]]`). Labels pick the name valid in the current year.

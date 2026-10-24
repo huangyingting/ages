@@ -21,12 +21,17 @@ export interface PaintOpts {
   ghost?: Snapshot | null;
 }
 
+/** A lon/lat box painted at its own resolution (close-up detail): west, east, south, north and canvas size. */
+export interface PaintFrame { box: [number, number, number, number]; w: number; h: number }
+
 export class TerritoryPainter {
   readonly W: number;
   readonly H: number;
   /** line widths were tuned for a 1600 px canvas */
   private k: number;
   private hatch = new Map<string, CanvasPattern>();
+  private frame: PaintFrame | null = null;
+  private bbox = new WeakMap<LonLat[], [number, number, number, number]>();
 
   constructor(private geo: Geo, size = 3072) {
     this.W = size;
@@ -35,24 +40,41 @@ export class TerritoryPainter {
   }
 
   private px(p: LonLat): [number, number] {
+    const f = this.frame;
+    if (f) return [((p[0] - f.box[0]) / (f.box[1] - f.box[0])) * f.w, ((f.box[3] - p[1]) / (f.box[3] - f.box[2])) * f.h];
     const [u, v] = this.geo.uv(p[0], p[1]);
     return [u * this.W, v * this.H];
+  }
+
+  /** In frame mode, rings wholly outside the (slightly padded) box are skipped. */
+  private visible(ring: LonLat[]): boolean {
+    const f = this.frame;
+    if (!f) return true;
+    let b = this.bbox.get(ring);
+    if (!b) {
+      b = [Infinity, -Infinity, Infinity, -Infinity];
+      for (const [x, y] of ring) { if (x < b[0]) b[0] = x; if (x > b[1]) b[1] = x; if (y < b[2]) b[2] = y; if (y > b[3]) b[3] = y; }
+      this.bbox.set(ring, b);
+    }
+    const m = 0.05 * (f.box[1] - f.box[0]);
+    return b[1] >= f.box[0] - m && b[0] <= f.box[1] + m && b[3] >= f.box[2] - m && b[2] <= f.box[3] + m;
   }
 
   private path(ctx: CanvasRenderingContext2D, rings: LonLat[][]): void {
     ctx.beginPath();
     for (const ring of rings) {
+      if (!this.visible(ring)) continue;
       ring.forEach((p, i) => { const [x, y] = this.px(p); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
       ctx.closePath();
     }
   }
 
-  private pattern(ctx: CanvasRenderingContext2D, color: string, light = false): CanvasPattern {
-    const key = color + light;
+  private pattern(ctx: CanvasRenderingContext2D, color: string, k: number, light = false): CanvasPattern {
+    const n = Math.round(10 * Math.max(1, k));
+    const key = color + light + n;
     let p = this.hatch.get(key);
     if (!p) {
       const c = document.createElement('canvas');
-      const n = Math.round(10 * Math.max(1, this.k));
       c.width = c.height = n;
       const x = c.getContext('2d')!;
       x.fillStyle = withAlpha(color, light ? 0.16 : 0.25);
@@ -74,14 +96,30 @@ export class TerritoryPainter {
     return { color: r.color ?? pol.color, role: r.role ?? pol.role };
   }
 
-  /** Paints a snapshot into a new canvas. */
-  paint(s: Snapshot | null, o: PaintOpts = {}): HTMLCanvasElement {
+  /**
+   * Paints a snapshot into a new canvas: the whole stage, or with `frame` just a box at a finer scale, where lines stay
+   * thin and crisp (capped widths) while the watercolour band keeps roughly its ground width.
+   */
+  paint(s: Snapshot | null, o: PaintOpts = {}, frame?: PaintFrame): HTMLCanvasElement {
     const c = document.createElement('canvas');
-    c.width = this.W;
-    c.height = this.H;
+    c.width = frame?.w ?? this.W;
+    c.height = frame?.h ?? this.H;
     const ctx = c.getContext('2d')!;
     ctx.lineJoin = 'round';
-    const k = this.k;
+    ctx.lineCap = 'round';
+    this.frame = frame ?? null;
+    const scale = frame ? (frame.w / (frame.box[1] - frame.box[0])) / (this.W / (this.geo.stage.bounds.east - this.geo.stage.bounds.west)) : 1;
+    const k = frame ? Math.min(this.k * scale, 1.7) : this.k;
+    const band = frame ? Math.min(this.k * scale * 0.5, 5) : this.k;
+    try {
+      this.draw(ctx, s, o, k, band);
+    } finally {
+      this.frame = null;
+    }
+    return c;
+  }
+
+  private draw(ctx: CanvasRenderingContext2D, s: Snapshot | null, o: PaintOpts, k: number, band: number): void {
     for (const r of s?.regions ?? []) {
       const st = this.style(r);
       if (!st) continue;
@@ -91,15 +129,15 @@ export class TerritoryPainter {
       ctx.fillStyle = '#000';
       ctx.fill(rule);
       ctx.globalCompositeOperation = 'source-over';
-      if (r.hatch || st.role === 'occupied') ctx.fillStyle = this.pattern(ctx, st.color);
-      else if (st.role === 'protectorate') ctx.fillStyle = this.pattern(ctx, st.color, true);
+      if (r.hatch || st.role === 'occupied') ctx.fillStyle = this.pattern(ctx, st.color, k);
+      else if (st.role === 'protectorate') ctx.fillStyle = this.pattern(ctx, st.color, k, true);
       else ctx.fillStyle = withAlpha(fillTone(st.color), FILL_ALPHA[st.role]);
       ctx.fill(rule);
       // watercolour edge: a soft darker band just inside the border
       ctx.save();
       ctx.clip(rule);
       ctx.strokeStyle = withAlpha(shade(st.color, 0.75), st.role === 'neighbor' ? 0.25 : 0.45);
-      ctx.lineWidth = 9 * k;
+      ctx.lineWidth = 9 * band;
       ctx.stroke();
       ctx.restore();
     }
@@ -149,7 +187,6 @@ export class TerritoryPainter {
       ctx.lineWidth = 0.8 * k;
       ctx.stroke();
     }
-    return c;
   }
 
   /** White mask of one polity's regions in a snapshot (for the highlight pulse). */
