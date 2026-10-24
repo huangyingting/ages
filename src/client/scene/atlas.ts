@@ -80,6 +80,8 @@ export class Atlas {
   onLife: (l: LifeItem) => void = () => {};
   private pins = new Map<string, Label>();
   private placeLabels = new Map<string, Label>();
+  /** sites (not cities) whose own model stands on the map: their name is in the model's tooltip, so the label steps aside */
+  private modelPlaces = new Set<string>();
   private riverLabels: [RiverLabel, Label][] = [];
   private polityLabels: Label[] = [];
   private fade: { t: number; tex: THREE.Texture; wipe?: { dur: number; r: number } } | null = null;
@@ -544,7 +546,7 @@ export class Atlas {
     for (const [id, l] of this.placeLabels) {
       const p = PLACE.get(id)!;
       const name = mapName(p, this.year);
-      l.off = !name;
+      l.off = !name || this.modelPlaces.has(id);
       if (!name) continue;
       const cap = isCapital(p, this.year);
       const text = tr(name, this.lang);
@@ -660,9 +662,13 @@ export class Atlas {
     this.sceneryKey = key;
     this.fx.clear('scenery');
     this.sceneryMarks.clear();
+    const items = era && key ? sceneryOf(era) : [];
+    this.modelPlaces = new Set(PLACES.filter(p => p.kind !== 'city' && items.some(({ life: l }) =>
+      l && l.kind !== 'person' && Math.hypot(l.lon - p.lon, l.lat - p.lat) < 0.5 && (l.name.zh.startsWith(p.name.zh) || l.wiki.zh === p.name.zh))).map(p => p.id));
+    this.updatePlaces();
     if (!era || !key) return;
     // models carry no name plates: hovering one shows its name in the map tooltip, clicking opens its card
-    for (const s of sceneryOf(era)) {
+    for (const s of items) {
       const p = s.person, l = s.life;
       const ev = !p && !l && s.event ? EVENTS.find(x => x.id === s.event) : undefined;
       const minor = s.tier === 2;

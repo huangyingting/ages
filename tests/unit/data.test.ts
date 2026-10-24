@@ -251,6 +251,13 @@ describe('dynasty scenery', () => {
       expect(sceneryOf(era).filter(i => i.life).length, era.id).toBe(lifeOf(era.id).length);
     }
   });
+
+  it('stands Mount Tai on its own spot in the dynasties of the feng-shan rites', () => {
+    for (const id of ['qin', 'whan', 'tang', 'bsong']) {
+      const t = sceneryOf(ERAS.find(e => e.id === id)!).find(i => i.life?.id === `taishan-${id}`);
+      expect(t && [t.lon, t.lat], id).toEqual([117.1, 36.25]);
+    }
+  });
 });
 
 describe('imported jiangshan-map content', () => {

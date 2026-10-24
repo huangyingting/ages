@@ -113,7 +113,7 @@ export function sceneryOf(era: Era, events: HistEvent[] = EVENTS): SceneryItem[]
 
 let twins: Map<string, HistEvent> | null = null;
 /**
- * The textbook event a life item stands for (same Wikipedia article or title, in its dynasty, on the same spot):
+ * The event a life item stands for (same Wikipedia article, or a title naming it, in its dynasty, on the same spot):
  * 赵州桥 the building and 赵州桥 the event. On the map the model then speaks for the event and its pin steps aside.
  */
 export function lifeEvent(l: LifeItem): HistEvent | undefined {
@@ -123,7 +123,7 @@ export function lifeEvent(l: LifeItem): HistEvent | undefined {
       const era = ERAS.find(e => e.id === x.era);
       if (!era) continue;
       const e = EVENTS.find(e => e.scope === 'china' && e.year >= era.start && e.year <= era.end && Math.hypot(e.lon - x.lon, e.lat - x.lat) < 0.3 &&
-        ((!!e.wiki?.zh && e.wiki.zh === x.wiki?.zh) || e.title.zh === x.name.zh));
+        ((!!e.wiki?.zh && e.wiki.zh === x.wiki?.zh) || e.title.zh === x.name.zh || (x.kind !== 'person' && e.title.zh.includes(x.name.zh))));
       if (e) twins.set(x.id, e);
     }
   }

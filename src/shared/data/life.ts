@@ -158,6 +158,8 @@ C('hufu', ['胡服骑射', 'Hu dress and mounted archery'], [114.5, 36.6], hero(
 P('孟子', [116.98, 35.4], { prop: 'book', tier: 2, desc: ['儒家“亚圣”，主张仁政与“民为贵”。', 'Confucianism\'s Second Sage, who preached benevolent rule: "the people matter most".'] });
 
 era('qin');
+B('taishan-qin', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple'),
+  ['秦始皇东巡登泰山封禅，刻石颂秦德，开历代帝王泰山封禅之先。', 'The First Emperor climbed Mount Tai to perform the feng and shan rites, the first of the imperial sacrifices to Heaven there.'], { wiki: ['封禅', 'Feng Shan'] });
 P('李斯', [108.2, 33.8], { prop: 'brush', desc: ['秦朝丞相，推行小篆“书同文”，统一文字。', 'Qin chancellor who standardised writing in small seal script.'] });
 C('banliang', ['统一度量衡与半两钱', 'Standard measures and coins'], [110.6, 35.2], hero(C1 + 'lf_coins', 'scroll', { style: 'banliang' }),
   ['秦始皇统一货币为圆形方孔“半两”钱，统一度量衡与车轨。', 'The First Emperor made the round, square-holed banliang the only coin and unified weights, measures and axles.'], { wiki: ['半两钱', 'Ban Liang'] });
@@ -168,6 +170,8 @@ F('mill', ['石转磨与面食', 'Rotary mill'], [108.0, 35.6], hero(FD + 'lf_mi
 P('蒙恬', [109.7, 38.3], { prop: 'sword', tier: 2, desc: ['秦大将，北击匈奴，修筑长城与直道。', 'Qin general who drove back the Xiongnu and built the Great Wall and the Straight Road.'] });
 
 era('whan');
+B('taishan-whan', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple'),
+  ['汉武帝八次东巡泰山，封禅告成功，泰山成为“五岳独尊”。', 'Emperor Wu came to Mount Tai eight times to report his achievements to Heaven, making it the foremost of the Five Peaks.'], { wiki: ['封禅', 'Feng Shan'] });
 P('张骞', [103.8, 36.06], { prop: 'staff', desc: ['两次出使西域，“凿空”丝绸之路。', 'Envoy who twice crossed to the Western Regions, opening the Silk Road.'] });
 P('司马迁', [110.4, 35.47], { prop: 'brush', desc: ['著《史记》，中国第一部纪传体通史。', 'Author of the Records of the Grand Historian, China\'s first comprehensive history.'] });
 B('que', ['汉阙', 'Han que towers'], [107.6, 33.6], hero(A1 + 'lf_que', 'gate'),
@@ -261,6 +265,8 @@ P('李春', [115.4, 38.6], { prop: 'book', year: 600, en: 'Li Chun', desc: ['隋
 P('隋炀帝', [119.4, 32.4], { tier: 2 });
 
 era('tang');
+B('taishan-tang', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple'),
+  ['725年唐玄宗泰山封禅，御书《纪泰山铭》刻于岱顶石壁。', 'In 725 Emperor Xuanzong held the feng-shan rites and carved his Inscription on Mount Tai into the summit cliff.'], { wiki: ['封禅', 'Feng Shan'] });
 P('武则天', [112.45, 34.62], { role: 'ruler', female: true, desc: ['中国历史上唯一的正统女皇帝，以洛阳为神都。', 'China\'s only reigning empress, who made Luoyang her Divine Capital.'] });
 P('杜甫', [104.03, 30.66], { prop: 'brush', desc: ['“诗圣”，其诗被称为“诗史”，居成都草堂。', 'The Poet Sage whose verse is called "poetic history"; he lived in a thatched cottage in Chengdu.'] });
 P('鉴真', [119.4, 32.4], { role: 'monk', year: 740, en: 'Jianzhen',
@@ -294,6 +300,8 @@ P('赵匡胤', [114.6, 35.6], { tier: 2 });
 
 // ---------------------------------------------------------------------------------------------- Song
 era('bsong');
+B('taishan-bsong', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple'),
+  ['1008年宋真宗封禅泰山，扩建岱庙天贶殿，此后再无帝王封禅。', 'In 1008 Emperor Zhenzong held the last feng-shan rites and enlarged the Temple of Mount Tai (Dai Miao).'], { wiki: ['封禅', 'Feng Shan'] });
 P('苏轼', [114.87, 30.45], { prop: 'brush', desc: ['文学家、书画家，贬黄州作《赤壁赋》，发明东坡肉。', 'Poet, painter and calligrapher; exiled to Huangzhou he wrote the Red Cliff odes.'] });
 P('李清照', [117.0, 36.67], { desc: ['婉约派女词人，“寻寻觅觅，冷冷清清”。', 'Greatest woman poet of the Song: "Searching, seeking, cold and lonely."'] });
 LIFE_LIST[LIFE_LIST.length - 1].model = { kind: 'person', role: 'woman', year: 1110, prop: 'brush', bare: true };
