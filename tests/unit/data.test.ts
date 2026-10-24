@@ -3,8 +3,8 @@ import { BOOKS, UNITS } from '../../src/shared/data/curriculum.ts';
 import { ERAS, RULERS } from '../../src/shared/data/eras.ts';
 import { MODEL_KINDS } from '../../src/shared/data/event-kit.ts';
 import { EVENTS, hasStory, storyOf } from '../../src/shared/data/events.ts';
-import { PLACE, PLACES, isCapital, mapName, placeExists, placeName } from '../../src/shared/data/places.ts';
-import { JOURNEYS, WORKS, reignAt } from '../../src/shared/data/jiangshan.ts';
+import { PLACE, PLACES, isCapital, mapName, placeExists, placeName, riverName } from '../../src/shared/data/places.ts';
+import { JOURNEYS, RIVER_LABELS, WORKS, reignAt } from '../../src/shared/data/jiangshan.ts';
 import { POLITY, POLITIES, polityMatches } from '../../src/shared/data/polities.ts';
 import { STAGES } from '../../src/shared/data/stage.ts';
 import { sceneryOf } from '../../src/shared/data/scenery.ts';
@@ -131,10 +131,25 @@ describe('places through time', () => {
     expect(at('shanghai', 2000)).toBe('上海');
     expect(at('banpo', -4000)).toBe('半坡');
     expect(at('banpo', 1500)).toBeNull();
+    expect(at('everest', 700)).toBeNull();
+    expect(at('yungang', 500)).toBe('武州山石窟寺');
     for (const p of PLACES) for (const y of [-221, 750, 1100]) {
       const n = mapName(p, y);
       if (n && n === p.name && p.since != null) expect(y).toBeGreaterThanOrEqual(p.since);
     }
+  });
+
+  it('names rivers and lakes by period and only while their course existed', () => {
+    const at = (zh: string, y: number) => riverName(RIVER_LABELS.find(r => r.name.zh === zh)!, y)?.zh ?? null;
+    expect(at('黄河', -500)).toBe('河水');
+    expect(at('黄河', 700)).toBe('黄河');
+    expect(at('长江', 100)).toBe('江水');
+    expect(at('彭蠡·鄱阳', 1000)).toBe('鄱阳湖');
+    expect(at('塔里木河', 700)).toBeNull();
+    expect(at('黄河（夺淮故道）', 1000)).toBeNull();
+    expect(at('黄河（夺淮故道）', 1500)).toBe('黄河（夺淮故道）');
+    expect(at('梁山泊', 1100)).toBe('梁山泊');
+    expect(at('梁山泊', 1400)).toBeNull();
   });
 });
 

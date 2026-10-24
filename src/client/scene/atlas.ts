@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { EVENTS } from '../../shared/data/events.ts';
 import { tr, type Lang } from '../../shared/data/i18n.ts';
-import { RIVER_LABELS, WORKS, type Person } from '../../shared/data/jiangshan.ts';
-import { PLACE, PLACES, isCapital, mapName } from '../../shared/data/places.ts';
+import { RIVER_LABELS, WORKS, type Person, type RiverLabel } from '../../shared/data/jiangshan.ts';
+import { PLACE, PLACES, isCapital, mapName, riverName } from '../../shared/data/places.ts';
 import { lifeEvent, sceneryOf } from '../../shared/data/scenery.ts';
 import type { LifeItem } from '../../shared/data/life.ts';
 import { POLITY, polityMatches } from '../../shared/data/polities.ts';
@@ -18,6 +18,7 @@ import { Halo } from './halo.ts';
 import { Geo } from './geo.ts';
 import { Labels, type Label } from './labels.ts';
 import { buildTerrain, loadHeightmap, SURFACE, type Surface, type Terrain } from './terrain.ts';
+import { TerrainDetail } from './detail.ts';
 import { ShapeStore } from './shapes.ts';
 import { TerritoryPainter, regionAnchor, texture } from './territory.ts';
 import { View, type CamPose } from './view.ts';
@@ -79,6 +80,7 @@ export class Atlas {
   onLife: (l: LifeItem) => void = () => {};
   private pins = new Map<string, Label>();
   private placeLabels = new Map<string, Label>();
+  private riverLabels: [RiverLabel, Label][] = [];
   private polityLabels: Label[] = [];
   private fade: { t: number; tex: THREE.Texture; wipe?: { dur: number; r: number } } | null = null;
   private texA: THREE.Texture | null = null;
@@ -121,6 +123,7 @@ export class Atlas {
     this.labels = new Labels(this.view, this.host);
     this.terrain = buildTerrain(this.geo, this.lowfx);
     this.view.scene.add(this.terrain.mesh);
+    if (!this.lowfx) new TerrainDetail(this.view, this.geo, this.terrain.uniforms);
     this.painter = new TerritoryPainter(this.geo, this.lowfx ? 1536 : 3072);
     this.fx = new Fx(this.view, this.geo, this.labels);
     this.view.jump(this.geo.stage.home);
@@ -392,6 +395,7 @@ export class Atlas {
       if (snapChanged || !this.polityLabels.length) { this.buildPolityLabels(); this.buildAdminLabels(); }
     }
     this.updatePlaces();
+    this.updateRivers();
     this.updateWorks();
     const era = eraAt(y);
     // chronicle entries follow the year in steps; textbook events follow the era
@@ -497,10 +501,17 @@ export class Atlas {
       if (!this.geo.inBounds(r.lon, r.lat)) continue;
       const el = document.createElement('div');
       el.className = `river k-${r.kind}`;
-      el.dataset.zh = r.name.zh;
-      el.dataset.en = r.name.en;
-      el.textContent = tr(r.name, this.lang);
-      this.labels.add({ el, pos: this.geo.pos(r.lon, r.lat, 0.03), group: 'rivers', prio: r.kind === 'trunk' ? 18 : 6, maxD: r.kind === 'trunk' ? 90 : 30 });
+      this.riverLabels.push([r, this.labels.add({ el, pos: this.geo.pos(r.lon, r.lat, 0.03), group: 'rivers', prio: r.kind === 'trunk' ? 18 : 6, maxD: r.kind === 'trunk' ? 90 : 30 })]);
+    }
+  }
+
+  /** River and lake names of the year: courses that existed, under the name then in use. */
+  private updateRivers(): void {
+    for (const [r, l] of this.riverLabels) {
+      const name = riverName(r, this.year);
+      l.off = !name;
+      const text = name ? tr(name, this.lang) : '';
+      if (name && l.el.textContent !== text) { l.el.textContent = text; this.labels.remeasure(); }
     }
   }
 
@@ -727,7 +738,7 @@ export class Atlas {
     this.updatePlaces();
     this.buildPolityLabels();
     this.buildAdminLabels();
-    for (const el of this.labels.root.querySelectorAll<HTMLElement>('.river')) el.textContent = el.dataset[l] ?? '';
+    this.updateRivers();
     this.updateWorks();
     this.updateScenery();
     this.labels.remeasure();

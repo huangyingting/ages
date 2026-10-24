@@ -239,7 +239,10 @@ const works = (W.CORRIDOR_DATA as Any[]).map(c => {
     lines: (c.segments as Pt[][]).map(s => s.map(pt)),
   };
 });
-const rivers = (W.HYDRO_DATA.labels as Any[]).map(l => ({ name: { zh: l.zh.replace(/\s+/g, ''), en: l.en }, lon: r2(l.coord[0]), lat: r2(l.coord[1]), kind: l.kind }));
+const rivers = (W.HYDRO_DATA.labels as Any[]).map(l => ({
+  name: { zh: l.zh.replace(/\s+/g, ''), en: l.en }, lon: r2(l.coord[0]), lat: r2(l.coord[1]), kind: l.kind,
+  ...(l.appear != null ? { from: l.appear } : {}), ...(l.vanish != null ? { to: l.vanish - 1 } : {}),
+}));
 const music = (LORE.GUQIN_TRACKS as Any[]).map(t => ({ name: { zh: t.zh, en: t.en }, mp3: t.mp3, ogg: t.ogg }));
 
 // ------------------------------------------------------------------ write

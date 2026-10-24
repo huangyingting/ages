@@ -30,6 +30,7 @@ export class Labels {
   private items: Label[] = [];
   private tmp = new THREE.Vector3();
   private hidden = new Set<string>();
+  private lz = 1;
   dirtySize = true;
 
   constructor(private view: View, host: HTMLElement) {
@@ -67,12 +68,19 @@ export class Labels {
 
   private layout(): void {
     const v = this.view;
+    const W = v.canvas.clientWidth, H = v.canvas.clientHeight;
+    const dist = v.camera.position.distanceTo(v.controls.target);
+    // map text grows a little as the camera closes in (×0.9 far out … ×1.3 up close), in steps so sizes rarely re-measure
+    const lz = Math.round(Math.min(1.3, Math.max(0.9, (24 / dist) ** 0.18)) * 20) / 20;
+    if (lz !== this.lz) {
+      this.lz = lz;
+      this.root.style.setProperty('--lz', String(lz));
+      this.dirtySize = true;
+    }
     if (this.dirtySize) {
       for (const l of this.items) { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }
       this.dirtySize = false;
     }
-    const W = v.canvas.clientWidth, H = v.canvas.clientHeight;
-    const dist = v.camera.position.distanceTo(v.controls.target);
     const placed: [number, number, number, number][] = [];
     const sorted = this.items.slice().sort((a, b) => (b.pinned ? 1e9 : b.prio) - (a.pinned ? 1e9 : a.prio));
     for (const l of sorted) {

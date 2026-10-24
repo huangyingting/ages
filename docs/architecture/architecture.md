@@ -26,6 +26,10 @@ src/shared/data + src/shared/lib  (pure TS: content + logic, unit-tested, no DOM
 ## Terrain
 `scripts/fetch-terrain.ts` downloads AWS Terrain Tiles (Terrarium encoding) for the stage, resamples them from Web Mercator to an equirectangular grid, and writes a 16-bit-in-RGB PNG (`public/data/terrain/east-asia.png`). At runtime `terrain.ts` builds a displaced grid mesh with a custom shader that adds hypsometric tint, hillshade, snow, ocean depth, coastline and the territory overlay. The shader writes sRGB directly.
 
+**Close-up detail.** The base grid is about 5.5 km per pixel. When the camera is close (distance ≤ 26) and has stopped moving, `scene/detail.ts` asks a worker (`detail.worker.ts`) for the area in view. The worker fetches Terrarium tiles at a zoom that matches the screen (z5–12, at most 42 tiles, with an LRU cache) and resamples them to a 1024² equirectangular half-float height grid. The shader blends that grid's hillshade and tint into the box, fading out at the edges. Only shading changes: vertex heights stay on the base grid, so models and map ink sit where they did. The feature is off with `?lowfx=1`, and offline it falls back to the base relief.
+
+**Zoom scaling.** Map models (scenery, base and event models) keep a constant screen size when far away and grow as the camera closes in (`mapScale` in `fx.ts`); story and battle models keep a constant screen size so camera shots frame them the same way. Labels grow through the `--lz` CSS variable (see [typography](../design/typography.md)).
+
 ## Territories
 `territories.ts` lists **snapshots**. Each snapshot is a dated map: its `year` is the first year it applies (usually a dynasty's start) and its title names the year the outline depicts. A snapshot holds ordered **regions**: polity id, rings of `[lon, lat]`, an optional label point and name override, and `hatch` for occupied land. `territory.ts` paints a snapshot into a canvas texture (fills, hatches, inner borders and soft edges). The atlas crossfades between two textures when the snapshot changes. `polities.ts` gives each polity a name, colour, role (`main` / `rival` / `neighbor` / `occupied`) and Wikipedia titles.
 

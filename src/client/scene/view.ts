@@ -35,7 +35,7 @@ export class View {
     c.enableDamping = true;
     c.dampingFactor = 0.12;
     c.screenSpacePanning = false;
-    c.minDistance = 2.2;
+    c.minDistance = 1.4;
     c.maxDistance = 120;
     c.maxPolarAngle = 1.25;
     c.zoomSpeed = 1.2;

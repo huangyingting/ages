@@ -63,6 +63,8 @@ const FIG = 0.7, GAP = 0.5;
 
 /** Model scale for a viewing distance. */
 const scaleFor = (d: number) => THREE.MathUtils.clamp(d * 0.028, 0.09, 1.5);
+/** Map models (scenery, capital, event models) also grow on screen as the camera closes in: ~1.7× at 10, ~2.3× at 5. */
+const mapScale = (d: number) => (d >= 40 ? scaleFor(d) : 1.12 * (d / 40) ** 0.6);
 
 const easeOut = (k: number) => 1 - Math.pow(1 - k, 3);
 const easeBack = (k: number) => { const c = 1.9; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
@@ -1020,7 +1022,7 @@ export class Fx {
     ud.boost = 1; ud.k = 1; ud.top = 0; ud.rad = 0; ud.shown = true;
     it.update = (dt, t, sc) => {
       ud.k += (ud.boost - ud.k) * Math.min(1, dt * 14);
-      const z = sc * k0 * (layer === 'base' || layer === 'scenery' ? 0.7 : 1) * ud.k;
+      const z = (layer === 'story' ? sc : mapScale(this.dist)) * k0 * (layer === 'base' || layer === 'scenery' ? 0.7 : 1) * ud.k;
       const e = easeBack(grow);
       m.scale.setScalar(Math.max(0.001, z * e));
       sh.scale.setScalar(Math.max(0.001, z * r * 2.6 * Math.min(1, grow * 2)));

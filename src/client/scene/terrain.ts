@@ -44,6 +44,12 @@ uniform vec4 uBounds; // west, east, south, north
 uniform vec3 uCam;
 uniform vec3 uHaze;
 uniform float uStyle; // 0 ink (dark relief), 1 scroll (parchment), 2 plain
+// close-up relief streamed for the area in view (see detail.ts): box west, east, south, north
+uniform sampler2D uDet;
+uniform vec4 uDetBox;
+uniform vec2 uDetTexel;
+uniform vec2 uDetRelief;
+uniform float uDetOn;
 varying vec2 vUv;
 varying vec3 vWorld;
 
@@ -86,6 +92,19 @@ void main() {
   float dx = el(vUv + vec2(uTexel.x, 0.0)) - el(vUv - vec2(uTexel.x, 0.0));
   float dz = el(vUv + vec2(0.0, uTexel.y)) - el(vUv - vec2(0.0, uTexel.y));
   vec3 n = normalize(vec3(-dx * uRelief, 1.0, -dz * uRelief));
+  if (uDetOn > 0.001) {
+    vec2 ll = vec2(mix(uBounds.x, uBounds.y, vUv.x), mix(uBounds.w, uBounds.z, vUv.y));
+    vec2 du = vec2((ll.x - uDetBox.x) / (uDetBox.y - uDetBox.x), (uDetBox.w - ll.y) / (uDetBox.w - uDetBox.z));
+    vec2 eg = min(du, 1.0 - du);
+    float k = uDetOn * smoothstep(0.0, 0.12, min(eg.x, eg.y));
+    if (k > 0.0) {
+      float hd = texture2D(uDet, du).r;
+      float ddx = texture2D(uDet, du + vec2(uDetTexel.x, 0.0)).r - texture2D(uDet, du - vec2(uDetTexel.x, 0.0)).r;
+      float ddz = texture2D(uDet, du + vec2(0.0, uDetTexel.y)).r - texture2D(uDet, du - vec2(0.0, uDetTexel.y)).r;
+      n = normalize(mix(n, normalize(vec3(-ddx * uDetRelief.x, 1.0, -ddz * uDetRelief.y)), k));
+      h = mix(h, hd, k);
+    }
+  }
   vec3 L = normalize(vec3(-0.9, 1.25, -0.8));
   float diff = dot(n, L);
   bool ink = uStyle < 0.5, plain = uStyle > 1.5;
@@ -195,6 +214,7 @@ export function buildTerrain(geo: Geo, lowfx: boolean): Terrain {
     uElev: { value: elevTex }, uMask: { value: maskTex }, uTerrA: { value: blank }, uTerrB: { value: blank }, uHi: { value: blank },
     uMix: { value: 0 }, uWipe: { value: new THREE.Vector4(0, 0, 0, 0) }, uWipeColor: { value: new THREE.Color().setHex(0xc0392b, THREE.LinearSRGBColorSpace) }, uTerrOn: { value: 1 }, uHiAmt: { value: 0 }, uHiColor: { value: new THREE.Color('#fff3b0') },
     uTexel: { value: new THREE.Vector2(1 / geo.w, 1 / geo.h) }, uRelief: { value: 18 / (2 * texelKm) * 1.4 }, uTime: { value: 0 },
+    uDet: { value: blank }, uDetBox: { value: new THREE.Vector4(0, 1, 0, 1) }, uDetTexel: { value: new THREE.Vector2(1, 1) }, uDetRelief: { value: new THREE.Vector2() }, uDetOn: { value: 0 },
     uBounds: { value: new THREE.Vector4(b.west, b.east, b.south, b.north) }, uCam: { value: new THREE.Vector3() }, uHaze: { value: HAZE.clone() }, uStyle: { value: 1 },
   };
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms, extensions: { derivatives: true } as never });

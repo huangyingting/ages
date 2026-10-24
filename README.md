@@ -11,7 +11,7 @@ It is an original 3D re-imagining inspired by [jiangshan-map](https://github.com
 | ![home](docs/assets/screenshots/desktop-home-zh.jpg) | ![story](docs/assets/screenshots/desktop-story-qin.jpg) | ![journey](docs/assets/screenshots/desktop-journey.jpg) | ![mobile](docs/assets/screenshots/mobile-event.jpg) |
 
 ## Features
-* **3D terrain relief** of East Asia, generated from open elevation data, with rivers and coastlines, in paper, ink or plain styles.
+* **3D terrain relief** of East Asia, generated from open elevation data, with rivers and coastlines, in paper, ink or plain styles. Zoom in close and finer relief (down to ~40 m per pixel) streams in for the area in view; models and labels grow as you zoom.
 * **Timeline** spanning about 1 million years. It is non-linear, so dense periods get more room, and shows era bands, event dots, age headings, drag/keyboard scrubbing and auto-play. **173 territory snapshots** (Xia → PRC; dated phases from 403 BCE to 1949 imported from jiangshan-map) crossfade as the year changes, and capitals, period place names (长安 / 西安, 汴京 / 开封 …), polity labels, admin divisions, walls, canals and routes follow the year. The readout shows the reign era (年号, e.g. 北宋神宗 · 元丰八年), with rival regimes' eras on hover.
 * **Full-screen map**: the 3D terrain fills the window and every panel floats over it.
 * **907 events**: 151 curriculum events plus 756 chronicle entries from jiangshan-map. Each curriculum event has a bilingual summary, key points (考点), people, location and its units in the textbooks (七年级上/下, 八年级上/下, 高中《中外历史纲要（上）》), plus a procedural 3D model.

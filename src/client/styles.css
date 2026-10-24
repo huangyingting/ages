@@ -88,47 +88,70 @@ h2, h3 { font-weight: 700; }
 }
 .modal-box, .menu, .hits { background: var(--pp-cuts), rgba(255, 255, 255, 0.95); }
 
-/* ================================================================ labels on the map (default: dark relief) */
-.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; contain: strict; }
-.labels > * { position: absolute; left: 0; top: 0; will-change: transform; white-space: nowrap; }
-.place {
-  font-size: 12px; color: #f1ece2; letter-spacing: 0.03em; pointer-events: auto; cursor: pointer;
-  text-shadow: 0 0 2px #0c0e10, 0 0 4px #0c0e10, 0 1px 6px rgba(0, 0, 0, 0.85);
+/* ================================================================ labels on the map
+   One type scale for every map label (see docs/design/typography.md):
+   size = importance, weight = rank, colour = category, letter-spacing = areal features, italic = man-made lines.
+   `--lz` (set by scene/labels.ts) grows the text a little as the camera closes in. Polity names keep their size. */
+.labels {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden; contain: strict; --lz: 1;
+  /* sizes */
+  --fs-cap: 14px; --fs-1: 13px; --fs-2: 12px; --fs-3: 11px; --fs-4: 10.5px;
+  /* colours: dark relief (ink) */
+  --c-city: #f1ece2; --c-city-2: #d6d0c4; --c-cap: #ffe2b0; --c-water: #9fcbe0; --c-relief: #cfc6b4;
+  --c-admin: #ddd0b4; --c-admin-1: #f2e2bf;
+  --halo: 0 0 2px #0c0e10, 0 0 4px #0c0e10, 0 1px 6px rgba(0, 0, 0, 0.85);
 }
-.place.t1 { font-size: 13px; font-weight: 600; }
-.place.t3 { font-size: 11px; color: #d6d0c4; }
-.place.k-mountain { color: #cfc6b4; }
-.place.k-water { color: #9fcbe0; }
-/* the capital: a small vermilion seal (印) before the name */
-.place.cap { color: #ffe2b0; font-weight: 700; font-size: 14px; letter-spacing: 0.08em; display: flex; align-items: center; gap: 5px; }
+:root:not([data-map=ink]) .labels {
+  --c-city: #2b2620; --c-city-2: #5a5248; --c-cap: #8f1f16; --c-water: #1f5f8b; --c-relief: #4a5d6b;
+  --c-admin: #5b4a36; --c-admin-1: #47321d;
+  --halo: 0 0 2px #fbf8f1, 0 0 3px #fbf8f1, 0 0 6px rgba(251, 248, 241, 0.9);
+}
+.labels > * { position: absolute; left: 0; top: 0; will-change: transform; white-space: nowrap; }
+.place, .river, .admin, .work { text-shadow: var(--halo); }
+
+/* settlements and sites: tier 1 → 3, minor; the capital carries a vermilion seal (印) */
+.place { font-size: calc(var(--fs-2) * var(--lz)); font-weight: 500; color: var(--c-city); letter-spacing: 0.03em; pointer-events: auto; cursor: pointer; }
+.place.t1 { font-size: calc(var(--fs-1) * var(--lz)); font-weight: 600; }
+.place.t3 { font-size: calc(var(--fs-3) * var(--lz)); font-weight: 400; color: var(--c-city-2); }
+.place.minor { font-size: calc(var(--fs-4) * var(--lz)); font-weight: 400; color: var(--c-city-2); opacity: 0.8; }
+.place.k-mountain, .place.k-pass { color: var(--c-relief); }
+.place.k-water { color: var(--c-water); }
+.place.cap { font-size: calc(var(--fs-cap) * var(--lz)); font-weight: 700; color: var(--c-cap); letter-spacing: 0.08em; display: flex; align-items: center; gap: 5px; }
 .place.cap::before {
   content: ''; flex: none; width: 9px; height: 9px; background: var(--zhu-hi); border-radius: 1.5px; transform: rotate(45deg);
   box-shadow: inset 0 0 0 1.5px var(--zhu-hi), inset 0 0 0 2.5px rgba(255, 240, 220, 0.95), 0 1px 4px rgba(0, 0, 0, 0.5);
 }
-.place:hover { text-decoration: underline dotted; color: #fff; }
-.place.minor { font-size: 10.5px; opacity: 0.75; }
-.river { font-size: 11px; color: #9fcbe0; letter-spacing: 0.32em; opacity: 0.85; text-shadow: 0 0 2px #0c0e10, 0 0 5px rgba(0, 0, 0, 0.8); }
-.river.k-trunk { font-size: 13px; font-weight: 600; letter-spacing: 0.5em; }
+.place:hover { text-decoration: underline dotted; }
+
+/* water: rivers and lakes, spaced along their course */
+.river { font-size: calc(var(--fs-3) * var(--lz)); font-weight: 500; color: var(--c-water); letter-spacing: 0.32em; }
+.river.k-trunk { font-size: calc(var(--fs-1) * var(--lz)); font-weight: 600; letter-spacing: 0.5em; }
+.river.k-lake { letter-spacing: 0.12em; }
 :lang(en) .river { letter-spacing: 0.04em; font-style: italic; }
-.admin { font-size: 11px; color: #ddd0b4; letter-spacing: 0.12em; opacity: 0.85; text-shadow: 0 0 2px #0c0e10, 0 0 4px rgba(0, 0, 0, 0.8); }
-.admin.l1 { font-size: 12.5px; font-weight: 600; color: #f2e2bf; }
-/* walls, canals, roads, sea routes: cartographic italic lettering in the work's colour, no box */
+
+/* administrative divisions (layer): first level stronger */
+.admin { font-size: calc(var(--fs-3) * var(--lz)); font-weight: 500; color: var(--c-admin); letter-spacing: 0.12em; opacity: 0.9; }
+.admin.l1 { font-size: calc(var(--fs-2) * var(--lz)); font-weight: 600; color: var(--c-admin-1); }
+
+/* walls, canals, roads, sea routes: italic lettering in the work's colour between two ticks of its line style */
 .work {
-  --c: #e2c48f; font-size: 11px; font-style: italic; font-weight: 600; letter-spacing: 0.22em; color: var(--c);
+  --c: #e2c48f; font-size: calc(var(--fs-3) * var(--lz)); font-style: italic; font-weight: 600; letter-spacing: 0.22em; color: var(--c);
   display: flex; align-items: center; gap: 6px;
-  text-shadow: 0 0 2px #0c0e10, 0 0 4px #0c0e10, 0 1px 6px rgba(0, 0, 0, 0.8);
 }
-.work::before, .work::after { content: ''; width: 10px; height: 1.5px; border-radius: 1px; background: currentColor; opacity: 0.7; box-shadow: 0 0 3px rgba(0, 0, 0, 0.6); }
+.work::before, .work::after { content: ''; width: 10px; height: 1.5px; border-radius: 1px; background: currentColor; opacity: 0.7; }
 .work.k-wall::before, .work.k-wall::after { height: 3px; background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 3.5px); }
 .work.k-canal { --c: #8fcdf5; }
 .work.k-sea { --c: #7fb6dc; }
 .work.k-sea::before, .work.k-sea::after { background: repeating-linear-gradient(90deg, currentColor 0 3px, transparent 3px 5px); }
 .work.k-road { --c: #e0b47c; }
+:root:not([data-map=ink]) .work { --c: #7a5428; }
+:root:not([data-map=ink]) .work.k-canal { --c: #1d6aa8; }
+:root:not([data-map=ink]) .work.k-sea { --c: #1f557e; }
+:root:not([data-map=ink]) .work.k-road { --c: #8a5a2b; }
 :lang(en) .work { letter-spacing: 0.05em; }
-.polity {
-  font-weight: 800; letter-spacing: 0.3em; color: color-mix(in srgb, var(--c) 45%, #fff6e4); opacity: 0.92;
-  text-shadow: 0 0 3px rgba(10, 10, 12, 0.95), 0 0 10px rgba(10, 10, 12, 0.7);
-}
+
+/* polities: the largest, heaviest names, sized by their area and tinted with their colour */
+.polity { font-weight: 800; letter-spacing: 0.3em; color: color-mix(in srgb, var(--c) 45%, #fff6e4); opacity: 0.92; text-shadow: 0 0 3px rgba(10, 10, 12, 0.95), 0 0 10px rgba(10, 10, 12, 0.7); }
 .polity.s-xl { font-size: 26px; letter-spacing: 0.5em; }
 .polity.s-l { font-size: 19px; }
 .polity.s-m { font-size: 14px; }
@@ -136,21 +159,6 @@ h2, h3 { font-weight: 700; }
 .polity.r-neighbor { opacity: 0.6; font-weight: 600; }
 :lang(en) .polity { letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; }
 :lang(en) .polity.s-xl { letter-spacing: 0.2em; }
-
-/* light map styles: dark labels with a light halo */
-:root:not([data-map=ink]) .place { color: #2b2620; text-shadow: 0 0 2px #fbf8f1, 0 0 3px #fbf8f1, 0 0 6px rgba(251, 248, 241, 0.9); }
-:root:not([data-map=ink]) .place.t3 { color: #5a5248; }
-:root:not([data-map=ink]) .place.k-mountain { color: #4a5d6b; }
-:root:not([data-map=ink]) .place.k-water, :root:not([data-map=ink]) .river { color: #1f5f8b; text-shadow: 0 0 2px #f4f2ea, 0 0 5px rgba(244, 242, 234, 0.9); }
-:root:not([data-map=ink]) .place.cap { color: #8f1f16; }
-:root:not([data-map=ink]) .work { --c: #7a5428; text-shadow: 0 0 2px #fbf8f1, 0 0 3px #fbf8f1, 0 0 6px rgba(251, 248, 241, 0.9); }
-:root:not([data-map=ink]) .work::before, :root:not([data-map=ink]) .work::after { box-shadow: none; }
-:root:not([data-map=ink]) .work.k-canal { --c: #1d6aa8; }
-:root:not([data-map=ink]) .work.k-sea { --c: #1f557e; }
-:root:not([data-map=ink]) .work.k-road { --c: #8a5a2b; }
-:root:not([data-map=ink]) .place:hover { color: #000; }
-:root:not([data-map=ink]) .admin { color: #5b4a36; text-shadow: 0 0 2px #fbf8f1, 0 0 4px rgba(251, 248, 241, 0.9); }
-:root:not([data-map=ink]) .admin.l1 { color: #47321d; }
 :root:not([data-map=ink]) .polity { color: color-mix(in srgb, var(--c) 70%, #0d0a06); text-shadow: 0 0 3px rgba(255, 252, 245, 0.95), 0 0 8px rgba(255, 252, 245, 0.7); }
 
 

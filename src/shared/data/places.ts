@@ -1,4 +1,4 @@
-import { importedPlaces } from './jiangshan.ts';
+import { importedPlaces, type RiverLabel } from './jiangshan.ts';
 import type { I18n, Place, Year } from './types.ts';
 
 type Names = [from: Year, to: Year, zh: string, en: string][];
@@ -22,8 +22,8 @@ const CURATED: Place[] = [
   pl('anyang', 114.32, 36.12, '安阳', 'Anyang', { tier: 2, names: [[-1300, -1046, '殷', 'Yin']], capital: [[-1300, -1046]], since: -257 }),
   pl('erlitou', 112.69, 34.69, '二里头', 'Erlitou', { kind: 'site', tier: 3, until: -1000 }),
   pl('zhengzhou', 113.65, 34.76, '郑州', 'Zhengzhou', { tier: 2, names: [[-1600, -1300, '亳', 'Bo']], since: 583 }),
-  pl('kaifeng', 114.31, 34.8, '开封', 'Kaifeng', { tier: 1, since: 1912,
-    names: [[-364, -225, '大梁', 'Daliang'], [907, 1127, '东京（汴梁）', 'Bianjing']], capital: [[907, 923], [936, 1127]] }),
+  pl('kaifeng', 114.31, 34.8, '开封', 'Kaifeng', { tier: 1, since: 1368,
+    names: [[-364, -225, '大梁', 'Daliang'], [578, 906, '汴州', 'Bianzhou'], [907, 1127, '东京（汴梁）', 'Bianjing'], [1128, 1367, '汴梁', 'Bianliang']], capital: [[907, 923], [936, 1127]] }),
   pl('hangzhou', 120.16, 30.27, '杭州', 'Hangzhou', { tier: 1, names: [[1129, 1276, '临安', 'Lin’an']], capital: [[907, 978], [1138, 1276]], since: 589 }),
   pl('nanjing', 118.78, 32.06, '南京', 'Nanjing', { tier: 1, since: 1421,
     names: [[229, 280, '建业', 'Jianye'], [317, 589, '建康', 'Jiankang'], [937, 975, '金陵', 'Jinling'], [1368, 1420, '应天府', 'Yingtian'],
@@ -91,7 +91,7 @@ const CURATED: Place[] = [
   pl('xiaogang', 117.85, 32.6, '小岗村', 'Xiaogang', { kind: 'site', tier: 3, since: 1978 }),
   pl('dandong', 124.38, 40.13, '丹东', 'Dandong', { tier: 3, names: [[1876, 1965, '安东', 'Andong']], since: 1966 }),
   pl('jiuquan_lc', 100.28, 40.96, '酒泉卫星发射中心', 'Jiuquan Satellite Launch Center', { kind: 'site', tier: 3, since: 1958 }),
-  pl('lop_nur', 90.25, 40.6, '罗布泊', 'Lop Nur', { kind: 'water', tier: 3, since: 1300, names: [[-200, 1299, '蒲昌海', 'Puchang Sea']] }),
+  pl('lop_nur', 90.25, 40.6, '罗布泊', 'Lop Nur', { kind: 'site', tier: 3, since: 1959 }),
   // ---- passes ---------------------------------------------------------------------------------------------------
   pl('yumenguan', 93.86, 40.35, '玉门关', 'Yumen Pass', { kind: 'pass', tier: 2, since: -111 }),
   pl('jiayuguan', 98.21, 39.8, '嘉峪关', 'Jiayu Pass', { kind: 'pass', tier: 2, since: 1372 }),
@@ -107,12 +107,12 @@ const CURATED: Place[] = [
   pl('liangzhu', 119.99, 30.39, '良渚', 'Liangzhu', { kind: 'site', tier: 3, until: -1000 }),
   pl('dawenkou', 117.1, 35.95, '大汶口', 'Dawenkou', { kind: 'site', tier: 3, until: -1000 }),
   pl('sanxingdui', 104.21, 30.99, '三星堆', 'Sanxingdui', { kind: 'site', tier: 3, until: -800 }),
-  pl('dujiangyan', 103.61, 31.0, '都江堰', 'Dujiangyan', { kind: 'site', tier: 3, since: -256 }),
-  pl('lingqu', 110.57, 25.6, '灵渠', 'Lingqu Canal', { kind: 'site', tier: 3, since: -214 }),
+  pl('dujiangyan', 103.61, 31.0, '都江堰', 'Dujiangyan', { kind: 'site', tier: 3, since: 960, names: [[-256, 959, '都安堰', 'Du’an Weir']] }),
+  pl('lingqu', 110.57, 25.6, '灵渠', 'Lingqu Canal', { kind: 'site', tier: 3, since: 618, names: [[-214, -207, '秦凿渠', 'Qin Canal'], [-206, 617, '零渠', 'Ling Canal']] }),
   pl('zhaozhou', 114.77, 37.71, '赵州桥', 'Zhaozhou Bridge', { kind: 'site', tier: 3, since: 605 }),
-  pl('yungang', 113.12, 40.11, '云冈石窟', 'Yungang Grottoes', { kind: 'site', tier: 3, since: 460 }),
+  pl('yungang', 113.12, 40.11, '云冈石窟', 'Yungang Grottoes', { kind: 'site', tier: 3, since: 1550, names: [[460, 1549, '武州山石窟寺', 'Wuzhou Shan Grottoes']] }),
   pl('longmen', 112.47, 34.56, '龙门石窟', 'Longmen Grottoes', { kind: 'site', tier: 3, since: 493 }),
-  pl('mogao', 94.8, 40.04, '莫高窟', 'Mogao Caves', { kind: 'site', tier: 3, since: 366 }),
+  pl('mogao', 94.8, 40.04, '莫高窟', 'Mogao Caves', { kind: 'site', tier: 3, since: 698, names: [[366, 697, '鸣沙山石窟', 'Mingsha Shan Caves']] }),
   // ---- battlefields ---------------------------------------------------------------------------------------------
   pl('muye', 113.9, 35.2, '牧野', 'Muye', { kind: 'site', tier: 3, since: -1100 }),
   pl('changping', 112.9, 35.8, '长平', 'Changping', { kind: 'site', tier: 3, since: -300 }),
@@ -139,7 +139,7 @@ const CURATED: Place[] = [
   pl('malacca', 102.25, 2.2, '满剌加', 'Malacca', { tier: 3, since: 1405 }),
   pl('hanoi', 105.85, 21.03, '河内', 'Hanoi', { tier: 3, names: [[-111, 938, '交趾', 'Jiaozhi'], [1010, 1831, '升龙', 'Thăng Long']], since: 1831 }),
   // ---- geography --------------------------------------------------------------------------------------------------
-  pl('everest', 86.92, 27.99, '珠穆朗玛峰', 'Mount Everest', { kind: 'mountain', tier: 2 }),
+  pl('everest', 86.92, 27.99, '珠穆朗玛峰', 'Qomolangma (Everest)', { kind: 'mountain', tier: 2, since: 1719 }),
   pl('taishan', 117.1, 36.25, '泰山', 'Mount Tai', { kind: 'mountain', tier: 3 }),
   pl('diaoyu', 123.47, 25.75, '钓鱼岛', 'Diaoyu Islands', { kind: 'water', tier: 3, since: 1403 }),
   pl('nanhai', 114.0, 12.0, '南海诸岛', 'South China Sea Islands', { kind: 'water', tier: 2, since: 1947 }),
@@ -174,6 +174,45 @@ export function mapName(p: Place, year: Year): I18n | null {
   if (p.periodOnly) return null;
   if (p.since != null) return year >= p.since ? p.name : null;
   return p.kind === 'city' ? null : p.name;
+}
+
+type Period = [from: Year, to: Year, zh: string, en: string];
+const ANY = -2_000_000;
+/**
+ * Period names of rivers and lakes, keyed by the label's name: an older name inside its years, `now` (the current
+ * name) from `since`, and nothing in between (a modern name such as 塔里木河 or 斋桑泊 is not printed in antiquity).
+ */
+const WATER: Record<string, { names?: Period[]; since?: Year; now?: [string, string] }> = {
+  黄河: { names: [[ANY, -207, '河水', 'He (Yellow R.)']] },
+  长江: { names: [[ANY, 219, '江水', 'Jiang (Yangtze R.)']] },
+  珠江: { names: [[ANY, 959, '郁水', 'Yu R.'], [960, 1643, '西江', 'Xi R.']] },
+  赣江: { names: [[ANY, 588, '赣水', 'Gan R.']] },
+  辽河: { names: [[ANY, 906, '辽水', 'Liao R.']] },
+  松花江: { names: [[ANY, 906, '粟末水', 'Sumo R.'], [907, 1367, '宋瓦江', 'Songwa R.']] },
+  黑龙江: { names: [[ANY, 906, '黑水', 'Heishui (Amur)']] },
+  伊犁河: { names: [[ANY, 617, '伊列水', 'Yilie R.'], [618, 1643, '伊丽水', 'Yili R.']] },
+  塔里木河: { since: 1700 },
+  雅鲁藏布江: { since: 1700 },
+  '彭蠡·鄱阳': { names: [[ANY, 588, '彭蠡泽', 'Pengli Marsh']], now: ['鄱阳湖', 'Poyang L.'] },
+  青海: { names: [[ANY, 385, '西海', 'Xihai (Qinghai L.)']] },
+  '北海（贝加尔）': { names: [[ANY, 1699, '北海', 'Beihai (L. Baikal)']], now: ['贝加尔湖', 'L. Baikal'] },
+  '蒲昌海·罗布泊': { names: [[ANY, 1299, '蒲昌海', 'Puchang Sea']], now: ['罗布泊', 'Lop Nur'] },
+  博斯腾湖: { since: 1700 },
+  '热海（伊塞克）': { names: [[ANY, 1699, '热海', 'Rehai (Issyk-Kul)']], now: ['伊塞克湖', 'Issyk-Kul'] },
+  '夷播海（巴尔喀什）': { names: [[ANY, 1699, '夷播海', 'Yibo Sea (L. Balkhash)']], now: ['巴尔喀什湖', 'L. Balkhash'] },
+  斋桑泊: { since: 1700 },
+  洪泽: { now: ['洪泽湖', 'Hongze L.'] },
+};
+
+/** The name a river or lake label shows in `year`, or null while it did not exist or had no name we can print. */
+export function riverName(r: RiverLabel, year: Year): I18n | null {
+  if ((r.from != null && year < r.from) || (r.to != null && year > r.to)) return null;
+  const w = WATER[r.name.zh];
+  if (!w) return r.name;
+  const n = w.names?.find(([a, b]) => year >= a && year <= b);
+  if (n) return { zh: n[2], en: n[3] };
+  if (w.since != null && year < w.since) return null;
+  return w.now ? { zh: w.now[0], en: w.now[1] } : r.name;
 }
 
 export function isCapital(p: Place, year: Year): boolean {

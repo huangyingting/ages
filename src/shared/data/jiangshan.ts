@@ -24,7 +24,7 @@ interface Raw {
   reigns: [Year, string, number, string, string, string][];
   regional: { regime: I18n; polities: string[]; until: Year; spans: [Year, string, number, string, string, string][] }[];
   works: Work[];
-  rivers: { name: I18n; lon: number; lat: number; kind: string }[];
+  rivers: RiverLabel[];
   music: { name: I18n; mp3: string; ogg: string }[];
 }
 const J = RAW as unknown as Raw;
@@ -46,7 +46,9 @@ export const DYNASTIES: Dynasty[] = J.dynasties;
 export const JOURNEYS: Journey[] = J.journeys;
 export const WORKS: Work[] = J.works;
 export const PEOPLE: Person[] = J.people;
-export const RIVER_LABELS = J.rivers;
+/** A river or lake name on the map; `from` / `to` bound the years its course or water existed. */
+export interface RiverLabel { name: I18n; lon: number; lat: number; kind: string; from?: Year; to?: Year }
+export const RIVER_LABELS: RiverLabel[] = J.rivers;
 export const MUSIC = J.music;
 export const GAZETTEER = J.gazetteer;
 export const PERSON = new Map(PEOPLE.map(p => [p.id, p]));
