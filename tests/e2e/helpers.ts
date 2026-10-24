@@ -5,7 +5,7 @@ export const SHOTS = 'docs/assets/screenshots';
 export interface AppState {
   ready: boolean; year: number; lang: 'zh' | 'en'; event: string | null; era: string | null;
   story: 'idle' | 'playing' | 'paused'; snapshot: string | null; frames: number;
-  pose: { lon: number; lat: number; dist: number }; fx: { story: number; event: number; base: number; works: number }; captions: string;
+  pose: { lon: number; lat: number; dist: number }; fx: { story: number; event: number; base: number; scenery: number; works: number }; captions: string;
 }
 
 /** Collects page errors and console errors so every test can assert a clean run. */
@@ -25,6 +25,14 @@ export async function openApp(page: Page, hash = '', query = 'lowfx=1'): Promise
 
 export function state(page: Page): Promise<AppState> {
   return page.evaluate(() => (window as any).__atlas.state());
+}
+
+export function setMapPose(page: Page, pose: { lon: number; lat: number; dist: number; tilt: number }): Promise<void> {
+  return page.evaluate(p => {
+    const app = (window as unknown as { __atlas: { atlas: { view: { jump(pose: typeof p): void } } } }).__atlas;
+    app.atlas.view.jump(p);
+    return new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  }, pose);
 }
 
 export async function shot(page: Page, name: string): Promise<void> {

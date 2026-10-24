@@ -16,6 +16,7 @@ const P: Record<string, string> = {
   custom: '<path d="M8 1.8v1.6M5.6 3.4h4.8M4.4 6.2c0-1.7 1.6-2.8 3.6-2.8s3.6 1.1 3.6 2.8v2.6c0 1.7-1.6 2.8-3.6 2.8s-3.6-1.1-3.6-2.8zM8 3.4v8.2M5.6 11.6h4.8M7 11.6l-.4 2.6M9 11.6l.4 2.6"/>',
   food: '<path d="M2.4 8.2h11.2a5.6 5.6 0 0 1-11.2 0zM6 13.8h4M8.4 6.4l4.4-4.4M6.6 6.4l3.6-4.6"/>',
   capital: '<path d="M1.6 6.4 8 2.6l6.4 3.8M3 6.2h10M4 6.2v6.6M12 6.2v6.6M6.7 6.2v6.6M9.3 6.2v6.6M2.2 13h11.6"/>',
+  place: '<circle cx="8" cy="8" r="4.5"/><circle cx="8" cy="8" r="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2"/>',
 };
 
 export const glyph = (k: string): string =>

@@ -2,6 +2,50 @@ import { describe, expect, it } from 'vitest';
 import { readLink } from '../../src/client/lib/link.ts';
 import { articleUrl, parseExtract } from '../../src/client/lib/wikipedia.ts';
 import { deploy, shape } from '../../src/client/scene/formation.ts';
+import { declutter, type LayoutItem } from '../../src/client/scene/layout.ts';
+
+describe('shared map layout', () => {
+  const item = (owner: string, x: number, prio = 10): LayoutItem => ({
+    owner, prio, bounds: { left: x, right: x + 30, top: 0, bottom: 30 },
+  });
+
+  it('protects model footprints from unrelated text but keeps an attached name and keyboard target', () => {
+    const model = item('site', 0);
+    const otherText = item('city', 10, 80);
+    const name = { ...item('site', 5), model };
+    const hit = { ...item('site', 0), model, passive: true };
+    declutter([model], [otherText, name, hit]);
+    expect([model.shown, otherText.shown, name.shown, hit.shown]).toEqual([true, false, true, true]);
+  });
+
+  it('removes a crowded lower-priority model and its attached labels, not just its name', () => {
+    const main = item('capital', 0, 90), detail = item('food', 20);
+    const name = { ...item('food', 60), model: detail };
+    declutter([detail, main], [name]);
+    expect([main.shown, detail.shown, name.shown]).toEqual([true, false, false]);
+    detail.bounds.left = 40; detail.bounds.right = 70;
+    declutter([detail, main], [name]);
+    expect([detail.shown, name.shown]).toEqual([true, true]);
+  });
+
+  it('keeps selected models or compact markers ahead of higher-ranked content', () => {
+    const main = item('capital', 0, 90), selected = { ...item('food', 20), pinned: true };
+    declutter([main, selected], []);
+    expect([main.shown, selected.shown]).toEqual([false, true]);
+    const badge = { ...item('event', 0), pinned: true };
+    declutter([main], [badge]);
+    expect([main.shown, badge.shown]).toEqual([false, true]);
+  });
+
+  it('keeps the main territory readable unless the selected object needs that space', () => {
+    const model = item('person', 0, 64), territory = { ...item('polity', 10, 40), primary: true };
+    declutter([model], [territory]);
+    expect([model.shown, territory.shown]).toEqual([false, true]);
+    model.pinned = true;
+    declutter([model], [territory]);
+    expect([model.shown, territory.shown]).toEqual([true, false]);
+  });
+});
 
 describe('wikipedia extract parsing', () => {
   it('splits lead and sections and drops reference-style sections with their subsections', () => {

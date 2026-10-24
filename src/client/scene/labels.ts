@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { View } from './view.ts';
+import { declutter, type LayoutItem } from './layout.ts';
 
 /**
  * HTML label overlay: world-anchored labels positioned each frame, hidden when off-screen, outside their zoom range
@@ -15,14 +16,21 @@ export interface Label {
   maxD?: number;
   /** never hidden by collisions (e.g. the selected event) */
   pinned?: boolean;
+  primary?: boolean;
   /** label sits above the point (pins) rather than centred on it */
-  anchor?: 'center' | 'above';
+  anchor?: 'center' | 'above' | 'beside';
   group: string;
   w?: number;
   h?: number;
   shown?: boolean;
   /** hidden regardless of zoom (e.g. a place that does not exist in the current year) */
   off?: boolean;
+  owner?: string;
+  /** Shared layout entry of the model this label belongs to, when it is in model form. */
+  model?: LayoutItem;
+  /** Transparent, keyboard-accessible model target; it uses the model's projected bounds. */
+  modelHit?: boolean;
+  screen?: { x: number; y: number };
 }
 
 export class Labels {
@@ -37,7 +45,6 @@ export class Labels {
     this.root = document.createElement('div');
     this.root.className = 'labels';
     host.append(this.root);
-    view.onFrame(() => this.layout());
     window.addEventListener('resize', () => (this.dirtySize = true));
   }
 
@@ -66,7 +73,7 @@ export class Labels {
   /** Call after label text changes (sizes are cached). */
   remeasure(): void { this.dirtySize = true; }
 
-  private layout(): void {
+  layout(models: LayoutItem[] = []): void {
     const v = this.view;
     const W = v.canvas.clientWidth, H = v.canvas.clientHeight;
     const dist = v.camera.position.distanceTo(v.controls.target);
@@ -81,26 +88,33 @@ export class Labels {
       for (const l of this.items) { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }
       this.dirtySize = false;
     }
-    const placed: [number, number, number, number][] = [];
-    const sorted = this.items.slice().sort((a, b) => (b.pinned ? 1e9 : b.prio) - (a.pinned ? 1e9 : a.prio));
-    for (const l of sorted) {
-      let show = !l.off && !this.hidden.has(l.group) && dist >= (l.minD ?? 0) && dist <= (l.maxD ?? Infinity);
+    const candidates = new Map<Label, LayoutItem>();
+    for (const l of this.items) {
+      let show = !l.off && !this.hidden.has(l.group) && (!!l.model || !!l.pinned || (dist >= (l.minD ?? 0) && dist <= (l.maxD ?? Infinity)));
       let x = 0, y = 0;
-      if (show) {
+      if (show && !(l.modelHit && l.model)) {
         const p = v.project(l.pos, this.tmp);
-        x = p.x; y = p.y;
-        if (p.z > 1 || x < -40 || y < -40 || x > W + 40 || y > H + 40) show = false;
+        x = l.screen?.x ?? p.x; y = l.screen?.y ?? p.y;
+        if (p.z < -1 || p.z > 1 || x < -40 || y < -40 || x > W + 40 || y > H + 40) show = false;
       }
       const w = l.w ?? 0, h = l.h ?? 0;
-      const left = x - w / 2, top = l.anchor === 'above' ? y - h : y - h / 2;
-      if (show && !l.pinned) {
-        for (const [a, b, c, d] of placed) {
-          if (left < c && left + w > a && top < d && top + h > b) { show = false; break; }
-        }
-      }
+      const left = l.anchor === 'beside' ? x - 7 : x - w / 2, top = l.anchor === 'above' ? y - h : y - h / 2;
       if (show) {
-        placed.push([left - 3, top - 2, left + w + 3, top + h + 2]);
-        l.el.style.transform = `translate3d(${left.toFixed(1)}px, ${top.toFixed(1)}px, 0)`;
+        const bounds = l.modelHit && l.model ? l.model.bounds : { left, top, right: left + w, bottom: top + h };
+        candidates.set(l, { bounds, prio: l.prio, pinned: l.pinned, primary: l.primary, owner: l.owner, model: l.model, passive: l.modelHit });
+      }
+    }
+    declutter(models, [...candidates.values()]);
+    for (const l of this.items) {
+      const item = candidates.get(l);
+      const show = !!item?.shown;
+      if (show) {
+        const b = item!.bounds;
+        l.el.style.transform = `translate3d(${b.left.toFixed(1)}px, ${b.top.toFixed(1)}px, 0)`;
+        if (l.modelHit) {
+          l.el.style.width = `${b.right - b.left}px`;
+          l.el.style.height = `${b.bottom - b.top}px`;
+        }
       }
       if (show !== l.shown) {
         l.shown = show;

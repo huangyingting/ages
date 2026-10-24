@@ -284,7 +284,7 @@ class App {
     this.timeline.select(null);
     if (fly) this.atlas.flyTo({ lon: p.lon, lat: p.lat - 0.6, dist: Math.min(this.atlas.view.pose().dist, 22), tilt: 0.85 }, 1.2);
     this.card.showPlace(p, this.timeline.year);
-    this.atlas.focus(`capital:${p.id}`, [p.lon, p.lat]);
+    this.atlas.focus(`place:${p.id}`, [p.lon, p.lat]);
     this.root.classList.add('card-on');
     writeLink({ place: p.id, year: this.timeline.year, lang });
   }
@@ -489,4 +489,3 @@ if (!webgl()) {
     root.append(h('div', { class: 'nogl', text: String(err) }));
   });
 }
-

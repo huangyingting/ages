@@ -109,26 +109,25 @@ h2, h3 { font-weight: 700; }
 .labels > * { position: absolute; left: 0; top: 0; will-change: transform; white-space: nowrap; }
 .place, .river, .admin, .work { text-shadow: var(--halo); }
 
-/* settlements and sites: tier 1 → 3, minor; the capital carries a vermilion seal (印) */
-.place { font-size: calc(var(--fs-2) * var(--lz)); font-weight: 500; color: var(--c-city); letter-spacing: 0.03em; pointer-events: auto; cursor: pointer; }
+/* Clickable geographical names: one location anchor, replaced by the model's base ring when modeled. */
+.place {
+  border: 0; background: none; padding: 3px; font-family: inherit; font-size: calc(var(--fs-2) * var(--lz));
+  font-weight: 500; color: var(--c-city); letter-spacing: 0.03em; pointer-events: auto; cursor: pointer;
+  display: flex; align-items: center; gap: 4px; border-radius: 3px;
+}
+.place::before {
+  content: ''; flex: none; width: 5px; height: 5px; border: 1.5px solid currentColor; border-radius: 50%;
+  box-shadow: 0 0 2px var(--c-city-2);
+}
+.place.modeled::before { display: none; }
 .place.t1 { font-size: calc(var(--fs-1) * var(--lz)); font-weight: 600; }
 .place.t3 { font-size: calc(var(--fs-3) * var(--lz)); font-weight: 400; color: var(--c-city-2); }
 .place.minor { font-size: calc(var(--fs-4) * var(--lz)); font-weight: 400; color: var(--c-city-2); opacity: 0.8; }
 .place.k-mountain, .place.k-pass { color: var(--c-relief); }
 .place.k-water { color: var(--c-water); }
-.place.cap { font-size: calc(var(--fs-cap) * var(--lz)); font-weight: 700; color: var(--c-cap); letter-spacing: 0.08em; display: flex; align-items: center; gap: 5px; }
-.place.cap::before {
-  content: ''; flex: none; width: 9px; height: 9px; background: var(--zhu-hi); border-radius: 1.5px; transform: rotate(45deg);
-  box-shadow: inset 0 0 0 1.5px var(--zhu-hi), inset 0 0 0 2.5px rgba(255, 240, 220, 0.95), 0 1px 4px rgba(0, 0, 0, 0.5);
-}
-.place:hover { text-decoration: underline dotted; }
-
-/* key items of the period (level 1): the name above the model, tinted by its type colour */
-.lvname {
-  font-size: calc(var(--fs-2) * var(--lz)); font-weight: 600; letter-spacing: 0.04em; text-shadow: var(--halo);
-  color: color-mix(in srgb, var(--k) 30%, var(--c-city));
-}
-:lang(en) .lvname { letter-spacing: 0.01em; }
+.place.cap { font-size: calc(var(--fs-cap) * var(--lz)); font-weight: 700; color: var(--c-cap); letter-spacing: 0.08em; }
+.place.cap::before { width: 7px; height: 7px; border-width: 2px; }
+.place.hot, .place:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
 
 /* water: rivers and lakes, spaced along their course */
 .river { font-size: calc(var(--fs-3) * var(--lz)); font-weight: 500; color: var(--c-water); letter-spacing: 0.32em; }
@@ -169,51 +168,30 @@ h2, h3 { font-weight: 700; }
 :root:not([data-map=ink]) .polity { color: color-mix(in srgb, var(--c) 70%, #0d0a06); text-shadow: 0 0 3px rgba(255, 252, 245, 0.95), 0 0 8px rgba(255, 252, 245, 0.7); }
 
 
-/* event pins: round lacquer badges with the event kind's glyph on a hairline stem; the title shows in the map tooltip
-   on hover; the selected one stays lit and the map's selection ring sits under it */
+/* One compact marker for all content: a quiet circular glyph, without stems or a second location dot. */
 .pin {
-  pointer-events: auto; border: 0; background: none; padding: 0 0 6px; display: flex; flex-direction: column; align-items: center;
+  pointer-events: auto; border: 0; background: none; padding: 3px; display: flex; align-items: center; justify-content: center;
   --k: var(--k-politics); --d: 22px; color: var(--ink); font: inherit;
+  border-radius: 50%;
 }
 .pin .b {
   display: flex; align-items: center; height: var(--d); min-width: var(--d); border-radius: 999px; padding: 0; box-sizing: border-box;
   color: color-mix(in srgb, var(--k) 35%, #fff); background: radial-gradient(circle at 50% 30%, rgba(52, 48, 44, 0.96), rgba(18, 17, 16, 0.94));
   border: 1.5px solid color-mix(in srgb, var(--k) 80%, #fff);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--k) 22%, transparent), 0 3px 9px -1px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   transition: transform 0.18s var(--ease-out), box-shadow 0.18s, background 0.18s, color 0.18s;
 }
 .pin .b svg { flex: none; width: calc(var(--d) - 3px); height: calc(var(--d) - 9px); padding: 0 3px; box-sizing: border-box; }
-.pin .t { display: none; }
-.pin i { display: block; width: 1.5px; height: 7px; background: linear-gradient(180deg, color-mix(in srgb, var(--k) 70%, #fff), rgba(255, 255, 255, 0.85)); }
-.pin i::after {
-  content: ''; display: block; width: 6px; height: 6px; background: var(--k); border: 1.5px solid #fff; border-radius: 50%; transform: translate(-2.75px, 6px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+.pin.hot .b, .pin:focus-visible .b {
+  transform: scale(1.06); color: #fff; background: var(--k);
 }
-.pin.w1 { --d: 26px; }
-.pin.w1 .b { border-width: 2px; }
-.pin.w3 { --d: 18px; }
-.pin.w3 .b { opacity: 0.92; }
-.pin.w3 .b svg { padding: 0 2px; }
-.pin:hover .b, .pin.hot .b, .pin:focus-visible .b, .pin.sel .b {
-  transform: translateY(-3px) scale(1.18); color: #fff; background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--k) 75%, #fff), var(--k));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--k) 35%, transparent), 0 0 14px color-mix(in srgb, var(--k) 70%, transparent), 0 6px 14px -2px rgba(0, 0, 0, 0.5);
-}
-.pin.sel { z-index: 2; }
 /* light map styles: ivory badges with a kind-coloured glyph */
-:root:not([data-map=ink]) .pin:not(.sel):not(.hot):not(:hover):not(:focus-visible) .b {
+:root:not([data-map=ink]) .pin:not(.hot):not(:focus-visible) .b {
   color: color-mix(in srgb, var(--k) 85%, #000); background: radial-gradient(circle at 50% 30%, #fffdf8, #f1e9da);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--k) 18%, transparent), 0 2px 7px -1px rgba(60, 40, 20, 0.4);
+  box-shadow: 0 1px 4px rgba(60, 40, 20, 0.3);
 }
-:root:not([data-map=ink]) .pin i { background: linear-gradient(180deg, var(--k), rgba(40, 30, 20, 0.6)); }
-/* detail items far off: a dot of their type colour (their model stands up as the camera comes close) */
-.pin.dot { padding: 5px; }
-.pin.dot::after {
-  content: ''; display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--k); border: 1.5px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); transition: transform 0.18s var(--ease-out), box-shadow 0.18s;
-}
-.pin.dot:hover::after, .pin.dot.hot::after, .pin.dot:focus-visible::after {
-  transform: scale(1.5); box-shadow: 0 0 0 3px color-mix(in srgb, var(--k) 35%, transparent), 0 0 10px var(--k);
-}
+.pin.model-hit { pointer-events: none; padding: 0; background: none; border: 0; outline: none; box-shadow: none; }
+.pin.model-hit .b { display: none; }
 
 /* the map tooltip for anything on the map (3D models and event badges): glyph, name, and a subtitle */
 .maptip {

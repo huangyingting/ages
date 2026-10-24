@@ -3,8 +3,8 @@ import { personModel } from './heroes.ts';
 import { personNamed, type Person } from './jiangshan.ts';
 import { LIFE, lifeOf, type LifeItem, type LifeKind } from './life.ts';
 import { ERAS } from './eras.ts';
-import { PLACE } from './places.ts';
-import type { Era, HistEvent, I18n, ModelRecipe } from './types.ts';
+import { PLACE, PLACES } from './places.ts';
+import type { Era, HistEvent, I18n, ModelRecipe, Place } from './types.ts';
 
 /**
  * One model standing on the map for a dynasty: a curated piece of its life (person, building, custom, food — see
@@ -23,9 +23,7 @@ export interface SceneryItem {
   /** the curated life item (opens its own card) */
   life?: LifeItem;
   /**
-   * How much the item matters to the period, which sets how it shows at each zoom (docs/design/map-design.md §2):
-   * 1 key — a model and its name at any zoom; 2 notable — a badge from afar, its model once zoomed in;
-   * 3 detail — a dot at mid zoom, its model up close.
+   * Importance controls display priority and when to reveal detail, not whether an item carries a name.
    */
   level: Level;
   yaw?: number;
@@ -35,6 +33,13 @@ export type Level = 1 | 2 | 3;
 
 /** key items per dynasty (the capital comes on top), so the period reads at a glance */
 export const MAX_KEY = 6;
+
+/** A curated landmark and its geographical entry are one map object, not two nearby click targets. */
+export function lifePlace(l: LifeItem): Place | undefined {
+  if (l.kind !== 'building') return undefined;
+  return PLACES.find(p => p.kind !== 'city' && Math.hypot(l.lon - p.lon, l.lat - p.lat) < 0.5 &&
+    (l.name.zh.startsWith(p.name.zh) || l.wiki.zh === p.name.zh));
+}
 
 const MAX_LANDMARKS = 6;
 const MAX_PEOPLE = 4;

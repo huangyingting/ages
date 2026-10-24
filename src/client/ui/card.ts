@@ -5,14 +5,14 @@ import { tr } from '../../shared/data/i18n.ts';
 import { JOURNEYS, PEOPLE, dynastyOfEra, personNamed, type Journey, type Person } from '../../shared/data/jiangshan.ts';
 import { PLACE, isCapital, placeName } from '../../shared/data/places.ts';
 import type { Era, EventKind, HistEvent, I18n, ModelRecipe, Place, Wiki, Year } from '../../shared/data/types.ts';
-import { formatYear } from '../../shared/lib/timeline.ts';
+import { eraAt, formatYear } from '../../shared/lib/timeline.ts';
 import { kindName, lang, t } from '../lib/i18n.ts';
 import type { Progress } from '../lib/storage.ts';
 import { fill, h, icon, iconBtn } from './dom.ts';
 import { Preview } from './preview.ts';
 import { personModel, placeModel } from '../../shared/data/heroes.ts';
 import { lifeOf, type LifeItem, type LifeKind } from '../../shared/data/life.ts';
-import { lifeEvent } from '../../shared/data/scenery.ts';
+import { lifeEvent, lifePlace } from '../../shared/data/scenery.ts';
 
 export interface CardHooks {
   play(e: HistEvent): void;
@@ -159,6 +159,8 @@ export class Card {
 
   private renderPlace(p: Place, year: Year): void {
     const L = lang;
+    const era = eraAt(year);
+    const life = era ? lifeOf(era.id).find(l => lifePlace(l)?.id === p.id) : undefined;
     const now = placeName(p, year);
     const names: { from: Year; to: Year; name: I18n }[] = [];
     for (const n of [...(p.names ?? []), ...(p.periods ?? [])].sort((a, b) => a.from - b.from)) {
@@ -168,18 +170,21 @@ export class Card {
     const notes = [...(p.notes ?? [])].sort((a, b) => a.from - b.from);
     const d2 = (e: { lon: number; lat: number }) => (e.lon - p.lon) ** 2 + (e.lat - p.lat) ** 2;
     const evs = EVENTS.filter(e => e.scope === p.scope && (e.place === p.id || d2(e) < 0.6 ** 2)).sort((a, b) => a.year - b.year).slice(0, 14);
+    const twin = life ? lifeEvent(life) : undefined;
+    if (twin && !evs.includes(twin)) evs.unshift(twin);
     const modern = p.modern && p.modern.zh !== now.zh ? p.modern : now.zh !== p.name.zh ? p.name : undefined;
     const wikiName = p.modern?.zh ? p.modern : p.name;
     const capYears = (p.capital ?? []).reduce((s, [a, b]) => s + Math.max(1, Math.min(b, 1949) - a), 0);
-    this.setHero(placeModel(p), t(p.kind === 'pass' ? 'pass' : 'place'), '#c9a45c', null);
+    this.setHero(life?.model ?? placeModel(p), t(p.kind === 'pass' ? 'pass' : 'place'), '#c9a45c', null);
     const showNames = names.length > 1 || (names.length === 1 && names[0].name.zh !== now.zh);
     fill(this.body,
       this.title(modern ? this.eyebrow(`${t('today')} ${tr(modern, L)}`) : null, tr(now, L), null,
         [isCapital(p, year) ? h('span', { class: 'badge star', text: '★ ' + t('capitalNow') }) : null]),
       p.lore ? h('p', { class: 'sum' }, h('b', { text: tr(p.lore.tag, L) + ' · ' }), tr(p.lore.desc, L)) : null,
+      life ? h('p', { class: 'sum', text: tr(life.desc, L) }) : null,
       this.stats([t('when'), formatYear(year, L)], capYears ? [t('asCapital'), t('years', { n: capYears })] : [t('eventsN'), String(evs.length)]),
       h('div', { class: 'acts' },
-        this.wikiBtn({ zh: wikiName.zh, en: wikiName.en }, tr(wikiName, L))),
+        this.wikiBtn(life?.wiki ?? { zh: wikiName.zh, en: wikiName.en }, tr(wikiName, L))),
       showNames ? this.sec(t('namesThrough'), true, h('ul', { class: 'periods' },
         ...names.map(n => h('li', { class: year >= n.from && year <= n.to ? 'cur' : '' }, h('span', { class: 'y', text: this.span(n.from, n.to) }), h('b', { text: tr(n.name, L) }))))) : null,
       p.capital?.length ? this.sec(t('asCapital'), !showNames, h('p', { class: 'caps', text: p.capital.map(([a, b]) => this.span(a, b)).join('；') })) : null,

@@ -3,7 +3,7 @@ import { EVENTS } from '../../shared/data/events.ts';
 import { tr, type Lang } from '../../shared/data/i18n.ts';
 import { RIVER_LABELS, WORKS, type Person, type RiverLabel } from '../../shared/data/jiangshan.ts';
 import { PLACE, PLACES, isCapital, mapName, riverName } from '../../shared/data/places.ts';
-import { lifeEvent, sceneryOf, type Level, type SceneryItem } from '../../shared/data/scenery.ts';
+import { lifeEvent, lifePlace, sceneryOf, type Level } from '../../shared/data/scenery.ts';
 import type { LifeItem } from '../../shared/data/life.ts';
 import { POLITY, polityMatches } from '../../shared/data/polities.ts';
 import { capitalModel } from '../../shared/data/heroes.ts';
@@ -18,31 +18,38 @@ import { Fx, type SpawnState } from './fx.ts';
 import { Halo } from './halo.ts';
 import { Geo } from './geo.ts';
 import { Labels, type Label } from './labels.ts';
+import type { LayoutItem, ScreenBox } from './layout.ts';
 import { buildTerrain, loadHeightmap, SURFACE, type Surface, type Terrain } from './terrain.ts';
 import { TerrainDetail } from './detail.ts';
 import { ShapeStore } from './shapes.ts';
 import { TerritoryPainter, regionAnchor, texture } from './territory.ts';
 import { View, type CamPose } from './view.ts';
 
-/**
- * Something standing on the map that can be hovered and opened: a dynasty scenery model, the capital or the selected
- * event's model. `key` is `life:<id>`, `person:<id>`, `event:<id>` or `capital:<id>`.
- */
-interface Mark {
+interface MapTarget {
   key: string;
-  g: THREE.Object3D;
-  /** the event whose pin this model stands in for (its landmark or model, or a life item about the same thing) */
-  event?: string;
   icon: string;
   info: () => { title: string; sub: string };
   open: () => void;
-  /** its far form while the model waits for the camera to come closer: a badge (notable) or a dot (detail) */
-  badge?: Label;
+  label: Label;
+  g?: THREE.Object3D;
+  nameLabel?: Label;
 }
 
-/** What the pointer is over: a 3D mark or an event pin. */
-/** what the pointer is over: a model, an event pin, or an administrative area (tooltip only, anchored at the pointer) */
-type Hover = { mark: Mark } | { pin: HistEvent; label: Label } | { area: AdminUnit; at: THREE.Vector3 };
+/** One object, with a compact form and an optional model; geographical names belong to that same object. */
+interface Mark extends MapTarget {
+  g: THREE.Object3D;
+  layer: 'base' | 'scenery' | 'event';
+  event?: string;
+  place?: Place;
+  aliases?: string[];
+  prio: number;
+  modelMaxD: number;
+  maxD: number;
+  modelForm?: boolean;
+  layout?: LayoutItem;
+}
+
+type Hover = { target: MapTarget } | { area: AdminUnit; at: THREE.Vector3 };
 
 export interface Layers {
   territory: boolean; places: boolean; events: boolean; models: boolean;
@@ -81,18 +88,14 @@ export class Atlas {
   onPlace: (p: Place) => void = () => {};
   onPerson: (p: Person) => void = () => {};
   onLife: (l: LifeItem) => void = () => {};
-  private pins = new Map<string, Label>();
-  private placeLabels = new Map<string, Label>();
-  /** sites (not cities) whose own model stands on the map: their name is in the model's tooltip, so the label steps aside */
-  private modelPlaces = new Set<string>();
+  private pins = new Map<string, MapTarget>();
+  private places = new Map<string, MapTarget>();
   private riverLabels: [RiverLabel, Label][] = [];
   private polityLabels: Label[] = [];
   private fade: { t: number; tex: THREE.Texture; wipe?: { dur: number; r: number } } | null = null;
   private texA: THREE.Texture | null = null;
   private capitalKey = '';
   private sceneryKey = '';
-  /** the dynasty's landmark models by event id (hidden while that event's own model is up) */
-  private sceneryMarks = new Map<string, THREE.Object3D>();
   private storyMode = false;
   private marks: Mark[] = [];
   private hover: Hover | null = null;
@@ -103,6 +106,7 @@ export class Atlas {
   private selHalo!: Halo;
   private tip!: HTMLElement;
   private overCanvas = false;
+  private raycaster = new THREE.Raycaster();
   private hiT = -1;
   private hiDur = 0;
   private hiTex: THREE.Texture | null = null;
@@ -132,11 +136,13 @@ export class Atlas {
     this.painter = new TerritoryPainter(this.geo, this.lowfx ? 1536 : 3072);
     this.fx = new Fx(this.view, this.geo, this.labels);
     this.view.jump(this.geo.stage.home);
-    this.hoverHalo = new Halo(this.geo, '#22c3e6', '#7fe3ff', 6);
-    this.selHalo = new Halo(this.geo, '#e0402f', '#ffc23a', 3.2, 0.1);
+    this.hoverHalo = new Halo(this.geo, '#22c3e6');
+    this.selHalo = new Halo(this.geo, '#e0402f');
     this.view.scene.add(this.hoverHalo.obj, this.selHalo.obj);
     this.tip = document.createElement('div');
     this.tip.className = 'maptip';
+    this.tip.id = 'map-tooltip';
+    this.tip.setAttribute('role', 'tooltip');
     this.tip.hidden = true;
     this.tip.innerHTML = '<span class="ic"></span><b></b><small></small>';
     this.host.append(this.tip);
@@ -168,101 +174,219 @@ export class Atlas {
       u.uHiAmt.value = Math.max(0, (0.55 + 0.35 * Math.sin(this.hiT * 5)) * Math.min(1, this.hiT * 3) * (1 - fadeOut / 0.6));
       if (fadeOut >= 0.6) { this.hiT = -1; u.uHiAmt.value = 0; }
     }
-    this.frameMarks(dt, t);
+    this.layoutMarks();
+    this.frameMarks(dt);
   }
 
   // ------------------------------------------------------------ hover & selection of map objects
 
-  private static live(m: Mark): boolean {
-    if (!m.g.parent || !(m.g.userData as SpawnState).shown) return false;
+  private static live(m: MapTarget): boolean {
+    if (!m.g?.parent || !(m.g.userData as SpawnState).shown) return false;
     for (let o: THREE.Object3D | null = m.g; o; o = o.parent) if (!o.visible) return false;
     return true;
   }
 
-  /** On the map in some form: its model, or its badge / dot while the camera is too far for the model. */
-  private static onMap(m: Mark): boolean {
-    return Atlas.live(m) || (!!m.badge && !!m.badge.shown && m.badge.el.isConnected);
+  private static onMap(m: MapTarget): boolean {
+    return Atlas.live(m) || [m.label, m.nameLabel].some(l => l?.shown && l.el.isConnected);
+  }
+
+  private isSelected(m: MapTarget): boolean {
+    return m.key === this.selKey || this.marks.some(mark => mark.key === m.key && mark.aliases?.includes(this.selKey ?? ''));
+  }
+
+  private resolveTarget(target: MapTarget): MapTarget {
+    return this.marks.find(m => m.key === target.key && Atlas.onMap(m)) ?? target;
+  }
+
+  private bindTarget(target: MapTarget): void {
+    const el = target.label.el;
+    const enter = () => {
+      if (!this.storyMode && !this.pickHandler) this.setHover({ target: this.resolveTarget(target) });
+    };
+    const leave = () => {
+      if (this.hover && 'target' in this.hover && this.hover.target.key === target.key) this.setHover(null);
+    };
+    el.addEventListener('pointerenter', enter);
+    el.addEventListener('pointerleave', leave);
+    el.addEventListener('focus', enter);
+    el.addEventListener('blur', leave);
+    el.addEventListener('click', ev => {
+      ev.stopPropagation();
+      if (this.pickHandler) {
+        const ll = this.view.pick(ev.clientX, ev.clientY);
+        if (ll) this.pickHandler(ll[0], ll[1]);
+        return;
+      }
+      if (this.storyMode) return;
+      this.setHover(null);
+      this.resolveTarget(target).open();
+    });
+  }
+
+  private modelBounds(m: Mark): ScreenBox | null {
+    const ud = m.g.userData as SpawnState;
+    // Include rotated scenery, its base and shadow, reserving hover growth without moving neighbours.
+    const boost = 1.06 / ud.k;
+    const b: ScreenBox = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+    const v = new THREE.Vector3();
+    let clipped = false;
+    m.g.updateWorldMatrix(true, true);
+    m.g.traverse(o => {
+      if (!(o instanceof THREE.Mesh)) return;
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      const box = o.geometry.boundingBox!;
+      for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) {
+        v.set(x, y, z).applyMatrix4(o.matrixWorld).sub(m.g.position).multiplyScalar(boost).add(m.g.position);
+        this.view.project(v, v);
+        if (v.z < -1 || v.z > 1) clipped = true;
+        b.left = Math.min(b.left, v.x); b.right = Math.max(b.right, v.x);
+        b.top = Math.min(b.top, v.y); b.bottom = Math.max(b.bottom, v.y);
+      }
+    });
+    const canvas = this.view.canvas;
+    return clipped || b.right < 0 || b.bottom < 0 || b.left > canvas.clientWidth || b.top > canvas.clientHeight ? null : b;
+  }
+
+  private layoutMarks(): void {
+    for (const m of this.marks) if (!m.g.parent) this.labels.remove(m.label);
+    this.marks = this.marks.filter(m => m.g.parent);
+    for (const [id, target] of this.places) {
+      const l = target.label, p = PLACE.get(id)!;
+      this.geo.pos(p.lon, p.lat, 0.05, l.pos);
+      l.model = undefined; l.screen = undefined; l.anchor = 'beside';
+      l.pinned = this.isSelected(target);
+    }
+    const models: LayoutItem[] = [];
+    const represented = new Set<string>();
+    const available = (m: Mark) => this.layers.models && !this.pickHandler && (!this.storyMode || m.layer === 'base') &&
+      (!m.place || !!mapName(m.place, this.year)) && (this.isSelected(m) || this.fx.dist <= m.maxD);
+    for (const m of this.marks) {
+      const l = m.label, selected = this.isSelected(m);
+      const replaced = m.layer === 'event' && this.marks.some(other => other.layer === 'scenery' && other.event === m.event && available(other));
+      const active = available(m) && !replaced;
+      const wasModel = !!l.modelHit;
+      if (m.modelForm === undefined) m.modelForm = this.fx.dist <= m.modelMaxD;
+      else if (this.fx.dist > m.modelMaxD + 2) m.modelForm = false;
+      else if (this.fx.dist < m.modelMaxD - 2) m.modelForm = true;
+      const model = active && (selected || m.modelForm);
+      l.modelHit = model;
+      l.model = undefined; m.layout = undefined;
+      l.pinned = selected;
+      l.off = !active || (!model && !!m.place);
+      l.pos.copy(m.g.position);
+      l.el.classList.toggle('model-hit', model);
+      l.el.setAttribute('aria-pressed', String(selected));
+      if (model !== wasModel) {
+        l.el.style.width = ''; l.el.style.height = '';
+        this.labels.remeasure();
+      }
+      m.g.visible = false;
+      if (active && m.event) represented.add(m.event);
+      if (model) {
+        const bounds = this.modelBounds(m);
+        if (!bounds) { l.off = true; continue; }
+        const entry: LayoutItem = { bounds, prio: m.prio, owner: m.key, pinned: selected };
+        m.layout = l.model = entry;
+        models.push(entry);
+        if (m.nameLabel) {
+          const name = m.nameLabel;
+          name.model = entry; name.pinned = selected;
+          name.pos.copy(m.g.position);
+          name.screen = { x: (bounds.left + bounds.right) / 2, y: bounds.top - 6 };
+          name.anchor = 'above';
+        }
+      }
+    }
+    for (const [id, target] of this.pins) {
+      target.label.off = represented.has(id) || this.storyMode;
+      target.label.pinned = this.isSelected(target);
+      target.label.el.setAttribute('aria-pressed', String(target.label.pinned));
+    }
+    for (const target of this.places.values()) {
+      const l = target.label, modeled = !!l.model;
+      if (l.el.classList.contains('modeled') !== modeled) {
+        l.el.classList.toggle('modeled', modeled);
+        this.labels.remeasure();
+      }
+    }
+    this.labels.layout(models);
+    for (const m of this.marks) {
+      m.g.visible = !!m.layout?.shown;
+      m.label.el.tabIndex = this.storyMode || this.pickHandler || m.nameLabel?.shown ? -1 : 0;
+    }
+    for (const target of this.places.values()) {
+      target.label.el.tabIndex = this.pickHandler || this.storyMode ? -1 : 0;
+      target.label.el.setAttribute('aria-pressed', String(!!target.label.pinned));
+    }
   }
 
   /** Halos, hover growth and the tooltip follow their objects every frame (models grow as the camera zooms). */
-  private frameMarks(dt: number, t: number): void {
+  private frameMarks(dt: number): void {
     const h = this.hover;
-    if (h && 'mark' in h && (!Atlas.onMap(h.mark) || this.storyMode)) this.setHover(null);
-    else if (h && 'pin' in h && (!h.label.shown || !h.label.el.isConnected)) this.setHover(null);
+    if (h && 'target' in h && (!Atlas.onMap(h.target) || this.storyMode || this.pickHandler)) this.setHover(null);
     const minR = this.fx.s * 0.42;
     const v = new THREE.Vector3();
     const hv = this.hover;
     if (hv) {
       let lift = 0;
-      if ('mark' in hv && !Atlas.live(hv.mark)) {
-        const b = hv.mark.badge!;
-        v.copy(b.pos);
-        this.hoverHalo.place(v.x, v.z, minR * 0.8);
-        lift = b.anchor === 'above' ? b.el.offsetHeight : b.el.offsetHeight / 2;
-      } else if ('mark' in hv) {
-        const ud = hv.mark.g.userData as SpawnState;
-        this.hoverHalo.place(hv.mark.g.position.x, hv.mark.g.position.z, Math.max(minR, ud.rad * 1.8));
-        v.copy(hv.mark.g.position);
-        v.y += ud.top;
-      } else if ('pin' in hv) {
-        v.copy(hv.label.pos);
-        this.hoverHalo.place(v.x, v.z, minR * 0.8);
-        lift = hv.label.el.offsetHeight;
+      if ('target' in hv) {
+        const m = hv.target;
+        if (m.g && Atlas.live(m)) {
+          const ud = m.g.userData as SpawnState;
+          this.hoverHalo.place(m.g.position.x, m.g.position.z, Math.max(minR, ud.rad * 1.2));
+          v.copy(m.g.position);
+          v.y += ud.top + ud.rad * 0.5;
+        } else {
+          const l = m.nameLabel?.shown ? m.nameLabel : m.label;
+          v.copy(l.pos);
+          this.hoverHalo.place(v.x, v.z, minR * 0.8);
+          lift = l.anchor === 'above' ? l.el.offsetHeight : l.el.offsetHeight / 2;
+        }
       } else v.copy(hv.at);
       const p = this.view.project(v, v);
       this.tip.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y - lift - 10)}px) translate(-50%, -100%)`;
     }
-    this.hoverHalo.on = !!hv && !('area' in hv) && !this.storyMode;
-    // a pin steps aside while a model on the map stands for its event: the model takes the hover and the click
-    const rep = new Set<string>();
-    if (!this.storyMode) for (const m of this.marks) if (m.event && Atlas.onMap(m)) rep.add(m.event);
-    for (const [id, l] of this.pins) l.off = rep.has(id);
-    // the capital's name stands just above its model, so the name and the building never cover each other
-    for (const m of this.marks) {
-      if (!m.key.startsWith('capital:')) continue;
-      const l = this.placeLabels.get(m.key.slice(8));
-      if (!l) continue;
-      const ud = m.g.userData as SpawnState;
-      if (Atlas.live(m)) { l.pos.copy(m.g.position); l.pos.y += ud.top + 0.04; l.anchor = 'above'; }
-      else if (l.anchor) { const p = PLACE.get(m.key.slice(8))!; this.geo.pos(p.lon, p.lat, 0.05, l.pos); l.anchor = undefined; }
-    }
+    this.hoverHalo.on = !!hv && 'target' in hv && !this.isSelected(hv.target) && !this.storyMode;
     // the selection ring sits under the open card's object, or at its spot on the map
-    const sm = this.selKey ? this.marks.find(m => m.key === this.selKey && Atlas.onMap(m)) : undefined;
+    const sm = this.selKey ? this.marks.find(m => this.isSelected(m) && Atlas.onMap(m)) : undefined;
     if (sm && !Atlas.live(sm)) {
-      this.selHalo.place(sm.badge!.pos.x, sm.badge!.pos.z, minR * 0.9);
+      this.selHalo.place(sm.label.pos.x, sm.label.pos.z, minR * 0.9);
     } else if (sm) {
       const ud = sm.g.userData as SpawnState;
-      this.selHalo.place(sm.g.position.x, sm.g.position.z, Math.max(minR, ud.rad * 2));
+      this.selHalo.place(sm.g.position.x, sm.g.position.z, Math.max(minR, ud.rad * 1.2));
     } else if (this.selAt) {
       const p = this.geo.pos(this.selAt[0], this.selAt[1], 0, v);
       this.selHalo.place(p.x, p.z, minR * 0.9);
     }
     this.selHalo.on = !this.storyMode && !this.pickHandler && (!!sm || !!this.selAt);
-    this.hoverHalo.tick(dt, t);
-    this.selHalo.tick(dt, t);
+    this.hoverHalo.tick(dt);
+    this.selHalo.tick(dt);
   }
 
   private setHover(h: Hover | null): void {
     const old = this.hover;
-    const same = (a: Hover | null, b: Hover | null) => (a && b && 'mark' in a && 'mark' in b ? a.mark === b.mark : a && b && 'pin' in a && 'pin' in b ? a.pin === b.pin : a === b);
+    const same = (a: Hover | null, b: Hover | null) => a && b && 'target' in a && 'target' in b ? a.target === b.target : a === b;
     if (old && h && 'area' in old && 'area' in h) old.at.copy(h.at);
     if (same(old, h) || (old && h && 'area' in old && 'area' in h && old.area === h.area)) return;
-    if (old && 'mark' in old) { (old.mark.g.userData as SpawnState).boost = 1; old.mark.badge?.el.classList.remove('hot'); }
-    if (old && 'pin' in old) old.label.el.classList.remove('hot');
+    if (old && 'target' in old) {
+      if (old.target.g) (old.target.g.userData as SpawnState).boost = 1;
+      for (const l of [old.target.label, old.target.nameLabel]) {
+        l?.el.classList.remove('hot');
+        l?.el.removeAttribute('aria-describedby');
+      }
+    }
     this.hover = h;
-    this.view.canvas.style.cursor = h && 'mark' in h ? 'pointer' : '';
+    this.view.canvas.style.cursor = h && 'target' in h ? 'pointer' : '';
     if (!h) { this.tip.hidden = true; return; }
     let icon: string, title: string, sub: string;
-    if ('mark' in h) {
-      (h.mark.g.userData as SpawnState).boost = 1.18;
-      h.mark.badge?.el.classList.add('hot');
-      ({ title, sub } = h.mark.info());
-      icon = h.mark.icon;
-    } else if ('pin' in h) {
-      h.label.el.classList.add('hot');
-      icon = h.pin.kind;
-      title = tr(h.pin.title, this.lang);
-      sub = this.eventSub(h.pin);
+    if ('target' in h) {
+      if (h.target.g) (h.target.g.userData as SpawnState).boost = 1.06;
+      for (const l of [h.target.label, h.target.nameLabel]) {
+        l?.el.classList.add('hot');
+        l?.el.setAttribute('aria-describedby', this.tip.id);
+      }
+      ({ title, sub } = h.target.info());
+      icon = h.target.icon;
     } else {
       icon = 'area';
       title = tr(h.area.name, this.lang);
@@ -282,35 +406,34 @@ export class Atlas {
     return `${formatYear(e.year, this.lang, { short: true })} · ${kindName(e.kind)}`;
   }
 
-  /** The map object under a screen point: nearest model whose upright extent passes within reach of the pointer. */
+  /** Hit the actual model, including wide, low landmarks rather than just their upright centre line. */
   private pickMark(cx: number, cy: number): Mark | null {
     if (this.storyMode || this.pickHandler || !this.layers.models) return null;
     const r = this.view.canvas.getBoundingClientRect();
-    const x = cx - r.left, y = cy - r.top;
-    const a = new THREE.Vector3(), b = new THREE.Vector3();
-    let best: Mark | null = null, bk = 1, bz = Infinity;
-    for (const m of this.marks) {
-      if (!Atlas.live(m)) continue;
-      const ud = m.g.userData as SpawnState;
-      a.copy(m.g.position);
-      b.copy(a); b.y += ud.top;
-      this.view.project(a, a);
-      this.view.project(b, b);
-      if (a.z > 1 || b.z > 1) continue;
-      const dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy || 1;
-      const u = THREE.MathUtils.clamp(((x - a.x) * dx + (y - a.y) * dy) / len2, 0, 1);
-      const d = Math.hypot(a.x + dx * u - x, a.y + dy * u - y);
-      const reach = Math.max(14, Math.sqrt(len2) * 0.42);
-      const k = d / reach;
-      // overlapping hits: prefer the nearer model to the camera
-      if (k < 1 && (k < bk - 0.25 || (k < bk + 0.25 && a.z < bz))) { best = m; bk = k; bz = a.z; }
+    this.raycaster.setFromCamera(new THREE.Vector2((cx - r.left) / r.width * 2 - 1, 1 - (cy - r.top) / r.height * 2), this.view.camera);
+    const marks = this.marks.filter(m => Atlas.live(m));
+    const hit = this.raycaster.intersectObjects(marks.map(m => m.g), true)[0];
+    for (let o: THREE.Object3D | null = hit?.object ?? null; o; o = o.parent) {
+      const mark = marks.find(m => m.g === o);
+      if (mark) return mark;
     }
-    return best;
+    return null;
   }
 
   private addMark(m: Mark): void {
-    this.marks = this.marks.filter(x => x.g.parent && x.g !== m.g);
+    m.label.el.setAttribute('aria-label', m.info().title);
+    m.nameLabel = m.place ? this.places.get(m.place.id)?.label : undefined;
     this.marks.push(m);
+    this.bindTarget(m);
+  }
+
+  private badge(key: string, icon: string, pos: THREE.Vector3, prio: number, group: string, maxD = Infinity): Label {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = `pin k-${icon}`;
+    el.dataset.key = key;
+    el.innerHTML = `<span class="b">${glyph(icon)}</span>`;
+    return this.labels.add({ el, pos, prio, group, owner: key, maxD });
   }
 
   /** Puts the selection ring under a map object (`life:<id>`, `person:<id>`, ...), or at lon/lat while it has no model up; null clears it. */
@@ -337,7 +460,7 @@ export class Atlas {
       const mark = this.pickMark(e.clientX, e.clientY);
       if (mark) { this.setHover(null); mark.open(); return; }
       const near = this.nearestPin(e.clientX, e.clientY);
-      if (near) this.onPin(near);
+      if (near) { this.setHover(null); near.open(); }
     });
     let pending = false;
     let last = { x: 0, y: 0 };
@@ -352,8 +475,7 @@ export class Atlas {
         pending = false;
         if (!this.overCanvas) return;
         const m = this.pickMark(last.x, last.y);
-        if (m) return this.setHover({ mark: m });
-        if (this.hover && 'pin' in this.hover) return;
+        if (m) return this.setHover({ target: m });
         // over open land with the admin layer on: the same tooltip names the area under the pointer
         const ll = this.layers.admin && !this.storyMode ? this.view.pick(last.x, last.y) : null;
         const area = ll ? this.adminAt(ll[0], ll[1]) : null;
@@ -362,7 +484,7 @@ export class Atlas {
     });
     canvas.addEventListener('pointerleave', () => {
       this.overCanvas = false;
-      if (this.hover && !('pin' in this.hover)) this.setHover(null);
+      this.setHover(null);
     });
   }
 
@@ -375,15 +497,15 @@ export class Atlas {
     return best;
   }
 
-  private nearestPin(cx: number, cy: number): HistEvent | null {
-    const r = this.view.canvas.getBoundingClientRect();
-    let best: HistEvent | null = null, bd = 22;
-    const v = new THREE.Vector3();
-    for (const [id, l] of this.pins) {
-      if (!l.shown) continue;
-      const p = this.view.project(l.pos, v);
-      const d = Math.hypot(p.x + r.left - cx, p.y + r.top - cy);
-      if (d < bd) { bd = d; best = EVENTS.find(e => e.id === id) ?? null; }
+  private nearestPin(cx: number, cy: number): MapTarget | null {
+    if (this.storyMode) return null;
+    let best: MapTarget | null = null, bd = 10;
+    for (const target of [...this.pins.values(), ...this.places.values(), ...this.marks]) {
+      const l = target.label;
+      if (!l.shown || l.modelHit) continue;
+      const r = l.el.getBoundingClientRect();
+      const d = Math.hypot(Math.max(r.left - cx, 0, cx - r.right), Math.max(r.top - cy, 0, cy - r.bottom));
+      if (d < bd) { bd = d; best = this.resolveTarget(target); }
     }
     return best;
   }
@@ -506,20 +628,25 @@ export class Atlas {
   private buildPlaces(): void {
     for (const p of PLACES) {
       if (p.scope !== 'china') continue;
-      const el = document.createElement('div');
+      const el = document.createElement('button');
+      el.type = 'button';
       el.className = `place k-${p.kind} t${p.tier}` + (p.minor ? ' minor' : '');
-      el.addEventListener('click', ev => {
-        ev.stopPropagation();
-        // while answering a "where" question a label is just part of the map: pick the point under the pointer
-        if (this.pickHandler) { const ll = this.view.pick(ev.clientX, ev.clientY); if (ll) this.pickHandler(ll[0], ll[1]); return; }
-        this.onPlace(p);
-      });
+      el.dataset.place = p.id;
       const l = this.labels.add({
         el, pos: this.geo.pos(p.lon, p.lat, 0.05), group: 'places',
         prio: p.tier === 1 ? 40 : p.tier === 2 ? 22 : 8,
         maxD: p.tier === 1 ? Infinity : p.tier === 2 ? 48 : 20,
+        owner: `place:${p.id}`,
       });
-      this.placeLabels.set(p.id, l);
+      const target: MapTarget = {
+        key: `place:${p.id}`, icon: 'place', label: l, open: () => this.onPlace(p),
+        info: () => ({
+          title: tr(mapName(p, this.year) ?? p.name, this.lang),
+          sub: isCapital(p, this.year) ? ui('capitalNow') : p.lore ? tr(p.lore.tag, this.lang) : ui(p.kind === 'pass' ? 'pass' : 'place'),
+        }),
+      };
+      this.places.set(p.id, target);
+      this.bindTarget(target);
     }
   }
 
@@ -568,16 +695,19 @@ export class Atlas {
   }
 
   private updatePlaces(): void {
-    for (const [id, l] of this.placeLabels) {
+    for (const [id, target] of this.places) {
+      const l = target.label;
       const p = PLACE.get(id)!;
       const name = mapName(p, this.year);
-      l.off = !name || this.modelPlaces.has(id);
+      l.off = !name;
       if (!name) continue;
       const cap = isCapital(p, this.year);
+      target.icon = cap ? 'capital' : 'place';
       const text = tr(name, this.lang);
       if (l.el.dataset.text !== text || l.el.classList.contains('cap') !== cap) {
         l.el.dataset.text = text;
         l.el.textContent = text;
+        l.el.setAttribute('aria-label', text);
         l.el.classList.toggle('cap', cap);
         this.labels.remeasure();
       }
@@ -611,6 +741,7 @@ export class Atlas {
       el.textContent = tr(r.name ?? pol.name, this.lang);
       this.polityLabels.push(this.labels.add({
         el, pos: this.geo.pos(a.lon, a.lat, 0.25), group: 'polity',
+        primary: role === 'main',
         prio: 30 + Math.min(25, a.area / 10) + (role === 'main' ? 6 : role === 'neighbor' ? -12 : 0),
         maxD: size === 's' ? 40 : size === 'm' ? 90 : Infinity,
         minD: size === 'xl' ? 10 : 0,
@@ -632,27 +763,14 @@ export class Atlas {
   }
 
   private addPin(e: HistEvent): void {
-    const el = document.createElement('button');
-    el.type = 'button';
-    el.className = `pin w${e.weight} k-${e.kind}` + (this.selected?.id === e.id ? ' sel' : '');
-    el.dataset.id = e.id;
-    // an icon badge of the event's kind; the title shows in the map tooltip on hover (and stays open when selected)
-    el.innerHTML = `<span class="b">${glyph(e.kind)}<span class="t"></span></span><i></i>`;
-    el.querySelector('.t')!.textContent = tr(e.title, this.lang);
-    el.setAttribute('aria-label', tr(e.title, this.lang));
-    el.addEventListener('click', ev => { ev.stopPropagation(); this.setHover(null); this.onPin(e); });
-    const enter = () => { if (!this.storyMode) this.setHover({ pin: e, label: this.pins.get(e.id)! }); };
-    const leave = () => { if (this.hover && 'pin' in this.hover && this.hover.pin === e) this.setHover(null); };
-    el.addEventListener('pointerenter', enter);
-    el.addEventListener('pointerleave', leave);
-    el.addEventListener('focus', enter);
-    el.addEventListener('blur', leave);
-    const l = this.labels.add({
-      el, pos: this.geo.pos(e.lon, e.lat, 0.02), group: 'pins', anchor: 'above',
-      prio: 66 - e.weight * 10 - (e.source ? 4 : 0), maxD: e.weight === 1 ? Infinity : e.weight === 2 ? 75 : e.source ? 30 : 38,
-      pinned: this.selected?.id === e.id,
-    });
-    this.pins.set(e.id, l);
+    const key = `event:${e.id}`;
+    const label = this.badge(key, e.kind, this.geo.pos(e.lon, e.lat, 0.02),
+      66 - e.weight * 10 - (e.source ? 4 : 0), 'pins', e.weight === 1 ? Infinity : e.weight === 2 ? 75 : 38);
+    label.el.dataset.id = e.id;
+    label.el.setAttribute('aria-label', tr(e.title, this.lang));
+    const target: MapTarget = { key, icon: e.kind, label, open: () => this.onPin(e), info: () => ({ title: tr(e.title, this.lang), sub: this.eventSub(e) }) };
+    this.pins.set(e.id, target);
+    this.bindTarget(target);
   }
 
   private updateCapital(): void {
@@ -663,12 +781,12 @@ export class Atlas {
     this.capitalKey = key;
     this.fx.clear('base');
     if (cap && key) {
-      const eraName = era!.name;
       this.fx.spawn({ lon: cap.lon, lat: cap.lat, model: capitalModel(era!), scale: 1.9, yaw: 0, ring: KIND_COLOR.capital }, 'base').then(g => {
         if (!g) return;
+        const target = this.places.get(cap.id)!;
         this.addMark({
-          key: `capital:${cap.id}`, g, icon: 'capital', open: () => this.onPlace(cap),
-          info: () => ({ title: tr(mapName(cap, this.year) ?? cap.name, this.lang), sub: `${ui('capitalNow')} · ${tr(eraName, this.lang)}` }),
+          ...target, g, icon: 'capital', place: cap, layer: 'base', prio: 90, modelMaxD: Infinity, maxD: Infinity,
+          label: this.badge(target.key, 'capital', g.position.clone(), 90, 'map-models'),
         });
       });
     }
@@ -677,9 +795,7 @@ export class Atlas {
 
   /**
    * The dynasty on the map: its curated people, buildings, customs and foods, then landmarks of its key events and
-   * more of its people in period dress (see sceneryOf). Each item's level sets its form at each zoom (semantic zoom,
-   * docs/design/map-design.md §2): key items stand as named models; notable ones are badges until the camera comes
-   * within ZOOM.notable; details are dots until ZOOM.detail.
+   * more of its people in period dress. Importance controls priority; only geographical entries carry map names.
    */
   private updateScenery(): void {
     const era = eraAt(this.year);
@@ -688,72 +804,41 @@ export class Atlas {
     this.sceneryKey = key;
     this.fx.clear('scenery');
     this.labels.clear('badges');
-    this.sceneryMarks.clear();
     const items = era && key ? sceneryOf(era) : [];
-    this.modelPlaces = new Set(PLACES.filter(p => p.kind !== 'city' && items.some(({ life: l }) =>
-      l && l.kind !== 'person' && Math.hypot(l.lon - p.lon, l.lat - p.lat) < 0.5 && (l.name.zh.startsWith(p.name.zh) || l.wiki.zh === p.name.zh))).map(p => p.id));
     this.updatePlaces();
     if (!era || !key) return;
-    // only key items carry a name; the rest name themselves in the map tooltip on hover; a click opens the card
     for (const s of items) {
       const p = s.person, l = s.life;
       const ev = !p && !l && s.event ? EVENTS.find(x => x.id === s.event) : undefined;
-      const name = l ? tr(l.name, this.lang) : p ? tr(p.name, this.lang) : ev ? tr(ev.title, this.lang) : '';
-      const scale = (s.kind === 'person' ? 2.1 : s.kind === 'food' ? 1.5 : s.kind === 'custom' ? 1.6 : 1.7) * LEVEL_SCALE[s.level];
-      const maxD = s.level === 2 ? ZOOM.notable : s.level === 3 ? ZOOM.detail : undefined;
-      let el: HTMLElement | undefined;
-      if (s.level === 1 && name) { el = document.createElement('span'); el.className = `lvname k-${s.kind}`; el.textContent = name; }
-      this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale, yaw: s.yaw, maxD, ring: KIND_COLOR[s.kind], label: el }, 'scenery').then(g => {
+      const place = l ? lifePlace(l) : undefined;
+      const scale = s.kind === 'person' ? 1.8 : s.kind === 'food' ? 1.3 : 1.5;
+      this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale, yaw: s.yaw, ring: KIND_COLOR[s.kind] }, 'scenery').then(g => {
         if (!g || this.sceneryKey !== key) return;
         const twin = l ? lifeEvent(l) : undefined;
-        let m: Mark | undefined;
+        let target: Omit<MapTarget, 'label'> | undefined;
         if (l) {
-          m = {
-            key: `life:${l.id}`, g, icon: l.kind, event: twin?.id, open: () => this.onLife(l),
+          target = {
+            key: `life:${l.id}`, g, icon: l.kind, open: () => this.onLife(l),
             info: () => ({ title: tr(l.name, this.lang), sub: l.kind === 'person' && l.person ? tr(l.person.title, this.lang) : `${ui(l.kind)} · ${tr(era.name, this.lang)}` }),
           };
         } else if (p) {
-          m = { key: `person:${p.id}`, g, icon: 'person', open: () => this.onPerson(p), info: () => ({ title: tr(p.name, this.lang), sub: tr(p.title, this.lang) }) };
+          target = { key: `person:${p.id}`, g, icon: 'person', open: () => this.onPerson(p), info: () => ({ title: tr(p.name, this.lang), sub: tr(p.title, this.lang) }) };
         } else if (ev) {
-          m = { key: `event:${ev.id}`, g, icon: ev.kind, event: ev.id, open: () => this.onPin(ev), info: () => ({ title: tr(ev.title, this.lang), sub: this.eventSub(ev) }) };
+          target = { key: `event:${ev.id}`, g, icon: ev.kind, open: () => this.onPin(ev), info: () => ({ title: tr(ev.title, this.lang), sub: this.eventSub(ev) }) };
         }
-        if (m) {
-          if (s.level > 1) m.badge = this.addBadge(m, s);
-          this.addMark(m);
-        }
-        // a landmark (or a life item about the same thing) steps aside for its event's own model; people stay
-        const stand = s.kind === 'landmark' ? s.event : twin?.id;
-        if (!stand) return;
-        this.sceneryMarks.set(stand, g);
-        this.syncScenery();
+        if (!target) return;
+        const alias = target.key;
+        if (place) target = this.places.get(place.id)!;
+        const event = s.kind === 'landmark' ? s.event : twin?.id;
+        const prio = LEVEL_PRIORITY[s.level];
+        this.addMark({
+          ...target, g, place, event, layer: 'scenery', prio,
+          aliases: [alias, ...(event ? [`event:${event}`] : [])],
+          modelMaxD: s.level === 1 ? Infinity : ZOOM.model, maxD: s.level === 3 ? ZOOM.detail : Infinity,
+          label: this.badge(target.key, target.icon, g.position.clone(), prio, 'badges'),
+        });
       });
     }
-  }
-
-  /** The far form of a notable (badge, like an event pin) or detail (dot) item: same hover tooltip, same click. */
-  private addBadge(m: Mark, s: SceneryItem): Label {
-    const notable = s.level === 2;
-    const el = document.createElement('button');
-    el.type = 'button';
-    el.className = `pin ${notable ? 'w3' : 'dot'} k-${m.icon}`;
-    el.dataset.key = m.key;
-    el.innerHTML = notable ? `<span class="b">${glyph(m.icon)}</span><i></i>` : '';
-    el.setAttribute('aria-label', m.info().title);
-    el.addEventListener('click', ev => { ev.stopPropagation(); this.setHover(null); m.open(); });
-    const enter = () => { if (!this.storyMode) this.setHover({ mark: m }); };
-    const leave = () => { if (this.hover && 'mark' in this.hover && this.hover.mark === m) this.setHover(null); };
-    el.addEventListener('pointerenter', enter);
-    el.addEventListener('pointerleave', leave);
-    el.addEventListener('focus', enter);
-    el.addEventListener('blur', leave);
-    return this.labels.add({
-      el, pos: this.geo.pos(s.lon, s.lat, 0.02), group: 'badges', anchor: notable ? 'above' : 'center', prio: notable ? 34 : 12,
-      minD: notable ? ZOOM.notable : ZOOM.detail, maxD: notable ? ZOOM.badge : ZOOM.dot,
-    });
-  }
-
-  private syncScenery(): void {
-    for (const [id, g] of this.sceneryMarks) g.visible = !this.storyMode && !(this.selected?.id === id && this.layers.models && this.selected.model);
   }
 
   /** While a story plays the dynasty's scenery steps aside so the animation has the stage. */
@@ -763,7 +848,6 @@ export class Atlas {
     if (on) this.setHover(null);
     this.fx.showLayer('scenery', !on);
     this.labels.setGroupVisible('badges', !on && !this.pickHandler);
-    this.syncScenery();
   }
 
   // ------------------------------------------------------------ selection
@@ -773,18 +857,20 @@ export class Atlas {
     const prev = this.selected;
     this.selected = e;
     this.focus(e ? `event:${e.id}` : null, e ? [e.lon, e.lat] : null);
-    if (this.hover && 'pin' in this.hover && this.hover.pin === e) this.setHover(null);
+    this.setHover(null);
     this.fx.clear('event');
-    if (prev) { const l = this.pins.get(prev.id); if (l) { l.pinned = false; l.el.classList.remove('sel'); } }
-    this.syncScenery();
+    if (prev) { const l = this.pins.get(prev.id)?.label; if (l) l.pinned = false; }
     if (!e) return;
     if (!this.pins.has(e.id)) this.addPin(e);
-    const l = this.pins.get(e.id)!;
+    const l = this.pins.get(e.id)!.label;
     l.pinned = true;
-    l.el.classList.add('sel');
-    if (this.layers.models && e.model) {
+    if (this.layers.models && e.model && !this.marks.some(m => m.g.parent && m.layer === 'scenery' && m.event === e.id)) {
       this.fx.spawn({ lon: e.lon, lat: e.lat, model: e.model, ring: KIND_COLOR.landmark }, 'event').then(g => {
-        if (g) this.addMark({ key: `event:${e.id}`, g, icon: e.kind, event: e.id, open: () => this.onPin(e), info: () => ({ title: tr(e.title, this.lang), sub: this.eventSub(e) }) });
+        if (g) this.addMark({
+          key: `event:${e.id}`, g, icon: e.kind, event: e.id, layer: 'event', prio: 80, modelMaxD: Infinity, maxD: Infinity,
+          label: this.badge(`event:${e.id}`, e.kind, g.position.clone(), 80, 'map-models'),
+          open: () => this.onPin(e), info: () => ({ title: tr(e.title, this.lang), sub: this.eventSub(e) }),
+        });
       });
     }
     if (fly) this.view.flyTo({ lon: e.lon, lat: e.lat - 1.2, dist: Math.min(this.view.pose().dist, 26), tilt: 0.85 }, 1.6);
@@ -793,12 +879,14 @@ export class Atlas {
   // ------------------------------------------------------------ settings
 
   setLang(l: Lang): void {
+    this.setHover(null);
     this.lang = l;
-    for (const [id, lab] of this.pins) {
+    for (const [id, target] of this.pins) {
       const e = EVENTS.find(x => x.id === id);
-      if (e) { lab.el.querySelector('.t')!.textContent = tr(e.title, l); lab.el.setAttribute('aria-label', tr(e.title, l)); }
+      if (e) target.label.el.setAttribute('aria-label', tr(e.title, l));
     }
-    for (const lab of this.placeLabels.values()) lab.el.dataset.text = '';
+    for (const target of this.places.values()) target.label.el.dataset.text = '';
+    for (const m of this.marks) m.label.el.setAttribute('aria-label', m.info().title);
     this.updatePlaces();
     this.buildPolityLabels();
     this.buildAdminLabels();
@@ -818,7 +906,12 @@ export class Atlas {
     if (k === 'admin' || k === 'modern' || k === 'ghost') { this.setYear(this.year, true); this.labels.setGroupVisible('admin', this.layers.admin); if (!this.layers.admin && this.hover && 'area' in this.hover) this.setHover(null); }
     if (k === 'works') this.updateWorks();
     if (k === 'events') this.labels.setGroupVisible('pins', on && !this.pickHandler);
-    if (k === 'models') { this.capitalKey = '-'; this.updateCapital(); if (!on) this.fx.clear('event'); }
+    if (k === 'models') {
+      this.capitalKey = '-';
+      this.updateCapital();
+      if (!on) this.fx.clear('event');
+      else if (this.selected) this.select(this.selected, false);
+    }
   }
 
   /** Map style: terrain palette, sky and (via the root's data-map attribute) label colours. */
@@ -855,12 +948,10 @@ export class Atlas {
 const CHRONICLE_WINDOW = 12, CHRONICLE_STEP = 6;
 
 /**
- * Semantic zoom (docs/design/map-design.md §2), camera distances (home view ≈ 48): notable items stand as models within
- * `notable` and as badges out to `badge`; detail items as models within `detail` and as dots out to `dot`.
+ * Two forms only: compact marker and model. A 2-unit hysteresis band avoids flickering at the model threshold.
  */
-const ZOOM = { notable: 40, badge: 90, detail: 22, dot: 45 };
-/** model size by level: key items lead, details stay small */
-const LEVEL_SCALE: Record<Level, number> = { 1: 1.15, 2: 0.9, 3: 0.7 };
+const ZOOM = { model: 40, detail: 45 };
+const LEVEL_PRIORITY: Record<Level, number> = { 1: 64, 2: 48, 3: 32 };
 
 /** Type colours of map items: the base ring each model stands in, matching the tooltip glyphs (.k-* in styles.css). */
 const KIND_COLOR: Record<string, string> = {

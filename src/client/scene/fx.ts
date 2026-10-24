@@ -992,28 +992,34 @@ export class Fx {
     ring?: string;
   }, layer: Layer = 'story'): Promise<THREE.Object3D | null> {
     const g = new THREE.Group();
+    // Neither the shadow nor the unscaled base ring should appear while the model is still loading.
+    g.visible = false;
     const base = this.geo.pos(o.lon, o.lat, 0);
     if (!this.geo.isLand(o.lon, o.lat)) base.y = Math.max(-0.02, this.geo.height(o.lon, o.lat));
     g.position.copy(base);
     const sh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: this.shadowTex, transparent: true, depthWrite: false, opacity: 0.55 }));
     sh.position.y = 0.006;
     sh.renderOrder = 2;
+    sh.visible = false;
     g.add(sh);
     const it = this.add({ layer, obj: g, own: [sh.geometry, sh.material as THREE.Material] });
     let base0: THREE.Mesh | null = null;
     if (o.ring) {
       base0 = new THREE.Mesh(this.baseRing, ink(new THREE.MeshBasicMaterial({ color: o.ring, opacity: 0.65, side: THREE.DoubleSide })));
       base0.renderOrder = INK.ring;
+      base0.visible = false;
       g.add(base0);
       it.own.push(base0.material as THREE.Material);
     }
     if (o.label) {
       const el = typeof o.label === 'string' ? tag(o.label, o.labelClass ?? 'model') : o.label;
       it.label = this.labels.add({ el, pos: base.clone(), prio: layer === 'scenery' ? 44 : 80, group: layer === 'story' || layer === 'event' ? 'story' : layer, anchor: 'above', maxD: o.labelMaxD });
+      it.label.off = true;
     }
     let m: THREE.Group;
     try { m = await instance(o.model, true); } catch { this.remove(it); return null; }
     if (!this.items.includes(it)) return null;
+    g.visible = !this.hidden.has(layer);
     m.rotation.y = o.yaw ?? (Math.random() - 0.5) * 0.6;
     g.add(m);
     const rigs = rig(m);
@@ -1032,7 +1038,7 @@ export class Fx {
       m.scale.setScalar(Math.max(0.001, z * e));
       sh.scale.setScalar(Math.max(0.001, z * r * 2.6 * Math.min(1, grow * 2)));
       if (base0) base0.scale.setScalar(Math.max(0.001, z * THREE.MathUtils.clamp(r, 0.22, 0.5) * 1.15 * Math.min(1, grow * 2)));
-      if (o.maxD !== undefined) m.visible = sh.visible = this.dist <= o.maxD;
+      m.visible = sh.visible = o.maxD === undefined || this.dist <= o.maxD;
       if (base0) base0.visible = m.visible;
       ud.top = h * z * e; ud.rad = r * z; ud.shown = m.visible;
       animate(rigs, t, seed);

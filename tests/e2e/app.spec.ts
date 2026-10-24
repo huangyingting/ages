@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { markPoints, mockWikipedia, openApp, shot, state, watchErrors } from './helpers.ts';
+import { markPoints, mockWikipedia, openApp, setMapPose, shot, state, watchErrors } from './helpers.ts';
 
 test.describe('Ages atlas', () => {
   test('boots into the map and switches between English and Chinese', async ({ page }) => {
@@ -84,6 +84,8 @@ test.describe('Ages atlas', () => {
     expect((await state(page)).fx.story).toBe(0);
     // the dynasty's landmarks and people stand on the map; a story only orbiting the camera offers no Play button
     expect((await state(page)).fx.scenery).toBeGreaterThan(3);
+    // Crowded scenery returns when zooming in, rather than overlapping the selected event or territory name.
+    await setMapPose(page, { lon: 111.25, lat: 32.2, dist: 8, tilt: 0.8 });
     await expect.poll(async () => (await markPoints(page)).some(m => m.title === '秦始皇')).toBe(true);
     await page.goto('/?lowfx=1#e=confucius&lang=zh');
     await expect(page.locator('.card h2')).toHaveText(/孔子/);
@@ -162,6 +164,8 @@ test.describe('Ages atlas', () => {
         await quiz.locator('.qz-opts .opt').nth(q.options.indexOf(q.answer)).click();
       } else if (q.type === 'where') {
         await expect.poll(() => page.evaluate(() => (window as any).__atlas.atlas.view.flying), { timeout: 30_000 }).toBe(false);
+        // Random answers can lie behind the quiz panel in the home view; pan them into clear map space.
+        await setMapPose(page, { lon: q.lon, lat: q.lat, dist: 30, tilt: 0.8 });
         const pt = await page.evaluate(([lon, lat]) => (window as any).__atlas.screenOf(lon, lat), [q.lon, q.lat]);
         await page.mouse.click(pt.x, pt.y);
       } else {
@@ -230,7 +234,7 @@ test.describe('Ages atlas', () => {
     await expect(card.locator('h2')).toHaveText(free!.title);
     await expect(tip).toBeHidden();
     // event pins are kind badges: hovering one shows its title in the same tooltip
-    const pinId = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.labels .pin[data-id]:not(.sel)')].find(el => {
+    const pinId = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.labels .pin[data-id][aria-pressed=false]')].find(el => {
       const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 3;
       return r.width > 0 && document.elementFromPoint(x, y)?.closest('.pin') === el;
     })?.dataset.id);
@@ -238,6 +242,131 @@ test.describe('Ages atlas', () => {
     await pin.hover();
     await expect(tip).toBeVisible();
     await expect(tip.locator('b')).toHaveText((await pin.getAttribute('aria-label'))!);
+    expect(errs).toEqual([]);
+  });
+
+  test('unifies place names, models and compact markers without overlapping map content', async ({ page }) => {
+    const errs = watchErrors(page);
+    await openApp(page, 'y=700&lang=zh');
+    const loading = await page.evaluate(async () => {
+      type Object3D = import('three').Object3D;
+      const { fx } = (window as unknown as { __atlas: { atlas: { fx: {
+        root: Object3D;
+        spawn(o: { lon: number; lat: number; model: { kind: 'flag'; color: string }; ring: string }, layer: 'event'): Promise<Object3D | null>;
+        showLayer(layer: 'event', on: boolean): void;
+        clear(layer: 'event'): void;
+      } } } }).__atlas.atlas;
+      const pending = fx.spawn({ lon: 117.1, lat: 36.25, model: { kind: 'flag', color: '#123456' }, ring: '#7d5a32' }, 'event');
+      const group = fx.root.children.at(-1)!;
+      const visibleMeshes = () => {
+        let n = 0;
+        group.traverseVisible(o => { if (o.type === 'Mesh') n++; });
+        return n;
+      };
+      const initial = visibleMeshes();
+      // Changing layers before the model arrives must not expose its empty base ring.
+      fx.showLayer('event', false);
+      fx.showLayer('event', true);
+      const toggled = visibleMeshes();
+      const loaded = !!(await pending);
+      fx.clear('event');
+      return { initial, toggled, loaded };
+    });
+    expect(loading).toEqual({ initial: 0, toggled: 0, loaded: true });
+    await setMapPose(page, { lon: 117.1, lat: 36.25, dist: 20, tilt: 0.75 });
+    const name = page.locator('.place[data-place=taishan]');
+    const model = page.locator('.model-hit[data-key="place:taishan"]');
+    const tip = page.getByRole('tooltip');
+    const card = page.locator('.card');
+    await expect(name).toBeVisible();
+    await expect(name).toHaveClass(/modeled/);
+    await name.hover();
+    await expect(tip.locator('b')).toHaveText('泰山');
+    // Visual captures include the end of the 700 ms model-rise animation.
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: test.info().outputPath('unified-place-hover.png') });
+    await name.focus();
+    await page.keyboard.press('Enter');
+    await expect(card.locator('h2')).toHaveText('泰山');
+    await expect(card).toContainText('唐玄宗');
+    await expect(name).toHaveAttribute('aria-pressed', 'true');
+    await expect(tip).toBeHidden();
+    await page.keyboard.press('Escape');
+    await expect(card).toBeHidden();
+    // The model's keyboard target and the geographical name have the same tooltip and destination.
+    await model.focus();
+    await expect(tip.locator('b')).toHaveText('泰山');
+    await page.keyboard.press('Enter');
+    await expect(card.locator('h2')).toHaveText('泰山');
+    await page.keyboard.press('Escape');
+
+    await page.locator('[data-act=lang]').click();
+    await expect(name).toHaveText('Mount Tai');
+    // The longer translated name may step aside, leaving the model as this object's keyboard target.
+    await expect(model).toBeVisible();
+    await model.focus();
+    await expect(tip.locator('b')).toHaveText('Mount Tai');
+    await model.evaluate(el => el.blur());
+
+    for (const dist of [48, 30, 14]) {
+      await setMapPose(page, { lon: 110, lat: 34, dist, tilt: 0.8 });
+      await expect.poll(async () => (await state(page)).pose.dist).toBeCloseTo(dist, 0);
+      await expect(page.locator('.model-hit.on').first()).toBeVisible();
+      await page.waitForTimeout(1000);
+      const overlaps = await page.evaluate(() => {
+        const models = [...document.querySelectorAll<HTMLElement>('.model-hit.on')];
+        const labels = [...document.querySelectorAll<HTMLElement>('.labels > .on:not(.model-hit)')];
+        const hits: string[] = [];
+        type Object3D = import('three').Object3D;
+        type Vector3 = import('three').Vector3;
+        const a = (window as unknown as { __atlas: { atlas: {
+          marks: { key: string; g: Object3D; label: { el: HTMLElement } }[];
+          view: { canvas: HTMLCanvasElement; project(v: Vector3, out: Vector3): Vector3 };
+        } } }).__atlas.atlas;
+        const canvas = a.view.canvas.getBoundingClientRect();
+        // Verify the reserved rectangles contain real mesh geometry, not just the old radius metadata.
+        for (const m of a.marks.filter(m => m.g.parent && m.g.visible)) {
+          const rect = m.label.el.getBoundingClientRect(), point = m.g.position.clone();
+          m.g.traverseVisible(o => {
+            if (o.type !== 'Mesh') return;
+            const mesh = o as import('three').Mesh;
+            if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+            const box = mesh.geometry.boundingBox!;
+            for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) {
+              point.set(x, y, z).applyMatrix4(mesh.matrixWorld);
+              a.view.project(point, point);
+              if (point.x + canvas.left < rect.left - 1 || point.x + canvas.left > rect.right + 1 ||
+                  point.y + canvas.top < rect.top - 1 || point.y + canvas.top > rect.bottom + 1) hits.push(`${m.key}: uncovered geometry`);
+            }
+          });
+        }
+        for (const [i, a] of models.entries()) {
+          const x = a.getBoundingClientRect();
+          for (const b of [...models.slice(i + 1), ...labels]) {
+            const owner = b.dataset.key ?? (b.dataset.place ? `place:${b.dataset.place}` : '');
+            if (owner && owner === a.dataset.key) continue;
+            const y = b.getBoundingClientRect();
+            if (x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top) {
+              hits.push(`${a.dataset.key} / ${owner || b.textContent}`);
+            }
+          }
+        }
+        return [...new Set(hits)];
+      });
+      expect(overlaps, `distance ${dist}`).toEqual([]);
+      await page.screenshot({ path: test.info().outputPath(`unified-map-${dist}.png`) });
+    }
+    const compact = page.locator('.pin.on:not(.model-hit)').first();
+    const key = (await compact.getAttribute('data-key'))!;
+    const title = (await compact.getAttribute('aria-label'))!;
+    await compact.focus();
+    await expect(tip.locator('b')).toHaveText(title);
+    await page.keyboard.press('Enter');
+    await expect(card).toBeVisible();
+    const selected = page.locator(`.pin[data-key="${key}"][aria-pressed=true].on`);
+    await expect(selected).toHaveCount(1);
+    await setMapPose(page, { lon: 110, lat: 34, dist: 90, tilt: 0.8 });
+    await expect(selected).toHaveCount(1);
     expect(errs).toEqual([]);
   });
 
@@ -281,6 +410,13 @@ test.describe('Ages atlas', () => {
     await expect(page.locator('.caption')).toBeVisible();
     await expect(card).toHaveCSS('opacity', '0');
     await shot(page, 'mobile-story');
+    await page.locator('.caption [aria-label=停止]').click();
+    await openApp(page, 'y=700&lang=zh');
+    await setMapPose(page, { lon: 117.1, lat: 36.25, dist: 14, tilt: 0.75 });
+    const name = page.locator('.place[data-place=taishan]');
+    await expect(name).toBeVisible();
+    await name.tap();
+    await expect(card.locator('h2')).toHaveText('泰山');
     expect(errs).toEqual([]);
   });
 });

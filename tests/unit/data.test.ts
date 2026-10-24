@@ -7,7 +7,7 @@ import { PLACE, PLACES, isCapital, mapName, placeExists, placeName, riverName } 
 import { JOURNEYS, RIVER_LABELS, WORKS, reignAt } from '../../src/shared/data/jiangshan.ts';
 import { POLITY, POLITIES, polityMatches } from '../../src/shared/data/polities.ts';
 import { STAGES } from '../../src/shared/data/stage.ts';
-import { MAX_KEY, sceneryOf } from '../../src/shared/data/scenery.ts';
+import { lifePlace, MAX_KEY, sceneryOf } from '../../src/shared/data/scenery.ts';
 import { LIFE, lifeOf } from '../../src/shared/data/life.ts';
 import { STORIES, journeyStory } from '../../src/shared/data/stories.ts';
 import { SNAPSHOTS, snapshotAt } from '../../src/shared/data/territories.ts';
@@ -211,6 +211,16 @@ describe('stories', () => {
 });
 
 describe('dynasty scenery', () => {
+  it('joins geographical landmarks to their map entry, but not nearby people or city-wide scenes', () => {
+    expect(lifePlace(LIFE.find(l => l.id === 'taishan-tang')!)?.id).toBe('taishan');
+    const bridge = LIFE.find(l => l.name.zh === '赵州桥')!;
+    expect(lifePlace(bridge)?.id).toBe('zhaozhou');
+    for (const l of LIFE.filter(l => l.kind === 'person')) expect(lifePlace(l)).toBeUndefined();
+    expect(lifePlace({ ...bridge, lon: bridge.lon + 1 })).toBeUndefined();
+    expect(mapName(PLACE.get('taishan')!, 700)?.zh).toBe('泰山');
+    expect(placeName(PLACE.get('taishan')!, 700).en).toBe('Mount Tai');
+    expect(PLACES.some(p => p.kind === 'city' && mapName(p, 700)?.zh === '乾封（泰山）')).toBe(true);
+  });
   it('stands life items, landmarks and period-dressed people on the map, spaced apart and clear of the capital', () => {
     let total = 0;
     for (const era of ERAS.filter(x => x.scope === 'china')) {

@@ -223,7 +223,7 @@ export function importedPlaces(curated: Place[]): Place[] {
     const capital = g.items.filter(s => s.capital).map(s => [s.from, s.to] as [Year, Year]);
     const notes = g.items.filter(s => s.note).map(s => ({ from: s.from, to: s.to, text: s.note! }));
     const c = nearest(g.lon, g.lat, 0.3, curated);
-    if (c) {
+    if (c?.kind === 'city') {
       // enrich the curated place: periods it lacks, notes
       c.notes = [...(c.notes ?? []), ...notes];
       c.periods = [...(c.periods ?? []), ...names];
@@ -231,7 +231,8 @@ export function importedPlaces(curated: Place[]): Place[] {
     }
     const first = g.items[0];
     const p: Place = {
-      id: `j${n++}`, scope: 'china', lon: g.lon, lat: g.lat, kind: 'city', name: first.modern.zh ? first.modern : first.name, names,
+      // Keep existing j-IDs stable when separating a settlement previously merged into a nearby landmark.
+      id: c ? `settlement-${g.lon}-${g.lat}` : `j${n++}`, scope: 'china', lon: g.lon, lat: g.lat, kind: 'city', name: first.modern.zh ? first.modern : first.name, names,
       capital: capital.length ? capital : undefined, tier: capital.length ? 2 : 3, minor: g.items.every(s => s.minor) || undefined,
       periodOnly: true, notes: notes.length ? notes : undefined, modern: first.modern,
     };
@@ -252,7 +253,7 @@ export function importedPlaces(curated: Place[]): Place[] {
   }
   // city lore
   for (const cl of J.cities) {
-    const c = nearest(cl.lon, cl.lat, 0.35, all);
+    const c = nearest(cl.lon, cl.lat, 0.35, all.filter(p => p.kind === 'city'));
     const lore = { tag: cl.tag, desc: cl.desc };
     if (c) { c.lore ??= lore; c.modern ??= cl.modern; continue; }
     const p: Place = { id: `city-${out.length}`, scope: 'china', lon: cl.lon, lat: cl.lat, kind: 'city', name: cl.modern, tier: 3, lore, modern: cl.modern };

@@ -29,7 +29,7 @@ Polity names are sized by territory area (`s-xl` 26, `s-l` 19, `s-m` 14, `s-s` 1
 
 | Label | Class | Weight | Colour token | Ink (dark) | Paper / plain |
 |---|---|---|---|---|---|
-| Capital | `.place.cap` | 700 | `--c-cap` + vermilion seal | `#ffe2b0` | `#8f1f16` |
+| Capital | `.place.cap` | 700 | `--c-cap` + circular location anchor | `#ffe2b0` | `#8f1f16` |
 | Tier-1 city | `.place.t1` | 600 | `--c-city` | `#f1ece2` | `#2b2620` |
 | Place | `.place` | 500 | `--c-city` | `#f1ece2` | `#2b2620` |
 | Tier-3 / minor | `.place.t3`, `.minor` | 400 | `--c-city-2` | `#d6d0c4` | `#5a5248` |
@@ -39,10 +39,13 @@ Polity names are sized by territory area (`s-xl` 26, `s-l` 19, `s-m` 14, `s-s` 1
 | Admin area, level 1 | `.admin.l1` | 600 | `--c-admin-1` | `#f2e2bf` | `#47321d` |
 | Admin area | `.admin` | 500 | `--c-admin` | `#ddd0b4` | `#5b4a36` |
 | Wall, canal, road, sea route | `.work.k-*` | 600 italic | the work's line colour | | |
-| Key item of the period (level 1 model) | `.lvname` | 600, `--fs-2` | `--c-city` tinted 30 % toward its type colour | | |
 | Polity | `.polity` | 800 (neighbours 600) | the polity's colour mixed toward the background | | |
 
 Interactive text such as tooltips (`.maptip`) and model tags (`.tag`) belongs to the UI, not the map, and is not covered by these tokens.
+
+Clickable names are semantic buttons with a small circular location anchor. When the place has a model, its base ring
+replaces that anchor and the same name sits above the model; both open the same card. Model bounds participate in label
+avoidance, so unrelated names never cover models. There are no separate importance-based model name plates.
 
 ## Names by period
 
