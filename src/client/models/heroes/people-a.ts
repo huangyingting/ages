@@ -3,6 +3,7 @@ import type { Builder, V3 } from '../prims.ts';
 import { add, archPath, BOX, cone, CYL, g, gable, hash3, lathe, mat, panel, paintFaces, rbox, rod, shade, strut, tube } from '../prims.ts';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { figure, figureBase, type FigureAnchors, type FigureOpts } from '../figure.ts';
+import { human } from '../human.ts';
 
 // Famous thinkers, scientists, inventors and doctors as collectible figurine dioramas: the shared figurine on a round
 // base, holding signature props, with a tiny themed scene around it. Camera-facing side is front-left (-x, +z).
@@ -170,29 +171,40 @@ const at = (h: V3, dx = 0, dy = 0, dz = 0): V3 => [h[0] + dx, h[1] + dy, h[2] + 
 const held = (p: O, h: V3, ry = 0, rx = 0, rz = 0) => grp(p, h[0], h[1], h[2], ry, rx, rz);
 
 // ---- signature machines
-/** Zhang Heng's Houfeng seismoscope: bronze urn, eight dragons holding balls, eight open-mouthed toads */
+/**
+ * Zhang Heng's 候风地动仪 after 王振铎's reconstruction: a patinated bronze 酒尊-shaped jar with a domed lid, eight
+ * dragons running down from the lid with a bronze ball in each mouth, eight squatting toads below with mouths open
+ * upward. One dragon (facing the viewer) has just dropped its ball into the toad's mouth.
+ */
 function seismoscope(p: O, x: number, y: number, z: number, s: number): void {
   const q = grp(p, x, y, z);
-  const bronze = '#a8873a', dark = '#6f5a25', green = '#7b8b4a';
-  lathe(q, [[0, 0], [0.16 * s, 0], [0.16 * s, 0.018 * s], [0, 0.018 * s]], shade(bronze, 0.75), 0, 0, 0, 16);
-  const urn = lathe(q, [[0, 0.018], [0.06, 0.018], [0.085, 0.045], [0.1, 0.1], [0.1, 0.16], [0.088, 0.205], [0.062, 0.228], [0.064, 0.24], [0.072, 0.248], [0.05, 0.278], [0.016, 0.29], [0, 0.292]].map(([r, h]) => [r * s, h * s] as [number, number]), bronze, 0, 0, 0, 16);
-  urn.material = metal(bronze);
-  for (const yy of [0.1, 0.16]) ring(q, dark, 0, yy * s, 0, 0.101 * s, 0.05, 0, Math.PI / 2);
-  bl(q, dark, 0, 0.298 * s, 0, 0.016 * s);
+  const bronze = '#62603f', dark = '#46452f', ball = '#a08442';
+  const S = (pts: number[][]) => pts.map(([r, h]) => [r * s, h * s] as [number, number]);
+  lathe(q, S([[0, 0], [0.24, 0], [0.24, 0.016], [0, 0.016]]), '#7d7869', 0, 0, 0, 24);
+  const jar = lathe(q, S([[0, 0.016], [0.108, 0.016], [0.112, 0.03], [0.102, 0.045], [0.106, 0.1], [0.118, 0.2], [0.122, 0.262], [0.116, 0.29],
+    [0.108, 0.3], [0.112, 0.31], [0.098, 0.338], [0.07, 0.366], [0.035, 0.381], [0, 0.384]]), bronze, 0, 0, 0, 24);
+  jar.material = metal(bronze);
+  // cast relief bands (篆文 and mountain/animal patterns) as darker rings
+  for (const [yy, r] of [[0.06, 0.104], [0.15, 0.114], [0.24, 0.122], [0.303, 0.11]]) ring(q, '', 0, yy * s, 0, r * s, 0.05, 0, Math.PI / 2, 0, metal(dark));
+  lathe(q, S([[0, 0.38], [0.016, 0.38], [0.02, 0.4], [0.01, 0.415], [0, 0.418]]), dark, 0, 0, 0, 10).material = metal(dark);
   for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+    const a = (i / 8) * Math.PI * 2 + Math.PI * 0.75, ca = Math.cos(a), sa = Math.sin(a);
     const P = (r: number, h: number): V3 => [ca * r * s, h * s, sa * r * s];
-    // coiled dragon on the shoulder of the urn, head down with a ball in its mouth
-    bl(q, green, ...P(0.094, 0.236), 0.015 * s, 0.017 * s, 0.013 * s, -a);
-    const hd = P(0.112, 0.206);
-    bl(q, green, hd[0], hd[1], hd[2], 0.019 * s, 0.017 * s, 0.017 * s, -a);
-    bl(q, shade(green, 1.1), ...P(0.128, 0.194), 0.013 * s, 0.009 * s, 0.011 * s, -a);
-    rod(q, P(0.1, 0.222), P(0.112, 0.25), 0.004 * s, '#d4b45a', 3);
-    bl(q, '#e3c25e', ...P(0.134, 0.178), 0.01 * s); // ball in the mouth
-    // toad below, mouth open upward
-    const t = P(0.14, 0.03);
-    bl(q, green, t[0], t[1], t[2], 0.022 * s, 0.016 * s, 0.022 * s);
-    bl(q, '#2a2410', ...P(0.15, 0.055), 0.01 * s, 0.004 * s, 0.01 * s);
+    const dm = metal(dark);
+    // dragon body: from the lid down the shoulder to the head jutting out and down
+    tube(q, [P(0.03, 0.384), P(0.072, 0.37), P(0.104, 0.338), P(0.12, 0.3), P(0.13, 0.282)], 0.007 * s, 0.012 * s, bronze, { radial: 6, sub: 3 }).material = metal(shade(bronze, 0.88));
+    const hd = grp(q, ...P(0.142, 0.27), -a + Math.PI / 2);
+    bl(hd, dark, 0, 0, 0, 0.016 * s, 0.015 * s, 0.022 * s, 0, 0.45).material = dm;
+    bl(hd, dark, 0, -0.008 * s, 0.018 * s, 0.01 * s, 0.006 * s, 0.014 * s, 0, 0.7).material = dm; // lower jaw
+    for (const sx of [-1, 1]) rod(hd, [sx * 0.008 * s, 0.01 * s, -0.008 * s], [sx * 0.012 * s, 0.024 * s, -0.022 * s], 0.0035 * s, dark, 4).material = dm; // horns
+    if (i !== 0) bl(hd, ball, 0, -0.01 * s, 0.026 * s, 0.011 * s).material = metal(ball);
+    // toad squatting on the ground below, head up, mouth open to catch the ball
+    const td = grp(q, ...P(0.152, 0.016), -a + Math.PI / 2);
+    bl(td, bronze, 0, 0.018 * s, 0, 0.03 * s, 0.02 * s, 0.032 * s).material = metal(bronze);
+    bl(td, bronze, 0, 0.034 * s, 0.02 * s, 0.022 * s, 0.018 * s, 0.018 * s, 0, -0.6).material = metal(bronze);
+    for (const sx of [-1, 1]) bl(td, dark, sx * 0.026 * s, 0.01 * s, 0.012 * s, 0.01 * s, 0.01 * s, 0.016 * s).material = dm;
+    cc(td, '#1f1d14', 0, 0.047 * s, 0.024 * s, 0.011 * s, 0.006 * s, 8, 0, 0.3);
+    if (i === 0) bl(td, ball, 0, 0.052 * s, 0.024 * s, 0.011 * s).material = metal(ball);
   }
 }
 
@@ -269,202 +281,223 @@ function slate(p: O, w: number, h: number, text: string, ts: number, ry = 0, x =
 
 // ---- builders
 export const H_PEOPLE_A: Record<string, Builder> = {
+  // 孔子行教像 (attrib. 吴道子, Qufu stele): hands joined in 拱手, broad-sleeved 深衣 with dark edging, a sword at the
+  // waist, long beard; teaching at the 杏坛 to disciples kneeling (跽坐) on mats, bamboo-slip books on a low 几.
   pp_confucius: gp => {
-    const Y = figureBase(gp, '#cdbb98', '#6b5640');
-    // the Apricot Altar (杏坛) where he taught: a stone dais with steps
-    rbox(gp, '#b7ab95', 0, Y, -0.02, 0.36, 0.035, 0.3, 0.008);
-    rbox(gp, '#c4b8a1', 0, Y, 0.15, 0.22, 0.018, 0.06, 0.005);
-    const D = Y + 0.035;
-    canopyTree(gp, -0.24, Y, -0.22, 0.44, ['#f6c1cf', '#f3a9bd', '#fbd5df'], '#fff1f4', 14, '#5b3b28');
-    for (let i = 0; i < 6; i++) bl(gp, '#f6b6c8', -0.2 + hash3(i, 2, 3) * 0.5, Y + 0.004, -0.05 + hash3(i, 5, 1) * 0.35, 0.012, 0.003, 0.012); // fallen petals
+    const Y = figureBase(gp, '#c9b993', '#6b5640');
+    // the Apricot Altar (杏坛): a low dressed-stone dais with a step
+    rbox(gp, '#a99d86', 0.02, Y, -0.08, 0.34, 0.03, 0.26, 0.006);
+    rbox(gp, '#b4a891', 0.02, Y, 0.065, 0.22, 0.015, 0.05, 0.004);
+    const D = Y + 0.03;
+    // old apricot tree in leaf behind the dais
+    canopyTree(gp, -0.25, Y, -0.27, 0.42, ['#5f7444', '#6c8250', '#556a3d'], undefined, 0, '#4e3a2a');
     const a = person(gp, D, {
-      top: '#6e3b22', accent: '#d6b25e', outfit: 'robe', wideSleeves: true, hair: '#7a7a7a', hairStyle: 'topknot', hat: 'scholar', hatColor: '#1c1917',
-      beard: 'long', beardColor: '#cfcfcf', z: -0.02, h: 0.6, armL: { fwd: 0.55, side: 0.05, bend: 0.95, inward: 0.45 }, armR: { fwd: 0.55, side: 0.05, bend: 0.95, inward: 0.45 },
+      top: '#6a5a44', accent: '#2b2420', bottom: '#3a3128', outfit: 'robe', wideSleeves: true, hair: '#8a8580', hairStyle: 'topknot',
+      hat: 'scholar', hatColor: '#1f1b18', beard: 'long', beardColor: '#cfcac2', z: -0.07, x: 0.02, h: 0.6,
+      armL: { fwd: 0.62, side: 0.02, bend: 1.25, inward: 0.62 }, armR: { fwd: 0.62, side: 0.02, bend: 1.25, inward: 0.62 },
     });
-    // open bamboo-slip book (竹简) between the hands
-    const [lx, ly, lz] = a.handL, [rx] = a.handR;
-    const n = 11;
-    for (let i = 0; i < n; i++) {
-      const t = i / (n - 1), xx = lx - 0.02 + (rx - lx + 0.04) * t;
-      cb(gp, shade('#cfae6e', 0.92 + (i % 2) * 0.1), xx, ly + 0.02, lz + 0.03 - Math.sin(t * Math.PI) * 0.012, 0.011, 0.12, 0.004);
-      cb(gp, '#3f2a1a', xx, ly + 0.05, lz + 0.033 - Math.sin(t * Math.PI) * 0.012, 0.004, 0.04, 0.001);
-    }
-    for (const yy of [-0.025, 0.065]) cb(gp, '#7c4a2a', (lx + rx) / 2, ly + yy, lz + 0.026, rx - lx + 0.05, 0.004, 0.003);
-    // low lacquered desk with rolled bamboo books and an inkstone
-    const tb = table(gp, 0.28, Y, -0.1, 0.15, 0.1, 0.07, '#4a1d16', -0.5);
-    for (let i = 0; i < 3; i++) scroll(tb, -0.02, 0.078 + i * 0.012, -0.02 + (i % 2) * 0.01, 0.1, 0.011, 0, '#c9a86a', '#6b4a2a');
-    cb(tb, '#27272a', 0.045, 0.074, 0.025, 0.035, 0.008, 0.03);
-    // kneeling mats for students and a bronze incense burner (鼎)
-    for (const [mx, mz] of [[-0.27, 0.16], [0.06, 0.33], [0.3, 0.14]]) rbox(gp, '#a3864f', mx, Y, mz, 0.1, 0.008, 0.075, 0.003, mx);
-    const dq = grp(gp, -0.16, Y, 0.33);
-    lathe(dq, [[0, 0.03], [0.04, 0.03], [0.045, 0.05], [0.04, 0.075], [0.046, 0.08], [0, 0.08]], '#7a6a35', 0, 0, 0, 12).material = metal('#8a7535');
-    for (let i = 0; i < 3; i++) { const t = (i / 3) * Math.PI * 2; rod(dq, [Math.cos(t) * 0.03, 0.04, Math.sin(t) * 0.03], [Math.cos(t) * 0.036, 0, Math.sin(t) * 0.036], 0.005, '#6f5f2e', 4); }
-    for (const sx of [-1, 1]) cb(dq, '#7a6a35', sx * 0.03, 0.09, 0, 0.006, 0.022, 0.016);
+    // the long sword hanging at the left hip, hilt forward
+    const body = a.group.children[0] as THREE.Group, u = a.u;
+    const sw = axis(body, [-0.2 * u, 0.6 * u, 0.13 * u], [-0.19 * u, 0.2 * u, -0.27 * u]).q;
+    cc(sw, '#2a2420', 0, 0.3 * u, 0, 0.011 * u * 1.3, 0.42 * u, 6);
+    cc(sw, '#8a7535', 0, 0.075 * u, 0, 0.022 * u, 0.012 * u, 8);
+    cc(sw, '#5a4a30', 0, 0.03 * u, 0, 0.012 * u, 0.07 * u, 6);
+    // low desk (几) with rolled bamboo-slip books and an inkstone
+    const tb = table(gp, 0.27, Y, -0.17, 0.15, 0.08, 0.075, '#3e2a1e', -0.45);
+    for (let i = 0; i < 3; i++) scroll(tb, -0.02 + i * 0.002, 0.083 + i * 0.012, -0.012 + (i % 2) * 0.014, 0.09, 0.011, 0, '#b89a62', '#5a4028');
+    cb(tb, '#27272a', 0.05, 0.079, 0.02, 0.03, 0.007, 0.025);
+    // two disciples kneeling (跽坐) on rush mats, turned toward the master
+    const disc = (x: number, z: number, ry: number, top: string, slip: boolean) => {
+      rbox(gp, '#a89466', x, Y, z, 0.11, 0.006, 0.12, 0.003, ry);
+      const r = human(gp, x, Y + 0.006, z, {
+        h: 0.5, ry, pose: 'kneel', top, bottom: shade(top, 0.85), hair: '#1f1a17', hat: '#1f1a17', hatStyle: 'knot', detail: 'hi', shoes: '#2a221c',
+        hipY: 0.18, lean: 0.06, feet: [[-0.06, 0.035, -0.05], [0.06, 0.035, -0.05]], hands: [[-0.07, 0.28, 0.17], [0.07, 0.28, 0.17]],
+      });
+      if (slip) {
+        // an unrolled bamboo-slip book held open in front
+        const q = grp(gp, (r.handL[0] + r.handR[0]) / 2, (r.handL[1] + r.handR[1]) / 2 + 0.015, (r.handL[2] + r.handR[2]) / 2, ry, -0.5);
+        for (let i = 0; i < 7; i++) cb(q, shade('#c4a468', 0.92 + (i % 2) * 0.08), -0.033 + i * 0.011, 0, 0, 0.01, 0.07, 0.004);
+        for (const yy of [-0.02, 0.02]) cb(q, '#5a4028', 0, yy, 0.003, 0.08, 0.003, 0.002);
+      }
+    };
+    disc(-0.27, 0.17, 2.3, '#7a6e58', true);
+    disc(0.3, 0.17, -2.35, '#5d5a4a', false);
+    // a bronze ritual tripod (鼎) by the step
+    const dq = grp(gp, -0.08, Y, 0.3);
+    lathe(dq, [[0, 0.03], [0.034, 0.03], [0.04, 0.045], [0.038, 0.07], [0.042, 0.074], [0, 0.074]], '#5a5a3e', 0, 0, 0, 12).material = metal('#5d5c3e');
+    for (let i = 0; i < 3; i++) { const t = (i / 3) * Math.PI * 2; rod(dq, [Math.cos(t) * 0.026, 0.035, Math.sin(t) * 0.026], [Math.cos(t) * 0.032, 0, Math.sin(t) * 0.032], 0.006, '#4f4f36', 4); }
+    for (const sx of [-1, 1]) cb(dq, '#5a5a3e', sx * 0.028, 0.084, 0, 0.007, 0.02, 0.016);
+    for (const [px, pz] of [[0.38, -0.05], [-0.38, -0.04], [0.15, 0.36]]) tuft(gp, px, Y, pz, 0.03, '#6c7f45');
     lighten(gp);
   },
 
+  // 《后汉书·张衡传》: 候风地动仪 "以精铜铸成，员径八尺，合盖隆起，形似酒尊…外有八龙，首衔铜丸，下有蟾蜍张口承之";
+  // shape after 王振铎's 1951 reconstruction. He wears the Han official 进贤冠 and a dark 袍.
   pp_zhangheng: gp => {
-    const Y = figureBase(gp, '#c9b48a', '#5e4a34');
-    rbox(gp, '#b5a07a', 0.22, Y, -0.06, 0.36, 0.012, 0.36, 0.004);
-    seismoscope(gp, 0.27, Y + 0.012, -0.1, 0.92);
+    const Y = figureBase(gp, '#c4b28c', '#5e4a34');
+    rbox(gp, '#a99a7c', 0.19, Y, -0.1, 0.4, 0.012, 0.4, 0.004);
+    seismoscope(gp, 0.19, Y + 0.012, -0.1, 0.78);
     const a = person(gp, Y, {
-      x: -0.2, z: 0.1, ry: 0.3, top: '#24525a', accent: '#c8a04a', outfit: 'robe', wideSleeves: true, hair: '#1f1b18', hairStyle: 'topknot',
-      hat: 'scholar', hatColor: '#141414', beard: 'goatee', beardColor: '#1f1b18',
-      armR: { fwd: 0.55, side: 0.6, bend: 0.25 }, armL: { fwd: 0.5, bend: 1.0, inward: 0.35 },
+      x: -0.2, z: 0.12, ry: 0.35, top: '#33302c', accent: '#7a5a3a', bottom: '#26231f', outfit: 'robe', wideSleeves: true, hair: '#1f1b18', hairStyle: 'topknot',
+      hat: 'jinxian', hatColor: '#141414', beard: 'goatee', beardColor: '#1f1b18',
+      armR: { fwd: 0.6, side: 0.55, bend: 0.3 }, armL: { fwd: 0.5, bend: 1.05, inward: 0.4 },
     });
-    // Han-style slanted crown plate on the cap (进贤冠)
-    cb(gp, '#141414', a.top[0] - 0.01, a.top[1] + 0.03, a.top[2] - 0.01, 0.05, 0.004, 0.07, 0.45, -0.6);
-    // pointing finger toward the dragons
+    // pointing at the dragon whose ball has dropped
     const d = new THREE.Vector3(...a.handR).sub(new THREE.Vector3(...a.head)).setY(0).normalize();
-    rod(gp, a.handR, at(a.handR, d.x * 0.035, 0.005, d.z * 0.035), 0.007, '#e9b993', 5);
-    // a scroll of star notes in the other hand
-    scroll(gp, a.handL[0], a.handL[1], a.handL[2] + 0.01, 0.1, 0.012, 0.45);
-    // water-driven armillary sphere (浑天仪) at the back
-    const am = grp(gp, -0.22, Y, -0.24);
-    lathe(am, [[0, 0], [0.06, 0], [0.05, 0.03], [0.015, 0.05], [0.012, 0.16], [0, 0.16]], '#6f5a25', 0, 0, 0, 10).material = metal('#7d6830');
-    const ao = grp(am, 0, 0.22, 0, 0.5);
-    ring(ao, '', 0, 0, 0, 0.075, 0.07, 0, 0, 0, metal('#b08d3c'));
-    ring(ao, '', 0, 0, 0, 0.075, 0.07, Math.PI / 2, 0, 0, metal('#b08d3c'));
-    ring(ao, '', 0, 0, 0, 0.072, 0.07, 0, Math.PI / 2, 0, metal('#9c7b30'));
-    ring(ao, '', 0, 0, 0, 0.07, 0.06, 0, Math.PI / 2 - 0.41, 0.3, metal('#c9a24a'));
-    bl(ao, '#3b82f6', 0, 0, 0, 0.02);
-    for (const [px, pz] of [[-0.3, 0.2], [0.33, 0.24], [-0.05, -0.36]]) tuft(gp, px, Y, pz, 0.035, '#6f8f3a');
+    rod(gp, a.handR, at(a.handR, d.x * 0.03, 0.004, d.z * 0.03), 0.006, '#d9a882', 5);
+    // a rolled record of the tremor in the other hand
+    scroll(gp, a.handL[0], a.handL[1], a.handL[2] + 0.01, 0.09, 0.011, 0.45, '#d9c9a0', '#4a3424');
+    for (const [px, pz] of [[-0.36, -0.12], [0.36, 0.22], [-0.05, -0.38]]) tuft(gp, px, Y, pz, 0.03, '#6c7f45');
     lighten(gp);
   },
+
+  // 蔡伦, 中常侍/尚方令 (a palace eunuch, so beardless) in the Han 武冠 with the 貂蝉 (gold plaque and sable tail) of his
+  // rank; papermaking after 《天工开物·杀青》: pulp vat (纸槽), bamboo mould, pounding 碓, sheets dried on boards.
   pp_cailun: gp => {
-    const Y = figureBase(gp, '#c8b893', '#5e4a34');
-    rbox(gp, '#b3a37f', -0.05, Y, -0.02, 0.62, 0.008, 0.5, 0.004);
-    // wooden vat of milky paper pulp, bound with iron hoops
-    const vx = -0.26, vz = 0.12;
-    lathe(gp, [[0, 0], [0.095, 0], [0.104, 0.1], [0.094, 0.1], [0.086, 0.088], [0, 0.088]], '#8b6a43', vx, Y, vz, 16);
-    for (const yy of [0.025, 0.075]) ring(gp, '#3f3f46', vx, Y + yy, vz, 0.1 + yy * 0.09, 0.04, 0, Math.PI / 2);
-    for (let i = 0; i < 5; i++) bl(gp, '#f3eedf', vx - 0.05 + hash3(i, 1, 1) * 0.1, Y + 0.09, vz - 0.04 + hash3(i, 2, 2) * 0.08, 0.02, 0.004, 0.02);
-    cc(gp, '#e6dfca', vx, Y + 0.088, vz, 0.088, 0.003, 16);
-    rod(gp, [vx + 0.04, Y + 0.07, vz - 0.03], [vx + 0.1, Y + 0.2, vz - 0.09], 0.006, '#7c5a3a', 5); // stirring paddle
+    const Y = figureBase(gp, '#c4b591', '#5e4a34');
+    rbox(gp, '#ad9d7a', -0.05, Y, -0.02, 0.62, 0.008, 0.5, 0.004);
+    // rectangular wooden vat of milky pulp
+    const vt = grp(gp, -0.25, Y, 0.15, 0.35);
+    for (const sx of [-1, 1]) cb(vt, '#6e5236', sx * 0.08, 0.045, 0, 0.014, 0.09, 0.13);
+    for (const sz of [-1, 1]) cb(vt, '#6e5236', 0, 0.045, sz * 0.058, 0.174, 0.09, 0.014);
+    cb(vt, '#e9e3d0', 0, 0.075, 0, 0.15, 0.006, 0.105);
+    for (let i = 0; i < 4; i++) bl(vt, '#f2eddf', -0.05 + i * 0.033, 0.079, (hash3(i, 2, 2) - 0.5) * 0.06, 0.016, 0.003, 0.014);
+    for (const sz of [-1, 1]) cb(vt, '#5a422b', 0, 0.09, sz * 0.058, 0.18, 0.006, 0.02);
     const a = person(gp, Y, {
-      x: 0.02, z: 0.0, top: '#8b2a23', accent: '#1f1a17', outfit: 'robe', wideSleeves: true, hair: '#1a1714', hairStyle: 'topknot', hat: 'scholar', hatColor: '#141414',
-      beard: 'goatee', beardColor: '#1a1714', armL: { fwd: 0.75, side: 0.1, bend: 0.75, inward: 0.25 }, armR: { fwd: 0.75, side: 0.1, bend: 0.75, inward: 0.25 },
+      x: 0.02, z: 0.0, top: '#5c2a22', accent: '#1f1a17', bottom: '#2a201c', outfit: 'robe', wideSleeves: true, hair: '#1a1714', hairStyle: 'topknot',
+      beard: 'none', armL: { fwd: 0.75, side: 0.1, bend: 0.75, inward: 0.25 }, armR: { fwd: 0.75, side: 0.1, bend: 0.75, inward: 0.25 },
     });
-    // bamboo papermaking mould with a fresh wet sheet, tilted to show the paper
+    // 武冠 with 貂蝉: a black lacquered-gauze cap, a gold plaque with a cicada in front, a sable tail on the left
+    const body = a.group.children[0] as THREE.Group, u = a.u, hr = a.headR, ty = 0.93 * u + hr * 0.95;
+    bl(body, '#1c1a18', 0, ty + hr * 0.05, -hr * 0.12, hr * 1.06, hr * 0.62, hr * 1.1);
+    cb(body, '#1c1a18', 0, ty + hr * 0.55, -hr * 0.2, hr * 1.5, hr * 0.7, hr * 1.4);
+    cb(body, '#c9a24a', 0, ty + hr * 0.25, hr * 0.86, hr * 0.55, hr * 0.6, hr * 0.08);
+    bl(body, '#5a4a26', 0, ty + hr * 0.26, hr * 0.92, hr * 0.12, hr * 0.2, hr * 0.06);
+    tube(body, [[-hr * 0.9, ty + hr * 0.3, -hr * 0.2], [-hr * 1.15, ty + hr * 1.1, -hr * 0.5], [-hr * 1.1, ty + hr * 1.7, -hr * 1.2], [-hr * 0.95, ty + hr * 1.8, -hr * 1.8]], hr * 0.3, hr * 0.12, '#4a3626', { radial: 6, sub: 3 });
+    // bamboo papermaking mould (帘床) lifted out of the vat with a fresh wet sheet
     const mx = (a.handL[0] + a.handR[0]) / 2, my = (a.handL[1] + a.handR[1]) / 2;
     const md = grp(gp, mx, my + 0.01, a.handL[2] + 0.04, 0, -0.75);
     const wM = a.handR[0] - a.handL[0] + 0.05;
-    for (const sz of [-1, 1]) cb(md, '#8b6a43', 0, 0, sz * 0.06, wM, 0.01, 0.012);
-    for (const sx of [-1, 1]) cb(md, '#8b6a43', sx * wM / 2, 0, 0, 0.012, 0.01, 0.13);
-    cb(md, '#c9b07a', 0, -0.002, 0, wM - 0.01, 0.003, 0.11);
-    cb(md, '#fbf8ee', 0, 0.002, 0, wM - 0.03, 0.003, 0.095);
-    // drying wall with sheets of paper and a tiled coping
-    const wl = grp(gp, -0.13, Y, -0.27, 0.25);
-    cb(wl, '#ece4d4', 0, 0.12, 0, 0.32, 0.24, 0.04);
-    cb(wl, '#9a8f7e', 0, 0.01, 0, 0.33, 0.02, 0.05);
-    const roof = new THREE.Group(); roof.position.set(0, 0.24, 0); wl.add(roof);
-    for (const sz of [-1, 1]) cb(roof, '#4b5563', 0, 0.018, sz * 0.022, 0.36, 0.008, 0.05, 0, sz * 0.55);
-    cb(roof, '#374151', 0, 0.03, 0, 0.37, 0.012, 0.012);
-    for (let i = 0; i < 4; i++) cb(wl, i % 2 ? '#fffdf5' : '#f6efdc', -0.105 + (i % 2) * 0.13 + (i > 1 ? 0.07 : 0), i > 1 ? 0.07 : 0.165, 0.022, 0.1, 0.085, 0.003, 0, 0, (hash3(i, 3, 3) - 0.5) * 0.12);
-    // stack of finished paper
-    for (let i = 0; i < 8; i++) cb(gp, i % 2 ? '#fbf7ea' : '#efe7d1', 0.27, Y + 0.004 + i * 0.006, 0.17, 0.11, 0.005, 0.08, (hash3(i, 7, 1) - 0.5) * 0.25);
-    cb(gp, '#b91c1c', 0.27, Y + 0.004, 0.17, 0.012, 0.052, 0.082);
-    // raw materials: bark, hemp and an old fishing net
-    for (let i = 0; i < 3; i++) cc(gp, '#6b4a32', -0.31 + i * 0.03, Y + 0.012, -0.12 + i * 0.01, 0.012, 0.12, 6, 0.3, Math.PI / 2);
-    cc(gp, '#c8b27a', 0.33, Y + 0.02, -0.02, 0.022, 0.12, 8, 1.1, Math.PI / 2);
-    cc(gp, '#7c4a2a', 0.33, Y + 0.02, -0.02, 0.024, 0.012, 8, 1.1, Math.PI / 2);
-    const net = grp(gp, -0.36, Y + 0.02, 0.0);
-    bl(net, '#8a8a7a', 0, 0, 0, 0.05, 0.02, 0.045);
-    for (let i = 0; i < 4; i++) { cb(net, '#4b4b40', -0.03 + i * 0.02, 0.018, 0, 0.003, 0.003, 0.08, 0, 0.1); cb(net, '#4b4b40', 0, 0.018, -0.03 + i * 0.02, 0.09, 0.003, 0.003); }
-    // stone mortar and wooden pestle for pounding fibres
-    lathe(gp, [[0, 0], [0.045, 0], [0.05, 0.05], [0.036, 0.05], [0.03, 0.02], [0, 0.02]], '#8a8f86', 0.24, Y, -0.2, 12);
-    rod(gp, [0.24, Y + 0.03, -0.2], [0.27, Y + 0.17, -0.17], 0.012, '#9a7350', 6);
-    lighten(gp);
-  },
-
-  pp_zuchongzhi: gp => {
-    const Y = figureBase(gp, '#cdbf9f', '#5e4a34');
-    // stone disc with the circle-cutting diagram: a 24-sided polygon squeezing in on the circle
-    const cx = 0.17, cz = 0.17;
-    cc(gp, '#d9cfb9', cx, Y + 0.005, cz, 0.15, 0.01, 24);
-    const cd = grp(gp, cx, Y + 0.0105, cz, 0, -Math.PI / 2);
-    ring(cd, '', 0, 0, 0, 0.12, 0.03, 0, 0, 0, mat('#57534e'));
-    const N = 12;
-    for (let i = 0; i < N; i++) {
-      const a0 = (i / N) * Math.PI * 2, a1 = ((i + 1) / N) * Math.PI * 2;
-      seg(cd, '#b91c1c', Math.cos(a0) * 0.12, Math.sin(a0) * 0.12, Math.cos(a1) * 0.12, Math.sin(a1) * 0.12, 0.005, 0.003, 0.001);
-      if (i % 2 === 0) seg(cd, '#78716c', 0, 0, Math.cos(a0) * 0.12, Math.sin(a0) * 0.12, 0.003, 0.002, 0.001);
+    for (const sz of [-1, 1]) cb(md, '#7a5c3a', 0, 0, sz * 0.06, wM, 0.01, 0.012);
+    for (const sx of [-1, 1]) cb(md, '#7a5c3a', sx * wM / 2, 0, 0, 0.012, 0.01, 0.13);
+    cb(md, '#b9a06e', 0, -0.002, 0, wM - 0.01, 0.003, 0.11);
+    cb(md, '#efeadb', 0, 0.002, 0, wM - 0.03, 0.003, 0.095);
+    // sheets drying on two wooden boards propped on a trestle
+    const dr = grp(gp, 0.17, Y, -0.25, -0.35);
+    for (const sx of [-1, 1]) { rod(dr, [sx * 0.15, 0, 0.02], [sx * 0.15, 0.2, -0.03], 0.008, '#5a422b', 5); }
+    rod(dr, [-0.16, 0.19, -0.025], [0.16, 0.19, -0.025], 0.007, '#5a422b', 5);
+    for (const sx of [-1, 1]) {
+      const bd = grp(dr, sx * 0.075, 0.005, 0.03, 0, -0.22);
+      cb(bd, '#8a6a46', 0, 0.095, 0, 0.14, 0.19, 0.01);
+      for (let i = 0; i < 2; i++) cb(bd, i ? '#f3eee0' : '#ebe4d0', 0, 0.05 + i * 0.09, 0.006, 0.11, 0.075, 0.003, 0, 0, (hash3(i, sx, 3) - 0.5) * 0.05);
     }
-    for (let i = 0; i < 6; i++) { const a0 = (i / 6) * Math.PI * 2, a1 = ((i + 1) / 6) * Math.PI * 2; seg(cd, '#1d4ed8', Math.cos(a0) * 0.12, Math.sin(a0) * 0.12, Math.cos(a1) * 0.12, Math.sin(a1) * 0.12, 0.005, 0.003, 0.002); }
-    bl(cd, '#1c1917', 0, 0, 0.003, 0.008, 0.008, 0.003);
-    // stone stele carved with π ≈ 3.1415926
-    const st = grp(gp, -0.22, Y, -0.2, 0.45);
-    rbox(st, '#8b8478', 0, 0, 0, 0.2, 0.03, 0.08, 0.008);
-    rbox(st, '#a8a29e', 0, 0.03, 0, 0.16, 0.22, 0.035, 0.006);
-    cc(st, '#a8a29e', 0, 0.25, 0, 0.08, 0.035, 16, 0, Math.PI / 2);
-    write(st, 'p', 0, 0.17, 0.019, 0.055, '#7f1d1d', 0.16);
-    write(st, '3.1415926', 0, 0.09, 0.019, 0.017, '#7f1d1d', 0.16);
-    // low desk with counting rods laid out as numbers
-    const tb = table(gp, 0.26, Y, -0.14, 0.2, 0.13, 0.08, '#6b4226', -0.5);
-    const rodC = '#efe2b8';
-    [3, 1, 4, 1, 5, 9].forEach((dgt, k) => {
-      // rod numerals alternate upright and lying digits; a crossing rod counts five
-      const x0 = -0.075 + k * 0.03, up = k % 2 === 0, n = dgt % 5;
-      for (let i = 0; i < n; i++)
-        if (up) cb(tb, rodC, x0 - 0.008 + i * 0.006, 0.084, 0.01, 0.003, 0.003, 0.034);
-        else cb(tb, rodC, x0, 0.084, 0.002 + i * 0.006, 0.024, 0.003, 0.003);
-      if (dgt >= 5) { if (up) cb(tb, rodC, x0, 0.087, -0.012, 0.026, 0.003, 0.003); else cb(tb, rodC, x0 - 0.014, 0.087, 0.01, 0.003, 0.003, 0.026); }
-    });
-    for (let i = 0; i < 6; i++) cc(tb, rodC, -0.07 + i * 0.004, 0.086, -0.045, 0.002, 0.06, 4, 0.05, Math.PI / 2);
-    scroll(tb, 0.06, 0.09, -0.04, 0.07, 0.01, 0.3);
-    const a = person(gp, Y, {
-      x: -0.06, z: 0.0, ry: 0.4, top: '#a3b5c4', accent: '#2f3e4c', outfit: 'robe', wideSleeves: true, hair: '#2a2420', hairStyle: 'topknot', hat: 'scholar', hatColor: '#141414',
-      beard: 'long', beardColor: '#3a3430', armR: { fwd: 0.8, side: 0.45, bend: 0.15 }, armL: { fwd: 0.55, bend: 1.05, inward: 0.4 },
-    });
-    // a bundle of counting rods in the left hand
-    const hb = held(gp, a.handL, 0.35, 0.3, 0.5);
-    for (let i = 0; i < 7; i++) cc(hb, rodC, Math.cos(i * 2.4) * 0.008, 0, Math.sin(i * 2.4) * 0.008, 0.0028, 0.11, 4);
-    cc(hb, '#7f1d1d', 0, 0, 0, 0.013, 0.012, 8);
-    rod(gp, a.handR, at(a.handR, 0.025, -0.02, 0.025), 0.006, '#e9b993', 5);
-    for (const [px, pz] of [[-0.34, 0.16], [0.38, 0.06], [0.0, 0.36]]) tuft(gp, px, Y, pz, 0.035, '#7a9a45');
+    // stack of finished paper tied with hemp cord
+    for (let i = 0; i < 8; i++) cb(gp, i % 2 ? '#f1ecdc' : '#e6dec8', 0.27, Y + 0.004 + i * 0.006, 0.17, 0.11, 0.005, 0.08, (hash3(i, 7, 1) - 0.5) * 0.12);
+    cb(gp, '#9a8458', 0.27, Y + 0.004, 0.17, 0.01, 0.052, 0.082);
+    // raw materials: tree bark, hemp ends, rags and an old fishing net
+    for (let i = 0; i < 3; i++) cc(gp, '#5e4430', -0.34 + i * 0.026, Y + 0.012, -0.1 + i * 0.012, 0.012, 0.12, 6, 0.3, Math.PI / 2);
+    cc(gp, '#b9a473', 0.36, Y + 0.02, -0.04, 0.022, 0.12, 8, 1.1, Math.PI / 2);
+    cc(gp, '#6b4a2a', 0.36, Y + 0.02, -0.04, 0.024, 0.012, 8, 1.1, Math.PI / 2);
+    const net = grp(gp, -0.37, Y + 0.012, 0.04);
+    bl(net, '#7d7a68', 0, 0, 0, 0.045, 0.016, 0.04);
+    for (let i = 0; i < 4; i++) { cb(net, '#4b4b40', -0.027 + i * 0.018, 0.013, 0, 0.004, 0.004, 0.07, 0, 0.1); cb(net, '#4b4b40', 0, 0.013, -0.027 + i * 0.018, 0.08, 0.004, 0.004); }
+    for (let i = 0; i < 3; i++) bl(gp, ['#8a7d66', '#6f6a5c', '#9b8f78'][i], -0.33 + i * 0.03, Y + 0.012, 0.0 - i * 0.01, 0.022, 0.009, 0.018, i);
+    // stone mortar with a wooden pestle for pounding the soaked fibres
+    lathe(gp, [[0, 0], [0.045, 0], [0.05, 0.05], [0.036, 0.05], [0.03, 0.02], [0, 0.02]], '#7d8078', -0.2, Y, -0.24, 12);
+    cc(gp, '#a49e88', -0.2, Y + 0.035, -0.24, 0.032, 0.006, 10);
+    rod(gp, [-0.2, Y + 0.03, -0.24], [-0.23, Y + 0.18, -0.21], 0.012, '#8a6a46', 6);
     lighten(gp);
   },
 
-  pp_lishizhen: gp => {
-    const Y = figureBase(gp, '#a9b67f', '#5d4a33');
-    // mountain rocks, a pine and lingzhi mushrooms
-    rock(gp, '#8a8f86', -0.25, Y + 0.05, -0.22, 0.13, 0.85);
-    rock(gp, '#9aa096', -0.09, Y + 0.03, -0.3, 0.09, 0.7);
-    rock(gp, '#7d837a', 0.3, Y + 0.02, -0.2, 0.08, 0.6);
-    const px = -0.3, pz = -0.27, py = Y + 0.13;
-    cc(gp, '#5b3b28', px, py + 0.05, pz, 0.012, 0.12, 6);
-    for (let i = 0; i < 3; i++) cone(gp, shade('#2f5e3f', 1 + i * 0.08), px, py + 0.05 + i * 0.05, pz, 0.075 - i * 0.02, 0.08, 7);
-    for (const [lx, lz, r] of [[-0.14, -0.2, 0.03], [-0.11, -0.17, 0.022]]) { bl(gp, '#8a3b1d', lx, Y + 0.05, lz, r, 0.008, r * 0.8); bl(gp, '#c2410c', lx, Y + 0.054, lz, r * 0.6, 0.005, r * 0.5); cc(gp, '#6b3a1e', lx, Y + 0.025, lz, 0.004, 0.05, 5); }
-    // medicinal herbs in flower
-    const herb = (x: number, z: number, s: number, fl: string) => {
-      for (let i = 0; i < 4; i++) { const t = i * 1.7 + x * 5; rod(gp, [x, Y, z], [x + Math.cos(t) * s * 0.3, Y + s * (0.7 + (i % 2) * 0.3), z + Math.sin(t) * s * 0.3], s * 0.03, '#4d7c3a', 4); bl(gp, '#5f9e4a', x + Math.cos(t) * s * 0.25, Y + s * 0.5, z + Math.sin(t) * s * 0.25, s * 0.14, s * 0.05, s * 0.08, t); bl(gp, fl, x + Math.cos(t) * s * 0.3, Y + s * (0.72 + (i % 2) * 0.3), z + Math.sin(t) * s * 0.3, s * 0.07); }
-    };
-    herb(0.26, 0.12, 0.12, '#facc15');
-    herb(-0.3, 0.06, 0.11, '#a78bfa');
-    herb(0.14, 0.28, 0.09, '#f8fafc');
-    herb(0.33, -0.06, 0.1, '#f472b6');
-    // the Compendium lying open on a flat stone
-    rock(gp, '#9ca3af', -0.22, Y + 0.01, 0.22, 0.09, 0.35);
-    openBook(gp, -0.22, Y + 0.036, 0.22, 0.05, 0.075, '#1e3a8a', -0.5, -Math.PI / 2 + 0.25);
-    // herb hoe leaning on the rock
-    rod(gp, [0.2, Y + 0.0, -0.1], [0.27, Y + 0.24, -0.17], 0.007, '#8b5a2b', 5);
-    cb(gp, '#6b7280', 0.275, Y + 0.24, -0.172, 0.04, 0.012, 0.03, -0.8, 0, 0.6);
-    const a = person(gp, Y, {
-      x: -0.03, z: 0.04, ry: 0.2, top: '#34508a', accent: '#e8e4d8', outfit: 'robe', wideSleeves: true, hair: '#8a8a8a', hairStyle: 'topknot', hat: 'scholar', hatColor: '#1c1917',
-      beard: 'long', beardColor: '#c4c4c4', armR: { fwd: 0.85, side: 0.15, bend: 1.0, inward: 0.15 }, armL: { fwd: 0.3, side: 0.08, bend: 0.5 },
+  // 祖冲之 (429–500, Liu Song/Southern Qi): π between 3.1415926 and 3.1415927 by 割圆术 (cutting the circle into
+  // polygons, after 刘徽); numbers set out with 算筹 rods (纵横 alternating), Southern-dynasties 褒衣博带 and a small cap.
+  pp_zuchongzhi: gp => {
+    const Y = figureBase(gp, '#c9bc9c', '#5e4a34');
+    // a sheet of paper on the ground with the circle-cutting figure in ink: a circle, inscribed hexagon and 12-gon
+    const cx = 0.16, cz = 0.18;
+    const sh = grp(gp, cx, Y + 0.003, cz, 0.15);
+    cb(sh, '#e7dfc8', 0, 0, 0, 0.27, 0.004, 0.27);
+    const cd = grp(sh, 0, 0.0035, 0, 0, -Math.PI / 2);
+    const ink = mat('#2a2622');
+    ring(cd, '', 0, 0, 0, 0.1, 0.05, 0, 0, 0, ink);
+    for (const N of [6, 12]) for (let i = 0; i < N; i++) {
+      const a0 = (i / N) * Math.PI * 2, a1 = ((i + 1) / N) * Math.PI * 2;
+      seg(cd, ink, Math.cos(a0) * 0.1, Math.sin(a0) * 0.1, Math.cos(a1) * 0.1, Math.sin(a1) * 0.1, 0.004, 0.002, 0.001);
+      if (N === 6) seg(cd, ink, 0, 0, Math.cos(a0) * 0.1, Math.sin(a0) * 0.1, 0.003, 0.002, 0.001);
+    }
+    bl(cd, '#2a2622', 0, 0, 0.002, 0.006, 0.006, 0.002);
+    // inkstone and a brush at the sheet's edge
+    cb(gp, '#2e2e30', cx + 0.1, Y + 0.008, cz - 0.13, 0.04, 0.01, 0.028, 0.15);
+    rod(gp, [cx + 0.06, Y + 0.012, cz - 0.15], [cx + 0.13, Y + 0.012, cz - 0.17], 0.005, '#6b4a2a', 5);
+    // low desk (案) with the counting-rod numerals of 3.1415926: units upright (纵), tens lying (横), alternating
+    const tb = table(gp, 0.22, Y, -0.17, 0.26, 0.12, 0.1, '#4a3122', -0.45);
+    const rodC = '#e3d6ae';
+    [3, 1, 4, 1, 5, 9, 2, 6].forEach((dgt, k) => {
+      const x0 = -0.105 + k * 0.03, up = k % 2 === 0, n = dgt % 5;
+      for (let i = 0; i < n; i++)
+        if (up) cb(tb, rodC, x0 - 0.008 + i * 0.006, 0.104, 0.012, 0.004, 0.004, 0.032);
+        else cb(tb, rodC, x0, 0.104, 0.0 + i * 0.007, 0.024, 0.004, 0.004);
+      if (dgt >= 5) { if (up) cb(tb, rodC, x0, 0.108, -0.01, 0.026, 0.004, 0.004); else cb(tb, rodC, x0 - 0.013, 0.108, 0.01, 0.004, 0.004, 0.026); }
     });
-    // bamboo herb basket on his back with leafy herbs poking out
-    const bk = grp(a.group, 0, 0.3, -0.13, 0, -0.12);
-    lathe(bk, [[0, 0], [0.045, 0], [0.062, 0.17], [0.056, 0.17], [0.04, 0.012], [0, 0.012]], '#b8925a', 0, 0, 0, 12);
-    for (const yy of [0.04, 0.09, 0.14]) ring(bk, '', 0, yy, 0, 0.05 + yy * 0.08, 0.06, 0, Math.PI / 2, 0, mat('#8b6a3a'));
-    for (let i = 0; i < 6; i++) { const t = i * 1.05; rod(bk, [Math.cos(t) * 0.02, 0.12, Math.sin(t) * 0.02], [Math.cos(t) * 0.05, 0.23 + (i % 3) * 0.02, Math.sin(t) * 0.04 - 0.01], 0.003, '#4d7c3a', 4); bl(bk, i % 2 ? '#5f9e4a' : '#4d7c3a', Math.cos(t) * 0.05, 0.23 + (i % 3) * 0.02, Math.sin(t) * 0.04 - 0.01, 0.02, 0.012, 0.014, t); }
-    for (const sx of [-1, 1]) tube(a.group, [[sx * 0.05, 0.43, -0.09], [sx * 0.07, 0.47, -0.02], [sx * 0.062, 0.42, 0.055]], 0.005, 0.005, '#5b3b28', { radial: 5, sub: 3 });
-    // freshly picked herb sprig held up for a closer look
+    for (let i = 0; i < 6; i++) cc(tb, rodC, -0.09 + i * 0.006, 0.106, -0.04, 0.0025, 0.06, 4, 0.05, Math.PI / 2);
+    scroll(tb, 0.08, 0.111, -0.035, 0.07, 0.01, 0.3, '#d9c9a0', '#4a3424');
+    const a = person(gp, Y, {
+      x: -0.1, z: 0.02, ry: 0.4, top: '#6e6a58', accent: '#2e2a24', bottom: '#4a473b', outfit: 'robe', wideSleeves: true, hair: '#2e2a26', hairStyle: 'topknot',
+      hat: 'scholar', hatColor: '#1c1917', beard: 'long', beardColor: '#3a3430',
+      armR: { fwd: 0.8, side: 0.45, bend: 0.15 }, armL: { fwd: 0.55, bend: 1.05, inward: 0.4 },
+    });
+    // a bundle of counting rods in the left hand, the right gesturing at the figure on the sheet
+    const hb = held(gp, a.handL, 0.35, 0.3, 0.5);
+    for (let i = 0; i < 7; i++) cc(hb, rodC, Math.cos(i * 2.4) * 0.008, 0, Math.sin(i * 2.4) * 0.008, 0.003, 0.11, 4);
+    cc(hb, '#5a4028', 0, 0, 0, 0.013, 0.012, 8);
+    rod(gp, a.handR, at(a.handR, 0.022, -0.02, 0.022), 0.006, '#d9a882', 5);
+    for (const [px, pz] of [[-0.36, 0.16], [0.4, 0.02], [-0.3, -0.25]]) tuft(gp, px, Y, pz, 0.03, '#6c7f45');
+    lighten(gp);
+  },
+
+  // 李时珍 (1518–1593) after 蒋兆和's portrait: Ming 四方平定巾 and a 道袍 with white collar, gathering herbs in the
+  // mountains with a back basket and a hoe; a thread-bound volume of the 《本草纲目》.
+  pp_lishizhen: gp => {
+    const Y = figureBase(gp, '#a3aa80', '#5d4a33');
+    // mountain rocks, a pine and a couple of lingzhi brackets
+    rock(gp, '#7f837a', -0.25, Y + 0.05, -0.22, 0.13, 0.85);
+    rock(gp, '#8e9289', -0.09, Y + 0.03, -0.3, 0.09, 0.7);
+    rock(gp, '#767a71', 0.3, Y + 0.02, -0.2, 0.08, 0.6);
+    const px = -0.3, pz = -0.27, py = Y + 0.13;
+    cc(gp, '#4e3a2a', px, py + 0.05, pz, 0.012, 0.12, 6);
+    for (let i = 0; i < 3; i++) cone(gp, shade('#34523c', 1 + i * 0.08), px, py + 0.05 + i * 0.05, pz, 0.075 - i * 0.02, 0.08, 7);
+    for (const [lx, lz, r] of [[-0.14, -0.2, 0.026], [-0.115, -0.175, 0.019]]) { bl(gp, '#5a2e1c', lx, Y + 0.045, lz, r, 0.007, r * 0.8); bl(gp, '#8a5a32', lx, Y + 0.049, lz, r * 0.55, 0.004, r * 0.45); cc(gp, '#4a2a18', lx, Y + 0.022, lz, 0.005, 0.045, 5); }
+    // medicinal herbs: 菊 (chrysanthemum), 桔梗 (balloon flower), 金银花 (honeysuckle) in muted field colours
+    const herb = (x: number, z: number, s: number, fl: string) => {
+      for (let i = 0; i < 4; i++) { const t = i * 1.7 + x * 5; rod(gp, [x, Y, z], [x + Math.cos(t) * s * 0.3, Y + s * (0.7 + (i % 2) * 0.3), z + Math.sin(t) * s * 0.3], s * 0.05, '#4f6b3a', 4); bl(gp, '#5d7a44', x + Math.cos(t) * s * 0.25, Y + s * 0.5, z + Math.sin(t) * s * 0.25, s * 0.14, s * 0.05, s * 0.08, t); bl(gp, fl, x + Math.cos(t) * s * 0.3, Y + s * (0.72 + (i % 2) * 0.3), z + Math.sin(t) * s * 0.3, s * 0.06); }
+    };
+    herb(0.26, 0.12, 0.12, '#c9a94a');
+    herb(-0.3, 0.06, 0.11, '#7d71a0');
+    herb(0.14, 0.28, 0.09, '#e6e0cc');
+    herb(0.34, -0.04, 0.1, '#c9a94a');
+    // the Compendium lying open on a flat stone
+    rock(gp, '#8e9289', -0.22, Y + 0.01, 0.22, 0.09, 0.35);
+    openBook(gp, -0.22, Y + 0.036, 0.22, 0.05, 0.075, '#4a5670', -0.5, -Math.PI / 2 + 0.25, '#3a3632');
+    // herb hoe (药锄) leaning on the rock
+    rod(gp, [0.2, Y + 0.0, -0.1], [0.27, Y + 0.24, -0.17], 0.007, '#6b4a2a', 5);
+    cb(gp, '#5a5e60', 0.275, Y + 0.24, -0.172, 0.04, 0.012, 0.03, -0.8, 0, 0.6);
+    const a = person(gp, Y, {
+      x: -0.03, z: 0.04, ry: 0.2, top: '#56606a', accent: '#e4e0d4', bottom: '#3e464e', outfit: 'robe', wideSleeves: true, hair: '#8a8a8a', hairStyle: 'topknot',
+      hat: 'fangjin', hatColor: '#1c1917', beard: 'long', beardColor: '#bdbab2', armR: { fwd: 0.85, side: 0.15, bend: 1.0, inward: 0.15 }, armL: { fwd: 0.3, side: 0.08, bend: 0.5 },
+    });
+    // bamboo herb basket on his back (between waist and shoulders) with leafy herbs poking out, straps over the shoulders
+    const u = a.u;
+    const bk = grp(a.group, 0, 0.44 * u, -0.13 * u - 0.05, 0, -0.12);
+    lathe(bk, [[0, 0], [0.045, 0], [0.06, 0.17], [0.054, 0.17], [0.04, 0.012], [0, 0.012]], '#a88a58', 0, 0, 0, 12);
+    for (const yy of [0.04, 0.09, 0.14]) ring(bk, '', 0, yy, 0, 0.049 + yy * 0.08, 0.06, 0, Math.PI / 2, 0, mat('#7d6238'));
+    for (let i = 0; i < 6; i++) { const t = i * 1.05; rod(bk, [Math.cos(t) * 0.02, 0.12, Math.sin(t) * 0.02], [Math.cos(t) * 0.045, 0.22 + (i % 3) * 0.02, Math.sin(t) * 0.035 - 0.01], 0.004, '#4f6b3a', 4); bl(bk, i % 2 ? '#5d7a44' : '#4f6b3a', Math.cos(t) * 0.045, 0.22 + (i % 3) * 0.02, Math.sin(t) * 0.035 - 0.01, 0.02, 0.012, 0.014, t); }
+    for (const sx of [-1, 1]) tube(a.group, [[sx * 0.075 * u, 0.7 * u, -0.1 * u], [sx * 0.085 * u, 0.835 * u, -0.02 * u], [sx * 0.08 * u, 0.8 * u, 0.1 * u], [sx * 0.07 * u, 0.62 * u, 0.1 * u]], 0.006, 0.006, '#4e3a2a', { radial: 5, sub: 3 });
+    // freshly picked sprig held up for a closer look
     const sp = held(gp, a.handR, 0, 0, -0.2);
-    rod(sp, [0, 0, 0], [0, 0.09, 0], 0.003, '#4d7c3a', 4);
-    for (let i = 0; i < 4; i++) bl(sp, '#65a30d', (i % 2 ? 1 : -1) * 0.012, 0.03 + i * 0.015, 0, 0.012, 0.005, 0.006, 0, 0, (i % 2 ? -1 : 1) * 0.6);
-    for (let i = 0; i < 3; i++) bl(sp, '#c084fc', Math.cos(i * 2.1) * 0.006, 0.095, Math.sin(i * 2.1) * 0.006, 0.008);
-    book(gp, '#1e3a8a', a.handL[0] - 0.005, a.handL[1] + 0.03, a.handL[2] + 0.015, 0.06, 0.085, 0.022, 0.2 + Math.PI / 2);
+    rod(sp, [0, 0, 0], [0, 0.09, 0], 0.004, '#4f6b3a', 4);
+    for (let i = 0; i < 4; i++) bl(sp, '#5d7a44', (i % 2 ? 1 : -1) * 0.012, 0.03 + i * 0.015, 0, 0.012, 0.005, 0.006, 0, 0, (i % 2 ? -1 : 1) * 0.6);
+    for (let i = 0; i < 3; i++) bl(sp, '#7d71a0', Math.cos(i * 2.1) * 0.006, 0.095, Math.sin(i * 2.1) * 0.006, 0.008);
+    book(gp, '#4a5670', a.handL[0] - 0.005, a.handL[1] + 0.03, a.handL[2] + 0.015, 0.06, 0.085, 0.022, 0.2 + Math.PI / 2);
     lighten(gp);
   },
 

@@ -324,10 +324,11 @@ export function human(p: THREE.Object3D, x: number, y: number, z: number, o: Hum
 }
 
 /** Cheap distant person for big crowds: posed silhouette at low detail with a seeded outfit. */
-const SHIRTS = ['#c2410c', '#1d4ed8', '#e5e7eb', '#15803d', '#ca8a04', '#7c3aed', '#0e7490', '#be185d', '#475569', '#9a3412'];
-const PANTS = ['#1f2937', '#374151', '#1e3a5f', '#44403c', '#57534e'];
-const SKINS = ['#f1c7a3', '#d9a982', '#b98260', '#8d5a3b', '#5c3a24'];
-const HAIRS = ['#2b1d14', '#3b2a1f', '#1c1917', '#6b4226', '#a16207', '#4b5563'];
+/** plant- and mineral-dyed cloth (indigo, undyed hemp, ochre, madder, soot black), worn in every period */
+const SHIRTS = ['#3d5470', '#d8cfbd', '#7a5a3c', '#5b6455', '#8e3b2e', '#2f3a48', '#a8946c', '#4a3b30', '#6d7a86', '#b9ab8e'];
+const PANTS = ['#2a2724', '#3a3631', '#2f3a48', '#4a4038', '#58524a'];
+const SKINS = ['#e3b591', '#d6a47e', '#c89470', '#b88360', '#a47352'];
+const HAIRS = ['#1d1915', '#26201b', '#16130f', '#2e2620', '#3a3530', '#6b6660'];
 const pick = <T,>(a: T[], k: number) => a[Math.abs(Math.floor(k)) % a.length];
 
 export function passerby(p: THREE.Object3D, x: number, y: number, z: number, h: number, seed: number, opts: Partial<HumanOpts> = {}): HumanRig {

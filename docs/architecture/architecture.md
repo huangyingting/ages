@@ -73,7 +73,7 @@ Models and icons on the map work the same way, after pocket-planet's globe. `Atl
 - every map model is spawned with a `ring` in its type colour (`KIND_COLOR` in `atlas.ts`, which matches the `.k-*` CSS glyph colours);
 - scenery importance sets layout priority (`LEVEL_PRIORITY`), not a separate visual language. `MapTarget` unifies place names, compact markers and models through `bindTarget`; `lifePlace` joins geographical landmarks to a single place destination. Only geographical names accompany models;
 - `layoutMarks` runs after the FX update, projecting model bounds into the shared `scene/layout.ts` collision pass. Selected objects come first, followed by the main territory name, models and optional labels. Compact and model forms are mutually exclusive, and transparent model keyboard targets do not intercept map gestures;
-- the capital's model comes from `capitalModel(era)` (`shared/data/heroes.ts`), one per architectural period (hero pack `capitals`);
+- the capital's model comes from `capitalModel(era)` (`shared/data/heroes.ts`), each capital city as its own palace (hero pack `capitals`; one model per subject, see map-design §7);
 - `route`, `army`, `fleet` and journeys all draw the one route stroke, `trailArrow`, with only the `StrokeOpts` variants weight, dashed and dim;
 - `build` and the works layer share one style table (`WORK`);
 - story marks follow the `RISE` / `HOLD` / `FADE` timing constants.

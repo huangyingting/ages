@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Builder, MatOpts, Paint, V3 } from '../prims.ts';
 import { g, add, mat, box, cyl, rbox, rod, sweep, skin, slab, lathe, gable, tree, paintFaces, shade, mix, fbm, vnoise, hash3, BOX } from '../prims.ts';
 import { sstep, ridged } from '../nature.ts';
+import { human, type HumanOpts, type HumanPose } from '../human.ts';
 
 // Archaeological dig dioramas (keys ar_*): each find sits in its excavation — a terraced ground disc (radius 0.5)
 // with cut pits whose sides show the soil layers, grid strings, tools, tents and tiny archaeologists for scale.
@@ -551,10 +552,24 @@ const lascaux: Builder = gp => {
 // Sanxingdui: sacrificial pits with crossing elephant tusks and the giant protruding-eye bronze mask
 // =========================================================================================================
 
-const BRONZE = '#6f8460';
+/** Properly proportioned (≈7-head) excavator for the Chinese digs, ~1.7 m at the 1:28 dig scale (h 0.06). */
+function digger(p: THREE.Object3D, x: number, y: number, z: number, ry: number, pose: Pose | HumanPose, top: string, o: Partial<HumanOpts> = {}): void {
+  const hp = pose === 'bend' ? 'crouch' : pose;
+  human(p, x, y, z, { h: 0.06, ry, pose: hp, top, bottom: '#4a4740', hair: '#1c1814', skin: '#c48e64', shoes: '#2a2420', detail: 'lo', ...o });
+}
+/** Broadleaf tree with an irregular, layered crown (camphor / bamboo-grove greens), not a lollipop. */
+function broadleaf(p: THREE.Object3D, x: number, y: number, z: number, s: number, c = '#46603a'): void {
+  rod(p, [x, y, z], [x + s * 0.06, y + s * 0.7, z], s * 0.07, '#4e4034', 5);
+  for (let k = 0; k < 5; k++) {
+    const a = k * 2.4 + x * 7, r = k ? s * 0.32 : 0;
+    blob(p, shade(c, 0.9 + 0.1 * (k % 3)), x + Math.cos(a) * r, y + s * (0.75 + 0.18 * (k % 2) + (k ? 0 : 0.2)), z + Math.sin(a) * r, s * 0.38, s * 0.24, s * 0.36, a, 0, 0, 7, { flat: true });
+  }
+}
+
+const BRONZE = '#5f6a52';
 const patina = (x: number, y: number, z: number) => {
   const v = fbm(x * 9 + 3, y * 9, z * 9);
-  return v > 0.62 ? '#9a8f5a' : v > 0.5 ? '#7d8a5e' : v < 0.3 ? '#4f6648' : null;
+  return v > 0.64 ? '#7f8a6a' : v > 0.52 ? '#6a7a5e' : v < 0.3 ? '#4a4e40' : v < 0.36 ? '#6a5a42' : null;
 };
 /** The great protruding-eye bronze mask (unit ≈ 1.1 wide incl. ears, front +z). */
 function sanxMask(p: THREE.Object3D, x: number, y: number, z: number, S: number, tilt: number): void {
@@ -567,97 +582,103 @@ function sanxMask(p: THREE.Object3D, x: number, y: number, z: number, S: number,
   box(q, '#2b2f24', 0, 0.37, 0.1, 0.05, 0.05, 0.012);
   for (const sx of [-1, 1]) {
     // Ears: huge flared fins with a spiral inside
-    const ear = slab(q, smooth([[0, 0.0], [0.12, -0.05], [0.27, 0.04], [0.36, 0.2], [0.3, 0.38], [0.16, 0.34], [0.03, 0.22]]), 0.035, '#7a8d66', 0, false);
-    ear.geometry = paintFaces(ear.geometry, '#7a8d66', patina); ear.material = pm;
+    const ear = slab(q, [[0, 0.0], [0.1, -0.06], [0.24, 0.0], [0.34, 0.14], [0.4, 0.4], [0.26, 0.32], [0.12, 0.3], [0.03, 0.22]], 0.035, '#66705a', 0, false);
+    ear.geometry = paintFaces(ear.geometry, '#66705a', patina); ear.material = pm;
     ear.scale.set(sx, 1, 1); ear.position.set(sx * 0.3, 0.08, 0.0); ear.rotation.y = sx * 0.25;
-    const curl = slab(q, smooth([[0.06, 0.06], [0.16, 0.03], [0.25, 0.13], [0.23, 0.27], [0.12, 0.22]]), 0.045, '#55694a', 0, false);
-    curl.material = mat('#55694a', o);
+    const curl = slab(q, smooth([[0.06, 0.06], [0.16, 0.03], [0.25, 0.13], [0.23, 0.27], [0.12, 0.22]]), 0.045, '#4c5442', 0, false);
+    curl.material = mat('#4c5442', o);
     curl.scale.set(sx, 1, 1); curl.position.set(sx * 0.31, 0.08, 0.01); curl.rotation.y = sx * 0.25;
     // Almond eye sockets with the cylinder pupils thrusting forward
-    blob(q, '#62764f', sx * 0.15, 0.29, 0.1, 0.13, 0.045, 0.03, 0, 0, sx * 0.3, 10, o);
-    add(q, CYLX(), mat('#8f9b6a', { ...o, flat: false }), sx * 0.15, 0.29, 0.24, 0.12, 0.28, 0.12, 0, Math.PI / 2).castShadow = true;
-    add(q, CYLX(), mat('#a8ad7e', o), sx * 0.15, 0.29, 0.38, 0.135, 0.025, 0.135, 0, Math.PI / 2);
-    blob(q, '#6b5a3a', sx * 0.15, 0.29, 0.392, 0.04, 0.04, 0.006);
+    blob(q, '#545e48', sx * 0.15, 0.29, 0.1, 0.13, 0.04, 0.03, 0, 0, sx * 0.22, 10, o);
+    add(q, CYLX(), mat('#6e7a5e', { ...o, flat: false }), sx * 0.15, 0.29, 0.2, 0.09, 0.22, 0.09, 0, Math.PI / 2).castShadow = true;
+    add(q, CYLX(), mat('#76805f', o), sx * 0.15, 0.29, 0.305, 0.115, 0.02, 0.115, 0, Math.PI / 2);
+    blob(q, '#4f4a3a', sx * 0.15, 0.29, 0.316, 0.03, 0.03, 0.006);
     // Slanted brows
-    rod(q, [sx * 0.035, 0.36, 0.11], [sx * 0.29, 0.42, 0.1], 0.025, '#4a5c3e', 5);
+    rod(q, [sx * 0.035, 0.37, 0.105], [sx * 0.29, 0.415, 0.1], 0.02, '#4a5040', 5);
   }
   // Hooked nose, wide smiling mouth
-  sweep(q, [{ p: [0, 0.34, 0.1], w: 0.03, h: 0.03 }, { p: [0, 0.24, 0.15], w: 0.05, h: 0.045 }, { p: [0, 0.16, 0.135], w: 0.08, h: 0.035 }], '#7a8d66', { radial: 8, sub: 3 });
+  sweep(q, [{ p: [0, 0.34, 0.1], w: 0.03, h: 0.03 }, { p: [0, 0.24, 0.15], w: 0.05, h: 0.045 }, { p: [0, 0.16, 0.135], w: 0.08, h: 0.035 }], '#66705a', { radial: 8, sub: 3 });
   const mouth: V3[] = [];
-  for (let i = 0; i <= 8; i++) { const t = -1 + i / 4; mouth.push([t * 0.23, 0.075 + 0.04 * t * t, 0.105 + 0.01 * (1 - t * t)]); }
-  for (let i = 0; i < mouth.length - 1; i++) rod(q, mouth[i], mouth[i + 1], 0.018, '#3e4a33', 5);
+  for (let i = 0; i <= 8; i++) { const t = -1 + i / 4; mouth.push([t * 0.25, 0.075 + 0.012 * t * t * t * t, 0.105 + 0.008 * (1 - t * t)]); }
+  for (let i = 0; i < mouth.length - 1; i++) rod(q, mouth[i], mouth[i + 1], 0.012, '#383c30', 5);
 }
 
 const sanxingdui: Builder = gp => {
+  // Ref: Sanxingdui pits K3–K8 (Guanghan, Sichuan; late Shang, c.1100 BC), 2020–22 dig: glass climate cabins, white-suited
+  // excavators on platforms over pits packed with ivory tusks above bronzes; protruding-eye mask K2②:148 (1.38 m wide, patinated bronze).
   const top = 0.075, fl = 0.018;
   const P1 = rect(-0.24, 0.24, -0.2, 0.12), P2 = rect(0.15, 0.33, 0.19, 0.33), P3 = rect(-0.38, -0.2, 0.18, 0.32);
   const soil = (x: number, _y: number, z: number) => (hash3(Math.floor(x * 80), 5, Math.floor(z * 80)) > 0.9 ? '#5a4a3a' : mix('#6b5a48', '#4a3e33', fbm(x * 20, 1, z * 20)));
   const gy = ground(gp, [
-    { h: (x, z) => top + 0.003 * fbm(x * 18, 0, z * 18), c: (x, _y, z) => (hash3(Math.floor(x * 80), 1, Math.floor(z * 80)) > 0.92 ? '#8f9a52' : mix('#a88a5c', '#b99a6a', fbm(x * 9, 0, z * 9))) },
-    { in: rect(-0.26, 0.26, -0.22, 0.14), h: () => top - 0.02, c: () => '#9a7a52' },
+    { h: (x, z) => top + 0.003 * fbm(x * 18, 0, z * 18), c: (x, _y, z) => (hash3(Math.floor(x * 80), 1, Math.floor(z * 80)) > 0.92 ? '#7a8052' : mix('#9c8462', '#a8916f', fbm(x * 9, 0, z * 9))) },
+    { in: rect(-0.26, 0.26, -0.22, 0.14), h: () => top - 0.02, c: () => '#8e7656' },
     { in: P1, h: () => fl, c: soil },
     { in: P2, h: () => 0.03, c: soil },
     { in: P3, h: () => 0.035, c: soil },
   ], strata(['#b38a58', '#9a774b', '#c8a26c', '#7d5f3f', '#a98457'], 90), 56);
   strings(gp, -0.24, 0.24, -0.2, 0.12, top + 0.012, 0.08);
-  // Elephant tusks criss-crossing the pit floor
-  for (let i = 0; i < 13; i++) {
-    const a = hash3(i, 1, 9) * Math.PI, cx = -0.18 + hash3(i, 2, 9) * 0.36, czz = -0.15 + hash3(i, 3, 9) * 0.22, L = 0.09 + hash3(i, 4, 9) * 0.05;
-    const dx = Math.cos(a) * L / 2, dz = Math.sin(a) * L / 2, bend = (hash3(i, 5, 9) - 0.5) * 0.04;
-    sweep(gp, [{ p: [cx - dx, fl + 0.006 + (i % 3) * 0.004, czz - dz], w: 0.006 }, { p: [cx - bend * Math.sin(a), fl + 0.012 + (i % 3) * 0.004, czz + bend * Math.cos(a)], w: 0.0055 }, { p: [cx + dx, fl + 0.006 + (i % 3) * 0.004, czz + dz], w: 0.0015 }], '#eadfc4', { radial: 6, sub: 3 });
+  // Ivory tusks (1–1.5 m, aged yellow-brown) heaped in criss-crossing layers over the bronzes
+  for (let i = 0; i < 46; i++) {
+    const a = hash3(i, 1, 9) * Math.PI, cx = -0.2 + hash3(i, 2, 9) * 0.4, czz = -0.16 + hash3(i, 3, 9) * 0.24, L = 0.038 + hash3(i, 4, 9) * 0.018;
+    if (Math.abs(cx + 0.02) < 0.075 && Math.abs(czz + 0.1) < 0.055) continue;
+    const dx = Math.cos(a) * L / 2, dz = Math.sin(a) * L / 2, bend = (hash3(i, 5, 9) - 0.5) * 0.016, yy = fl + 0.003 + (i % 3) * 0.0025;
+    sweep(gp, [{ p: [cx - dx, yy, czz - dz], w: 0.0034 }, { p: [cx - bend * Math.sin(a), yy + 0.002, czz + bend * Math.cos(a)], w: 0.003 }, { p: [cx + dx, yy, czz + dz], w: 0.0009 }], i % 3 ? '#cdbf9c' : '#b8a684', { radial: 6, sub: 3 });
   }
-  // Scattered bronze fragments and jade
-  for (let i = 0; i < 10; i++) {
-    const x = -0.2 + hash3(i, 6, 1) * 0.4, z = -0.16 + hash3(i, 7, 1) * 0.26;
-    box(gp, i % 4 ? BRONZE : '#3f8f7a', x, fl, z, 0.012 + hash3(i, 8, 1) * 0.015, 0.004, 0.008, hash3(i, 9, 1) * 3).material = mat(i % 4 ? BRONZE : '#3f8f7a', { metal: 0.4, rough: 0.6 });
+  // Scattered bronze fragments, jade blades and a bronze zun
+  for (let i = 0; i < 16; i++) {
+    const x = -0.2 + hash3(i, 6, 1) * 0.4, z = -0.16 + hash3(i, 7, 1) * 0.24, c = i % 4 ? BRONZE : '#7a8a72';
+    box(gp, c, x, fl, z, 0.005 + hash3(i, 8, 1) * 0.008, 0.002, 0.004, hash3(i, 9, 1) * 3).material = mat(c, { metal: 0.35, rough: 0.65 });
   }
-  // Mask rests on a padded cradle at the back of the pit; the gold-faced bronze head and a gold mask nearby
-  rbox(gp, '#e5e7eb', 0, fl, -0.13, 0.2, 0.025, 0.06, 0.006);
-  sanxMask(gp, 0, fl + 0.022, -0.14, 0.36, 0.42);
-  const hd = grp(gp, -0.17, fl, 0.0, -0.5, 1.5);
+  lathe(gp, [[0.0001, 0], [0.006, 0], [0.007, 0.004], [0.004, 0.009], [0.005, 0.014], [0.01, 0.019], [0.0095, 0.02], [0.0001, 0.012]], BRONZE, 0.12, fl, -0.05, 9);
+  // The protruding-eye mask lying face-up as found in the pit, the gold-foil bronze head and the gold mask nearby
+  sanxMask(gp, -0.02, fl + 0.003, -0.105, 0.11, 0.95);
+  const hd = grp(gp, -0.14, fl, 0.0, -0.5, 0.22);
   cyl(hd, BRONZE, 0, 0, 0, 0.018, 0.035, 10).material = mat(BRONZE, { metal: 0.45, rough: 0.55 });
   rbox(hd, BRONZE, 0, 0.032, 0, 0.044, 0.056, 0.042, 0.01).material = mat(BRONZE, { metal: 0.45, rough: 0.55 });
   cyl(hd, '#5d7150', 0, 0.086, 0, 0.024, 0.012, 12).material = mat('#5d7150', { metal: 0.45, rough: 0.55 });
-  const gf = rbox(hd, '#e0b44c', 0, 0.036, 0.019, 0.042, 0.046, 0.008, 0.003); gf.material = gold('#e0b44c');
+  const gf = rbox(hd, '#c9a24a', 0, 0.036, 0.019, 0.042, 0.046, 0.008, 0.003); gf.material = gold('#c9a24a');
   for (const sx of [-1, 1]) {
     box(hd, '#2b2f24', sx * 0.011, 0.064, 0.0235, 0.015, 0.004, 0.002);
-    slab(hd, [[0, 0], [0.012, -0.004], [0.016, 0.012], [0.01, 0.026], [0, 0.02]], 0.004, '#7a8d66', 0, false).position.set(sx * 0.02, 0.045, 0);
+    slab(hd, [[0, 0], [0.012, -0.004], [0.016, 0.012], [0.01, 0.026], [0, 0.02]], 0.004, '#66705a', 0, false).position.set(sx * 0.02, 0.045, 0);
   }
-  box(hd, '#a3722a', 0, 0.048, 0.0235, 0.006, 0.012, 0.004);
+  box(hd, '#b8923e', 0, 0.048, 0.0235, 0.006, 0.012, 0.004);
   box(hd, '#6b4a2a', 0, 0.042, 0.0235, 0.022, 0.0025, 0.002);
-  const gm = grp(gp, 0.16, fl + 0.004, 0.02, -0.6);
-  const gmesh = slab(gm, [[-0.05, 0.06], [0.05, 0.06], [0.055, 0.0], [0.03, -0.045], [-0.03, -0.045], [-0.055, 0.0]], 0.004, '#e2b44a', 0, false);
-  gmesh.material = gold('#e2b44a'); gmesh.rotation.x = -Math.PI / 2;
+  const gm = grp(gp, 0.1, fl + 0.001, 0.02, -0.6, 0.16);
+  const gmesh = slab(gm, [[-0.05, 0.06], [0.05, 0.06], [0.055, 0.0], [0.03, -0.045], [-0.03, -0.045], [-0.055, 0.0]], 0.004, '#cfa54a', 0, false);
+  gmesh.material = gold('#cfa54a'); gmesh.rotation.x = -Math.PI / 2;
   for (const sx of [-1, 1]) box(gm, '#2b2a24', sx * 0.022, 0.003, -0.015, 0.024, 0.002, 0.008);
   // Plank bridge across the pit with archaeologists in white suits working from it
-  for (const sx of [-1, 1]) box(gp, '#9a7b55', sx * 0.25, top, 0.06, 0.03, 0.012, 0.03);
-  box(gp, '#c9a777', 0, top + 0.012, 0.06, 0.54, 0.006, 0.04);
-  person(gp, -0.06, top + 0.018, 0.06, Math.PI, 'kneel', '#f8fafc', 2, '#f8fafc', '#f8fafc');
-  person(gp, 0.08, top + 0.018, 0.06, Math.PI + 0.3, 'kneel', '#f8fafc', 0, '#f8fafc', '#f8fafc');
-  person(gp, 0.05, fl, -0.03, 2.4, 'bend', '#f8fafc', 2, '#f8fafc', '#f8fafc');
+  const SUIT: Partial<HumanOpts> = { bottom: '#e2e2dc', hat: '#e2e2dc', hatStyle: 'hood', shoes: '#9aa0a2' };
+  for (const sx of [-1, 1]) box(gp, '#6a6e70', sx * 0.25, top, 0.06, 0.02, 0.012, 0.03);
+  box(gp, '#9a8c74', 0, top + 0.012, 0.06, 0.54, 0.004, 0.036);
+  for (const sz of [-1, 1]) for (let x = -0.26; x <= 0.26; x += 0.065) box(gp, '#7a7e80', x, top + 0.016, 0.06 + sz * 0.017, 0.002, 0.03, 0.002);
+  for (const sz of [-1, 1]) box(gp, '#7a7e80', 0, top + 0.044, 0.06 + sz * 0.017, 0.54, 0.002, 0.002);
+  digger(gp, -0.06, top + 0.016, 0.06, Math.PI, 'kneel', '#e2e2dc', SUIT);
+  digger(gp, 0.08, top + 0.016, 0.06, Math.PI + 0.3, 'kneel', '#e2e2dc', SUIT);
+  digger(gp, 0.05, fl, -0.03, 2.4, 'bend', '#e2e2dc', SUIT);
   // Climate-controlled glass lab over a second pit
   const cab = grp(gp, 0.24, gy(0.24, 0.26), 0.26, 0, 0.76);
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(cab, '#f8fafc', sx * 0.135, 0, sz * 0.105, 0.006, 0.09, 0.006);
-  for (const sz of [-1, 1]) box(cab, '#f8fafc', 0, 0.09, sz * 0.105, 0.276, 0.006, 0.006);
-  for (const sx of [-1, 1]) box(cab, '#f8fafc', sx * 0.135, 0.09, 0, 0.006, 0.006, 0.216);
-  const glass = mat('#cbe7f2', { transparent: 0.3 });
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(cab, '#d4d6d4', sx * 0.135, 0, sz * 0.105, 0.006, 0.09, 0.006);
+  for (const sz of [-1, 1]) box(cab, '#d4d6d4', 0, 0.09, sz * 0.105, 0.276, 0.006, 0.006);
+  for (const sx of [-1, 1]) box(cab, '#d4d6d4', sx * 0.135, 0.09, 0, 0.006, 0.006, 0.216);
+  const glass = mat('#c4d4d8', { transparent: 0.25 });
   box(cab, '#cbe7f2', 0, 0.093, 0, 0.27, 0.003, 0.21).material = glass;
   for (const sz of [-1, 1]) box(cab, '#cbe7f2', 0, 0, sz * 0.105, 0.27, 0.09, 0.002).material = glass;
   for (const sx of [-1, 1]) box(cab, '#cbe7f2', sx * 0.135, 0, 0, 0.002, 0.09, 0.21).material = glass;
-  person(gp, 0.21, 0.03, 0.25, 0.4, 'kneel', '#f8fafc', 1, '#f8fafc', '#f8fafc');
-  for (let i = 0; i < 4; i++) sweep(gp, [{ p: [0.18 + i * 0.035, 0.034, 0.21], w: 0.005 }, { p: [0.2 + i * 0.035, 0.038, 0.26], w: 0.005 }, { p: [0.19 + i * 0.035, 0.034, 0.31], w: 0.0015 }], '#eadfc4', { radial: 6, sub: 2 });
+  digger(gp, 0.21, 0.03, 0.25, 0.4, 'kneel', '#e2e2dc', SUIT);
+  for (let i = 0; i < 6; i++) sweep(gp, [{ p: [0.19 + i * 0.022, 0.033, 0.24], w: 0.0032 }, { p: [0.2 + i * 0.022, 0.035, 0.265], w: 0.003 }, { p: [0.195 + i * 0.022, 0.033, 0.29], w: 0.0009 }], '#cdbf9c', { radial: 6, sub: 2 });
   // Third pit with sieving station; camp tent and finds tables
   sieve(gp, -0.3, 0.035, 0.23, 0.3);
-  bucket(gp, -0.25, 0.035, 0.27, '#f97316');
-  person(gp, -0.34, 0.035, 0.27, 0.6, 'bend', '#f8fafc', 3, '#f8fafc', '#f8fafc');
-  tent(gp, -0.26, gy(-0.26, -0.33), -0.32, 0.3, 0.14, 0.1, 0.065, '#3b82f6');
-  finds(gp, -0.26, gy(-0.26, -0.33) + 0.025, -0.32, 0.3, [BRONZE, '#eadfc4', '#e2b44a']);
+  bucket(gp, -0.25, 0.035, 0.27, '#5c5f5c');
+  digger(gp, -0.34, 0.035, 0.27, 0.6, 'bend', '#e2e2dc', SUIT);
+  tent(gp, -0.26, gy(-0.26, -0.33), -0.32, 0.3, 0.14, 0.1, 0.065, '#cfccc0');
+  finds(gp, -0.26, gy(-0.26, -0.33) + 0.025, -0.32, 0.3, [BRONZE, '#cdbf9c', '#b8923e']);
   box(gp, '#9a7b55', -0.26, gy(-0.26, -0.33), -0.32, 0.034, 0.025, 0.024, 0.3);
-  tent(gp, 0.3, gy(0.3, -0.33), -0.31, -0.3, 0.13, 0.1, 0.07, '#e5e7eb');
+  tent(gp, 0.3, gy(0.3, -0.33), -0.31, -0.3, 0.13, 0.1, 0.07, '#cfccc0');
   crate(gp, 0.32, gy(0.32, -0.2), -0.2, 0.035, 0.2);
-  wheelbarrow(gp, 0.38, gy(0.38, 0.0), 0.0, -1.2, '#dc2626', '#9a774b');
+  wheelbarrow(gp, 0.38, gy(0.38, 0.0), 0.0, -1.2, '#56606a', '#8e7656');
   shovel(gp, 0.3, gy(0.3, 0.1), 0.1, 0.4);
-  for (const [x, z] of [[-0.42, -0.1], [0.44, -0.18], [-0.38, -0.3]] as const) tree(gp, x, gy(x, z), z, 0.06, '#4f8a3c');
+  for (const [x, z] of [[-0.42, -0.1], [0.44, -0.18], [-0.38, -0.3]] as const) broadleaf(gp, x, gy(x, z), z, 0.07);
 };
 
 // =========================================================================================================
@@ -832,17 +853,19 @@ function bricks(p: THREE.Object3D, c: string, x: number, y: number, z: number, s
 // =========================================================================================================
 
 const mawangdui: Builder = gp => {
+  // Ref: Mawangdui Tomb 1 (Changsha; W. Han, c.168 BC), 1972 dig: stepped loess shaft sealed with charcoal and white clay round a
+  // 井-plan cypress chamber (6.7×4.9 m) with four side compartments; nested black-lacquer and vermilion painted coffins; T-shaped silk banner.
   const d0 = (x: number, z: number) => Math.hypot(x, z);
   const mound: H2 = (x, z) => 0.075 + 0.055 * sstep(0.5, 0.18, d0(x, z)) + 0.004 * fbm(x * 16, 0, z * 16);
   const tiers = [[0.31, 0.28, 0.22, 0.105], [0.25, 0.22, 0.16, 0.08], [0.19, 0.16, 0.1, 0.055]] as const;
-  const lv: Lvl[] = [{ h: mound, c: (x, y, z) => (y > 0.1 ? mix('#7aa04a', '#8bb158', fbm(x * 12, 0, z * 12)) : mix('#8fa65a', '#a8a066', fbm(x * 9, 1, z * 9))) }];
-  for (const [w, zb, zf, hh] of tiers) lv.push({ in: rect(-w, w, -zb, zf), h: () => hh, c: (x, _y, z) => mix('#c9a46a', '#b8915a', fbm(x * 20, 2, z * 20)) });
+  const lv: Lvl[] = [{ h: mound, c: (x, y, z) => (y > 0.1 ? mix('#6a7f48', '#77894e', fbm(x * 12, 0, z * 12)) : mix('#7a8a52', '#8e8a5e', fbm(x * 9, 1, z * 9))) }];
+  for (const [w, zb, zf, hh] of tiers) lv.push({ in: rect(-w, w, -zb, zf), h: () => hh, c: (x, _y, z) => mix('#b8956a', '#a8865c', fbm(x * 20, 2, z * 20)) });
   lv.push({ in: rect(-0.15, 0.15, -0.13, 0.07), h: () => 0.025, c: () => '#3a3330' });
-  lv.push({ in: rect(-0.045, 0.045, 0.07, 0.46), h: (_x, z) => 0.03 + Math.max(0, z - 0.07) * 0.27, c: (x, _y, z) => (hash3(Math.floor(x * 90), 3, Math.floor(z * 90)) > 0.8 ? '#b08a56' : '#c49c66') });
-  const loess = strata(['#c9a46a', '#b88f58', '#d8b57c', '#a98050'], 80);
-  const gy = ground(gp, lv, (x, y, z) => (Math.hypot(x, z) > 0.45 ? loess(x, y, z) : y < 0.032 ? (hash3(Math.floor(x * 200), Math.floor(y * 300), Math.floor(z * 200)) > 0.85 ? '#3d3d3d' : '#222') : y < 0.05 ? '#ece7da' : loess(x, y, z)), 56);
+  lv.push({ in: rect(-0.045, 0.045, 0.07, 0.46), h: (_x, z) => 0.03 + Math.max(0, z - 0.07) * 0.27, c: (x, _y, z) => (hash3(Math.floor(x * 90), 3, Math.floor(z * 90)) > 0.8 ? '#a08060' : '#b0906a') });
+  const loess = strata(['#b8956a', '#a8845a', '#c4a47a', '#9a7a56'], 80);
+  const gy = ground(gp, lv, (x, y, z) => (Math.hypot(x, z) > 0.45 ? loess(x, y, z) : y < 0.032 ? (hash3(Math.floor(x * 200), Math.floor(y * 300), Math.floor(z * 200)) > 0.85 ? '#3d3d3d' : '#222') : y < 0.05 ? '#d8d4c8' : loess(x, y, z)), 56);
   // Wooden 井-shaped outer chamber: planked walls and dividers, four side compartments round the coffin
-  const WD = '#5c3d22', WL = '#7a5332', fy = 0.025, cz = -0.03, CW = 0.13, CD = 0.095, CH = 0.045;
+  const WD = '#4e3826', WL = '#6a4e36', fy = 0.025, cz = -0.03, CW = 0.13, CD = 0.095, CH = 0.045;
   box(gp, WL, 0, fy, cz, CW * 2, 0.004, CD * 2);
   for (const sz of [-1, 1]) bricks(gp, WD, 0, fy, cz + sz * CD, CW * 2 + 0.008, CH, 0.008, 0, 5, 1);
   for (const sx of [-1, 1]) bricks(gp, WD, sx * CW, fy, cz, 0.008, CH, CD * 2, 0, 5, 1);
@@ -850,53 +873,59 @@ const mawangdui: Builder = gp => {
   for (const z of [iz0, iz1]) bricks(gp, WL, 0, fy, z, CW * 2, CH * 0.9, 0.006, 0, 5, 1);
   for (const sx of [-1, 1]) bricks(gp, WL, sx * ix, fy, cz, 0.006, CH * 0.9, CD * 2, 0, 5, 1);
   // Nested coffins: open black-lacquer outer coffin with cloud scrolls, red-lacquer coffin closed inside
-  const cloud: Paint = (px, py, pz) => (Math.sin(px * 22 + Math.sin(py * 9 + pz * 12) * 2.4) > 0.78 || Math.sin(pz * 26 - py * 8) > 0.9 ? '#c9a24a' : null);
+  const cloud: Paint = (px, py, pz) => (Math.sin(px * 30 + Math.sin(py * 14 + pz * 16) * 2.4) > 0.86 ? '#a89a7a' : Math.sin(pz * 34 - py * 11 + px * 6) > 0.93 ? '#8a3a2a' : null);
   const lattice: Paint = (px, py, pz, _nx, ny) => {
     const f = (v: number) => Math.abs((((v % 1) + 1) % 1) - 0.5) < 0.1;
-    if (ny > 0.5) return f(px * 5 + pz * 3) || f(px * 5 - pz * 3) ? '#d8b04a' : null;
-    return py > 0.25 ? '#1e5b4a' : f(px * 8 + py * 2) ? '#d8b04a' : null;
+    if (ny > 0.5) return Math.abs(px) > 0.42 || Math.abs(pz) > 0.4 ? '#4a3a2c' : f(px * 4) && Math.abs(pz) < 0.2 ? '#8e3a28' : null;
+    return py > 0.36 ? '#4a3a2c' : f(px * 6 + py * 2) && py < 0.2 ? '#8e3a28' : null;
   };
   const cbox = (key: string, c: string, pnt: Paint, x: number, y: number, z: number, sx: number, sy: number, sz: number) =>
     add(gp, g('ar:coff:' + key, () => paintFaces(new THREE.BoxGeometry(1, 1, 1, 10, 4, 6), c, pnt)), mat('#ffffff', { vc: true }), x, y + sy / 2, z, sx, sy, sz);
   const ox = 0.07, oz = 0.05, oh = 0.036;
-  cbox('blk', '#151515', cloud, 0, fy, cz, ox * 2, 0.004, oz * 2);
-  for (const sz of [-1, 1]) cbox('blk', '#151515', cloud, 0, fy, cz + sz * oz, ox * 2, oh, 0.004);
-  for (const sx of [-1, 1]) cbox('blk', '#151515', cloud, sx * ox, fy, cz, 0.004, oh, oz * 2);
-  cbox('red', '#a5221a', lattice, 0, fy + 0.004, cz, 0.116, 0.03, 0.076);
+  cbox('blk', '#1a1816', cloud, 0, fy, cz, ox * 2, 0.004, oz * 2);
+  for (const sz of [-1, 1]) cbox('blk', '#1a1816', cloud, 0, fy, cz + sz * oz, ox * 2, oh, 0.004);
+  for (const sx of [-1, 1]) cbox('blk', '#1a1816', cloud, sx * ox, fy, cz, 0.004, oh, oz * 2);
+  cbox('red', '#7e2a1e', lattice, 0, fy + 0.004, cz, 0.116, 0.03, 0.076);
   rbox(gp, '#1f1a17', 0.02, 0.055, 0.084, 0.13, 0.005, 0.026, 0.002);
   // Grave goods in the side compartments: lacquer ear-cups and boxes, figurines, bamboo cases, silk bundles
   const comp: [number, number, number, number][] = [[-CW + 0.006, -ix - 0.004, cz - CD + 0.006, cz + CD - 0.006], [ix + 0.004, CW - 0.006, cz - CD + 0.006, cz + CD - 0.006], [-ix + 0.004, ix - 0.004, cz - CD + 0.006, iz0 - 0.004], [-ix + 0.004, ix - 0.004, iz1 + 0.004, cz + CD - 0.006]];
   let n = 0;
   for (const [x0, x1, z0, z1] of comp) for (let k = 0; k < 9; k++, n++) {
     const x = x0 + (x1 - x0) * hash3(n, 1, 4), z = z0 + (z1 - z0) * hash3(n, 2, 4), t = hash3(n, 3, 4);
-    if (t < 0.35) { blob(gp, '#a5221a', x, fy + 0.004, z, 0.008, 0.004, 0.006, t * 9, 0, 0, 7); blob(gp, '#1a1a1a', x, fy + 0.0075, z, 0.0055, 0.001, 0.004, t * 9, 0, 0, 6); }
-    else if (t < 0.55) lathe(gp, [[0.0001, 0], [0.008, 0], [0.009, 0.008], [0.0001, 0.009]], t < 0.45 ? '#1a1a1a' : '#9b1d16', x, fy + 0.004, z, 8);
-    else if (t < 0.72) { cyl(gp, '#d9b48a', x, fy + 0.004, z, 0.0035, 0.018, 6); blob(gp, '#f0dcc0', x, fy + 0.025, z, 0.0035); cyl(gp, '#1a1a1a', x, fy + 0.028, z, 0.0036, 0.002, 6); }
-    else if (t < 0.86) box(gp, '#b58a4a', x, fy + 0.004, z, 0.016, 0.01, 0.01, t * 5);
-    else blob(gp, ['#d9a35e', '#8a4b6e', '#c46b3c'][n % 3], x, fy + 0.008, z, 0.01, 0.005, 0.007, t * 7, 0, 0, 7);
+    if (t < 0.35) { blob(gp, '#7e2a1e', x, fy + 0.004, z, 0.008, 0.004, 0.006, t * 9, 0, 0, 7); blob(gp, '#1a1a1a', x, fy + 0.0075, z, 0.0055, 0.001, 0.004, t * 9, 0, 0, 6); }
+    else if (t < 0.55) lathe(gp, [[0.0001, 0], [0.008, 0], [0.009, 0.008], [0.0001, 0.009]], t < 0.45 ? '#1a1a1a' : '#7e2a1e', x, fy + 0.004, z, 8);
+    else if (t < 0.72) { cyl(gp, '#8a6a4a', x, fy + 0.004, z, 0.0035, 0.018, 6); blob(gp, '#b89a78', x, fy + 0.025, z, 0.0035); cyl(gp, '#1a1a1a', x, fy + 0.028, z, 0.0036, 0.002, 6); }
+    else if (t < 0.86) box(gp, '#9a7a4e', x, fy + 0.004, z, 0.016, 0.01, 0.01, t * 5);
+    else blob(gp, ['#a88a5e', '#6a4a4e', '#8e5a3e'][n % 3], x, fy + 0.008, z, 0.01, 0.005, 0.007, t * 7, 0, 0, 7);
   }
   // The T-shaped painted silk banner laid out on a table under an awning
   const tx = 0.3, tz = -0.3, ty = gy(tx, tz);
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) rod(gp, [tx + sx * 0.045, ty, tz + sz * 0.03], [tx + sx * 0.045, ty + 0.03, tz + sz * 0.03], 0.002, '#6b4c35', 4);
   box(gp, '#8b6a45', tx, ty + 0.03, tz, 0.1, 0.004, 0.07);
-  const ban = slab(gp, [[-0.035, 0.04], [0.035, 0.04], [0.035, 0.015], [0.016, 0.015], [0.016, -0.04], [-0.016, -0.04], [-0.016, 0.015], [-0.035, 0.015]], 0.002, '#c46b3c', 0, false);
-  ban.geometry = paintFaces(ban.geometry, '#c46b3c', (px, py) => (py > 0.015 ? (Math.hypot(px - 0.022, py - 0.03) < 0.007 ? '#d32f2f' : Math.hypot(px + 0.022, py - 0.028) < 0.006 ? '#f2e6c0' : '#2d3a4a') : py > -0.01 ? (Math.abs(px) < 0.006 ? '#2b2b2b' : '#b85a30') : '#3d2a1f'));
+  const ban = slab(gp, [[-0.035, 0.04], [0.035, 0.04], [0.035, 0.015], [0.016, 0.015], [0.016, -0.04], [-0.016, -0.04], [-0.016, 0.015], [-0.035, 0.015]], 0.002, '#8a6242', 0, false);
+  ban.geometry = paintFaces(ban.geometry, '#8a6242', (px, py) => (py > 0.015 ? (Math.hypot(px - 0.022, py - 0.03) < 0.006 ? '#9a3a2a' : Math.hypot(px + 0.022, py - 0.028) < 0.005 ? '#c8bc98' : '#7a5a3c') : py > -0.01 ? (Math.abs(px) < 0.006 ? '#3a302a' : '#8e6444') : '#5a4232'));
   ban.material = mat('#ffffff', { vc: true }); ban.rotation.set(-Math.PI / 2, 0, -0.5); ban.position.set(tx, ty + 0.035, tz);
-  tent(gp, tx, ty, tz, -0.5, 0.14, 0.11, 0.075, '#dc2626');
+  tent(gp, tx, ty, tz, -0.5, 0.14, 0.11, 0.075, '#a89c80');
   // Diggers: carrying a find on a pole up the ramp, kneeling on the chamber, measuring on the terraces
-  person(gp, -0.004, gy(0, 0.2), 0.18, 0, 'carry', '#1e40af', 0, '#e8dcb5', '#374151');
-  person(gp, 0.004, gy(0, 0.3), 0.29, 0, 'carry', '#1e40af', 2, '#e8dcb5', '#374151');
-  rod(gp, [0, gy(0, 0.2) + 0.07, 0.18], [0, gy(0, 0.3) + 0.07, 0.29], 0.0015, '#8b6a45', 4);
-  box(gp, '#a8835a', 0, (gy(0, 0.2) + gy(0, 0.3)) / 2 + 0.045, 0.235, 0.02, 0.016, 0.02);
-  person(gp, -0.1, fy + CH, cz + CD, Math.PI, 'kneel', '#f97316', 1, '#e8dcb5', '#374151');
-  person(gp, 0.17, 0.055, -0.05, -1.6, 'bend', '#16a34a', 3);
-  person(gp, -0.22, 0.08, -0.17, 0.6, 'point', '#e5e7eb', 2, '#f5f5f4', '#1f2937');
+  // 1972 crew: blue work jackets and white shirts, straw hats; a find slung from a carrying pole between two porters
+  const STRAW: Partial<HumanOpts> = { hat: '#c8b48a', hatStyle: 'brim' };
+  const sh = (h: number) => [[-0.125, 0.47, 0.015], [0.07, h, 0.07]] as [V3, V3];
+  digger(gp, -0.004, gy(0, 0.2), 0.18, 0, 'walk', '#3d4f6a', { ...STRAW, hands: sh(0.9), bottom: '#3a3e44' });
+  digger(gp, 0.004, gy(0, 0.3), 0.29, 0, 'walk', '#3d4f6a', { ...STRAW, hands: sh(0.9), bottom: '#3a3e44', phase: 0.5 });
+  rod(gp, [0, gy(0, 0.2) + 0.051, 0.18], [0, gy(0, 0.3) + 0.051, 0.29], 0.0012, '#8b7a55', 4);
+  for (const k of [0, 1]) rod(gp, [0, (gy(0, 0.2) + gy(0, 0.3)) / 2 + 0.05, 0.225 + k * 0.02], [0, (gy(0, 0.2) + gy(0, 0.3)) / 2 + 0.03, 0.229 + k * 0.012], 0.0005, '#6a5a40', 3);
+  box(gp, '#8a6e4e', 0, (gy(0, 0.2) + gy(0, 0.3)) / 2 + 0.018, 0.235, 0.018, 0.012, 0.022);
+  digger(gp, -0.1, fy + CH, cz + CD, Math.PI, 'kneel', '#d8d2c2', { ...STRAW, bottom: '#3a3e44' });
+  digger(gp, 0.17, 0.055, -0.05, -1.6, 'bend', '#5b6455', STRAW);
+  digger(gp, -0.22, 0.08, -0.17, 0.6, 'point', '#d8d2c2', { bottom: '#2f3540' });
   ladder(gp, [0.1, 0.025, 0.065], [0.1, 0.06, 0.1], 0.016);
-  crate(gp, 0.28, gy(0.28, 0.24), 0.24, 0.04, 0.4);
-  crate(gp, 0.33, gy(0.33, 0.18), 0.18, 0.03, -0.2);
-  wheelbarrow(gp, 0.14, gy(0.14, 0.3), 0.3, -0.5, '#16a34a', '#c9a46a');
+  crate(gp, 0.28, gy(0.28, 0.24), 0.24, 0.04, 0.4, '#8e7454');
+  crate(gp, 0.33, gy(0.33, 0.18), 0.18, 0.03, -0.2, '#8e7454');
+  // Bamboo baskets and a shoulder pole for hauling spoil (no wheelbarrows on the 1972 dig)
+  for (const sx of [-1, 1]) lathe(gp, [[0.0001, 0], [0.008, 0], [0.011, 0.012], [0.0105, 0.012], [0.0001, 0.002]], '#a08a5e', 0.14 + sx * 0.03, gy(0.14, 0.3), 0.3, 9);
+  rod(gp, [0.1, gy(0.14, 0.3) + 0.004, 0.31], [0.18, gy(0.14, 0.3) + 0.004, 0.29], 0.0012, '#8b7a55', 4);
   shovel(gp, -0.12, gy(-0.12, 0.3), 0.3, 0.3);
-  for (const [x, z, s] of [[-0.38, -0.2, 0.07], [0.42, -0.08, 0.065], [-0.32, 0.26, 0.06], [-0.1, -0.42, 0.06], [0.2, -0.4, 0.07], [-0.42, 0.06, 0.06], [0.42, 0.02, 0.06]] as const) tree(gp, x, gy(x, z) - 0.004, z, s, '#3f7d3a');
+  for (const [x, z, s] of [[-0.38, -0.2, 0.08], [0.42, -0.08, 0.075], [-0.32, 0.26, 0.07], [-0.1, -0.42, 0.07], [0.2, -0.4, 0.08], [-0.42, 0.06, 0.07], [0.42, 0.02, 0.07]] as const) broadleaf(gp, x, gy(x, z) - 0.004, z, s, '#40563a');
 };
 
 // =========================================================================================================

@@ -5,12 +5,12 @@ import type { HistEvent, ModelRecipe, Place } from './types.ts';
  * A recipe `{ kind, hero: 'pack/name' }` falls back to the generic `kind` model until its pack has loaded.
  */
 const EVENT_HERO: Record<string, string> = {
-  qin_wall: 'asia/greatwall', ming_wall: 'asia/greatwall', terracotta: 'asia3/terracotta', forbidden_city: 'asia/forbidden',
+  ming_wall: 'asia/greatwall', terracotta: 'asia3/terracotta', forbidden_city: 'asia/forbidden',
   confucius: 'people-a/pp_confucius', cailun: 'people-a/pp_cailun', zhangheng: 'people-a/pp_zhangheng',
   zuchongzhi: 'people-a/pp_zuchongzhi', ming_science: 'people-a/pp_lishizhen', tang_poetry: 'people-b/pp_libai',
   wangxizhi: 'people-b/pp_wangxizhi', xuanzang: 'people-c/pp_xuanzang', marco_polo: 'people-c/pp_marcopolo',
   zhenghe: 'journeys/vy_zhenghe', zhangqian: 'journeys/vy_silkroad', jianzhen: 'routes2/vy_jianzhen',
-  wencheng: 'asia2/potala', zhuzang: 'asia2/potala', tibet1951: 'asia2/potala', neimenggu: 'festivals/fs_naadam',
+  zhuzang: 'asia2/potala', tibet1951: 'asia2/potala',
 };
 
 /** Title keywords of imported chronicle events → hero. */
@@ -30,8 +30,8 @@ const PLACE_HERO: Record<string, ModelRecipe> = {
   北京: { kind: 'palace', hero: 'asia/forbidden' }, 西安: { kind: 'warrior', hero: 'asia3/terracotta' },
   广汉: { kind: 'ding', hero: 'archaeology/ar_sanxingdui' }, 长沙: { kind: 'ding', hero: 'archaeology/ar_mawangdui' },
   大同: { kind: 'temple', hero: 'china/cn_hangingtemple' }, 黄山: { kind: 'pagoda', hero: 'china/cn_huangshan' },
-  上海: { kind: 'skyline', hero: 'china/cn_bund' }, 山海关: { kind: 'gate', hero: 'asia/greatwall' },
-  嘉峪关: { kind: 'gate', hero: 'asia/greatwall' }, 八达岭: { kind: 'wall', hero: 'asia/greatwall' },
+  上海: { kind: 'skyline', hero: 'china/cn_bund' }, 山海关: { kind: 'gate', hero: 'sites-b/st_shanhaiguan' },
+  嘉峪关: { kind: 'gate', hero: 'sites-b/st_jiayuguan' }, 八达岭: { kind: 'wall', hero: 'asia/greatwall' },
 };
 
 /** People with their own detailed figure. */
@@ -49,19 +49,22 @@ export function withHero(e: HistEvent): HistEvent {
 }
 
 /**
- * The capital's model on the map, one per architectural period so each dynasty's seat looks like its own age: rammed-earth
- * halls of Erlitou, Zhou terraces, Qin–Han terrace palaces with que towers, the Tang Hanyuan Hall, the Song Xuande Gate,
- * Yuan Dadu, then the Forbidden City (Ming–Qing) and a monument for modern capitals.
+ * The capital's model: the seat's own palace, so every city stands as itself (one model, one subject) — Erlitou, Yinxu,
+ * Zhou terraces, Eastern Zhou Luoyi, Qin Xianyang, Han Weiyang, Eastern Han and Wei–Jin Luoyang, Jiankang, the Tang
+ * Hanyuan Hall, the Song Xuande Gate, Lin'an, Yuan Dadu, the Forbidden City (Ming–Qing, the same model as its landmark), Nanjing's Presidential
+ * Palace and Beijing's monument. Periods without one capital show a generic hall of their age on the era card.
  */
 export function capitalModel(era: { id: string; start: number }): ModelRecipe {
   const by: Record<string, string> = {
-    xia: 'cap_erlitou', shang: 'cap_erlitou', wzhou: 'cap_zhou', chunqiu: 'cap_zhou', zhanguo: 'cap_zhou',
-    qin: 'cap_qinhan', whan: 'cap_qinhan', xin: 'cap_qinhan', ehan: 'cap_qinhan', sanguo: 'cap_qinhan', wjin: 'cap_qinhan', ejin: 'cap_qinhan', nanbei: 'cap_qinhan',
-    sui: 'cap_tang', tang: 'cap_tang', wudai: 'cap_tang', liao: 'cap_tang', bsong: 'cap_song', nsong: 'cap_song', xixia: 'cap_song', jin: 'cap_song', yuan: 'cap_yuan',
+    xia: 'cap_erlitou', shang: 'cap_yinxu', wzhou: 'cap_zhou', chunqiu: 'cap_luoyi', qin: 'cap_xianyang', whan: 'cap_qinhan', xin: 'cap_qinhan',
+    ehan: 'cap_luoyang', wjin: 'cap_taiji', ejin: 'cap_jiankang', sui: 'cap_tang', tang: 'cap_tang', bsong: 'cap_song', nsong: 'cap_linan',
+    yuan: 'cap_yuan', roc: 'cap_nanjing_roc',
   };
-  if (era.start >= 1912) return { kind: 'monument' };
   const h = by[era.id];
-  return h ? { kind: 'palace', hero: 'capitals/' + h } : { kind: 'palace' };
+  if (h) return { kind: 'palace', hero: 'capitals/' + h };
+  if (era.start >= 1949) return { kind: 'monument' };
+  if (era.start >= 1368) return { kind: 'palace', hero: 'asia/forbidden' };
+  return { kind: 'palace', style: era.start < 581 ? 'han' : 'tang' };
 }
 
 /** The 3D model shown on a place card: its landmark, else a generic one by kind. */

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Builder, Paint, V3 } from '../prims.ts';
 import { add, mat, g, sweep, rbox, box, cyl, lathe, hash3, vnoise, worley } from '../prims.ts';
 import { pblob } from '../animals.ts';
+import { human } from '../human.ts';
 
 // Travellers that move along routes on the globe: migrating animal groups and historic ships / caravans.
 // No plinth — just the moving subject, front +z, ~1 unit long, base at y = 0 (the sea or land surface).
@@ -652,13 +653,13 @@ function camel(p: THREE.Object3D, at: V3, yaw: number, s: number, phase: number,
   drop(b, sg, [0, 0.38, -0.3], [0, 0.3, -0.3], 0.012, 0.008);
   if (load) {
     // Saddle blanket in the dip between the humps; bales slung low on the flanks so both humps stay visible
-    vblob(b, blanket, 0, 0.6, 0.01, 0.13, 0.055, 0.075, (x, y, z) => (Math.sin(z * 120) > 0.5 ? '#e7c55a' : Math.abs(x) > 0.11 ? sh(blanket, 0.7) : blanket), [0, 0, 0], 11);
+    vblob(b, blanket, 0, 0.6, 0.01, 0.13, 0.055, 0.075, (x, y, z) => (Math.sin(z * 120) > 0.5 ? '#a08a5c' : Math.abs(x) > 0.11 ? sh(blanket, 0.7) : blanket), [0, 0, 0], 11);
     for (const sx of [-1, 1]) {
       rbox(b, sx > 0 ? '#c9b18a' : '#8f6a45', sx * 0.15, 0.47, 0.01, 0.07, 0.11, 0.12, 0.025);
       for (const dz of [-0.035, 0.045]) box(b, '#5b4330', sx * 0.15, 0.47, 0.01 + dz, 0.074, 0.114, 0.008);
       rod(b, [sx * 0.05, 0.66, 0.01], [sx * 0.15, 0.53, 0.01], 0.006, '#5b4330', 4);
     }
-    rbox(b, '#6e7f9a', 0, 0.665, 0.01, 0.12, 0.035, 0.05, 0.015);
+    rbox(b, '#7a6a52', 0, 0.665, 0.01, 0.12, 0.035, 0.05, 0.015);
   }
   return b;
 }
@@ -969,46 +970,55 @@ export const H_JOURNEYS: Record<string, Builder> = {
   },
   vy_zhenghe: gp => {
     // Ming treasure ship (baochuan): huge broad flat-bottomed hull with a blunt transom bow and painted oculi,
-    // towering multi-storey stern castle with tiled roofs, nine masts carrying red battened lug sails
-    const red = '#a3241d', gold = '#d9a93a';
+    // towering multi-storey stern castle with tiled roofs, nine masts carrying battened lug sails
+    // Ref: Ming baochuan (Longjiang yard rudder post; Nanjing Treasure Boat Park replica; Wubei zhi junks): tung-oiled hull,
+    // red-ochre upper works, bamboo-matting/hemp sails in natural tan, painted tiger-head bow board and oculi.
+    const red = '#7a3326', gold = '#a88a4a';
     const sheer = (u: number) => 0.13 + 0.1 * Math.pow(1 - u, 3) + 0.05 * Math.pow(u, 3);
     const H = hull(gp, {
       L: 0.86, B: 0.17, full: 0.3, bulwark: 0.022, bulC: red, nu: 28,
       sheer, half: u => (0.74 + 0.26 * Math.sin(Math.PI * Math.min(1, u * 1.08))) * (u > 0.82 ? 1 - (u - 0.82) * 2 : 1),
       keel: u => 0.035 * Math.pow(1 - u, 2) + 0.05 * Math.pow(u, 2),
       bands: [0.16, 0.19, 0.3, 0.32, 0.42, 0.54, 0.66, 0.85],
-      paint: (_u, d) => (d > 0.85 ? '#2b231d' : d < 0.16 ? red : d < 0.19 ? gold : d > 0.3 && d < 0.32 ? '#f0e6c8' : [0.42, 0.54, 0.66, 2].findIndex(b => d < b) % 2 ? '#5d3d24' : '#6e4a2c'),
-      deck: '#a07a4c',
+      paint: (_u, d) => (d > 0.85 ? '#2b231d' : d < 0.16 ? red : d < 0.19 ? gold : d > 0.3 && d < 0.32 ? '#c2b494' : [0.42, 0.54, 0.66, 2].findIndex(b => d < b) % 2 ? '#4e3622' : '#5a3f28'),
+      deck: '#8a6c48',
     });
     // Oculi on the bow, anchors, big rudder
     for (const sd of [-1, 1]) {
       const q = H.gun(0.93, sd), o: V3 = [q[0] + sd * 0.006, q[1] - 0.045, q[2]];
-      ellip(gp, '#f3eedf', o[0], o[1], o[2], 0.008, 0.022, 0.03);
+      ellip(gp, '#d8d0bc', o[0], o[1], o[2], 0.008, 0.022, 0.03);
       ellip(gp, '#151210', o[0] + sd * 0.006, o[1], o[2] + 0.006, 0.006, 0.013, 0.013);
       tube(gp, [[sd * 0.09, H.top(0.95), H.z(0.95)], [sd * 0.12, H.top(0.95) - 0.06, H.z(1) + 0.01], [sd * 0.12, 0.03, H.z(1) + 0.005]], 0.004, 0.004, '#2a2622', 5);
     }
     box(gp, '#3a2a1c', 0, 0.09, H.z(0) - 0.02, 0.016, 0.16, 0.06);
-    // Bow transom face: red with a gold tiger-head roundel
-    const bz = H.z(1) + 0.003;
-    cyl(gp, gold, 0, H.top(1) - 0.04, bz, 0.03, 0.006, 12).rotation.x = Math.PI / 2;
+    // Bow transom board painted with a tiger head (虎头): ochre face, dark brow stripes and eyes, bared white teeth
+    const bz = H.z(1) + 0.003, ty = H.top(1) - 0.04;
+    cyl(gp, '#a07a3e', 0, ty, bz, 0.03, 0.006, 14).rotation.x = Math.PI / 2;
+    for (const sx of [-1, 1]) {
+      ellip(gp, '#2a2018', sx * 0.011, ty + 0.006, bz + 0.006, 0.0065, 0.0022, 0.002, 0, 0, -sx * 0.35);
+      for (let k = 0; k < 3; k++) box(gp, '#3a2a1e', sx * (0.006 + k * 0.007), ty + 0.015 + k * 0.003, bz + 0.0065, 0.005, 0.0016, 0.001, 0, 0, sx * 0.5);
+      for (let k = 0; k < 2; k++) box(gp, '#3a2a1e', sx * 0.024, ty - 0.004 - k * 0.006, bz + 0.0065, 0.008, 0.0016, 0.001, 0, 0, -sx * 0.25);
+    }
+    box(gp, '#3a2a1e', 0, ty - 0.012, bz + 0.0065, 0.022, 0.006, 0.001);
+    for (const sx of [-1, 1]) box(gp, '#c8c0aa', sx * 0.007, ty - 0.012, bz + 0.0075, 0.003, 0.007, 0.001);
     // Stern castle: three stepped red storeys with white window bands, tiled roofs with upturned eaves
     const st = H.top(0.08);
     const storey = (y: number, w: number, d: number, h: number, z: number) => {
       rbox(gp, red, 0, y + h / 2, z, w, h, d, 0.006);
-      for (const sd of [-1, 1]) for (let i = 0; i < 4; i++) box(gp, '#f2e6c4', sd * (w / 2 + 0.001), y + h * 0.55, z - d * 0.35 + i * d * 0.233, 0.004, h * 0.42, d * 0.15);
+      for (const sd of [-1, 1]) for (let i = 0; i < 4; i++) box(gp, '#a89878', sd * (w / 2 + 0.001), y + h * 0.55, z - d * 0.35 + i * d * 0.233, 0.004, h * 0.42, d * 0.15);
       box(gp, gold, 0, y + h, z, w + 0.012, 0.007, d + 0.012);
     };
     storey(st - 0.01, 0.3, 0.2, 0.07, H.z(0.12));
     storey(st + 0.065, 0.25, 0.14, 0.055, H.z(0.08));
     storey(st + 0.125, 0.18, 0.09, 0.045, H.z(0.06));
     const roof = (y: number, w: number, d: number, z: number) => {
-      for (const sd of [-1, 1]) { const m = box(gp, '#2f4a46', sd * w * 0.25, y + 0.012, z, w * 0.56, 0.008, d); m.rotation.z = -sd * 0.38; }
-      box(gp, '#1f302e', 0, y + 0.026, z, 0.012, 0.012, d + 0.01);
+      for (const sd of [-1, 1]) { const m = box(gp, '#4e5250', sd * w * 0.25, y + 0.012, z, w * 0.56, 0.008, d); m.rotation.z = -sd * 0.38; }
+      box(gp, '#3a3e3c', 0, y + 0.026, z, 0.012, 0.012, d + 0.01);
       for (const sd of [-1, 1]) for (const e of [-1, 1]) drop(gp, gold, [sd * w * 0.5, y + 0.0, z + e * d * 0.5], [sd * w * 0.58, y + 0.03, z + e * d * 0.56], 0.006, 0.004);
     };
     roof(st + 0.17, 0.2, 0.11, H.z(0.06));
     // Red lanterns hanging from the stern gallery
-    for (const sd of [-1, 1]) { const lt = ellip(gp, '#e0402a', sd * 0.1, st + 0.04, H.z(0.0) - 0.02, 0.012, 0.016, 0.012); lt.material = mat('#ff5a3a', { emissive: '#c0301c' }); }
+    for (const sd of [-1, 1]) ellip(gp, '#8e3a2a', sd * 0.1, st + 0.04, H.z(0.0) - 0.02, 0.011, 0.015, 0.011);
     // Forecastle rail
     for (const sd of [-1, 1]) rod(gp, [sd * 0.1, H.top(0.86) + 0.035, H.z(0.84)], [sd * 0.1, H.top(0.97) + 0.035, H.z(0.97)], 0.004, gold, 5);
     // Nine masts with battened sails (heights stepped like the paintings: tallest amidships)
@@ -1020,13 +1030,12 @@ export const H_JOURNEYS: Record<string, Builder> = {
       const zz = H.z(u), y0 = u < 0.1 ? st + 0.16 : H.top(u), rake = u > 0.9 ? 0.25 : 0;
       const top: V3 = [x, y0 + h, zz + rake * h];
       rod(gp, [x, y0 - 0.02, zz], top, 0.004 + h * 0.006, '#4a3020', 6, 0.6 * (0.004 + h * 0.006));
-      lugSail(gp, [x, top[1] - 0.03, top[2] - 0.01 - rake * 0.03], w * 1.1, sh0, 0.95 + (i % 2 ? 0.12 : -0.08) + x * 2, i === 3 ? '#c8352a' : '#bf3227');
-      flag(gp, [x, top[1] + 0.005, top[2]], 0.07 + h * 0.08, 0.014, (uu) => (uu < 0.5 ? '#e0b030' : '#c22a1e'));
+      lugSail(gp, [x, top[1] - 0.03, top[2] - 0.01 - rake * 0.03], w * 1.1, sh0, 0.95 + (i % 2 ? 0.12 : -0.08) + x * 2, i % 2 ? '#a08560' : '#988058');
+      flag(gp, [x, top[1] + 0.005, top[2]], 0.05 + h * 0.06, 0.012, (uu) => (uu < 0.5 ? '#b0904a' : '#8a3226'));
     });
     // Stern banner
     rod(gp, [0, st + 0.17, H.z(0.0)], [0, st + 0.3, H.z(0.0) - 0.01], 0.004, '#3a2a1a', 5);
-    flag(gp, [0, st + 0.3, H.z(0.0) - 0.01], 0.09, 0.07, (u, v) => (u < 0.12 || v < 0.15 || v > 0.85 ? '#c22a1e' : '#e8b632'));
-    wake(gp, H.z(1) + 0.03, H.z(0) - 0.06, 0.12);
+    flag(gp, [0, st + 0.3, H.z(0.0) - 0.01], 0.09, 0.07, (u, v) => (u < 0.12 || v < 0.15 || v > 0.85 ? '#8a3226' : '#b8964c'));
   },
   vy_magellan: gp => {
     // Nao Victoria — the only ship of Magellan's fleet to sail around the world: tarred black hull with ochre
@@ -1157,8 +1166,10 @@ export const H_JOURNEYS: Record<string, Builder> = {
     }
   },
   vy_silkroad: gp => {
-    // Silk Road caravan: three laden Bactrian camels roped nose-to-tail, led by a turbaned merchant with a staff
-    const s = 0.44, line: [number, number, number, string, number][] = [[0.02, 0.24, 0, '#a8322a', 0.12], [-0.07, -0.08, 1.4, '#2f5d8a', 0.32], [-0.2, -0.38, 2.7, '#3f7a4a', 0.45]];
+    // Silk Road caravan: three laden Bactrian camels roped nose-to-tail, led on foot by a Sogdian merchant
+    // Ref: Tang sancai camel-and-Sogdian tomb figures and Sogdian merchant murals (Afrasiab; Anjia tomb, Xi'an): pointed felt cap,
+    // belted knee-length kaftan with lapels, tall boots, full beard; felt saddle cloths and silk bales in undyed / madder / indigo wool tones.
+    const s = 0.44, line: [number, number, number, string, number][] = [[0.02, 0.24, 0, '#7e3a2c', 0.12], [-0.07, -0.08, 1.4, '#4a5668', 0.32], [-0.2, -0.38, 2.7, '#6a5e44', 0.45]];
     line.forEach(([x, z, ph, bl, yaw]) => camel(gp, [x, 0, z], yaw, s, ph, true, bl));
     const at = (i: number, lx: number, ly: number, lz: number): V3 => {
       const [x, z, , , yaw] = line[i], c = Math.cos(yaw), sn = Math.sin(yaw);
@@ -1168,17 +1179,15 @@ export const H_JOURNEYS: Record<string, Builder> = {
     const nose = (i: number) => at(i, 0, 0.69, 0.66), tail = (i: number) => at(i, 0, 0.52, -0.26);
     const sag = (a: V3, b: V3): V3 => [(a[0] + b[0]) / 2, Math.min(a[1], b[1]) - 0.04, (a[2] + b[2]) / 2];
     for (let i = 1; i < line.length; i++) { const a = nose(i), b = tail(i - 1); tube(gp, [a, sag(a, b), b], 0.0025, 0.0025, '#3a2a1a', 4); }
-    // Merchant: long robe, sash, turban, beard, staff
-    const mx0 = 0.16, mz = 0.5, robe = '#355c8a';
-    lathe(gp, [[0, 0], [0.042, 0], [0.04, 0.05], [0.034, 0.11], [0.03, 0.16], [0.022, 0.19], [0, 0.195]], robe, mx0, 0, mz, 10);
-    cyl(gp, '#d8a838', mx0, 0.105, mz, 0.034, 0.012, 10);
-    ellip(gp, '#c08f62', mx0, 0.21, mz + 0.004, 0.019, 0.022, 0.019);
-    ellip(gp, '#efe6d2', mx0, 0.228, mz, 0.024, 0.016, 0.023);
-    drop(gp, '#2b1e16', [mx0, 0.2, mz + 0.016], [mx0, 0.18, mz + 0.022], 0.012, 0.008);
-    for (const sx of [-1, 1]) drop(gp, robe, [mx0 + sx * 0.03, 0.18, mz], [mx0 + sx * 0.036, 0.12, mz + 0.03], 0.012, 0.01);
-    for (const sx of [-1, 1]) ellip(gp, '#4a3020', mx0 + sx * 0.016, 0.006, mz + 0.012 + sx * 0.012, 0.01, 0.007, 0.016);
-    rod(gp, [mx0 + 0.04, 0, mz + 0.06], [mx0 + 0.04, 0.27, mz + 0.03], 0.0035, '#6b4a2c', 5);
-    const hand: V3 = [mx0 - 0.036, 0.12, mz + 0.03], a = nose(0);
+    // Merchant (~1.7 m against 2 m camels): kaftan belted at the waist, boots, beard, pointed felt cap, staff in the right hand
+    const mx0 = 0.16, mz = 0.48, MH = 0.27;
+    const R = human(gp, mx0, 0, mz, { h: MH, ry: -0.35, pose: 'walk', phase: 0.2, top: '#8a6a48', bottom: '#5a4a38', dress: 'ankle', shoes: '#2e241c', skin: '#c48e64', hair: '#2a1e16', build: 1.05,
+      hands: [[-0.16, 0.5, 0.12], [0.15, 0.62, 0.1]], detail: 'hi' });
+    const hd = R.head;
+    lathe(gp, [[0.0001, 0], [0.023, 0], [0.024, 0.006], [0.02, 0.008], [0.015, 0.024], [0.008, 0.042], [0.0001, 0.054]], '#b8a888', hd[0], hd[1] + 0.006, hd[2] - 0.003, 9);
+    drop(gp, '#2a1e16', [hd[0] + 0.004, hd[1] - 0.006, hd[2] + 0.012], [hd[0] + 0.006, hd[1] - 0.03, hd[2] + 0.02], 0.011, 0.008);
+    rod(gp, [R.handR[0], 0, R.handR[2] + 0.01], [R.handR[0], 0.3, R.handR[2] - 0.01], 0.0032, '#6b4a2c', 5);
+    const hand = R.handL, a = nose(0);
     tube(gp, [hand, sag(hand, a), a], 0.0025, 0.0025, '#3a2a1a', 4);
   },
 };

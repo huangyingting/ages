@@ -76,7 +76,7 @@ F('forage', ['采集与渔猎', 'Foraging and fishing'], [108.4, 31.6], hero(FD 
   ['旧石器时代人们以采集果实、根茎和渔猎为生，过着迁徙生活。', 'Palaeolithic people lived by gathering nuts, roots and berries, hunting and fishing.'], { wiki: ['狩猎采集社会', 'Hunter-gatherer'] });
 P('元谋人', [101.87, 25.7], { en: 'Yuanmou Man', role: 'scholar', year: -1700000, tier: 2,
   desc: ['约一百七十万年前的直立人，是中国境内已知最早的古人类之一。', 'Homo erectus of about 1.7 million years ago, among the earliest humans known in China.'] });
-LIFE_LIST[LIFE_LIST.length - 1].model = hero(C1 + 'lf_pekingman', 'cave');
+LIFE_LIST[LIFE_LIST.length - 1].model = hero(C1 + 'lf_pekingman', 'cave', { style: 'yuanmou' });
 
 era('neo');
 B('banpo', ['半坡聚落', 'Banpo village'], [109.05, 34.27], hero(A1 + 'lf_banpo', 'hut'),
@@ -366,7 +366,7 @@ F('duck', ['北京烤鸭', 'Peking duck'], [117.6, 39.1], hero(FD + 'lf_duck', '
   ['明代随迁都传入北京，便宜坊始于1416年。', 'Came north with the capital; the Bianyifang restaurant opened in 1416.'], { wiki: ['北京烤鸭', 'Peking duck'] });
 C('kunqu', ['昆曲', 'Kunqu opera'], [121.2, 31.7], hero(C2 + 'lf_opera', 'temple', { style: 'kunqu' }),
   ['魏良辅改良的昆山腔，汤显祖《牡丹亭》盛演不衰，“百戏之祖”。', 'Wei Liangfu\'s refined Kunshan melodies; The Peony Pavilion made it the mother of Chinese operas.'], { wiki: ['昆曲', 'Kunqu'], tier: 2 });
-C('lanternming', ['秦淮灯会', 'Qinhuai lanterns'], [118.79, 32.02], hero('festivals/fs_lantern', 'monument'),
+C('lanternming', ['秦淮灯会', 'Qinhuai lanterns'], [118.79, 32.02], hero('festivals/fs_lantern', 'monument', { style: 'qinhuai' }),
   ['朱元璋定都南京，元宵张灯十日，秦淮灯彩由此兴盛。', 'Zhu Yuanzhang made the Lantern Festival ten days long in Nanjing; the Qinhuai lanterns date from then.'], { wiki: ['秦淮灯会', 'Qinhuai Lantern Fair'], tier: 2 });
 P('王阳明', [106.7, 26.6], { prop: 'book', tier: 2 });
 

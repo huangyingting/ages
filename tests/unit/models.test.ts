@@ -6,7 +6,11 @@ import { packModel, unpackModel } from '../../src/client/models/pack.ts';
 import { loadPack, parseHero } from '../../src/client/models/heroes/index.ts';
 import { LIFE } from '../../src/shared/data/life.ts';
 import { ERAS } from '../../src/shared/data/eras.ts';
-import { capitalModel } from '../../src/shared/data/heroes.ts';
+import * as HEROES from '../../src/shared/data/heroes.ts';
+import { EVENTS } from '../../src/shared/data/events.ts';
+import { STORIES, TRAVELLER } from '../../src/shared/data/stories.ts';
+
+const { capitalModel } = HEROES;
 
 const stats = (o: THREE.Object3D) => {
   let meshes = 0, tris = 0;
@@ -51,14 +55,35 @@ describe('dynasty life models', () => {
   }, 120_000);
 });
 
+describe('hero models', () => {
+  it('every hero the events, stories and hero tables name exists and builds within budget', async () => {
+    const refs = new Map<string, { kind: string; hero: string; style?: string }>();
+    const walk = (v: unknown): void => {
+      if (!v || typeof v !== 'object') return;
+      const o = v as Record<string, unknown>;
+      if (typeof o.hero === 'string' && o.hero.includes('/')) {
+        const r = { kind: String(o.kind ?? 'gate'), hero: o.hero, style: o.style as string | undefined };
+        refs.set(`${r.hero}:${r.style ?? ''}`, r);
+      }
+      for (const x of Object.values(o)) walk(x);
+    };
+    walk([EVENTS, STORIES, TRAVELLER, HEROES]);
+    expect(refs.size).toBeGreaterThan(20);
+    for (const [key, r] of refs) {
+      const ref = parseHero(r.hero)!;
+      expect((await loadPack(ref.pack))[ref.name], key).toBeTypeOf('function');
+      expect(stats(buildFresh(r)).tris, key).toBeLessThan(130_000);
+    }
+  }, 300_000);
+});
+
 describe('period capitals', () => {
-  it('gives each dynasty a capital in its own architecture, built from an existing hero', async () => {
+  it('gives each capital city its own palace, built from an existing hero', async () => {
     const at = (id: string) => capitalModel(ERAS.find(e => e.id === id)!);
-    expect(at('shang').hero).toBe('capitals/cap_erlitou');
+    expect(at('shang').hero).toBe('capitals/cap_yinxu');
     expect(at('whan').hero).toBe('capitals/cap_qinhan');
-    expect(at('tang').hero).toBe('capitals/cap_tang');
-    expect(at('bsong').hero).toBe('capitals/cap_song');
-    expect(at('qing')).toEqual({ kind: 'palace' });
+    expect(at('nsong').hero).toBe('capitals/cap_linan');
+    expect(at('qing').hero).toBe('asia/forbidden');
     expect(at('prc')).toEqual({ kind: 'monument' });
     for (const e of ERAS) {
       const ref = parseHero(capitalModel(e).hero);

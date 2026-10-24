@@ -9,6 +9,7 @@ import { POLITY, POLITIES, polityMatches } from '../../src/shared/data/polities.
 import { STAGES } from '../../src/shared/data/stage.ts';
 import { lifePlace, MAX_KEY, sceneryOf } from '../../src/shared/data/scenery.ts';
 import { LIFE, lifeOf } from '../../src/shared/data/life.ts';
+import { capitalModel } from '../../src/shared/data/heroes.ts';
 import { STORIES, journeyStory } from '../../src/shared/data/stories.ts';
 import { SNAPSHOTS, snapshotAt } from '../../src/shared/data/territories.ts';
 import { decodeRing } from '../../src/shared/lib/rings.ts';
@@ -243,7 +244,28 @@ describe('dynasty scenery', () => {
     }
     expect(total).toBeGreaterThan(200);
     const tang = sceneryOf(ERAS.find(x => x.id === 'tang')!);
-    expect(tang.some(i => i.name?.zh === '玄奘')).toBe(true);
+    // 玄奘 stands once, as his journey's landmark, not again beside it
+    expect(tang.filter(i => i.name?.zh === '玄奘' || i.event === 'xuanzang').length).toBe(1);
+  });
+
+  it('gives every subject its own model: one model never stands for two places or things', () => {
+    const key = (m: { kind: string; hero?: unknown; style?: unknown }) => `${m.hero ?? m.kind}:${m.style ?? ''}`;
+    const subjects = new Map<string, Set<string>>();
+    const story = new Map<string, Set<string>>();
+    const use = (to: Map<string, Set<string>>, m: { kind: string }, subject: string) => to.set(key(m), (to.get(key(m)) ?? new Set()).add(subject));
+    for (const era of ERAS.filter(x => x.scope === 'china')) {
+      const items = sceneryOf(era).filter(i => i.kind !== 'person' || i.model.hero);
+      const keys = items.map(i => key(i.model));
+      expect(new Set(keys).size, era.id).toBe(keys.length);
+      for (const i of items) use(subjects, i.model, i.life?.name.zh ?? EVENTS.find(e => e.id === i.event)!.title.zh);
+      if (era.capital) use(subjects, capitalModel(era), `capital ${era.capital}`);
+    }
+    for (const steps of Object.values(STORIES)) for (const st of steps) {
+      if (st.do === 'spawn' && st.label && !['flag', 'scroll', 'army'].includes(st.model.kind)) use(story, st.model, st.label.zh);
+    }
+    const shared = (m: Map<string, Set<string>>) => [...m].filter(([, s]) => s.size > 1).map(([k, s]) => `${k} ← ${[...s].join(' / ')}`);
+    expect(shared(subjects)).toEqual([]);
+    expect(shared(story)).toEqual([]);
   });
 
   it('ranks each dynasty into a few key items, notable ones and details', () => {

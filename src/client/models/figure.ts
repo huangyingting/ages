@@ -9,8 +9,8 @@ export type { ArmPose } from './rig.ts';
 const tone = (c: string, d: number) => shade(c, 1 + d);
 
 /**
- * Shared "collectible figurine" for the famous-people packs: a stylised standing person (about 5 heads tall) built from
- * smooth lathes and tubes so every hero reads as one consistent toy line. Builders add their own props, scenery and base;
+ * Shared figure for the famous-people packs: a naturally proportioned standing person (about 7 heads tall) built from
+ * smooth lathes and tubes, with period dress and quiet facial features. Builders add their own props, scenery and base;
  * the returned anchors (hands, head) let them attach books, telescopes, brushes, flags...
  */
 /**
@@ -100,11 +100,17 @@ export interface FigureAnchors {
   u: number;
 }
 
-const SKIN = '#e9b993';
+const SKIN = '#d9a882';
+
+/**
+ * Natural proportions (about 7 heads): the upper body is authored on the old 5-head grid and stretched above the
+ * waist so the shoulders sit at 0.79 and the neck base at 0.835 of the height.
+ */
+const Y = (y: number) => (y <= 0.5 ? y : y <= 0.735 ? 0.5 + (y - 0.5) * 1.234 : 0.79 + (y - 0.735) * 0.9);
 
 /** Shoulder, elbow and wrist of a figure's arm in body space (same maths the figure uses, for overlays). */
 export function armJoints(o: Pick<FigureOpts, 'h' | 'armL' | 'armR'>, sgn: -1 | 1): { sh: V3; el: V3; wr: V3; dir: V3 } {
-  const u = o.h ?? 0.62, sh: V3 = [sgn * 0.135 * u, 0.735 * u, 0];
+  const u = o.h ?? 0.62, sh: V3 = [sgn * 0.13 * u, Y(0.735) * u, 0];
   const { elbow, wrist, dir } = armFK(sgn, (sgn < 0 ? o.armL : o.armR) ?? {}, sh, 0.17 * u, 0.155 * u);
   return { sh, el: elbow, wr: wrist, dir };
 }
@@ -140,7 +146,7 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
   const skin = o.skin ?? SKIN, hair = o.hair ?? '#3b2a20', outfit = o.outfit ?? 'tunic';
   const top = o.top, bottom = o.bottom ?? tone(top, -0.25), accent = o.accent ?? tone(top, 0.25);
   const shoes = o.shoes ?? '#2b211b', shirt = o.shirt ?? '#f1ece0';
-  const S = (pts: [number, number][]) => pts.map(([r, y]) => [r * u, y * u] as [number, number]);
+  const S = (pts: [number, number][]) => pts.map(([r, y]) => [r * u, Y(y) * u] as [number, number]);
   const flat = (m: THREE.Mesh, k = 0.74) => { m.scale.z = k; return m; };
   const U = (v: V3): V3 => [v[0] * u, v[1] * u, v[2] * u];
 
@@ -148,10 +154,10 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
   const long = outfit === 'robe' || outfit === 'dress' || outfit === 'roundrobe' || outfit === 'changshan' || outfit === 'magua' || outfit === 'deel';
   if (long) {
     // floor-length garment with a gentle flare and hem
-    flat(lathe(body, S([[0, 0.012], [0.185, 0.012], [0.192, 0.03], [0.17, 0.14], [0.145, 0.3], [0.124, 0.44], [0.12, 0.5], [0, 0.5]]), top, 0, 0, 0, 22), 0.8);
-    flat(lathe(body, S([[0.188, 0.012], [0.196, 0.012], [0.196, 0.036], [0.188, 0.036]]), accent, 0, 0, 0, 20), 0.8);
+    flat(lathe(body, S([[0, 0.012], [0.165, 0.012], [0.17, 0.03], [0.155, 0.14], [0.138, 0.3], [0.122, 0.44], [0.12, 0.5], [0, 0.5]]), top, 0, 0, 0, 22), 0.8);
+    flat(lathe(body, S([[0.166, 0.012], [0.174, 0.012], [0.174, 0.036], [0.166, 0.036]]), accent, 0, 0, 0, 20), 0.8);
     // toes peeking out, one foot slightly forward
-    for (const sx of [-1, 1]) ellip(body, shoes, sx * 0.05 * u, 0.018 * u, (sx < 0 ? 0.13 : 0.115) * u, 0.034 * u, 0.02 * u, 0.05 * u, sx * 0.12);
+    for (const sx of [-1, 1]) ellip(body, shoes, sx * 0.05 * u, 0.018 * u, (sx < 0 ? 0.118 : 0.105) * u, 0.03 * u, 0.018 * u, 0.046 * u, sx * 0.12);
   } else {
     const st = stanceFeet(o.stance ?? 'relax'), feet = o.feet ?? st.feet;
     const legs = new THREE.Group();
@@ -202,44 +208,44 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
   // collar details
   const fz = 0.094 * u;
   if (outfit === 'suit' || outfit === 'coat') {
-    box(body, shirt, 0, 0.74 * u, fz, 0.06 * u, 0.07 * u, 0.006 * u);
-    if (outfit === 'suit') box(body, accent, 0, 0.69 * u, fz + 0.003 * u, 0.018 * u, 0.09 * u, 0.006 * u);
-    for (const sx of [-1, 1]) box(body, tone(top, -0.18), sx * 0.034 * u, 0.715 * u, fz + 0.002 * u, 0.026 * u, 0.11 * u, 0.006 * u, 0, 0, sx * 0.32);
-    if (outfit === 'coat') for (let i = 0; i < 4; i++) ellip(body, '#d6b25e', 0.022 * u, (0.6 - i * 0.05) * u, fz + 0.006 * u, 0.007 * u);
+    box(body, shirt, 0, Y(0.74) * u, fz, 0.06 * u, 0.07 * u, 0.006 * u);
+    if (outfit === 'suit') box(body, accent, 0, Y(0.69) * u, fz + 0.003 * u, 0.018 * u, 0.09 * u, 0.006 * u);
+    for (const sx of [-1, 1]) box(body, tone(top, -0.18), sx * 0.034 * u, Y(0.715) * u, fz + 0.002 * u, 0.026 * u, 0.11 * u, 0.006 * u, 0, 0, sx * 0.32);
+    if (outfit === 'coat') for (let i = 0; i < 4; i++) ellip(body, '#d6b25e', 0.022 * u, Y(0.6 - i * 0.05) * u, fz + 0.006 * u, 0.007 * u);
   } else if (outfit === 'robe') {
     // crossed collar (交领) in the trim colour
-    box(body, accent, -0.018 * u, 0.715 * u, fz, 0.016 * u, 0.13 * u, 0.008 * u, 0, 0, 0.42);
-    box(body, accent, 0.022 * u, 0.735 * u, fz - 0.002 * u, 0.016 * u, 0.09 * u, 0.008 * u, 0, 0, -0.42);
+    box(body, accent, -0.018 * u, Y(0.715) * u, fz, 0.016 * u, 0.13 * u, 0.008 * u, 0, 0, 0.42);
+    box(body, accent, 0.022 * u, Y(0.735) * u, fz - 0.002 * u, 0.016 * u, 0.09 * u, 0.008 * u, 0, 0, -0.42);
   } else if (outfit === 'roundrobe') {
     // round collar (圆领) hugging the neck
-    add(body, g('fig-collar', () => new THREE.TorusGeometry(1, 0.22, 6, 18)), mat(tone(top, -0.15)), 0, 0.772 * u, 0, 0.062 * u, 0.062 * u * 0.72, 0.062 * u, 0, Math.PI / 2, 0);
+    add(body, g('fig-collar', () => new THREE.TorusGeometry(1, 0.22, 6, 18)), mat(tone(top, -0.15)), 0, Y(0.772) * u, 0, 0.062 * u, 0.062 * u * 0.72, 0.062 * u, 0, Math.PI / 2, 0);
   } else if (outfit === 'deel') {
     // the Mongol robe closes diagonally to the right armpit
-    box(body, accent, 0.04 * u, 0.715 * u, fz - 0.004 * u, 0.02 * u, 0.13 * u, 0.008 * u, 0, 0, 0.75);
+    box(body, accent, 0.04 * u, Y(0.715) * u, fz - 0.004 * u, 0.02 * u, 0.13 * u, 0.008 * u, 0, 0, 0.75);
     flat(lathe(body, S([[0.121, 0.49], [0.127, 0.49], [0.127, 0.56], [0.121, 0.56]]), accent, 0, 0, 0, 18), 0.72);
   } else if (outfit === 'changshan' || outfit === 'magua' || outfit === 'zhongshan') {
     // stand collar; the 长衫 opens with a curved flap (大襟) to the right, the 中山装 has a row of buttons and four pockets
-    cyl(body, outfit === 'magua' ? o.jacket ?? tone(top, -0.4) : top, 0, 0.785 * u, 0, 0.046 * u, 0.03 * u, 12);
+    cyl(body, outfit === 'magua' ? o.jacket ?? tone(top, -0.4) : top, 0, Y(0.785) * u, 0, 0.046 * u, 0.03 * u, 12);
     if (outfit === 'zhongshan') {
-      for (let i = 0; i < 5; i++) ellip(body, tone(top, -0.3), 0, (0.75 - i * 0.05) * u, fz + 0.004 * u, 0.007 * u);
-      for (const sx of [-1, 1]) for (const yy of [0.69, 0.55]) box(body, tone(top, -0.12), sx * 0.052 * u, yy * u, fz - (yy > 0.6 ? 0.004 : 0.0) * u, 0.044 * u, 0.04 * u, 0.006 * u);
+      for (let i = 0; i < 5; i++) ellip(body, tone(top, -0.3), 0, Y(0.75 - i * 0.05) * u, fz + 0.004 * u, 0.007 * u);
+      for (const sx of [-1, 1]) for (const yy of [0.69, 0.55]) box(body, tone(top, -0.12), sx * 0.052 * u, Y(yy) * u, fz - (yy > 0.6 ? 0.004 : 0.0) * u, 0.044 * u, 0.04 * u, 0.006 * u);
     } else if (outfit === 'changshan') {
-      box(body, tone(top, -0.2), 0.04 * u, 0.735 * u, fz - 0.004 * u, 0.012 * u, 0.1 * u, 0.006 * u, 0, 0, 1.1);
+      box(body, tone(top, -0.2), 0.04 * u, Y(0.735) * u, fz - 0.004 * u, 0.012 * u, 0.1 * u, 0.006 * u, 0, 0, 1.1);
     }
   } else {
-    box(body, accent, 0, 0.775 * u, fz - 0.01 * u, 0.07 * u, 0.012 * u, 0.012 * u);
+    box(body, accent, 0, Y(0.775) * u, fz - 0.01 * u, 0.07 * u, 0.012 * u, 0.012 * u);
   }
   if (outfit === 'magua') {
     // short dark jacket over the robe, buttoned down the middle
     const jk = o.jacket ?? tone(top, -0.4);
     flat(lathe(body, S([[0.15, 0.4], [0.156, 0.4], [0.138, 0.5], [0.126, 0.6], [0.14, 0.71], [0.134, 0.755], [0.085, 0.785], [0, 0.79]]), jk, 0, 0, 0, 18), 0.72);
-    for (let i = 0; i < 5; i++) ellip(body, '#d6b25e', 0, (0.74 - i * 0.075) * u, 0.104 * u, 0.008 * u);
+    for (let i = 0; i < 5; i++) ellip(body, '#d6b25e', 0, Y(0.74 - i * 0.075) * u, 0.104 * u, 0.008 * u);
   }
   if (o.badge) {
     // 补子: square rank badge (officials) or a round dragon roundel (emperors)
-    if (o.badgeRound) ellip(body, o.badge, 0, 0.64 * u, 0.09 * u, 0.05 * u, 0.05 * u, 0.012 * u);
-    else box(body, o.badge, 0, 0.635 * u, fz - 0.002 * u, 0.086 * u, 0.086 * u, 0.01 * u);
-    ellip(body, tone(o.badge, -0.35), 0, 0.64 * u, fz + 0.006 * u, 0.022 * u, 0.018 * u, 0.006 * u);
+    if (o.badgeRound) ellip(body, o.badge, 0, Y(0.64) * u, 0.09 * u, 0.05 * u, 0.05 * u, 0.012 * u);
+    else box(body, o.badge, 0, Y(0.635) * u, fz - 0.002 * u, 0.086 * u, 0.086 * u, 0.01 * u);
+    ellip(body, tone(o.badge, -0.35), 0, Y(0.64) * u, fz + 0.006 * u, 0.022 * u, 0.018 * u, 0.006 * u);
   }
   if (o.armor) {
     // lamellar armour: body with plate rows, shoulder guards, a plated skirt, optional round breastplates
@@ -249,10 +255,10 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
     flat(lathe(body, S([[0.16, 0.3], [0.168, 0.3], [0.15, 0.4], [0.131, 0.48], [0, 0.48]]), ar, 0, 0, 0, 18), 0.78);
     flat(lathe(body, S([[0.164, 0.3], [0.17, 0.3], [0.17, 0.315], [0.164, 0.315]]), dk, 0, 0, 0, 18), 0.78);
     for (const sx of [-1, 1]) {
-      ellip(body, ar, sx * 0.15 * u, 0.72 * u, 0, 0.07 * u, 0.04 * u, 0.06 * u, 0, 0, sx * -0.5);
-      ellip(body, dk, sx * 0.168 * u, 0.69 * u, 0, 0.05 * u, 0.026 * u, 0.055 * u, 0, 0, sx * -0.7);
+      ellip(body, ar, sx * 0.15 * u, Y(0.72) * u, 0, 0.07 * u, 0.04 * u, 0.06 * u, 0, 0, sx * -0.5);
+      ellip(body, dk, sx * 0.168 * u, Y(0.69) * u, 0, 0.05 * u, 0.026 * u, 0.055 * u, 0, 0, sx * -0.7);
     }
-    if (o.discs) for (const sx of [-1, 1]) ellip(body, '#e3c26a', sx * 0.05 * u, 0.665 * u, 0.1 * u, 0.034 * u, 0.034 * u, 0.008 * u);
+    if (o.discs) for (const sx of [-1, 1]) ellip(body, '#e3c26a', sx * 0.05 * u, Y(0.665) * u, 0.1 * u, 0.034 * u, 0.034 * u, 0.008 * u);
     flat(lathe(body, S([[0.13, 0.5], [0.136, 0.5], [0.136, 0.53], [0.13, 0.53]]), '#3a2a1c', 0, 0, 0, 18), 0.74);
   }
   if (o.cape) {
@@ -265,13 +271,13 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
   for (const sgn of [-1, 1] as const) {
     const { sh, el: elbow, wr: wrist, dir: fd } = armJoints(o, sgn);
     const arm: Station[] = [
-      { p: sh, w: 0.05 * u },
-      { p: lerp3(sh, elbow, 0.45), w: 0.043 * u },
-      { p: elbow, w: 0.036 * u },
-      { p: lerp3(elbow, wrist, 0.35), w: 0.038 * u },
-      { p: wrist, w: 0.029 * u },
+      { p: sh, w: 0.044 * u },
+      { p: lerp3(sh, elbow, 0.45), w: 0.038 * u },
+      { p: elbow, w: 0.032 * u },
+      { p: lerp3(elbow, wrist, 0.35), w: 0.033 * u },
+      { p: wrist, w: 0.025 * u },
     ];
-    ellip(body, sleeve > 0 ? top : skin, sh[0], sh[1], sh[2], 0.05 * u, 0.047 * u, 0.047 * u);
+    ellip(body, sleeve > 0 ? top : skin, sh[0] * 0.92, sh[1] - 0.008 * u, sh[2], 0.044 * u, 0.036 * u, 0.042 * u);
     if (o.wideSleeves) {
       sweep(body, part(arm, 0, 0.53, 0.004 * u), top, { radial: 12, sub: 3 });
       // hanging sleeve: forearm that flares toward the cuff plus a drooping fold
@@ -301,20 +307,18 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
     if (sgn < 0) anchors.handL = hand; else anchors.handR = hand;
   }
 
-  // ---- neck & head
-  cyl(body, skin, 0, 0.775 * u, 0, 0.04 * u, 0.05 * u, 10);
-  const hy = 0.9 * u, hr = 0.106 * u;
-  ellip(body, skin, 0, hy, 0.004 * u, hr, hr * 1.12, hr * 1.02);
-  ellip(body, skin, 0, hy - 0.05 * u, 0.025 * u, hr * 0.62, hr * 0.42, hr * 0.7); // jaw
-  for (const sx of [-1, 1]) ellip(body, tone(skin, -0.06), sx * hr * 0.98, hy, 0, hr * 0.16, hr * 0.26, hr * 0.12); // ears
+  // ---- neck & head: a natural head (1/7 of the height) with small, quiet features
+  cyl(body, skin, 0, 0.8 * u, 0, 0.03 * u, 0.08 * u, 10);
+  const hy = 0.93 * u, hr = 0.059 * u;
+  ellip(body, skin, 0, hy, 0.002 * u, hr, hr * 1.2, hr * 1.06);
+  ellip(body, skin, 0, hy - hr * 0.6, hr * 0.22, hr * 0.66, hr * 0.48, hr * 0.7); // jaw and chin
+  for (const sx of [-1, 1]) ellip(body, tone(skin, -0.08), sx * hr * 0.98, hy - hr * 0.02, -hr * 0.04, hr * 0.14, hr * 0.26, hr * 0.12); // ears
   for (const sx of [-1, 1]) {
-    ellip(body, '#1c1917', sx * hr * 0.34, hy + hr * 0.04, hr * 0.93, hr * 0.095, hr * 0.13, hr * 0.06);
-    ellip(body, '#ffffff', sx * hr * 0.34 + hr * 0.03, hy + hr * 0.09, hr * 0.97, hr * 0.03, hr * 0.03, hr * 0.02);
-    box(body, tone(hair, -0.1), sx * hr * 0.34, hy + hr * 0.3, hr * 0.92, hr * 0.3, hr * 0.055, hr * 0.06, 0, 0, sx * -0.12);
-    ellip(body, mix2(skin, '#f87171'), sx * hr * 0.58, hy - hr * 0.2, hr * 0.8, hr * 0.15, hr * 0.1, hr * 0.05); // cheeks
+    ellip(body, '#2a201b', sx * hr * 0.34, hy + hr * 0.06, hr * 0.94, hr * 0.12, hr * 0.05, hr * 0.04); // eyes
+    box(body, tone(hair, -0.15), sx * hr * 0.36, hy + hr * 0.25, hr * 0.92, hr * 0.32, hr * 0.05, hr * 0.06, 0, 0, sx * -0.08); // brows
   }
-  ellip(body, tone(skin, -0.04), 0, hy - hr * 0.1, hr * 1.0, hr * 0.12, hr * 0.17, hr * 0.12); // nose
-  box(body, '#a85a4c', 0, hy - hr * 0.4, hr * 0.92, hr * 0.24, hr * 0.04, hr * 0.05);
+  ellip(body, tone(skin, -0.05), 0, hy - hr * 0.14, hr * 1.0, hr * 0.11, hr * 0.22, hr * 0.15); // nose
+  box(body, '#9a6352', 0, hy - hr * 0.5, hr * 0.9, hr * 0.26, hr * 0.035, hr * 0.05); // mouth
   if (o.glasses) {
     for (const sx of [-1, 1]) {
       const m = add(body, g('fig-ring', () => new THREE.TorusGeometry(1, 0.16, 6, 14)), mat('#3f3f46', { metal: 0.6 }), sx * hr * 0.34, hy + hr * 0.04, hr * 0.98, hr * 0.2, hr * 0.17, hr * 0.17);
@@ -324,7 +328,7 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
   }
   hairFor(body, o.hairStyle ?? 'short', hair, hy, hr, u);
   beardFor(body, o.beard ?? 'none', o.beardColor ?? hair, hy, hr, u);
-  const topY = hy + hr * 1.12;
+  const topY = hy + hr * 1.2;
   hatFor(body, o.hat ?? 'none', o.hatColor ?? '#1f2937', hy, hr, u, o.hatBadge);
 
   // anchors to builder space
@@ -339,17 +343,12 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
   };
 }
 
-const mix2 = (a: string, b: string) => {
-  const ca = new THREE.Color(a), cb = new THREE.Color(b);
-  return '#' + ca.lerp(cb, 0.28).getHexString();
-};
-
 function hairFor(p: THREE.Object3D, s: HairStyle, c: string, hy: number, hr: number, u: number): void {
   if (s === 'bald') { ellip(p, c, 0, hy - hr * 0.1, -hr * 0.3, hr * 1.02, hr * 0.6, hr * 0.8); return; }
   if (s === 'queue') {
     // Qing 辫子: front shaved, hair on the crown and back gathered into a long braid
     ellip(p, c, 0, hy + hr * 0.3, -hr * 0.32, hr * 1.0, hr * 0.84, hr * 0.8);
-    tube(p, [[0, hy - hr * 0.2, -hr * 1.0], [0, hy - hr * 1.6, -hr * 1.3], [0, hy - hr * 3.4, -hr * 1.3], [0, hy - hr * 4.6, -hr * 1.2]], hr * 0.2, hr * 0.08, c, { radial: 7, sub: 3 });
+    tube(p, [[0, hy - hr * 0.2, -hr * 1.0], [0, hy - hr * 2.2, -hr * 1.5], [0, hy - hr * 5, -hr * 1.6], [0, hy - hr * 7, -hr * 1.5]], hr * 0.2, hr * 0.08, c, { radial: 7, sub: 3 });
     return;
   }
   // skull cap shared by most styles (pushed back so the face stays visible)

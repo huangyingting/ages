@@ -1128,15 +1128,26 @@ export const H_ROUTES2: Record<string, Builder> = {
   },
   vy_jianzhen: gp => {
     // Jianzhen's Tang voyage (753): a kentōshi-style ship — flat-bottomed hull, vermilion-and-white bulwark panels,
-    // two red masts with battened mat sails, a pavilion aft — and the blind master monk standing at the bow
-    const red = '#b3342a', wht = '#f1ead8', gold = '#d9a93a';
+    // two masts with battened mat sails, a deckhouse aft — and the blind master monk standing at the bow
+    // Ref: 遣唐使船 reconstructions (Heijō Palace replica, Nara 2010; Kibi Daijin scroll), Tōshōdai-ji Jianzhen statue: weathered
+    // vermilion and lime-white strakes, plank-roofed deckhouse, bamboo-mat sails; monks in dark robes with an ochre kasaya; ~30 m hull.
+    const red = '#8e3a2a', wht = '#d4ccb8', gold = '#7a6446';
     const H = hull(gp, {
       L: 0.78, B: 0.125, full: 0.4, tumble: 0.04, bulwark: 0.03, bulC: wht, nu: 26,
       sheer: u => 0.12 + 0.07 * Math.pow(1 - u, 2.5) + 0.06 * Math.pow(u, 2.5),
       half: u => (0.72 + 0.28 * Math.sin(Math.PI * Math.min(1, u * 1.05))) * (u > 0.85 ? 1 - (u - 0.85) * 2.2 : 1),
       keel: u => 0.04 * Math.pow(1 - u, 2) + 0.06 * Math.pow(u, 2), bands: [0.12, 0.17, 0.21],
-      paint: (u, d, y) => (y < 0.02 ? '#2a2220' : d < 0.12 ? (Math.floor(u * 22) % 3 === 0 ? red : wht) : d < 0.17 ? red : d < 0.21 ? '#1e1a18' : '#4a2e20'), deck: '#a8865a',
+      paint: (u, d, y) => (y < 0.02 ? '#2a2220' : d < 0.12 ? (Math.floor(u * 22) % 3 === 0 ? red : wht) : d < 0.17 ? red : d < 0.21 ? '#2a2420' : '#4a3424'), deck: '#8e7454',
     });
+    // Close the gap between the gunwales above the bow and stern fans, plus a transverse breastwork plank
+    const cap = new Soup();
+    for (const u of [0, 1]) {
+      const ring = Array.from({ length: 13 }, (_, j) => H.pt(u, j / 12)), cy = ring.reduce((a, q) => a + q[1], 0) / ring.length;
+      const C: V3 = [0, cy, H.z(u)], a = ring[0], b = ring[12];
+      cap.tri(C, a, b, '#3a2c22'); cap.tri(C, b, a, '#3a2c22');
+      sbox(cap, wht, 0, a[1] - 0.004, H.z(u) + (u ? -0.004 : 0.004), Math.abs(a[0]) * 2 + 0.01, 0.034, 0.006);
+    }
+    cap.mesh(gp);
     // Red posts along the white bulwark
     for (const sd of [-1, 1]) for (let i = 0; i <= 12; i++) { const q = H.gun(0.06 + i * 0.075, sd); box(gp, red, q[0] * 1.02, q[1] - 0.004, q[2], 0.008, 0.038, 0.01); }
     for (const sd of [-1, 1]) { const a = H.gun(0.03, sd), b = H.gun(0.97, sd); rod(gp, [a[0], a[1] + 0.034, a[2]], [b[0], b[1] + 0.034, b[2]], 0.004, red, 5); }
@@ -1145,26 +1156,26 @@ export const H_ROUTES2: Record<string, Builder> = {
     rbox(gp, red, 0, st + 0.035, pz, 0.14, 0.07, 0.15, 0.004);
     for (const sd of [-1, 1]) for (let i = 0; i < 3; i++) box(gp, wht, sd * 0.0705, st + 0.014, pz - 0.046 + i * 0.046, 0.003, 0.046, 0.034);
     for (let i = 0; i < 2; i++) box(gp, wht, -0.03 + i * 0.06, st + 0.014, pz + 0.0755, 0.04, 0.046, 0.003);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) cyl(gp, '#8a1e18', sx * 0.072, st, pz + sz * 0.077, 0.008, 0.075, 7);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) cyl(gp, '#6e2e22', sx * 0.072, st, pz + sz * 0.077, 0.008, 0.075, 7);
     box(gp, gold, 0, st + 0.07, pz, 0.15, 0.006, 0.16);
-    for (const sd of [-1, 1]) { const m = box(gp, '#26302f', sd * 0.048, st + 0.088, pz, 0.13, 0.014, 0.21); m.rotation.z = -sd * 0.45; }
-    box(gp, '#1a2120', 0, st + 0.112, pz, 0.018, 0.016, 0.22);
-    for (const e of [-1, 1]) drop(gp, gold, [0, st + 0.118, pz + e * 0.1], [0, st + 0.14, pz + e * 0.125], 0.007, 0.005);
-    for (const sd of [-1, 1]) for (const e of [-1, 1]) drop(gp, gold, [sd * 0.105, st + 0.068, pz + e * 0.1], [sd * 0.125, st + 0.098, pz + e * 0.118], 0.007, 0.005);
-    // Two red masts with mat sails; long streamers
-    const mast = (u: number, h: number): V3 => { const z = H.z(u), y = H.top(u); rod(gp, [0, y - 0.02, z], [0, y + h, z], 0.009, red, 7, 0.006); return [0, y + h, z]; };
+    for (const sd of [-1, 1]) { const m = box(gp, '#4a4038', sd * 0.048, st + 0.088, pz, 0.13, 0.014, 0.21); m.rotation.z = -sd * 0.45; }
+    box(gp, '#3a322c', 0, st + 0.112, pz, 0.018, 0.016, 0.22);
+    // Two timber masts with mat sails; long streamers
+    const mast = (u: number, h: number): V3 => { const z = H.z(u), y = H.top(u); rod(gp, [0, y - 0.02, z], [0, y + h, z], 0.009, '#5a4232', 7, 0.006); return [0, y + h, z]; };
     const m1 = mast(0.55, 0.52), m2 = mast(0.84, 0.38);
-    lugSail(gp, [0, m1[1] - 0.03, m1[2] - 0.012], 0.3, 0.38, 0.35, '#c9a466');
-    lugSail(gp, [0, m2[1] - 0.03, m2[2] - 0.012], 0.22, 0.26, 0.3, '#c29c5c');
-    for (const m of [m1, m2]) flag(gp, [0, m[1] + 0.004, m[2]], 0.12, 0.02, u => (u < 0.5 ? '#e0b030' : '#c22a1e'), -1, 0, 6, 2);
+    lugSail(gp, [0, m1[1] - 0.03, m1[2] - 0.012], 0.3, 0.38, 0.35, '#a89068');
+    lugSail(gp, [0, m2[1] - 0.03, m2[2] - 0.012], 0.22, 0.26, 0.3, '#a08860');
+    for (const m of [m1, m2]) flag(gp, [0, m[1] + 0.004, m[2]], 0.1, 0.016, u => (u < 0.5 ? '#a88a5a' : '#8a3a2a'), -1, 0, 6, 2);
     rod(gp, m1, [0, H.top(1) + 0.02, H.z(1)], 0.0015, '#2a2018', 3);
     rod(gp, m1, [0, H.top(0.12) + 0.12, H.z(0.08)], 0.0015, '#2a2018', 3);
-    // Big stern rudder; Jianzhen at the bow (saffron robe, red kasaya) with a disciple
+    // Big stern rudder; Jianzhen at the bow (dark robe, ochre kasaya, shaven head) with a disciple, and the crew at true scale
     box(gp, '#3a2a1c', 0, 0.03, H.z(0) - 0.02, 0.014, 0.17, 0.06);
-    const jz = person(gp, [0, H.top(0.86) - 0.004, H.z(0.86)], 0, 1, '#c8862a', { robe: true, skin: '#e2b28a', reach: 0.2 });
-    blade(jz, '#9a2a1e', [-0.02, 0.1, 0.012], [0.02, 0.03, 0.014], 0.012, 0.003, [0, 0, 1]);
-    person(gp, [0.05, H.top(0.74) - 0.004, H.z(0.74)], 0.3, 0.92, '#5a4a3a', { robe: true, skin: '#e2b28a' });
-    wake(gp, H.z(1) + 0.03, H.z(0) - 0.06, 0.1);
+    const PS = 0.34, shaven = { robe: true, skin: '#d6a47c', hair: '#b88a68' };
+    const jz = person(gp, [0, H.top(0.86) - 0.004, H.z(0.86)], 0, PS, '#4a4038', { ...shaven, reach: 0.2 });
+    blade(jz, '#8a5a32', [-0.02, 0.1, 0.012], [0.02, 0.03, 0.014], 0.012, 0.003, [0, 0, 1]);
+    person(gp, [0.03, H.top(0.8) - 0.004, H.z(0.8)], 0.3, PS * 0.97, '#5a4a3a', shaven);
+    for (const [x, u, yw, c] of [[-0.05, 0.62, 1.2, '#7a6a52'], [0.05, 0.45, -1.4, '#5b6455'], [-0.04, 0.32, 0.6, '#8a7a60'], [0.03, 0.2, Math.PI, '#6a5a44']] as const)
+      person(gp, [x, H.top(u) - 0.004, H.z(u)], yw, PS, c, { legs: '#4a4238', skin: '#c8946a', hair: '#1e1a16', pose: u === 0.62 ? 'reach' : undefined });
   },
   // --------------------------------------------------------------------------------------------- Migrations
   mg_salmon: gp => {
@@ -1369,7 +1380,8 @@ export const H_ROUTES2: Record<string, Builder> = {
   vh_qinghaitibet: gp => {
     // Qinghai–Tibet Railway: twin NJ2 diesels (dark green with a yellow stripe and yellow nose) hauling sealed,
     // oxygen-enriched coaches over the roof of the world — up to 5,072 m at Tanggula Pass
-    const sp = new Soup(), grn = '#1f4f3c', yel = '#f0c419', glass = '#1b2630';
+    // Ref: CR NJ2 (GE C38AChi, 2006) in dark green with yellow waist stripes and nose; 25T plateau coaches (Bombardier Sifang) in green/yellow.
+    const sp = new Soup(), grn = '#24493a', yel = '#d4ae3a', glass = '#1b2630';
     const stripe = (z: number, y: number, nx: number) => (Math.abs(nx) > 0.6 && y > 0.068 && y < 0.08 ? yel : null);
     diesel(sp, 0.248, 0.5, { body: grn, roof: '#5d6560', glass, front: yel, ys: [0.068, 0.08], livery: (z, y, nx) => stripe(z, y, nx) ?? (Math.abs(nx) > 0.6 && z > 0.5 - 0.06 + (y - 0.046) * 0.9 && y > 0.046 ? yel : null) });
     diesel(sp, -0.012, 0.236, { body: grn, roof: '#5d6560', glass, front: yel, ys: [0.068, 0.08], livery: stripe });
@@ -1379,12 +1391,12 @@ export const H_ROUTES2: Record<string, Builder> = {
       sp.tri(A, B, C, grn);
       sp.tri(A, C, B, grn);
     }
-    for (const sd of [-1, 1]) glow(ellip(gp, '#fff6cc', sd * 0.03, 0.06, 0.501, 0.007, 0.007, 0.003), '#fff1b0');
-    glow(ellip(gp, '#fff6cc', 0, 0.124, 0.49, 0.006, 0.006, 0.003), '#fff1b0');
+    for (const sd of [-1, 1]) glow(ellip(gp, '#f2ead0', sd * 0.03, 0.06, 0.501, 0.006, 0.006, 0.003), '#e8dcb0');
+    glow(ellip(gp, '#f2ead0', 0, 0.124, 0.49, 0.005, 0.005, 0.003), '#e8dcb0');
     sbox(sp, '#111', 0, 0.088, 0.5012, 0.03, 0.008, 0.002);
     // Two passenger coaches: green with a yellow waist band, pale roof, tinted sealed windows
     for (const [zb, zf] of [[-0.252, -0.022], [-0.49, -0.262]] as [number, number][]) {
-      coach(sp, zb, zf, { body: grn, roof: '#dfe2de', glass, yw: [0.075, 0.103], ys: [0.062, 0.07], pitch: 0.034,
+      coach(sp, zb, zf, { body: grn, roof: '#8e928e', glass, yw: [0.075, 0.103], ys: [0.062, 0.07], pitch: 0.034,
         livery: (_z, y, nx) => (Math.abs(nx) > 0.6 && y > 0.062 && y < 0.07 ? yel : null) });
     }
     for (const z of [-0.017, -0.257]) sbox(sp, '#16171a', 0, 0.04, z, 0.062, 0.09, 0.012);

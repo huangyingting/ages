@@ -1,4 +1,4 @@
-import { passerby } from '../human.ts';
+import { human, passerby } from '../human.ts';
 import * as THREE from 'three';
 import {
   type Builder, type V3, type Paint, add, mat, box, cyl, ball, rbox, rod, sweep, lathe, slab, skin, tbox,
@@ -191,79 +191,111 @@ function columns(p: THREE.Object3D, cx: number, cz: number, w: number, d: number
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Forbidden City — Hall of Supreme Harmony (太和殿)
-const forbidden: Builder = (gp, r) => {
-  const RED = r.color ?? '#b23a2e', GOLD = typeof r.roof === 'string' ? r.roof : '#e0b23a';
-  const M = '#efebe2', M2 = '#d9d3c6', DK = '#8e2219', TEAL = '#2b6070', GRN = '#3a7d60', GLD = '#d6a841';
-  const RT = { tile: GOLD, rib: shade(GOLD, 1.14), eave: '#2f6a5e', under: '#2c5f5a', ridgeC: shade(GOLD, 1.05), beastC: '#c89a2c' };
-  // Courtyard of brick paving with the white imperial way
-  paved(gp, 1.0, 0.94, 0, 0.03, '#a59a89', 0.045);
-  paved(gp, 0.12, 0.22, 0.03, 0.002, '#d8d0bf', 0.03, 0, 0.36);
-  // Flanking corridors (red walls under yellow hip-and-gable roofs) and the back wall
+// Forbidden City — Hall of Supreme Harmony (太和殿, rebuilt 1695). Proportioned from the measured hall
+// (11 × 5 bays, 60 × 33 m, 26.9 m tall on the 8.1 m three-tier marble 三台) at ≈0.0073 per metre: red
+// columns and walls, 菱花 lattice doors behind a front gallery, blue-green 和玺 bracket friezes, a double-eaved
+// 庑殿 roof in yellow glaze with 正吻 and ridge beasts. The court is lined by yellow-roofed 廊庑 with
+// 体仁阁/弘义阁 at mid-flank; officials in Qing court dress stand by the bronze 品级山 rank markers.
+const forbidden: Builder = gp => {
+  const GOLD = '#c99a3a', RED = '#8e2a1f', WALL = '#94382a', DOOR = '#9a3a26', LAT = '#c39539';
+  const M = '#e6e2d8', M2 = '#cfc9bb', BLUE = '#2c5560', GRN = '#3a6b55', BR = '#4c4232';
+  const RT = { tile: GOLD, rib: shade(GOLD, 1.06), eave: shade(GOLD, 0.8), under: '#2d5a55', ridgeC: shade(GOLD, 1.02), beastC: '#b98a2c' };
+  const Y0 = 0.022;
+  // Brick-paved court and the white stone imperial way
+  paved(gp, 0.9, 0.9, 0, Y0, '#9d968a', 0.04);
+  paved(gp, 0.09, 0.27, Y0, 0.002, '#c3bcac', 0.03, 0, 0.315);
+  // Flanking corridors (廊庑): red back wall, open colonnade toward the court, yellow hip-and-gable roof
   for (const sx of [-1, 1]) {
-    const c = grp(gp, sx * 0.452, -0.07, Math.PI / 2);
-    box(c, '#9b3a2a', 0, 0.03, 0, 0.74, 0.005, 0.07);
-    box(c, DK, 0, 0.035, -sx * 0.008, 0.72, 0.045, 0.04);
-    for (let i = 0; i <= 16; i++) cyl(c, RED, -0.35 + i * 0.04375, 0.035, sx * 0.024, 0.0038, 0.045, 6);
-    box(c, TEAL, 0, 0.078, 0, 0.72, 0.006, 0.058);
-    roof(c, { y: 0.083, w: 0.76, d: 0.095, h: 0.04, ridge: 0.35, gable: 0.45, lift: 0.008, nr: 5, ...RT, gableC: RED, hipR: 0.0028, ridgeH: 0.005 });
+    const c = grp(gp, sx * 0.402, -0.01, Math.PI / 2);
+    box(c, M2, 0, Y0, 0, 0.84, 0.004, 0.06);
+    box(c, WALL, 0, Y0, sx * 0.016, 0.82, 0.04, 0.012);
+    for (let i = 0; i <= 20; i++) cyl(c, RED, -0.41 + i * 0.041, Y0, -sx * 0.02, 0.0032, 0.04, 6);
+    box(c, BLUE, 0, Y0 + 0.04, 0, 0.82, 0.005, 0.05);
+    roof(c, { y: Y0 + 0.045, w: 0.85, d: 0.075, h: 0.032, ridge: 0.4, gable: 0.45, lift: 0.006, nr: 5, ...RT, gableC: WALL, hipR: 0.0025, ridgeH: 0.004 });
+    // 体仁阁 (east) / 弘义阁 (west): two storeys, pent roof, hip roof — set into the corridor line
+    const g = grp(gp, sx * 0.392, 0.08, Math.PI / 2);
+    box(g, M2, 0, Y0, 0, 0.17, 0.012, 0.07);
+    box(g, WALL, 0, Y0 + 0.012, 0, 0.15, 0.04, 0.05);
+    for (let i = 0; i <= 7; i++) cyl(g, RED, -0.075 + i * 0.0214, Y0 + 0.012, -sx * 0.029, 0.0034, 0.04, 6);
+    box(g, BLUE, 0, Y0 + 0.052, 0, 0.16, 0.005, 0.062);
+    roof(g, { y: Y0 + 0.057, w: 0.18, d: 0.085, h: 0.05, ridge: 0.05, upto: 0.4, lift: 0.006, nr: 3, ...RT, hipR: 0.0022 });
+    box(g, WALL, 0, Y0 + 0.06, 0, 0.14, 0.04, 0.046);
+    for (let i = 0; i < 7; i++) box(g, DOOR, -0.06 + i * 0.02, Y0 + 0.074, -sx * 0.0235, 0.014, 0.018, 0.002);
+    box(g, BLUE, 0, Y0 + 0.1, 0, 0.15, 0.005, 0.056);
+    roof(g, { y: Y0 + 0.105, w: 0.175, d: 0.08, h: 0.04, ridge: 0.05, lift: 0.008, nr: 4, ...RT, hipR: 0.0024, ridgeH: 0.005, beasts: 3 });
   }
-  box(gp, DK, 0, 0.03, -0.445, 0.82, 0.055, 0.025);
-  roof(gp, { y: 0.085, z: -0.445, w: 0.84, d: 0.05, h: 0.022, ridge: 0.42, lift: 0.004, nr: 3, ...RT, hipR: 0.0025, ridgeH: 0.004 });
-  // Three-tier white marble terrace (须弥座) with balustrades and gargoyle heads
-  const TZ = -0.03, tw = [0.66, 0.6, 0.54], td = [0.5, 0.44, 0.38], TH = 0.03;
+  box(gp, WALL, 0, Y0, -0.425, 0.77, 0.045, 0.018);
+  roof(gp, { y: Y0 + 0.045, z: -0.425, w: 0.79, d: 0.04, h: 0.018, ridge: 0.38, lift: 0.003, nr: 3, ...RT, hipR: 0.0022, ridgeH: 0.004 });
+  // 三台: three white marble 须弥座 tiers with balustrades, 螭首 spouts and front stairs with the carved 御路
+  const TZ = -0.08, tw = [0.68, 0.62, 0.56], td = [0.56, 0.5, 0.44], TH = 0.019;
   for (let k = 0; k < 3; k++) {
-    const y = 0.03 + k * TH;
-    box(gp, M2, 0, y, TZ, tw[k], 0.008, td[k]);
-    box(gp, M, 0, y + 0.008, TZ, tw[k] - 0.008, TH - 0.014, td[k] - 0.008);
-    box(gp, shade(M, 1.02), 0, y + TH - 0.006, TZ, tw[k] + 0.006, 0.006, td[k] + 0.006);
-    railRect(gp, 0, TZ, tw[k] - 0.008, td[k] - 0.008, y + TH, 0.014, M, 0.068, 0.026, true);
-    // Central stair: steps either side of the carved dragon ramp, with sloped side rails
-    const zf = TZ + td[k] / 2 + 0.035;
-    flight(gp, 0, zf, y, y + TH, 0.13, 0.035, M2, 6);
-    ramp(gp, 0, zf, y, y + TH, 0.05, 0.035, '#f6f3ec', '#ddd5c4');
-    for (const sx of [-1, 1]) rod(gp, [sx * 0.066, y + 0.012, zf], [sx * 0.066, y + TH + 0.012, zf - 0.035], 0.0025, M, 4);
+    const y = Y0 + k * TH, fz = TZ + td[k] / 2;
+    box(gp, M2, 0, y, TZ, tw[k], 0.005, td[k]);
+    box(gp, M, 0, y + 0.005, TZ, tw[k] - 0.008, TH - 0.01, td[k] - 0.008);
+    box(gp, shade(M, 1.02), 0, y + TH - 0.005, TZ, tw[k] + 0.005, 0.005, td[k] + 0.005);
+    railRect(gp, 0, TZ, tw[k] - 0.008, td[k] - 0.008, y + TH, 0.011, M, 0.06, 0.024, true);
+    for (let i = 0; i <= 12; i++) box(gp, M2, -tw[k] / 2 + (i * tw[k]) / 12, y + TH - 0.007, fz + 0.004, 0.004, 0.004, 0.008);
+    flight(gp, 0, fz + 0.03, y, y + TH, 0.11, 0.03, M2, 5);
+    ramp(gp, 0, fz + 0.03, y, y + TH, 0.042, 0.03, '#dcd6c8', '#c9c0ad');
+    for (const sx of [-1, 1]) rod(gp, [sx * 0.056, y + 0.01, fz + 0.03], [sx * 0.056, y + TH + 0.01, fz], 0.002, M, 4);
   }
-  // Bronze vats, incense burners, sundial & grain measure on the terrace
-  const TY = 0.03 + 3 * TH;
+  const TY = Y0 + 3 * TH;
+  // Bronze on the 丹陛 terrace: gilt vats, 鼎 burners, turtle and crane, 日晷 sundial (east) and 嘉量 (west)
   for (const sx of [-1, 1]) {
-    for (const [x, z] of [[0.3, 0.2], [0.32, -0.05]] as const) {
-      lathe(gp, [[0.006, 0], [0.016, 0.004], [0.018, 0.014], [0.015, 0.022], [0, 0.022]], '#5d4a2c', sx * x, 0.03, z, 10);
+    lathe(gp, [[0.006, 0], [0.013, 0.003], [0.015, 0.012], [0.013, 0.018], [0, 0.018]], '#6a5432', sx * 0.25, TY, 0.06, 10);
+    lathe(gp, [[0.006, 0], [0.005, 0.008], [0.009, 0.011], [0.009, 0.019], [0.003, 0.024], [0, 0.03]], BR, sx * 0.15, TY, 0.1, 8);
+    ball(gp, BR, sx * 0.09, TY + 0.005, 0.1, 0.008, 0.006, 0.011);
+    cyl(gp, BR, sx * 0.07, TY, 0.08, 0.0018, 0.016, 4);
+    ball(gp, BR, sx * 0.07, TY + 0.018, 0.08, 0.004, 0.005, 0.006);
+  }
+  box(gp, M2, 0.2, TY, 0.105, 0.014, 0.012, 0.014);
+  add(gp, CYLG(), mat(M), 0.2, TY + 0.017, 0.105, 0.022, 0.003, 0.022, 0, -0.7);
+  box(gp, M2, -0.2, TY, 0.105, 0.012, 0.012, 0.012);
+  box(gp, '#5f5236', -0.2, TY + 0.012, 0.105, 0.016, 0.01, 0.01);
+  // The hall: front gallery with columns standing clear of the lattice doors; solid side and rear walls
+  const HZ = TZ - 0.04, CW = 0.44, CD = 0.245, CH = 0.05;
+  rbox(gp, M2, 0, TY, HZ, CW + 0.04, 0.005, CD + 0.04, 0.002);
+  const HY = TY + 0.005, zF = HZ + CD / 2 - 0.022, zB = HZ - CD / 2 + 0.003;
+  box(gp, WALL, 0, HY, (zF + zB) / 2, CW - 0.004, CH, zF - zB);
+  const bay = CW / 11;
+  for (let i = 0; i < 11; i++) {
+    const xc = -CW / 2 + (i + 0.5) * bay, end = i === 0 || i === 10;
+    if (end) box(gp, '#7c2a1e', xc, HY, zF + 0.001, bay - 0.006, 0.018, 0.002);
+    box(gp, DOOR, xc, HY + (end ? 0.018 : 0.002), zF + 0.001, bay - 0.007, end ? 0.026 : 0.042, 0.002);
+    for (const yy of end ? [0.026, 0.036] : [0.012, 0.026, 0.036]) box(gp, LAT, xc, HY + yy, zF + 0.0025, bay - 0.009, 0.002, 0.0015);
+  }
+  columns(gp, 0, HZ, CW, CD, 11, 5, HY, CH, RED, 0.0052, M);
+  for (let i = 1; i < 11; i++) cyl(gp, RED, -CW / 2 + i * bay, HY, zF + 0.003, 0.0045, CH, 6);
+  box(gp, BLUE, 0, HY + CH, HZ, CW + 0.012, 0.007, CD + 0.012);
+  box(gp, LAT, 0, HY + CH + 0.003, HZ + CD / 2 + 0.0065, CW + 0.008, 0.0015, 0.001);
+  brackets(gp, 0, HZ, CW + 0.012, CD + 0.012, HY + CH + 0.007, GRN, '#2f5f4c', LAT, 0.016);
+  const E1 = HY + CH + 0.025;
+  roof(gp, { y: E1, z: HZ, w: CW + 0.08, d: CD + 0.08, h: 0.1, ridge: 0.14, upto: 0.47, lift: 0.016, nr: 5, ...RT, hipR: 0.0035, beasts: 5 });
+  // Upper storey (inner 9 × 3 bays) between the eaves, its frieze and the upper 庑殿 roof with 正吻
+  const UW = CW - 0.08, UD = CD - 0.09;
+  box(gp, WALL, 0, E1 + 0.01, HZ, UW, 0.038, UD);
+  for (let i = 0; i < 9; i++) box(gp, DOOR, -UW / 2 + (i + 0.5) * (UW / 9), E1 + 0.033, HZ + UD / 2 + 0.001, UW / 9 - 0.007, 0.012, 0.002);
+  for (let i = 0; i <= 9; i++) cyl(gp, RED, -UW / 2 + (i * UW) / 9, E1 + 0.028, HZ + UD / 2 + 0.002, 0.0042, 0.02, 6);
+  const E2 = E1 + 0.048;
+  box(gp, BLUE, 0, E2, HZ, UW + 0.012, 0.007, UD + 0.012);
+  box(gp, LAT, 0, E2 + 0.003, HZ + UD / 2 + 0.0065, UW + 0.008, 0.0015, 0.001);
+  brackets(gp, 0, HZ, UW + 0.012, UD + 0.012, E2 + 0.007, GRN, '#2f5f4c', LAT, 0.016);
+  roof(gp, { y: E2 + 0.025, z: HZ, w: UW + 0.08, d: UD + 0.08, h: 0.068, ridge: 0.135, lift: 0.02, ...RT, hipR: 0.004, beasts: 9, ends: 'chiwen', ridgeH: 0.009 });
+  // 品级山 rank markers flanking the imperial way, officials in dark 补服 and red-tasselled hats facing the hall
+  for (const sx of [-1, 1]) {
+    for (let i = 0; i < 9; i++) {
+      const z = 0.235 + i * 0.026;
+      cyl(gp, '#5b5446', sx * 0.06, Y0, z, 0.0035, 0.002, 6);
+      add(gp, CYLG(), mat('#4d4a3f'), sx * 0.06, Y0 + 0.002, z, 0.006, 0.006, 0.003);
     }
-    lathe(gp, [[0.008, 0], [0.006, 0.01], [0.011, 0.014], [0.011, 0.024], [0.004, 0.03], [0.002, 0.04], [0, 0.04]], '#4f3f28', sx * 0.2, TY, TZ + 0.15, 8);
-    ball(gp, '#3f4a3a', sx * 0.13, TY + 0.008, TZ + 0.16, 0.012, 0.008, 0.016);
-  }
-  box(gp, M2, -0.24, TY, TZ + 0.13, 0.016, 0.012, 0.016);
-  add(gp, CYLG(), mat(M), -0.24, TY + 0.02, TZ + 0.13, 0.024, 0.003, 0.024, 0, -0.7);
-  // The hall: 11 × 5 bays, red columns, lattice doors, painted bracket friezes, double-eaved hip roof
-  const HZ = TZ - 0.02, HY = TY + 0.004;
-  rbox(gp, M2, 0, TY, HZ, 0.5, 0.006, 0.27, 0.002);
-  const CW = 0.44, CD = 0.21, CH = 0.08;
-  box(gp, DK, 0, HY, HZ, CW - 0.04, CH, CD - 0.04);
-  for (let i = 1; i < 10; i++) {
-    const xc = -CW / 2 + (i + 0.5) * (CW / 11);
-    box(gp, '#a8402a', xc, HY + 0.004, HZ + CD / 2 - 0.019, CW / 11 - 0.006, 0.07, 0.003);
-    for (const yy of [0.022, 0.045, 0.062]) box(gp, GLD, xc, HY + yy, HZ + CD / 2 - 0.0175, CW / 11 - 0.008, 0.0022, 0.002);
-  }
-  columns(gp, 0, HZ, CW, CD, 11, 5, HY, CH, RED, 0.0068, M);
-  box(gp, TEAL, 0, HY + CH, HZ, CW + 0.016, 0.01, CD + 0.016);
-  box(gp, GLD, 0, HY + CH + 0.004, HZ + CD / 2 + 0.0085, CW + 0.012, 0.002, 0.001);
-  brackets(gp, 0, HZ, CW + 0.016, CD + 0.016, HY + CH + 0.01, GRN, '#2f6d55', GLD, 0.02);
-  const E1 = HY + CH + 0.028;
-  roof(gp, { y: E1, z: HZ, w: 0.57, d: 0.33, h: 0.12, ridge: 0.15, upto: 0.44, lift: 0.024, ...RT, beasts: 6 });
-  const UW = 0.38, UD = 0.16;
-  box(gp, RED, 0, E1 + 0.01, HZ, UW, 0.07, UD);
-  for (let i = 0; i < 9; i++) box(gp, '#7a2a1c', -UW / 2 + (i + 0.5) * (UW / 9), E1 + 0.05, HZ + UD / 2 + 0.001, UW / 9 - 0.008, 0.024, 0.002);
-  for (let i = 0; i <= 9; i++) cyl(gp, RED, -UW / 2 + (i * UW) / 9, E1 + 0.044, HZ + UD / 2 + 0.003, 0.0045, 0.036, 6);
-  const E2b = E1 + 0.08;
-  box(gp, TEAL, 0, E2b, HZ, UW + 0.012, 0.009, UD + 0.012);
-  brackets(gp, 0, HZ, UW + 0.012, UD + 0.012, E2b + 0.009, GRN, '#2f6d55', GLD, 0.019);
-  roof(gp, { y: E2b + 0.026, z: HZ, w: 0.55, d: 0.32, h: 0.15, ridge: 0.15, lift: 0.028, ...RT, beasts: 7, ends: 'chiwen', ridgeH: 0.013 });
-  // Visitors in the courtyard and on the stairs
-  const pc = ['#1f2937', '#dc2626', '#2563eb', '#f8fafc', '#16a34a', '#7c3aed'];
-  for (let i = 0; i < 14; i++) {
-    const x = -0.38 + hash3(i, 7, 1) * 0.76, z = 0.29 + hash3(i, 7, 2) * 0.15;
-    person(gp, x, 0.032, z, pc[i % pc.length]);
+    for (let row = 0; row < 4; row++) for (let col = 0; col < 3; col++) {
+      const x = sx * (0.085 + col * 0.03 + hash3(row, col, sx) * 0.004), z = 0.255 + row * 0.045;
+      human(gp, x, Y0, z, {
+        h: 0.022, ry: Math.PI, top: col === 0 && row < 2 ? '#3b2f2a' : '#2a2d3a', bottom: '#1f2029', skin: '#c49a76', hair: '#1d1915',
+        hat: '#2a2622', hatStyle: 'qing', hatBadge: '#a8322a', dress: 'ankle', shoes: '#1c1a18', detail: 'lo',
+      });
+    }
+    human(gp, sx * 0.075, TY, 0.13, { h: 0.022, ry: Math.PI, top: '#2f3446', bottom: '#2a2c36', skin: '#c49a76', hair: '#1d1915', hat: '#2a2622', hatStyle: 'qing', armor: '#3a4258', armorTrim: '#b8a26a', dress: 'ankle', shoes: '#1c1a18', detail: 'lo' });
   }
 };
 const CYLG = () => new THREE.CylinderGeometry(0.5, 0.5, 1, 12);
@@ -801,9 +833,12 @@ const petronas: Builder = (gp, r) => {
 
 
 // ---------------------------------------------------------------------------------------------------------
-// Great Wall at Jinshanling/Mutianyu — crenellated wall riding a mountain ridge with watchtowers
-const greatwall: Builder = (gp, r) => {
-  const WC = mix(r.color ?? '#b9a37e', '#e4dac6', 0.4), brick = shade(WC, 0.84), walk = mix(WC, '#8f8a80', 0.45);
+// Ming Great Wall in the Yanshan (八达岭/金山岭 type, 16th c.): grey fired-brick wall on a dressed-stone footing
+// following the ridge crest, crenellated outer parapet (垛口) and low inner parapet (宇墙), two-storey hollow
+// 敌台 towers with arched loopholes (one carrying a tiled 楼橹), scrub oak and pine on rocky slopes, and a few
+// garrison soldiers in red 胖袄 coats and bowl helmets.
+const greatwall: Builder = gp => {
+  const WC = '#858075', brick = shade(WC, 0.84), walk = '#938e83', STONE = '#a29b8a';
   const curve = new THREE.CatmullRomCurve3([[-0.4, 0.19], [-0.3, 0.07], [-0.18, 0.15], [-0.02, 0.0], [0.12, -0.12], [0.27, -0.03], [0.36, -0.15], [0.42, -0.08]].map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
   const N = 260, path = curve.getSpacedPoints(N);
   const ridgeH = (u: number) => 0.15 + 0.15 * Math.sin(u * 9.5 + 0.4) ** 2 + 0.03 * Math.sin(u * 23 + 2);
@@ -830,16 +865,16 @@ const greatwall: Builder = (gp, r) => {
   // Pre-sample the wall line so its crest hugs the ridge exactly
   const wy = path.map(q => 0.035 + hf(q.x, q.z));
   for (let it = 0; it < 2; it++) for (let k = 1; k < N; k++) wy[k] = (wy[k - 1] + wy[k] * 2 + wy[k + 1]) / 4;
-  island(gp, 0.5, hf, '#4f7a3a', (x, y, z, _nx, ny) => {
+  island(gp, 0.45, hf, '#5d6644', (x, y, z, _nx, ny) => {
     const g = fbm(x * 11, y * 6, z * 11), f = fbm(x * 30 + 5, y * 30, z * 30), dw = near(x, z)[0];
-    // bare, trampled rock along the wall so the stonework reads against the forest
-    if (dw < 0.034) return mix(f > 0.5 ? '#8f8670' : '#a39a82', '#5f7a44', sstep(0.02, 0.034, dw));
-    if (ny < 0.5 && g > 0.45) return hash3(Math.floor(x * 70), Math.floor(y * 70), Math.floor(z * 70)) > 0.4 ? '#8a8578' : '#6f6a60';
-    if (ny < 0.68 && f > 0.66) return '#9a8660';
-    return mix(mix('#3a6a30', '#62903f', g), '#2a5226', sstep(0.45, 0.7, f) * 0.8);
-  }, { rings: 36, segs: 100, side: strataSide(EARTH) });
+    // bare granite and thin grass along the crest so the brickwork reads against the scrub
+    if (dw < 0.034) return mix(f > 0.5 ? '#827b6a' : '#958d7a', '#646a48', sstep(0.02, 0.034, dw));
+    if (ny < 0.55 && g > 0.42) return hash3(Math.floor(x * 70), Math.floor(y * 70), Math.floor(z * 70)) > 0.4 ? '#857f72' : '#6c675d';
+    if (ny < 0.7 && f > 0.62) return '#8a8263';
+    return mix(mix('#4f5a39', '#6f7550', g), '#3f4a33', sstep(0.45, 0.7, f) * 0.8);
+  }, { rings: 36, segs: 100, side: strataSide(['#6b6152', '#5d5446', '#776c5b', '#524a3e']) });
   // Wall body: lofted section (outer battlement parapet, walkway, low inner parapet)
-  const HW = 0.017, WH = 0.026, PH = 0.009, PT = 0.0036;
+  const HW = 0.017, WH = 0.03, PH = 0.009, PT = 0.0036;
   const rings: V3[][] = [];
   const dirs: [number, number][] = [];
   for (let k = 0; k <= N; k++) {
@@ -867,7 +902,7 @@ const greatwall: Builder = (gp, r) => {
     tg.scale.setScalar(1.35);
     const W = 0.044, D = 0.04, H = 0.062;
     box(tg, shade(WC, 0.95), 0, 0, 0, W, H, D);
-    box(tg, shade(WC, 0.8), 0, 0, 0, W + 0.004, 0.026, D + 0.004);
+    box(tg, STONE, 0, 0, 0, W + 0.004, 0.026, D + 0.004);
     box(tg, shade(WC, 1.06), 0, H - 0.005, 0, W + 0.005, 0.003, D + 0.005);
     box(tg, shade(WC, 1.06), 0, H - 0.018, 0, W + 0.002, 0.002, D + 0.002);
     for (const [fx, fz, len] of [[0, 1, W], [0, -1, W], [1, 0, D], [-1, 0, D]] as const) {
@@ -886,16 +921,22 @@ const greatwall: Builder = (gp, r) => {
     if (ti % 3 === 1) roof(tg, { y: H + 0.002, w: 0.036, d: 0.03, h: 0.022, ridge: 0.012, lift: 0.004, th: 0.004, tile: '#5d6460', eave: '#3f4542', under: '#7a3a2e', ridgeH: 0.003, hipR: 0.0018, step: 0.008, nr: 4 });
     else box(tg, '#8a8070', 0, H + 0.002, 0, 0.016, 0.01, 0.014);
   }
-  // Mixed forest on the slopes, keeping the wall corridor clear
-  scatter(190, 41, (x, z, i) => {
+  // Scrub oak, thorn and scattered Chinese pine on the slopes, keeping the wall corridor clear
+  scatter(420, 41, (x, z, i) => {
     const [d] = near(x, z);
-    if (d < 0.042) return;
-    const y = 0.035 + hf(x, z), c = i % 17 === 0 ? '#b7893f' : i % 23 === 0 ? '#a34a2a' : ['#2f5a2e', '#3d6b36', '#4a7a3e', '#355e30'][i % 4];
-    lowball(gp, c, x, y + 0.004, z, 0.022 + hash3(i, 5, 5) * 0.012, 0.016, 0.022);
-  }, 0.47);
-  // Hikers on the walkway
-  const pc = ['#ef4444', '#2563eb', '#f8fafc', '#facc15'];
-  for (let i = 0; i < 9; i++) { const k = 30 + i * 24; person(gp, path[k].x, wy[k] + WH, path[k].z, pc[i % 4], 0.8); }
+    if (d < 0.045 || fbm(x * 9 + 2, 1, z * 9) < 0.38) return;
+    const y = 0.035 + hf(x, z) - 0.002, s = hash3(i, 5, 5);
+    if (i % 6 === 0) pine(gp, x, y, z, 0.026 + s * 0.012, '#3b4a34');
+    else lowball(gp, ['#4c5638', '#58603e', '#636645', '#4a5136'][i % 4], x, y + 0.004, z, 0.02 + s * 0.014, 0.013 + s * 0.006, 0.02 + s * 0.012, s * 3);
+  }, 0.41);
+  // Garrison soldiers in red padded coats and bowl helmets patrolling the walkway
+  for (const [i, k] of [44, 70, 150, 205].entries()) {
+    const [dx, dz] = dirs[k];
+    human(gp, path[k].x, wy[k] + WH, path[k].z, {
+      h: 0.02, ry: Math.atan2(dx, dz) + (i % 2 ? Math.PI : 0), pose: 'walk', phase: i * 0.7, top: '#7e3a2e', bottom: '#4a3a2e', skin: '#c49a76', hair: '#1d1915',
+      hat: '#4f4c47', hatStyle: 'bowl', armor: '#7e3a2e', armorTrim: '#4a4038', shoes: '#2a2420', detail: 'lo',
+    });
+  }
 };
 
 // ---------------------------------------------------------------------------------------------------------

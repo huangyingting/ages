@@ -132,18 +132,28 @@ The map should look like its period, not like a generic China:
   - places, rivers and lakes carry the name used in the year shown (`mapName`, `riverName`);
   - a modern name never appears before it was in use;
   - shifted river courses and vanished lakes appear only in their years.
-- **Capital:** one model per architectural period (`capitalModel` in `shared/data/heroes.ts`):
+- **Capital:** each capital city stands as its own palace (`capitalModel` in `shared/data/heroes.ts`):
 
-  | Period | Model | Key features |
+  | Era | Model | Subject |
   |---|---|---|
-  | Xia–Shang | `cap_erlitou` | rammed-earth halls with thatched roofs |
-  | Zhou | `cap_zhou` | terrace halls |
-  | Qin–Han to the Southern and Northern Dynasties | `cap_qinhan` | a terrace palace with que towers |
-  | Sui–Tang–Liao | `cap_tang` | the Hanyuan Hall, with flanking pavilions |
-  | Song, Western Xia, Jin | `cap_song` | a Xuande-Gate–style gate tower |
-  | Yuan | `cap_yuan` | Dadu's 工-shaped hall and a ger |
-  | Ming–Qing | `palace` | the Forbidden City hall |
-  | ROC and PRC | `monument` | |
+  | Xia | `cap_erlitou` | Erlitou Palace No. 1 |
+  | Shang | `cap_yinxu` | the Yinxu palace-temple zone at Anyang |
+  | Western Zhou | `cap_zhou` | the Fengchu courtyard on rammed earth |
+  | Eastern Zhou | `cap_luoyi` | Luoyi, with the six-horse royal chariot pit |
+  | Qin | `cap_xianyang` | Xianyang Palace No. 1 |
+  | Western Han, Xin | `cap_qinhan` | the Weiyang front hall at Chang'an |
+  | Eastern Han | `cap_luoyang` | Eastern Han Luoyang |
+  | Western Jin | `cap_taiji` | the Taiji Hall of Wei–Jin Luoyang |
+  | Eastern Jin | `cap_jiankang` | the palace city of Jiankang |
+  | Sui, Tang | `cap_tang` | the Hanyuan Hall of Chang'an |
+  | Northern Song | `cap_song` | the Xuande Gate of Kaifeng |
+  | Southern Song | `cap_linan` | Lin'an on Phoenix Hill |
+  | Yuan | `cap_yuan` | the Daming Hall of Dadu |
+  | Ming, Qing | `asia/forbidden` | the Forbidden City |
+  | ROC | `cap_nanjing_roc` | the Presidential Palace in Nanjing |
+  | PRC | `monument` | the Monument to the People's Heroes |
+
+  Periods without a single capital show a generic period hall on their era card only.
 
 - **Dress and arms:**
   - people wear their period's hats and robes (figure toolkit);
@@ -167,3 +177,11 @@ Every new or rebuilt model:
    - No hairline props: anything thinner than about 0.25 head-heights becomes a stray line on the map.
 4. **Keeps a triangle budget** close to the existing models of its class.
 5. **Is checked in the gallery** (`gallery.html?k=…`) next to its neighbours, so a family looks like a family.
+6. **Belongs to one subject.** A model stands for exactly one place, building, event or thing. A landmark of one city is never reused for another (Shenzhen is not the Lujiazui skyline, Lhasa in 641 is not the 17th-century Potala), and a period's map never shows the same model twice. Generic kinds tell their subjects apart with a `style` (`factory: soviet | oil | joint | jiangnan`, `bridge: hongqiao | lugou` …) or a dedicated hero (`heroes/sites-*.ts`). The data test "gives every subject its own model" enforces this for the map, capitals and stories.
+7. **Is realistic, not a toy.** Ages is a history atlas, so models are faithful miniatures:
+   - **People** are about 7 heads tall (`figure.ts`, `human.ts`), with small eyes, no blush and no cartoon highlights.
+   - **Proportions and form** follow the reference: storey counts, plan shape (square, octagonal, dodecagonal), roof type (庑殿, 歇山, 攒尖, 卷棚), bay counts, bracket depth, bridge span and the shape of each vessel.
+   - **Materials and colour** come from the real object: rammed earth, grey brick, weathered timber, vermilion only on columns and walls that were painted, green-grey glazed tile (yellow only for imperial buildings from the Ming on), bronze patina, celadon, iron, undyed hemp and indigo cloth. There are no candy colours, no rainbow crowds and no cartoon clouds.
+   - **No anachronisms.** Nothing appears before its time: chef's toques, modern clothes in ancient scenes, chairs before the Song, blue-and-white before the Yuan, or later rebuilds standing in for the original.
+   - **Scale inside a diorama is consistent.** People, doors, steps and trees keep their real ratios to the building; a person is about one storey high, not half of it.
+   - **Ground matches the site:** loess, paving, grass, sand or water as it is there, without decorative props that were never present.

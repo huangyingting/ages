@@ -176,7 +176,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'route', model: { kind: 'camel' }, dur: 10, color: '#d68910', keep: true,
       pts: [[108.94, 34.27], [102.6, 37.9], [95.8, 40.5], [93.5, 42.8], [89.2, 42.9], [83.0, 41.7], [80.3, 41.2], [76.0, 42.4], [72.3, 42.5],
         [69.2, 41.3], [66.97, 39.65], [67.2, 36.7], [69.2, 34.5], [72.0, 34.0], [74.8, 34.1], [77.2, 28.6], [80.9, 26.8], [83.0, 25.3], [85.44, 25.14]] },
-    { do: 'spawn', lon: 85.44, lat: 25.14, model: { kind: 'temple' }, label: lbl('那烂陀寺', 'Nalanda') },
+    { do: 'spawn', lon: 85.44, lat: 25.14, model: { kind: 'temple', hero: 'sites-a/st_nalanda' }, label: lbl('那烂陀寺', 'Nalanda') },
     cap('他在天竺那烂陀寺学习多年。', 'He studies for years at Nalanda in India.'),
     { do: 'route', dur: 7, color: '#d68910', dashed: true, keep: true,
       pts: [[85.44, 25.14], [77.2, 28.6], [72.0, 34.0], [71.5, 37.0], [75.99, 39.47], [79.9, 37.1], [83.6, 37.0], [88.2, 39.0], [94.66, 40.14], [102.6, 37.9], [108.94, 34.27]] },
@@ -190,7 +190,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'route', model: { kind: 'tent' }, dur: 7, color: '#c0392b', keep: true,
       pts: [[108.94, 34.27], [105.7, 34.6], [103.8, 36.06], [101.78, 36.62], [101.1, 36.4], [99.6, 35.3], [97.0, 33.0], [94.0, 31.5], [92.0, 30.8], [91.11, 29.65]] },
     year(641),
-    { do: 'spawn', lon: 91.11, lat: 29.65, model: { kind: 'temple' }, label: lbl('逻些（拉萨）', 'Rasa (Lhasa)') },
+    { do: 'spawn', lon: 91.11, lat: 29.65, model: { kind: 'temple', hero: 'sites-a/st_jokhang' }, label: lbl('逻些（拉萨）', 'Rasa (Lhasa)') },
     cap('她带去了中原的工艺、农技和典籍，唐蕃“和同为一家”。', 'She brought crafts, seeds and books; Tang and Tubo became “one family”.'),
   ],
 
@@ -199,7 +199,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     cap('753年，鉴真第六次东渡。', '753: Jianzhen sets out on his sixth attempt.'),
     { do: 'route', model: { kind: 'junk' }, dur: 7, color: '#2e86c1', keep: true,
       pts: [[119.42, 32.39], [120.6, 31.9], [121.8, 31.3], [124.5, 30.6], [128.0, 30.0], [130.3, 31.4], [130.4, 33.6], [132.5, 34.0], [135.0, 34.5], [135.8, 34.68]] },
-    { do: 'spawn', lon: 135.8, lat: 34.68, model: { kind: 'temple' }, label: lbl('唐招提寺', 'Tōshōdai-ji') },
+    { do: 'spawn', lon: 135.8, lat: 34.68, model: { kind: 'temple', hero: 'sites-a/st_toshodaiji' }, label: lbl('唐招提寺', 'Tōshōdai-ji') },
     cap('双目失明的鉴真终于抵达日本，传播佛法与盛唐文化。', 'Blind but undaunted, Jianzhen reaches Japan and spreads Buddhism and Tang culture.'),
   ],
 
@@ -220,7 +220,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     year(959), title('北宋建立', 'Founding of the Song', '960年 · 陈桥兵变', '960 · the Chenqiao mutiny'), fly(114.4, 34.95, 14),
     { do: 'army', pts: [[114.62, 35.1], [114.5, 34.98], [114.35, 34.82]], color: RED, dur: 3, count: 24, unit: 'horse', label: lbl('赵匡胤', 'Zhao Kuangyin') },
     banner(114.62, 35.1, '黄袍加身', 'The yellow robe', '#d4ac0d', lbl('陈桥驿', 'Chenqiao')),
-    { do: 'spawn', lon: 114.31, lat: 34.8, model: { kind: 'palace' }, label: lbl('东京开封府', 'Kaifeng') },
+    { do: 'spawn', lon: 114.31, lat: 34.8, model: { kind: 'palace', hero: 'capitals/cap_song' }, label: lbl('东京开封府', 'Kaifeng') },
     wipe(960, 114.31, 34.8, RED),
     cap('960年，赵匡胤陈桥兵变，黄袍加身，建立宋朝。', '960: Zhao Kuangyin is proclaimed emperor at Chenqiao and founds the Song.'),
     fly(110, 36, 60, 0.8), year(1100), { do: 'highlight', polity: 'bsong', dur: 3 },
@@ -277,8 +277,8 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'build', kind: 'wall', dur: 7, pts: [[98.3, 39.8], [100.6, 39.1], [102.6, 38.4], [103.9, 37.5], [104.8, 37.7], [106.2, 38.6], [107.6, 37.7],
       [109.7, 38.4], [111.1, 39.2], [112.4, 40.0], [113.3, 40.4], [114.9, 41.0], [116.4, 40.7], [117.6, 40.5], [118.9, 40.3], [119.75, 40.0],
       [120.5, 41.5], [122.0, 42.5], [123.6, 42.8], [124.6, 42.3], [125.5, 41.3], [124.4, 40.0]] },
-    { do: 'spawn', lon: 98.21, lat: 39.8, model: { kind: 'gate' }, label: lbl('嘉峪关', 'Jiayu Pass') },
-    { do: 'spawn', lon: 119.75, lat: 40.0, model: { kind: 'gate' }, label: lbl('山海关', 'Shanhai Pass') },
+    { do: 'spawn', lon: 98.21, lat: 39.8, model: { kind: 'gate', hero: 'sites-b/st_jiayuguan' }, label: lbl('嘉峪关', 'Jiayu Pass') },
+    { do: 'spawn', lon: 119.75, lat: 40.0, model: { kind: 'gate', hero: 'sites-b/st_shanhaiguan' }, label: lbl('山海关', 'Shanhai Pass') },
     cap('西起嘉峪关，东至鸭绿江。', 'From Jiayu Pass to the Yalu River.'),
     orbit(35, 4),
   ],
@@ -330,7 +330,7 @@ export const STORIES: Record<string, StoryStep[]> = {
   yuanmingyuan: [
     year(1860), title('火烧圆明园', 'Burning of the Old Summer Palace', '1860年10月', 'October 1860'), fly(117, 39.5, 16),
     { do: 'army', pts: [[117.7, 38.98], [117.3, 39.3], [116.8, 39.75], [116.35, 39.98]], color: '#566573', dur: 4, count: 30, unit: 'mixed', label: lbl('英法联军', 'Anglo-French force'), follow: true },
-    { do: 'spawn', lon: 116.3, lat: 40.01, model: { kind: 'palace' }, label: lbl('圆明园', 'Yuanmingyuan') },
+    { do: 'spawn', lon: 116.3, lat: 40.01, model: { kind: 'palace', hero: 'sites-b/st_yuanmingyuan' }, label: lbl('圆明园', 'Yuanmingyuan') },
     { do: 'fx', lon: 116.3, lat: 40.01, fx: 'fire', dur: 6, par: true },
     banner(116.3, 40.01, '万园之园', 'Garden of gardens', '#7b241c', lbl('毁于一炬', 'reduced to ashes')),
     orbit(40, 4, true),
@@ -376,7 +376,7 @@ export const STORIES: Record<string, StoryStep[]> = {
 
   may4: [
     title('五四运动', 'The May Fourth Movement', '1919年5月4日', '4 May 1919'), year(1919), fly(116.39, 39.9, 8, 0.95),
-    { do: 'spawn', lon: 116.39, lat: 39.905, model: { kind: 'gate' }, label: lbl('天安门', 'Tiananmen') },
+    { do: 'spawn', lon: 116.39, lat: 39.905, model: { kind: 'gate', style: 'tiananmen' }, label: lbl('天安门', 'Tiananmen') },
     { do: 'fx', lon: 116.39, lat: 39.9, fx: 'flag', color: '#ecf0f1' },
     cap('1919年5月4日，北京学生在天安门前集会游行。', '4 May 1919: Beijing students rally at Tiananmen.'),
     fly(118.8, 35.0, 40, 0.85),
@@ -386,7 +386,7 @@ export const STORIES: Record<string, StoryStep[]> = {
 
   cpc_found: [
     title('中国共产党成立', 'Founding of the CPC', '1921年7月', 'July 1921'), year(1921), fly(121.1, 31.0, 8, 0.95),
-    { do: 'spawn', lon: 121.47, lat: 31.23, model: { kind: 'monument' }, label: lbl('中共一大会址', 'Site of the 1st Congress') },
+    { do: 'spawn', lon: 121.47, lat: 31.23, model: { kind: 'monument', style: 'shikumen' }, label: lbl('中共一大会址', 'Site of the 1st Congress') },
     cap('1921年7月，中共一大在上海召开。', 'July 1921: the CPC’s First Congress opens in Shanghai.'),
     { do: 'route', dur: 3, color: '#c0392b', dashed: true, pts: [[121.47, 31.23], [121.0, 31.0], [120.75, 30.75]] },
     { do: 'spawn', lon: 120.75, lat: 30.75, model: { kind: 'redboat' }, label: lbl('南湖红船', 'The Red Boat') },
@@ -409,7 +409,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     cap('1934年10月，中央红军从瑞金出发长征。', 'October 1934: the Central Red Army leaves Ruijin.'),
     { do: 'army', color: '#c0392b', dur: 5, count: 30, keep: true, follow: true, label: lbl('中央红军', 'Central Red Army'),
       pts: [[116.03, 25.89], [114.6, 25.3], [112.5, 25.4], [110.9, 25.7], [109.6, 26.2], [108.3, 26.6], [106.93, 27.73]] },
-    year(1935), { do: 'spawn', lon: 106.93, lat: 27.73, model: { kind: 'monument' }, label: lbl('遵义会议', 'Zunyi Conference') },
+    year(1935), { do: 'spawn', lon: 106.93, lat: 27.73, model: { kind: 'monument', style: 'zunyi' }, label: lbl('遵义会议', 'Zunyi Conference') },
     banner(106.93, 27.73, '遵义会议', 'Zunyi Conference', '#c0392b', lbl('生死攸关的转折点', 'a life-or-death turning point')),
     cap('1935年1月遵义会议，党的历史上生死攸关的转折点。', 'January 1935: the Zunyi Conference, a life-or-death turning point.'),
     { do: 'army', color: '#c0392b', dur: 4.5, count: 26, keep: true, follow: true,
@@ -441,7 +441,7 @@ export const STORIES: Record<string, StoryStep[]> = {
 
   july7: [
     year(1936), title('七七事变', 'The Marco Polo Bridge Incident', '1937年7月7日 · 全民族抗战开始', '7 July 1937 · the War of Resistance begins'), fly(116.21, 39.85, 7, 0.95),
-    { do: 'spawn', lon: 116.21, lat: 39.85, model: { kind: 'bridge' }, label: lbl('卢沟桥', 'Marco Polo Bridge') },
+    { do: 'spawn', lon: 116.21, lat: 39.85, model: { kind: 'bridge', style: 'lugou' }, label: lbl('卢沟桥', 'Marco Polo Bridge') },
     { do: 'clash', lon: 116.23, lat: 39.85, a: '#2e86c1', b: JP, angle: 270, dur: 5, count: 18, labels: [lbl('第29军', '29th Army'), lbl('日军', 'Japanese')] },
     banner(116.21, 39.85, '卢沟桥', 'Marco Polo Bridge', '#7b241c', lbl('“卢沟桥即其坟墓”', '“Lugou Bridge shall be our grave”')),
     cap('1937年7月7日，日军炮轰宛平城，中国守军奋起抵抗。', '7 July 1937: Japanese guns shell Wanping and Chinese troops fight back.'),
@@ -485,7 +485,7 @@ export const STORIES: Record<string, StoryStep[]> = {
 
   founding: [
     year(1949), title('开国大典', 'The Founding Ceremony', '1949年10月1日', '1 October 1949'), fly(116.39, 39.9, 5, 0.97),
-    { do: 'spawn', lon: 116.391, lat: 39.907, model: { kind: 'gate' }, label: lbl('天安门', 'Tiananmen') },
+    { do: 'spawn', lon: 116.391, lat: 39.907, model: { kind: 'gate', style: 'tiananmen' }, label: lbl('天安门', 'Tiananmen') },
     cap('1949年10月1日下午3时，开国大典在天安门广场隆重举行。', '3 p.m., 1 October 1949: the founding ceremony at Tiananmen Square.'),
     { do: 'fx', lon: 116.391, lat: 39.905, fx: 'flag', color: '#de2910' },
     banner(116.391, 39.907, '中华人民共和国成立了', 'The People’s Republic is founded', '#de2910'),
@@ -507,9 +507,9 @@ export const STORIES: Record<string, StoryStep[]> = {
 
   shenzhen: [
     title('改革开放', 'Reform and Opening Up', '经济特区', 'special economic zones'), year(1979), fly(114.06, 22.54, 6, 0.9),
-    { do: 'spawn', lon: 114.06, lat: 22.54, model: { kind: 'hut' }, scale: 0.8, label: lbl('深圳（1979）', 'Shenzhen (1979)') },
+    { do: 'spawn', lon: 114.06, lat: 22.54, model: { kind: 'hut', hero: 'sites-b/st_shenzhen79' }, scale: 0.8, label: lbl('深圳（1979）', 'Shenzhen (1979)') },
     cap('1980年，深圳从一个边陲小镇成为经济特区。', '1980: the border town of Shenzhen becomes a Special Economic Zone.'),
-    year(2000), { do: 'spawn', lon: 114.06, lat: 22.54, model: { kind: 'skyline' }, label: lbl('深圳', 'Shenzhen') },
+    year(2000), { do: 'spawn', lon: 114.06, lat: 22.54, model: { kind: 'skyline', style: 'shenzhen' }, label: lbl('深圳', 'Shenzhen') },
     { do: 'fx', lon: 114.06, lat: 22.54, fx: 'glow', color: '#f1c40f', dur: 3 },
     cap('“深圳速度”：一座现代化大都市拔地而起。', '“Shenzhen speed”: a modern metropolis rises.'),
     orbit(50, 5),
@@ -545,7 +545,7 @@ export const STORIES: Record<string, StoryStep[]> = {
 
   shenzhou5: [
     title('神舟五号', 'Shenzhou 5', '2003年10月15日', '15 October 2003'), year(2003), fly(100.28, 40.96, 6, 0.85),
-    { do: 'spawn', lon: 100.28, lat: 40.96, model: { kind: 'rocket' }, scale: 1.4, label: lbl('神舟五号', 'Shenzhou 5') },
+    { do: 'spawn', lon: 100.28, lat: 40.96, model: { kind: 'rocket', style: 'cz2f' }, scale: 1.4, label: lbl('神舟五号', 'Shenzhou 5') },
     { do: 'fx', lon: 100.28, lat: 40.96, fx: 'smoke', dur: 4 },
     cap('2003年10月15日，杨利伟乘神舟五号飞向太空。', '15 October 2003: Yang Liwei rides Shenzhou 5 into space.', 4),
     orbit(40, 4),

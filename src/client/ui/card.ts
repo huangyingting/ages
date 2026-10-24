@@ -10,7 +10,7 @@ import { kindName, lang, t } from '../lib/i18n.ts';
 import type { Progress } from '../lib/storage.ts';
 import { fill, h, icon, iconBtn } from './dom.ts';
 import { Preview } from './preview.ts';
-import { personModel, placeModel } from '../../shared/data/heroes.ts';
+import { capitalModel, personModel, placeModel } from '../../shared/data/heroes.ts';
 import { lifeOf, type LifeItem, type LifeKind } from '../../shared/data/life.ts';
 import { lifeEvent, lifePlace } from '../../shared/data/scenery.ts';
 
@@ -290,7 +290,7 @@ export class Card {
     const figures = dy ? PEOPLE.filter(p => p.dyn === dy.id) : [];
     const life = lifeOf(era.id).filter(x => x.kind !== 'person');
     const seat = cap ? tr(placeName(cap, era.start), L) : dy?.seat.zh ? tr(dy.seat, L) : '';
-    const model: ModelRecipe = cap ? placeModel(cap) : era.start < -2000 ? { kind: 'hut' } : { kind: 'palace' };
+    const model: ModelRecipe = era.start < -2000 ? { kind: 'hut' } : capitalModel(era);
     this.setHero(model, t('era'), era.color, [i + 1, ERAS.length],
       i > 0 ? () => this.hooks.era(ERAS[i - 1].id) : undefined, i < ERAS.length - 1 ? () => this.hooks.era(ERAS[i + 1].id) : undefined);
     fill(this.body,

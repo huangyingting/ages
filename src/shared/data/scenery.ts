@@ -1,5 +1,5 @@
 import { EVENTS } from './events.ts';
-import { personModel } from './heroes.ts';
+import { capitalModel, personModel } from './heroes.ts';
 import { personNamed, type Person } from './jiangshan.ts';
 import { LIFE, lifeOf, type LifeItem, type LifeKind } from './life.ts';
 import { ERAS } from './eras.ts';
@@ -93,14 +93,16 @@ export function sceneryOf(era: Era, events: HistEvent[] = EVENTS): SceneryItem[]
     taken.push(at);
     life.push({ event: '', kind: l.kind, ...at, model: l.model, name: l.name, ...(l.person ? { person: l.person } : {}), life: l, level: l.tier === 2 ? 3 : 2, yaw: l.kind === 'person' ? -0.4 : 0.3 });
   }
-  const sameModel = (a: ModelRecipe, b: ModelRecipe) => (a.hero ? a.hero === b.hero : !b.hero && a.kind === b.kind && a.style === b.style);
+  const sameModel = (a: ModelRecipe, b: ModelRecipe) => a.style === b.style && (a.hero || b.hero ? a.hero === b.hero : a.kind === b.kind);
   const marks: SceneryItem[] = [];
   for (const e of list) {
     if (marks.length >= MAX_LANDMARKS) break;
     if (e.kind === 'war' || !isLandmark(e.model)) continue;
-    if (cap && e.model.kind === 'palace' && near(e, cap, 0.8)) continue;
+    // a dynasty's seat is its capital model; generic palaces would only repeat it
+    if (e.model.kind === 'palace' && !e.model.hero) continue;
     const m = e.model;
-    if (life.some(l => sameModel(l.model, m) && near(l.life!, e, 3))) continue;
+    // one model stands for one subject: never twice on a period's map
+    if ([...life, ...marks].some(l => sameModel(l.model, m)) || (cap && sameModel(capitalModel(era), m))) continue;
     const at = room(e, taken, LANDMARK_RINGS);
     if (!at) continue;
     taken.push(at);
@@ -116,11 +118,14 @@ export function sceneryOf(era: Era, events: HistEvent[] = EVENTS): SceneryItem[]
     if (seen.has(zh)) continue;
     const p = personNamed(n.zh) ?? personNamed(zh);
     if (!p || seen.has(p.name.zh)) continue;
+    const model = bare(personModel(p));
+    // a named hero already standing as their event's landmark (玄奘西行) isn't repeated beside it
+    if (model.hero && [...life, ...marks].some(x => sameModel(x.model, model))) continue;
     const at = room(marks.find(m => m.event === e.id) ?? e, taken, PERSON_RINGS);
     if (!at) continue;
     taken.push(at);
     seen.add(zh);
-    people.push({ event: e.id, kind: 'person', ...at, model: bare(personModel(p)), name: p.name, person: p, level: e.weight === 1 ? 2 : 3, yaw: -0.4 });
+    people.push({ event: e.id, kind: 'person', ...at, model, name: p.name, person: p, level: e.weight === 1 ? 2 : 3, yaw: -0.4 });
   }
   const all = [...life, ...marks, ...people];
   keyItems(all, list);

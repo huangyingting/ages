@@ -76,46 +76,65 @@ function rocks(p: THREE.Object3D, c: string, pts: [number, number, number][], y:
 
 // ---------------------------------------------------------------- ship / vehicles / props
 
-/** Ming treasure ship (宝船): bluff hull, high stern castle, five battened red sails, eye on the bow. */
-function treasureShip(p: THREE.Object3D, cx: number, cy: number, cz: number, L: number): void {
-  const W = L * 0.12, D = L * 0.085, n = 10;
-  const sheer = (t: number) => D * (0.5 + 0.7 * Math.pow(Math.abs(2 * t - 1), 2.4) + (t > 0.5 ? 0.45 * (2 * t - 1) : 0));
+/** Ming treasure ship (宝船) after the Nanjing Treasure-Shipyard replica: a 福船-type hull with a flat transom bow and a
+ *  high square stern, dark planking under a vermilion upper strake, bow eyes, a stern deckhouse, a deep rudder and six
+ *  masts with battened junk sails. Seen broadside, bow toward −x. */
+function baochuan(p: THREE.Object3D, cx: number, cy: number, cz: number, L: number): void {
+  const W = L * 0.1, D = L * 0.07, n = 16;
+  const sheer = (t: number) => D * (0.8 + 0.6 * Math.pow(Math.max(0, 1 - 2.5 * t), 2) + 1.3 * Math.pow(Math.max(0, (t - 0.55) / 0.45), 2));
+  const half = (t: number) => W * (t < 0.4 ? 0.62 + 0.38 * Math.sin((t / 0.4) * Math.PI / 2) : 1 - 0.22 * Math.pow((t - 0.4) / 0.6, 2));
+  const X = (t: number) => cx + (t - 0.5) * L;
   const rings: V3[][] = [];
   for (let i = 0; i <= n; i++) {
-    const t = i / n, x = cx + (t - 0.5) * L, w = W * (0.6 + 0.4 * Math.sin(Math.PI * t)), s = sheer(t), d = D * (0.3 + 0.7 * Math.sin(Math.PI * t));
-    rings.push([[x, cy + s, cz - w], [x, cy + s * 0.25, cz - w * 0.98], [x, cy - d * 0.6, cz - w * 0.72], [x, cy - d, cz], [x, cy - d * 0.6, cz + w * 0.72], [x, cy + s * 0.25, cz + w * 0.98], [x, cy + s, cz + w]]);
+    const t = i / n, x = X(t), w = half(t), s = sheer(t), d = D * (0.3 + 0.7 * Math.sin(Math.PI * t));
+    rings.push([[x, cy + s, cz - w], [x, cy + s * 0.2, cz - w], [x, cy - d * 0.55, cz - w * 0.8], [x, cy - d, cz - w * 0.3],
+      [x, cy - d, cz + w * 0.3], [x, cy - d * 0.55, cz + w * 0.8], [x, cy + s * 0.2, cz + w], [x, cy + s, cz + w]]);
   }
-  skin(p, rings, '#5b3a23', {
+  skin(p, rings, '#3a2a1e', {
     caps: true, flat: true,
     paint: (x, y, _z, _nx, ny) => {
-      const t = (x - cx) / L + 0.5, s = cy + sheer(Math.min(1, Math.max(0, t)));
-      if (ny > 0.75) return '#b08254';
-      if (y > s - D * 0.28) return '#a3321f';
-      if (y > s - D * 0.42) return '#e0b44c';
-      return Math.floor((y - cy) * 160) % 2 ? '#5b3a23' : '#4d311e';
+      const s = cy + sheer(Math.min(1, Math.max(0, (x - cx) / L + 0.5)));
+      if (ny > 0.8) return '#8a7052';
+      if (y > s - D * 0.3) return '#7a2e22';
+      if (y > s - D * 0.38) return '#a88a4c';
+      if (y < cy + D * 0.08) return '#2a211b';
+      return Math.floor((y - cy) * 220) % 2 ? '#3d2c20' : '#463324';
     },
   });
-  // bow eye on the visible flank
-  const bx = cx - L * 0.43, by = cy + sheer(0.07) * 0.45;
-  ellip(p, '#f5f0e1', bx, by, cz + W * 0.62, 0.022, 0.014, 0.008);
-  ellip(p, '#111827', bx + 0.004, by, cz + W * 0.66, 0.009, 0.009, 0.006);
-  // stern castle with gallery and a curved roof
-  const sx = cx + L * 0.37, sy = cy + sheer(0.87);
-  rbox(p, '#8a2e1e', sx, sy, cz, L * 0.16, 0.05, W * 1.6, 0.006);
-  for (let i = 0; i < 5; i++) box(p, '#e0b44c', sx - L * 0.06 + i * L * 0.03, sy + 0.012, cz + W * 0.8, 0.008, 0.022, 0.004);
-  gable(p, L * 0.19, 0.03, W * 1.9, '#3f3a36', sx, sy + 0.05, cz);
-  rbox(p, '#8a2e1e', cx - L * 0.4, cy + sheer(0.1), cz, L * 0.1, 0.025, W * 1.4, 0.005);
-  box(p, '#4d311e', cx + L * 0.5, cy - D * 0.6, cz, 0.012, D * 1.3, 0.008); // rudder
-  // masts & sails (fore-and-aft battened junk sails seen broadside)
-  const masts: [number, number, number][] = [[0.14, 0.2, 0.08], [0.3, 0.3, 0.11], [0.48, 0.36, 0.13], [0.65, 0.3, 0.11], [0.8, 0.22, 0.085]];
-  masts.forEach(([t, h, sw], i) => {
-    const mx = cx + (t - 0.5) * L, my = cy + sheer(t);
-    rod(p, [mx, my, cz], [mx, my + h, cz], 0.0045, '#3b2a1d', 5);
-    const sail = slab(p, [[-sw * 0.62, 0], [sw * 0.38, 0], [sw * 0.42, h * 0.8], [-sw * 0.05, h * 0.86], [-sw * 0.58, h * 0.74]], 0.004, tint('#b5452b', (i % 2) * 0.06), 0, false);
-    sail.position.set(mx, my + h * 0.12, cz + 0.006);
-    for (let k = 1; k <= 5; k++) box(p, '#4a2a1b', mx - sw * 0.1, my + h * 0.12 + (h * 0.78) * (k / 6), cz + 0.006, sw * 0.98, 0.0035, 0.009);
-    box(p, '#e0b44c', mx + 0.012, my + h - 0.02, cz, 0.024, 0.014, 0.003);
+  // painted eyes (龙目) on the bow
+  const ex = X(0.05), ey = cy + sheer(0.05) * 0.55, ez = cz + half(0.05) + 0.002;
+  ellip(p, '#e3dac4', ex, ey, ez, 0.016, 0.011, 0.004);
+  ellip(p, '#1a1614', ex - 0.002, ey, ez + 0.002, 0.007, 0.007, 0.004);
+  // low forecastle and the two-storey stern castle (舵楼) with windows and a tiled roof
+  box(p, '#5a3a28', X(0.08), cy + sheer(0.12) - 0.004, cz, L * 0.09, 0.02, half(0.08) * 1.8);
+  const xs = X(0.9), ys = cy + sheer(0.83) - 0.004;
+  box(p, '#6a3626', xs, ys, cz, L * 0.17, 0.042, half(0.9) * 1.9);
+  for (let i = 0; i < 6; i++) box(p, '#241b15', xs - L * 0.07 + i * L * 0.028, ys + 0.016, cz + half(0.9) * 0.95 + 0.001, 0.01, 0.014, 0.003);
+  box(p, '#a88a4c', xs, ys + 0.04, cz, L * 0.175, 0.004, half(0.9) * 1.95);
+  box(p, '#6a3626', xs + L * 0.02, ys + 0.044, cz, L * 0.1, 0.028, half(0.9) * 1.4);
+  gable(p, L * 0.13, 0.022, half(0.9) * 1.7, '#3a3430', xs + L * 0.02, ys + 0.072, cz);
+  // deep stern rudder and its tiller
+  box(p, '#2e231a', X(1) + 0.012, cy - D * 0.9, cz, 0.018, D * 2.2, 0.006);
+  rod(p, [X(1) + 0.012, cy + D * 1.3, cz], [X(0.94), cy + sheer(0.94) + 0.006, cz], 0.003, '#2e231a', 4);
+  // six masts carrying battened mat sails; sheets fan from the batten ends to the deck
+  const H = L * 0.58;
+  const masts: [number, number][] = [[0.08, 0.5], [0.23, 0.78], [0.41, 1], [0.58, 0.84], [0.73, 0.64], [0.86, 0.46]];
+  masts.forEach(([t, k], i) => {
+    const h = H * k, mx = X(t), my = cy + sheer(t), sw = h * 0.5, hs = h * 0.82, sb = my + h * 0.13, sz = cz + 0.008 + (i % 2) * 0.007;
+    rod(p, [mx, my, cz], [mx, my + h, cz], 0.003 + 0.003 * k, '#3a2a1d', 6);
+    const leech = (f: number) => (f < 0.55 ? 0.68 + 0.1 * f / 0.55 : 0.78 - 0.14 * (f - 0.55) / 0.45) * sw;
+    const luff = -0.32 * sw, topL = 0.86;
+    const sail = slab(p, [[luff, 0], [leech(0), 0], [leech(0.55), 0.55 * hs], [leech(1), hs], [luff, topL * hs]], 0.003, tint('#a8804f', (i % 2) * 0.05 - 0.02), 0, false);
+    sail.position.set(mx, sb, sz);
+    for (let j = 0; j <= 7; j++) {
+      const f = j / 7;
+      rod(p, [mx + luff - 0.004, sb + f * topL * hs, sz + 0.004], [mx + leech(f) + 0.006, sb + f * hs, sz + 0.004], j === 0 || j === 7 ? 0.0028 : 0.0015, '#3b2a1d', 4);
+    }
+    for (const f of [0.25, 0.5, 0.75]) rod(p, [mx + leech(f) + 0.005, sb + f * hs, sz + 0.004], [mx + leech(0) + 0.025, my + 0.004, sz], 0.0007, '#2e241c', 3);
   });
+  // swallow-tailed pennant on the mainmast
+  const mm = X(0.41), mt = cy + sheer(0.41) + H;
+  slab(p, [[0, 0], [0.06, 0.004], [0.045, -0.008], [0.06, -0.02], [0, -0.016]], 0.002, '#8a3a2a', 0, false).position.set(mm, mt, cz);
 }
 
 /** Kneeling Bactrian camel with silk bales — used for Marco Polo. Faces +x locally. */
@@ -136,11 +155,11 @@ function camel(p: THREE.Object3D, x: number, y: number, z: number, s: number, ry
   ellip(grp, tint(c, -0.12), 0.45, 0.66, 0, 0.03, 0.03, 0.034);
   for (const sz of [-1, 1]) { ellip(grp, '#1f1a17', 0.4, 0.7, sz * 0.036, 0.01); ellip(grp, c, 0.36, 0.72, sz * 0.03, 0.012, 0.02, 0.008); }
   tube(grp, [[-0.23, 0.44, 0], [-0.27, 0.32, 0]], 0.012, 0.008, d, { radial: 4, sub: 2 });
-  // red saddle cloth between the humps and blue/gold bales of silk on both flanks
-  box(grp, '#9b1c1c', -0.01, 0.5, 0, 0.09, 0.012, 0.25);
+  // felt saddle cloth between the humps and felt-wrapped bales lashed on both flanks
+  box(grp, '#6e3a2c', -0.01, 0.5, 0, 0.09, 0.012, 0.25);
   for (const sz of [-1, 1]) {
-    const b1 = cyl(grp, sz > 0 ? '#2563eb' : '#e0b44c', 0, 0.38, sz * 0.14, 0.045, 0.14, 10); b1.rotation.z = Math.PI / 2;
-    box(grp, '#7c5a3a', 0, 0.4, sz * 0.14, 0.012, 0.095, 0.095);
+    const b1 = cyl(grp, sz > 0 ? '#8c7a5c' : '#9a8460', 0, 0.38, sz * 0.14, 0.045, 0.14, 10); b1.rotation.z = Math.PI / 2;
+    box(grp, '#4a3a2a', 0, 0.4, sz * 0.14, 0.012, 0.095, 0.095);
   }
   rod(grp, [0.43, 0.66, 0], [0.5, 0.35, 0.12], 0.003, '#7c5a3a', 3);
 }
@@ -263,88 +282,27 @@ function vega(p: THREE.Object3D, x: number, y: number, z: number, s: number, ry:
 const ring = (p: THREE.Object3D, c: string, x: number, y: number, z: number, R: number, rx = 0, ry = 0, rz = 0, k = 0.12) =>
   add(p, g('pc-torus' + k, () => new THREE.TorusGeometry(1, k, 6, 18)), mat(c), x, y, z, R, R, R, ry, rx, rz);
 
-/** Seven-storey square brick pagoda (Big Wild Goose Pagoda in Xi'an). */
-function goosePagoda(p: THREE.Object3D, x: number, y: number, z: number, s: number): void {
+/** Rammed-earth beacon tower (烽燧) of the Hexi corridor / Dunhuang frontier: a battered square tower laid in earth
+ *  courses with reed layers, a low parapet and the beacon poles on top. */
+function beacon(p: THREE.Object3D, x: number, y: number, z: number, s: number): void {
   const grp = new THREE.Group();
-  grp.position.set(x, y, z); grp.scale.setScalar(s); p.add(grp);
-  const B = '#c7a77c';
-  box(grp, tint(B, -0.1), 0, 0, 0, 0.34, 0.06, 0.34);
-  let yy = 0.06;
-  for (let i = 0; i < 7; i++) {
-    const w = 0.26 * (1 - i * 0.075), h = (i === 0 ? 0.14 : 0.1) * (1 - i * 0.03);
-    box(grp, tint(B, (i % 2) * 0.04), 0, yy, 0, w, h, w);
-    for (const [ax, az, ry] of [[0, w / 2, 0], [w / 2, 0, Math.PI / 2], [0, -w / 2, 0], [-w / 2, 0, Math.PI / 2]] as const)
-      box(grp, '#3a2a20', ax, yy + h * 0.25, az, w * 0.16, h * 0.5, 0.012, ry);
-    for (const sx of [-1, 1]) box(grp, tint(B, -0.06), sx * w * 0.32, yy, w / 2 + 0.003, 0.012, h, 0.008);
-    box(grp, '#8a6a4a', 0, yy + h, 0, w + 0.05, 0.016, w + 0.05);
-    box(grp, '#9c7a56', 0, yy + h + 0.016, 0, w + 0.02, 0.01, w + 0.02);
-    yy += h + 0.026;
+  grp.position.set(x, y, z); grp.rotation.y = 0.35; grp.scale.setScalar(s); p.add(grp);
+  const E = '#b39871', r0 = 0.15, r1 = 0.1, h = 0.42;
+  lathe(grp, [[0, 0], [r0, 0], [r1, h], [0, h]], E, 0, 0, 0, 4).rotation.y = Math.PI / 4;
+  // darker reed courses between the rammed layers
+  for (let k = 1; k < 9; k++) {
+    const yy = (k / 9) * h, rr = r0 + (r1 - r0) * (k / 9) + 0.002;
+    lathe(grp, [[0, yy], [rr, yy], [rr - 0.001, yy + 0.006], [0, yy + 0.006]], '#8a7556', 0, 0, 0, 4).rotation.y = Math.PI / 4;
   }
-  cone(grp, '#8a6a4a', 0, yy, 0, 0.06, 0.06, 4, Math.PI / 4);
-  cyl(grp, '#6b5640', 0, yy + 0.05, 0, 0.012, 0.08, 6);
-  ellip(grp, '#c9a24a', 0, yy + 0.14, 0, 0.022);
-}
-
-/** Tiny stylised animals for Hua Tuo's Five Animal Frolics (五禽戏). Each faces +x, ~0.1 tall at s = 1. */
-function frolic(p: THREE.Object3D, kind: 'tiger' | 'deer' | 'bear' | 'monkey' | 'crane', x: number, y: number, z: number, s: number, ry: number): void {
-  const grp = new THREE.Group();
-  grp.position.set(x, y, z); grp.rotation.y = ry; grp.scale.setScalar(s); p.add(grp);
-  const legs = (c: string, h: number, xs: number[], zs: number, r: number) => { for (const lx of xs) for (const sz of [-1, 1]) cyl(grp, c, lx, 0, sz * zs, r, h, 6); };
-  if (kind === 'tiger') {
-    const O = '#e07a1f';
-    ellip(grp, O, 0, 0.09, 0, 0.11, 0.045, 0.045);
-    ellip(grp, '#f8efe0', 0.01, 0.07, 0, 0.09, 0.025, 0.035);
-    legs(O, 0.07, [-0.07, 0.07], 0.025, 0.014);
-    ellip(grp, O, 0.12, 0.11, 0, 0.045, 0.042, 0.042);
-    ellip(grp, '#f8efe0', 0.155, 0.1, 0, 0.022, 0.018, 0.026);
-    ellip(grp, '#111827', 0.175, 0.105, 0, 0.007);
-    for (const sz of [-1, 1]) { ellip(grp, O, 0.11, 0.15, sz * 0.025, 0.013); ellip(grp, '#111827', 0.15, 0.125, sz * 0.017, 0.006); }
-    for (let i = 0; i < 5; i++) box(grp, '#1f1a17', -0.08 + i * 0.035, 0.07, 0, 0.008, 0.05, 0.094);
-    for (let i = 0; i < 2; i++) box(grp, '#1f1a17', 0.105 + i * 0.012, 0.135, 0, 0.004, 0.012, 0.05);
-    tube(grp, [[-0.1, 0.1, 0], [-0.16, 0.13, 0], [-0.18, 0.19, 0]], 0.012, 0.008, O, { radial: 6, sub: 4 });
-    ellip(grp, '#1f1a17', -0.18, 0.195, 0, 0.01);
-  } else if (kind === 'deer') {
-    const D = '#a8693a';
-    ellip(grp, D, 0, 0.13, 0, 0.09, 0.04, 0.038);
-    legs(D, 0.11, [-0.06, 0.06], 0.02, 0.008);
-    tube(grp, [[0.06, 0.14, 0], [0.1, 0.22, 0]], 0.022, 0.016, D, { radial: 7, sub: 2 });
-    ellip(grp, D, 0.12, 0.235, 0, 0.035, 0.022, 0.02, 0, 0, -0.3);
-    ellip(grp, '#2b211b', 0.15, 0.225, 0, 0.007);
-    for (const sz of [-1, 1]) {
-      rod(grp, [0.1, 0.25, sz * 0.01], [0.09, 0.32, sz * 0.04], 0.004, '#7c5a3a', 4);
-      rod(grp, [0.095, 0.29, sz * 0.03], [0.12, 0.33, sz * 0.03], 0.003, '#7c5a3a', 4);
-      ellip(grp, D, 0.09, 0.26, sz * 0.025, 0.015, 0.008, 0.006);
-    }
-    for (let i = 0; i < 5; i++) ellip(grp, '#f5e6c8', -0.05 + i * 0.022, 0.15 + (i % 2) * 0.012, 0.035, 0.006);
-    ellip(grp, '#f5e6c8', -0.09, 0.15, 0, 0.012);
-  } else if (kind === 'bear') {
-    const Bc = '#4a3222';
-    ellip(grp, Bc, 0, 0.09, 0, 0.1, 0.07, 0.07);
-    legs(Bc, 0.05, [-0.055, 0.055], 0.04, 0.02);
-    ellip(grp, Bc, 0.1, 0.13, 0, 0.05);
-    ellip(grp, '#c9a27a', 0.145, 0.12, 0, 0.022, 0.018, 0.022);
-    ellip(grp, '#111827', 0.165, 0.125, 0, 0.007);
-    for (const sz of [-1, 1]) { ellip(grp, Bc, 0.09, 0.175, sz * 0.03, 0.016); ellip(grp, '#111827', 0.135, 0.145, sz * 0.02, 0.006); }
-  } else if (kind === 'monkey') {
-    const M = '#8b5a2b';
-    ellip(grp, M, 0, 0.07, 0, 0.04, 0.055, 0.04);
-    ellip(grp, M, 0.005, 0.15, 0, 0.038);
-    ellip(grp, '#e8c39e', 0.035, 0.145, 0, 0.015, 0.025, 0.026);
-    for (const sz of [-1, 1]) { ellip(grp, '#e8c39e', 0.0, 0.16, sz * 0.04, 0.012, 0.016, 0.006); ellip(grp, '#111827', 0.045, 0.155, sz * 0.01, 0.005); }
-    for (const sz of [-1, 1]) tube(grp, [[0.0, 0.1, sz * 0.035], [0.04, 0.08, sz * 0.04], [0.06, 0.12, sz * 0.03]], 0.011, 0.009, M, { radial: 6, sub: 3 });
-    for (const sz of [-1, 1]) ellip(grp, M, 0.03, 0.02, sz * 0.025, 0.035, 0.018, 0.018);
-    tube(grp, [[-0.03, 0.03, 0], [-0.1, 0.01, 0.02], [-0.12, 0.05, 0.05], [-0.09, 0.08, 0.06]], 0.008, 0.006, M, { radial: 5, sub: 6 });
-  } else {
-    const W = '#f8fafc';
-    ellip(grp, W, 0, 0.17, 0, 0.065, 0.04, 0.035, 0, 0, 0.15);
-    ellip(grp, '#1f2937', -0.065, 0.17, 0, 0.035, 0.025, 0.03, 0, 0, 0.3);
-    for (const sz of [-1, 1]) rod(grp, [0.0, 0.14, sz * 0.012], [0.0, 0, sz * 0.012], 0.004, '#1f2937', 4);
-    tube(grp, [[0.04, 0.18, 0], [0.07, 0.24, 0], [0.06, 0.3, 0]], 0.012, 0.009, W, { radial: 6, sub: 4 });
-    ellip(grp, W, 0.07, 0.31, 0, 0.016, 0.014, 0.013);
-    ellip(grp, '#dc2626', 0.068, 0.322, 0, 0.007);
-    cone(grp, '#9a7b4f', 0.1, 0.305, 0, 0.005, 0.05, 5).rotation.z = -Math.PI / 2;
-    const wing = slab(grp, [[0, 0], [0.06, 0.02], [0.02, 0.1], [-0.05, 0.06]], 0.006, W, 0, false);
-    wing.position.set(0, 0.18, 0.035); wing.rotation.x = -0.4;
+  // eroded corner and a parapet with a gap
+  ellip(grp, tint(E, -0.12), r1 * 0.7, h * 0.55, r1 * 0.7, 0.03, 0.06, 0.03);
+  const q = r1 * 0.71;
+  for (const [bx, bz, bw, bd] of [[0, -q, 2 * q, 0.02], [-q, 0, 0.02, 2 * q], [q, -q * 0.35, 0.02, q * 1.3], [-q * 0.45, q, q * 1.1, 0.02]] as const)
+    box(grp, tint(E, 0.04), bx, h, bz, bw, 0.035, bd);
+  for (const [px, pz] of [[-0.02, -0.02], [0.03, 0.01]]) rod(grp, [px, h, pz], [px + 0.01, h + 0.12, pz], 0.004, '#5a4632', 4);
+  // brushwood heaps (积薪) at the foot, ready to be fired
+  for (const [px, pz] of [[0.2, 0.05], [0.16, 0.16]]) {
+    for (let k = 0; k < 7; k++) rod(grp, [px + Math.cos(k) * 0.035, 0, pz + Math.sin(k) * 0.035], [px, 0.07, pz], 0.004, k % 2 ? '#6e5a40' : '#7d6a4c', 3);
   }
 }
 
@@ -375,164 +333,224 @@ function sankore(p: THREE.Object3D, x: number, y: number, z: number, s: number, 
 // ---------------------------------------------------------------- builders
 
 const BUILDERS: Record<string, Builder> = {
-  /** Admiral Zheng He on a stone quay, a five-masted treasure ship behind him. */
+  /** Admiral Zheng He (Ming, 1405–33 voyages) on the Longjiang shipyard quay at Nanjing, his six-masted treasure ship
+   *  behind. Ref: Nanjing 宝船厂 replica (福船 hull, battened junk sails); Ming eunuch official in red 圆领袍 and 乌纱帽. */
   pp_zhenghe: gp => {
-    const y = figureBase(gp, '#3d8ec4', '#5b4636');
-    for (let i = 0; i < 12; i++) { const a = i * 2.4, r = 0.14 + (i % 5) * 0.06; ellip(gp, '#a5d8f3', Math.cos(a) * r, y + 0.001, -Math.abs(Math.sin(a)) * r - 0.04, 0.028, 0.0025, 0.006, a); }
+    const y = figureBase(gp, '#4f6c74', '#4e4034');
+    for (let i = 0; i < 12; i++) { const a = i * 2.4, r = 0.14 + (i % 5) * 0.06; ellip(gp, '#6f8c92', Math.cos(a) * r, y + 0.001, -Math.abs(Math.sin(a)) * r - 0.04, 0.028, 0.0025, 0.006, a); }
     const quay: [number, number][] = [];
     for (let i = 0; i <= 18; i++) { const a = (i / 18) * Math.PI; quay.push([Math.cos(a) * 0.445, 0.02 + Math.sin(a) * 0.425]); }
-    prism(gp, quay, y, 0.03, '#bfae8c');
-    for (let i = 0; i < 9; i++) box(gp, tint('#bfae8c', (i % 2) * -0.08), -0.4 + i * 0.1, y, 0.01, 0.098, 0.031, 0.025);
-    for (const bx of [-0.3, 0.3]) { cyl(gp, '#4b4038', bx, y + 0.03, 0.06, 0.016, 0.03, 8); ellip(gp, '#4b4038', bx, y + 0.06, 0.06, 0.02, 0.01, 0.02); }
-    tube(gp, [[0.3, y + 0.05, 0.06], [0.28, y + 0.03, -0.04], [0.22, y + 0.02, -0.15]], 0.004, 0.004, '#c8a46a', { radial: 4, sub: 3 });
-    treasureShip(gp, 0.02, y + 0.012, -0.24, 0.62);
+    prism(gp, quay, y, 0.03, '#a59c88');
+    for (let i = 0; i < 9; i++) box(gp, tint('#a59c88', (i % 2) * -0.08), -0.4 + i * 0.1, y, 0.01, 0.098, 0.031, 0.025);
+    for (const bx of [-0.3, 0.3]) { cyl(gp, '#4b4540', bx, y + 0.03, 0.06, 0.016, 0.03, 8); ellip(gp, '#4b4540', bx, y + 0.06, 0.06, 0.02, 0.01, 0.02); }
+    tube(gp, [[0.3, y + 0.05, 0.06], [0.28, y + 0.03, -0.04], [0.22, y + 0.03, -0.17]], 0.004, 0.004, '#9a8460', { radial: 4, sub: 3 });
+    // cargo on the quay: lashed crates and a stack of porcelain jars
+    rbox(gp, '#6b5038', 0.3, y + 0.03, 0.2, 0.08, 0.05, 0.06, 0.004);
+    box(gp, '#4a3a2a', 0.3, y + 0.03, 0.2, 0.082, 0.052, 0.008);
+    for (const [jx, jz] of [[0.2, 0.28], [0.25, 0.32]] as const) lathe(gp, [[0, 0], [0.018, 0], [0.026, 0.03], [0.02, 0.05], [0.01, 0.055], [0.012, 0.062], [0, 0.062]], '#d9d6cc', jx, y + 0.03, jz, 10);
+    for (const [jx, jz] of [[0.2, 0.28], [0.25, 0.32]] as const) lathe(gp, [[0.0255, 0.026], [0.0262, 0.026], [0.0245, 0.04], [0.0225, 0.04]], '#4a5e7a', jx, y + 0.03, jz, 10);
+    baochuan(gp, 0.0, y + 0.006, -0.25, 0.76);
     const yf = y + 0.03, o: FigureOpts = {
-      y: yf, x: -0.03, z: 0.2, top: '#b3261e', accent: '#e4b54a', outfit: 'robe', wideSleeves: true, hair: '#1c1917', hat: 'futou', hatColor: '#1c1917',
-      armL: { fwd: 0.75, side: 0.15, bend: 0.8, inward: 0.4 }, armR: { fwd: 1.3, side: 0.5, bend: 0.05 },
+      y: yf, x: -0.12, z: 0.17, top: '#8c3328', accent: '#2a2420', outfit: 'roundrobe', wideSleeves: true, hair: '#1c1917', hat: 'wusha', hatColor: '#1c1917',
+      badge: '#a88a4c', skin: '#d6a47c', shoes: '#1f1a17',
+      armL: { fwd: 0.75, side: 0.15, bend: 0.8, inward: 0.4 }, armR: { fwd: 1.2, side: 0.55, bend: 0.1 },
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u;
-    // mandarin-square rank badge and jade belt plaques
-    box(b, '#e4b54a', 0, 0.55 * u, 0.082 * u, 0.11 * u, 0.1 * u, 0.008 * u);
-    box(b, '#1e40af', 0, 0.57 * u, 0.087 * u, 0.08 * u, 0.06 * u, 0.004 * u);
-    ellip(b, '#f8fafc', 0.0, 0.6 * u, 0.09 * u, 0.02 * u, 0.012 * u, 0.004 * u);
-    for (const sx of [-0.06, 0, 0.06]) box(b, '#4ade80', sx * u, 0.51 * u, 0.088 * u, 0.025 * u, 0.025 * u, 0.006 * u);
-    // brass compass (luopan) in the left hand
+    // stiff hoop belt (革带) hanging loose at the hips with jade plaques
+    lathe(b, [[0.128 * u, 0.465 * u], [0.136 * u, 0.465 * u], [0.136 * u, 0.49 * u], [0.128 * u, 0.49 * u]], '#2a2420', 0, 0, 0, 20).scale.z = 0.8;
+    for (const sx of [-0.06, -0.02, 0.02, 0.06]) box(b, '#8e8a72', sx * u, 0.468 * u, 0.106 * u - Math.abs(sx) * 0.12 * u, 0.026 * u, 0.018 * u, 0.006 * u);
+    // dry compass (旱罗盘) in a wooden case in the left hand
     const [lx, ly, lz] = a.handL;
-    rbox(gp, '#8b4513', lx + 0.01, ly + 0.012, lz + 0.02, 0.07, 0.012, 0.07, 0.004);
-    metal(cyl(gp, '#d4a72c', lx + 0.01, ly + 0.024, lz + 0.02, 0.028, 0.004, 14), '#d4a72c');
-    box(gp, '#dc2626', lx + 0.01, ly + 0.029, lz + 0.02, 0.004, 0.003, 0.04, 0.5);
-    // rolled sea chart in the pointing hand
+    rbox(gp, '#5a3e28', lx + 0.01, ly + 0.008, lz + 0.02, 0.06, 0.012, 0.06, 0.004);
+    metal(cyl(gp, '#8a6a3a', lx + 0.01, ly + 0.02, lz + 0.02, 0.022, 0.003, 14), '#8a6a3a', 0.5, 0.5);
+    box(gp, '#2a2420', lx + 0.01, ly + 0.0235, lz + 0.02, 0.003, 0.002, 0.034, 0.5);
+    // rolled sea chart in the outstretched hand
     const [rx, ry, rz] = a.handR;
-    const sc = cyl(gp, '#efe2c0', rx, ry - 0.045, rz + 0.01, 0.012, 0.09, 8); sc.rotation.z = 0.2;
-    for (const d of [-1, 1]) ellip(gp, '#7c2d12', rx - d * 0.009, ry + d * 0.045, rz + 0.01, 0.014, 0.006, 0.014);
+    const sc = cyl(gp, '#d9ccaa', rx, ry - 0.045, rz + 0.01, 0.011, 0.09, 8); sc.rotation.z = 0.2;
+    for (const d of [-1, 1]) ellip(gp, '#3a2a1e', rx - d * 0.009, ry + d * 0.045, rz + 0.01, 0.013, 0.005, 0.013);
   },
 
-  /** The monk Xuanzang walking west with his bamboo book-frame, Big Wild Goose Pagoda behind. */
+  /** Xuanzang (Tang, 629–645) on the frontier road west, carrying his bamboo book-frame (笈) with a canopy and hanging
+   *  lamp, fly-whisk and sutra in hand. Ref: 玄奘三藏像 (Tokyo National Museum) / Dunhuang 行脚僧图; Hexi 烽燧. */
   pp_xuanzang: gp => {
-    const y = figureBase(gp, '#dcc492', '#7a5b3a');
-    mound(gp, '#d2b57c', -0.27, y, -0.2, 0.17, 0.07);
-    mound(gp, '#cdae74', -0.08, y, -0.33, 0.11, 0.04);
-    for (let i = 0; i < 6; i++) ellip(gp, tint('#a8957a', (i % 3) * 0.05), -0.05 + Math.sin(i * 1.7) * 0.05, y + 0.003, 0.4 - i * 0.07, 0.035, 0.006, 0.025, i);
-    rocks(gp, '#8f7b63', [[0.3, 0.22, 0.03], [0.34, 0.15, 0.02], [-0.33, 0.12, 0.025], [-0.25, 0.26, 0.018]], y);
-    for (const [tx, tz] of [[-0.36, 0.0], [0.38, 0.05], [0.2, 0.33]]) for (let k = 0; k < 5; k++) rod(gp, [tx, y, tz], [tx + Math.cos(k * 1.3) * 0.02, y + 0.04, tz + Math.sin(k * 1.3) * 0.02], 0.003, '#8a9a4a', 3);
-    goosePagoda(gp, 0.25, y, -0.2, 0.5);
+    const y = figureBase(gp, '#cdb48a', '#7a5f42');
+    mound(gp, '#c8ab7c', -0.08, y, -0.34, 0.15, 0.045);
+    // the caravan road: packed earth with cart ruts, winding away to the back right
+    const P: [number, number][] = [[-0.06, 0.45], [-0.02, 0.26], [0.04, 0.06], [0.14, -0.12], [0.24, -0.3]], wl: [number, number][] = [], wr: [number, number][] = [];
+    P.forEach(([px, pz], i) => {
+      const [qx, qz] = P[Math.min(i + 1, P.length - 1)], [ox, oz] = P[Math.max(i - 1, 0)], dx = qx - ox, dz = qz - oz, l = Math.hypot(dx, dz), w = 0.075 - i * 0.008;
+      wl.push([px - (dz / l) * w, pz + (dx / l) * w]); wr.push([px + (dz / l) * w, pz - (dx / l) * w]);
+    });
+    prism(gp, [...wl, ...wr.reverse()], y, 0.002, '#b8a07c', 0, true);
+    for (const off of [-0.025, 0.025]) tube(gp, P.map(([px, pz]) => [px + off, y + 0.0025, pz] as V3), 0.0025, 0.0025, '#a08a68', { radial: 3, sub: 3 });
+    beacon(gp, -0.26, y, -0.2, 0.75);
+    rocks(gp, '#8f7b63', [[0.3, 0.22, 0.03], [0.34, 0.15, 0.02], [-0.33, 0.14, 0.025], [-0.25, 0.28, 0.018]], y);
+    // camel-thorn (骆驼刺) tussocks
+    for (const [tx, tz] of [[-0.36, 0.02], [0.38, 0.04], [0.2, 0.33], [-0.18, 0.36]]) for (let k = 0; k < 7; k++)
+      rod(gp, [tx, y, tz], [tx + Math.cos(k * 0.9) * 0.025, y + 0.03 + (k % 3) * 0.006, tz + Math.sin(k * 0.9) * 0.025], 0.0025, k % 2 ? '#7d8455' : '#8f8a5c', 3);
     const o: FigureOpts = {
-      y, x: -0.04, z: 0.1, skin: '#e3b48b', top: '#7f7c3f', accent: '#2c4a7c', outfit: 'robe', wideSleeves: true, hair: '#b88d6c', hairStyle: 'bald',
-      armL: { fwd: 0.7, side: 0.1, bend: 0.85, inward: 0.45 }, armR: { fwd: 0.85, side: 0.35, bend: 0.25 },
+      y, x: 0.0, z: 0.1, ry: 0.25, skin: '#d4a27c', top: '#7a6046', bottom: '#5c4a38', accent: '#4a3a2a', outfit: 'tunic', hair: '#5a4a3c', hairStyle: 'bald',
+      shoes: '#a8925e', socks: '#d4c8ac', stance: 'walk', lean: 0.05,
+      armL: { fwd: 0.6, side: 0.12, bend: 0.75, inward: 0.35 }, armR: { fwd: 0.9, side: 0.3, bend: 0.9, inward: 0.15 },
     };
-    const a = figure(gp, o), F = a.group, b = bodyOf(a), u = a.u;
-    // prayer beads
-    for (let i = 0; i < 16; i++) {
-      const t = (i / 16) * Math.PI * 2, cz = Math.cos(t);
-      ellip(b, i % 4 ? '#6b3f1d' : '#c08a3e', Math.sin(t) * 0.1 * u, 0.765 * u - 0.075 * u * Math.max(0, cz), cz * 0.08 * u, 0.016 * u);
+    const a = figure(gp, o), b = bodyOf(a), u = a.u;
+    // knee-length monk's robe (褊衫/直裰) over the trousers, crossed collar
+    lathe(b, [[0.168 * u, 0.27 * u], [0.174 * u, 0.27 * u], [0.152 * u, 0.36 * u], [0.13 * u, 0.45 * u], [0.12 * u, 0.5 * u], [0, 0.5 * u]], '#7a6046', 0, 0, 0, 20).scale.z = 0.8;
+    box(b, '#4a3a2a', -0.018 * u, 0.765 * u, 0.094 * u, 0.016 * u, 0.13 * u, 0.008 * u, 0, 0, 0.42);
+    box(b, '#4a3a2a', 0.022 * u, 0.79 * u, 0.092 * u, 0.016 * u, 0.09 * u, 0.008 * u, 0, 0, -0.42);
+    // bamboo book-frame (笈): four posts, rails and shelves of wrapped sutra rolls and a lacquered sutra box
+    const xw = 0.13 * u, z0 = -0.11 * u, z1 = -0.27 * u, yb = 0.28 * u, yt = 1.1 * u, BAM = '#9a8150';
+    for (const sx of [-1, 1]) for (const zz of [z0, z1]) rod(b, [sx * xw, yb, zz], [sx * xw, yt, zz], 0.008 * u, BAM, 5);
+    for (const sy of [0.3, 0.52, 0.76, 1.0]) {
+      for (const zz of [z0, z1]) rod(b, [-xw, sy * u, zz], [xw, sy * u, zz], 0.006 * u, BAM, 4);
+      for (const sx of [-1, 1]) rod(b, [sx * xw, sy * u, z0], [sx * xw, sy * u, z1], 0.006 * u, BAM, 4);
     }
-    // bamboo book-frame (笈) on his back, with sutra scrolls and boxes and a canopy
-    const xw = 0.14 * u, z0 = -0.1 * u, z1 = -0.28 * u, yb = 0.16 * u, yt = 1.16 * u, BAM = '#a8873f';
-    for (const sx of [-1, 1]) for (const zz of [z0, z1]) rod(F, [sx * xw, yb, zz], [sx * xw, yt, zz], 0.009 * u, BAM, 5);
-    for (const sy of [0.3, 0.56, 0.82, 1.08]) {
-      for (const zz of [z0, z1]) rod(F, [-xw, sy * u, zz], [xw, sy * u, zz], 0.007 * u, BAM, 4);
-      for (const sx of [-1, 1]) rod(F, [sx * xw, sy * u, z0], [sx * xw, sy * u, z1], 0.007 * u, BAM, 4);
+    const wraps = ['#5a4030', '#c8b48a', '#6e5236', '#8a6a48'];
+    for (const [r, sy] of [[0, 0.3], [2, 0.76]] as const) for (let k = 0; k < 3; k++) for (let j = 0; j < 2; j++) {
+      const sc = cyl(b, wraps[(k + j + r) % 4], 0, 0, 0, 0.032 * u, xw * 1.85, 8);
+      sc.rotation.z = Math.PI / 2; sc.position.set(0, (sy + 0.04 + k * 0.066) * u, z0 - 0.042 * u - j * 0.078 * u);
     }
-    const cols = ['#9b2c2c', '#1e40af', '#efe2c0', '#2f6b4f'];
-    for (let r = 0; r < 3; r++) {
-      const sy = [0.3, 0.56, 0.82][r] * u;
-      if (r === 1) { rbox(F, '#7c2d12', 0, sy, (z0 + z1) / 2, xw * 1.8, 0.2 * u, (z0 - z1) * 0.9, 0.01 * u); box(F, '#e4b54a', 0, sy + 0.08 * u, z1 - 0.004, xw * 1.2, 0.03 * u, 0.006 * u); continue; }
-      for (let k = 0; k < 3; k++) for (let j = 0; j < 2; j++) {
-        const sc = cyl(F, cols[(k + j + r) % 4], 0, sy + 0.045 * u + k * 0.075 * u, z0 - 0.045 * u - j * 0.09 * u, 0.035 * u, xw * 1.9, 8);
-        sc.rotation.z = Math.PI / 2; sc.position.x = 0; sc.position.y = sy + 0.045 * u + k * 0.075 * u;
-      }
+    rbox(b, '#3a2a22', 0, 0.53 * u, (z0 + z1) / 2, xw * 1.8, 0.2 * u, (z0 - z1) * 0.9, 0.008 * u);
+    box(b, '#8a6a3a', 0, 0.62 * u, z1 + 0.012 * u, xw * 1.0, 0.025 * u, 0.006 * u);
+    // the canopy (笈盖) over his head: a bamboo-mat board with a cloth fringe, and the little lamp hanging in front
+    const cz0 = (z1 + 0.16 * u) / 2, cd = 0.16 * u - z1;
+    const can = box(b, '#8a7a58', 0, yt, cz0, 0.3 * u, 0.01 * u, cd); can.rotation.x = -0.1;
+    for (let i = 0; i < 8; i++) box(b, i % 2 ? '#6e4a32' : '#5e3e2a', (-0.14 + i * 0.04) * u, yt - 0.045 * u, 0.16 * u - 0.002 * u, 0.036 * u, 0.045 * u, 0.006 * u);
+    for (const sx of [-1, 1]) {
+      box(b, '#5e3e2a', sx * 0.16 * u, yt - 0.04 * u, cz0, 0.006 * u, 0.04 * u, cd * 0.95);
+      rod(b, [sx * xw, yt - 0.1 * u, z0], [sx * 0.15 * u, yt, 0.14 * u], 0.005 * u, BAM, 4);
     }
-    const can = box(F, '#5f7a3a', 0, yt, -0.06 * u, 0.4 * u, 0.018 * u, 0.42 * u); can.rotation.x = -0.12;
-    for (let i = 0; i < 9; i++) box(F, i % 2 ? '#9b2c2c' : '#2f6b4f', (-0.18 + i * 0.045) * u, yt - 0.06 * u, 0.15 * u, 0.04 * u, 0.06 * u, 0.008 * u);
-    rod(F, [-0.16 * u, yt, 0.1 * u], [-0.34 * u, yt + 0.08 * u, 0.3 * u], 0.007 * u, BAM, 4);
-    rod(F, [-0.34 * u, yt + 0.08 * u, 0.3 * u], [-0.34 * u, yt - 0.04 * u, 0.3 * u], 0.002 * u, '#3f2d1f', 3);
-    glow(cyl(F, '#ffd27a', -0.34 * u, yt - 0.12 * u, 0.3 * u, 0.03 * u, 0.07 * u, 6), '#ffd27a', '#f59e0b');
-    cone(F, '#c9a24a', -0.34 * u, yt - 0.05 * u, 0.3 * u, 0.045 * u, 0.04 * u, 6);
-    for (const sx of [-1, 1]) tube(b, [[sx * 0.07 * u, 0.78 * u, 0.06 * u], [sx * 0.1 * u, 0.8 * u, -0.03 * u], [sx * 0.12 * u, 0.62 * u, -0.1 * u]], 0.012 * u, 0.012 * u, '#3f2d1f', { radial: 5, sub: 4 });
-    // fly-whisk and sutra scroll
+    rod(b, [-0.15 * u, yt, 0.14 * u], [-0.2 * u, yt + 0.03 * u, 0.24 * u], 0.005 * u, BAM, 4);
+    rod(b, [-0.2 * u, yt + 0.03 * u, 0.24 * u], [-0.2 * u, yt - 0.1 * u, 0.24 * u], 0.0015 * u, '#2e241c', 3);
+    lathe(b, [[0, 0], [0.018 * u, 0.004 * u], [0.024 * u, 0.02 * u], [0.02 * u, 0.022 * u], [0, 0.01 * u]], '#5a4a32', -0.2 * u, yt - 0.125 * u, 0.24 * u, 8);
+    glow(ellip(b, '#ffd98a', -0.2 * u, yt - 0.095 * u, 0.24 * u, 0.006 * u, 0.012 * u, 0.006 * u), '#ffd98a', '#e8a040');
+    // shoulder straps
+    for (const sx of [-1, 1]) tube(b, [[sx * 0.07 * u, 0.62 * u, 0.09 * u], [sx * 0.09 * u, 0.79 * u, 0.06 * u], [sx * 0.1 * u, 0.83 * u, -0.02 * u], [sx * 0.11 * u, 0.78 * u, z0]], 0.01 * u, 0.01 * u, '#4a3a2a', { radial: 5, sub: 4 });
+    // horsehair fly-whisk (拂子) in the right hand, sutra roll in the left
     const [rx, ry, rz] = a.handR;
-    rod(gp, [rx, ry - 0.01, rz], [rx + 0.02, ry + 0.08, rz + 0.03], 0.005, '#7c2d12', 5);
-    tube(gp, [[rx + 0.02, ry + 0.08, rz + 0.03], [rx + 0.045, ry + 0.06, rz + 0.06], [rx + 0.05, ry - 0.02, rz + 0.07]], 0.012, 0.004, '#f3f4f6', { radial: 6, sub: 4 });
+    rod(gp, [rx, ry - 0.012, rz], [rx + 0.012, ry + 0.07, rz + 0.02], 0.004, '#4a2e1e', 5);
+    for (let k = 0; k < 5; k++) tube(gp, [[rx + 0.012, ry + 0.07, rz + 0.02], [rx + 0.02 + k * 0.003, ry + 0.062, rz + 0.03 + (k % 2) * 0.004], [rx + 0.024 + k * 0.004, ry - 0.005 - (k % 3) * 0.006, rz + 0.034 + (k - 2) * 0.004]], 0.004, 0.002, '#e2dccb', { radial: 4, sub: 3 });
     const [lx, ly, lz] = a.handL;
-    const sc = cyl(gp, '#efe2c0', lx + 0.03, ly - 0.005, lz + 0.015, 0.014, 0.1, 8); sc.rotation.z = Math.PI / 2; sc.position.set(lx + 0.03, ly, lz + 0.015);
-    box(gp, '#9b2c2c', lx + 0.03, ly - 0.015, lz + 0.015, 0.01, 0.03, 0.031);
+    const sl = cyl(gp, '#d8ccaa', 0, 0, 0, 0.012, 0.09, 8); sl.rotation.z = Math.PI / 2; sl.position.set(lx + 0.02, ly + 0.004, lz + 0.012);
+    box(gp, '#5a4030', lx + 0.02, ly - 0.008, lz + 0.012, 0.012, 0.025, 0.027);
   },
 
-  /** Hua Tuo, the healer, with herbs, a medicine gourd and the five animals of his exercises around him. */
+  /** Hua Tuo (Eastern Han physician, d. 208) in his herb yard: drying trays on a bamboo rack, a Han pottery stove
+   *  brewing a decoction, a bronze mortar and the 五禽戏 drawn on a silk scroll. Ref: Han 陶灶 tomb models, Mawangdui 导引图. */
   pp_huatuo: gp => {
-    const y = figureBase(gp, '#9dbf6c', '#6b5640');
-    for (let i = 0; i < 5; i++) ellip(gp, tint('#b9ad94', (i % 2) * 0.06), 0.02 + Math.sin(i) * 0.03, y + 0.003, 0.42 - i * 0.075, 0.04, 0.006, 0.03, i);
-    // herb beds
-    for (const [hx, hz] of [[-0.18, -0.3], [0.05, -0.36], [0.22, -0.32]] as const) {
-      ellip(gp, '#6b4a2f', hx, y, hz, 0.075, 0.012, 0.05);
-      for (let k = 0; k < 4; k++) { ellip(gp, k % 2 ? '#4d7c2f' : '#65a30d', hx + (k - 1.5) * 0.03, y + 0.025, hz, 0.018, 0.022, 0.016); }
-      ellip(gp, '#dc2626', hx + 0.02, y + 0.045, hz + 0.01, 0.006);
+    const y = figureBase(gp, '#aea07c', '#6b5640');
+    for (let i = 0; i < 5; i++) ellip(gp, tint('#9c9070', (i % 2) * 0.06), 0.02 + Math.sin(i) * 0.03, y + 0.003, 0.42 - i * 0.075, 0.04, 0.006, 0.03, i);
+    // bamboo drying rack with three round sieve trays of sliced roots, bark and leaves; tied bundles below
+    const RX = -0.14, RZ = -0.3, BAM = '#9a8150';
+    for (const sx of [-0.2, 0.2]) for (const sz of [-0.06, 0.06]) rod(gp, [RX + sx, y, RZ + sz], [RX + sx, y + 0.13, RZ + sz], 0.005, BAM, 4);
+    for (const yy of [0.06, 0.13]) for (const sz of [-0.06, 0.06]) rod(gp, [RX - 0.21, y + yy, RZ + sz], [RX + 0.21, y + yy, RZ + sz], 0.004, BAM, 4);
+    const herbs = [['#8a6a44', '#a07c4e'], ['#5e6a44', '#6e7a50'], ['#6e4a32', '#9a7048']];
+    herbs.forEach(([c1, c2], i) => {
+      const t = new THREE.Group(); t.position.set(RX - 0.13 + i * 0.13, y + 0.135, RZ); t.rotation.x = 0.28; gp.add(t);
+      lathe(t, [[0, 0], [0.062, 0], [0.066, 0.012], [0.06, 0.012], [0, 0.004]], '#b09868', 0, 0, 0, 16);
+      for (let k = 0; k < 9; k++) ellip(t, k % 2 ? c1 : c2, Math.cos(k * 2.1) * 0.035 * ((k % 3) / 2 + 0.3), 0.008, Math.sin(k * 2.1) * 0.035 * ((k % 3) / 2 + 0.3), 0.012, 0.003, 0.008, k);
+    });
+    for (let i = 0; i < 4; i++) {
+      const bx = RX - 0.15 + i * 0.1, bd = cyl(gp, i % 2 ? '#7a7048' : '#8a6a48', 0, 0, 0, 0.014, 0.07, 6);
+      bd.rotation.z = Math.PI / 2; bd.position.set(bx, y + 0.075, RZ); box(gp, '#4a3a2a', bx, y + 0.06, RZ, 0.005, 0.03, 0.03);
     }
-    // bronze mortar & pestle, drying basket
-    lathe(gp, [[0, 0], [0.035, 0], [0.045, 0.03], [0.04, 0.05], [0.033, 0.05], [0.03, 0.02], [0, 0.015]], '#8b6b3a', 0.14, y, 0.3, 14);
-    rod(gp, [0.14, y + 0.03, 0.3], [0.17, y + 0.1, 0.28], 0.007, '#6b5640');
-    lathe(gp, [[0, 0], [0.07, 0], [0.075, 0.015], [0.068, 0.015], [0, 0.005]], '#c39b5f', -0.14, y, 0.3, 16);
-    for (let k = 0; k < 5; k++) ellip(gp, k % 2 ? '#a16207' : '#65a30d', -0.14 + Math.cos(k * 1.3) * 0.035, y + 0.014, 0.3 + Math.sin(k * 1.3) * 0.03, 0.015, 0.005, 0.01);
-    // the five animals
-    frolic(gp, 'tiger', 0.3, y, 0.05, 0.85, Math.PI * 0.85);
-    frolic(gp, 'deer', -0.32, y, -0.05, 0.85, 0.3);
-    frolic(gp, 'bear', 0.26, y, -0.2, 0.85, Math.PI * 0.7);
-    frolic(gp, 'monkey', -0.3, y, 0.18, 0.9, -0.4);
-    frolic(gp, 'crane', -0.12, y, -0.26, 0.85, -0.3);
+    // Han pottery stove (陶灶): firebox with a stoke-hole, a cauldron (釜) with a lid, and a chimney
+    const SX = 0.27, SZ = -0.14;
+    rbox(gp, '#857868', SX, y, SZ, 0.11, 0.07, 0.15, 0.01, -0.5);
+    const door = new THREE.Group(); door.position.set(SX, y, SZ); door.rotation.y = -0.5; gp.add(door);
+    box(door, '#241c18', 0, 0.008, 0.076, 0.04, 0.03, 0.004);
+    glow(box(door, '#8a3a1a', 0, 0.01, 0.075, 0.03, 0.012, 0.004), '#8a3a1a', '#7a2a10');
+    cyl(door, '#857868', 0, 0.07, -0.06, 0.012, 0.09, 8);
+    lathe(door, [[0, 0], [0.03, 0.005], [0.042, 0.025], [0.034, 0.045], [0.03, 0.05], [0, 0.05]], '#3e3630', 0, 0.06, 0.02, 14);
+    lathe(door, [[0, 0], [0.034, 0], [0.02, 0.012], [0.006, 0.016], [0, 0.016]], '#4a4038', 0, 0.11, 0.02, 12);
+    for (let k = 0; k < 4; k++) rod(gp, [SX + 0.08 + k * 0.012, y + 0.004, SZ + 0.1 - k * 0.01], [SX + 0.02 + k * 0.01, y + 0.008, SZ + 0.16], 0.004, '#5a4632', 3);
+    // bronze mortar (臼) and pestle
+    lathe(gp, [[0, 0], [0.032, 0], [0.042, 0.03], [0.038, 0.05], [0.031, 0.05], [0.027, 0.02], [0, 0.015]], '#5e5a44', 0.2, y, 0.24, 14);
+    rod(gp, [0.2, y + 0.03, 0.24], [0.23, y + 0.1, 0.22], 0.006, '#4a4436');
+    // low table (案) with the silk 五禽戏 chart, bamboo slips and a bowl of decoction
+    const ax = -0.24, az = 0.16;
+    box(gp, '#3e2a1e', ax, y + 0.05, az, 0.17, 0.012, 0.09, 0.4);
+    for (const sx of [-1, 1]) box(gp, '#3e2a1e', ax + Math.cos(0.4) * sx * 0.07, y, az - Math.sin(0.4) * sx * 0.07, 0.012, 0.05, 0.08, 0.4);
+    const sk = new THREE.Group(); sk.position.set(ax, y + 0.062, az); sk.rotation.y = 0.4; gp.add(sk);
+    box(sk, '#d4c6a2', -0.025, 0, 0, 0.09, 0.002, 0.06);
+    for (let i = 0; i < 5; i++) for (let j = 0; j < 2; j++) {
+      const fx = -0.06 + i * 0.018, fz = -0.014 + j * 0.028;
+      rod(sk, [fx, 0.003, fz - 0.008], [fx, 0.003, fz + 0.004], 0.0015, '#5a4030', 3);
+      rod(sk, [fx - 0.005, 0.003, fz - 0.002], [fx + 0.005, 0.003, fz - 0.004 + j * 0.004], 0.0012, '#5a4030', 3);
+      ellip(sk, '#5a4030', fx, 0.003, fz + 0.007, 0.003, 0.0015, 0.003);
+    }
+    for (let i = 0; i < 5; i++) box(sk, tint('#b89a62', (i % 2) * 0.06), 0.045 + i * 0.008, 0, 0.0, 0.007, 0.004, 0.06);
+    lathe(sk, [[0, 0], [0.012, 0], [0.02, 0.014], [0.018, 0.016], [0, 0.006]], '#3a2420', 0.05, 0.004, 0.035, 12);
+    // mugwort and other medicinal plants by the yard edge
+    for (const [px, pz] of [[-0.37, -0.06], [-0.34, 0.02], [0.38, 0.08]]) for (let k = 0; k < 4; k++) {
+      const tx = px + Math.cos(k * 1.6) * 0.018, tz = pz + Math.sin(k * 1.6) * 0.018, hh = 0.07 + (k % 2) * 0.02;
+      rod(gp, [tx, y, tz], [tx, y + hh, tz], 0.002, '#5a6a40', 3);
+      for (let j = 0; j < 3; j++) ellip(gp, j % 2 ? '#6a7a4c' : '#7a8658', tx + (j % 2 ? 0.008 : -0.008), y + hh * (0.45 + j * 0.2), tz, 0.011, 0.003, 0.006, k, 0, j % 2 ? -0.5 : 0.5);
+    }
     const o: FigureOpts = {
-      y, x: 0.02, z: 0.06, top: '#ddd5c1', accent: '#46586a', bottom: '#cfc6b0', outfit: 'robe', wideSleeves: true, hair: '#d6d3d1', hairStyle: 'topknot',
-      beard: 'long', beardColor: '#f1efe9', skin: '#e2b088',
+      y, x: 0.02, z: 0.06, top: '#bdb091', accent: '#5a4a3a', bottom: '#a89c80', outfit: 'robe', wideSleeves: true, hair: '#cfcac0', hairStyle: 'topknot',
+      beard: 'long', beardColor: '#e4e0d6', skin: '#d9a982', shoes: '#2e2620',
       armL: { fwd: 0.4, side: 0.2, bend: 0.7, inward: 0.1 }, armR: { fwd: 1.25, side: 0.35, bend: 0.9 },
     };
-    const a = figure(gp, o), b = bodyOf(a), u = a.u;
+    const a = figure(gp, o), b = bodyOf(a), u = a.u, hr = a.headR;
+    // Han commoner's head-cloth (帻) wrapped round the head below the topknot
+    lathe(b, [[hr * 1.05, 0], [hr * 1.07, 0], [hr * 1.03, hr * 0.4], [hr * 0.9, hr * 0.64], [hr * 0.5, hr * 0.76], [0, hr * 0.8]], '#2e2a26', 0, 0.93 * u + hr * 0.28, -hr * 0.06, 16);
+    ellip(b, '#2e2a26', 0, 0.93 * u + hr * 1.18, -hr * 0.1, hr * 0.4, hr * 0.38, hr * 0.4);
     // medicine gourd on the belt
-    ellip(b, '#c27c2c', 0.14 * u, 0.42 * u, 0.07 * u, 0.04 * u, 0.045 * u, 0.04 * u);
-    ellip(b, '#c27c2c', 0.14 * u, 0.49 * u, 0.07 * u, 0.028 * u);
-    box(b, '#dc2626', 0.14 * u, 0.515 * u, 0.07 * u, 0.012 * u, 0.04 * u, 0.012 * u);
-    // herb sprig held up
+    ellip(b, '#a8844c', 0.14 * u, 0.42 * u, 0.07 * u, 0.038 * u, 0.042 * u, 0.038 * u);
+    ellip(b, '#a8844c', 0.14 * u, 0.48 * u, 0.07 * u, 0.026 * u);
+    box(b, '#5a4030', 0.14 * u, 0.505 * u, 0.07 * u, 0.01 * u, 0.03 * u, 0.01 * u);
+    // a freshly cut herb held up
     const [rx, ry, rz] = a.handR;
-    rod(gp, [rx, ry - 0.02, rz], [rx + 0.01, ry + 0.09, rz + 0.01], 0.0035, '#3f6212', 4);
-    for (let k = 0; k < 6; k++) ellip(gp, k % 2 ? '#4d7c0f' : '#65a30d', rx + (k % 2 ? 0.014 : -0.012), ry + 0.02 + k * 0.012, rz + 0.01, 0.014, 0.006, 0.008, 0, 0, k % 2 ? -0.6 : 0.6);
-    ellip(gp, '#f472b6', rx + 0.01, ry + 0.095, rz + 0.01, 0.01);
-    // woven herb basket in the left hand
+    rod(gp, [rx, ry - 0.02, rz], [rx + 0.01, ry + 0.09, rz + 0.01], 0.003, '#4e5a36', 4);
+    for (let k = 0; k < 6; k++) ellip(gp, k % 2 ? '#5e6e40' : '#6e7c4c', rx + (k % 2 ? 0.013 : -0.011), ry + 0.02 + k * 0.012, rz + 0.01, 0.013, 0.005, 0.007, 0, 0, k % 2 ? -0.6 : 0.6);
+    // bamboo herb basket in the left hand
     const [lx, ly, lz] = a.handL;
-    lathe(gp, [[0, 0], [0.04, 0], [0.05, 0.035], [0.047, 0.04], [0.038, 0.01], [0, 0.008]], '#b08850', lx, ly - 0.06, lz + 0.02, 12);
-    ring(gp, '#8a6a3e', lx, ly - 0.015, lz + 0.02, 0.04, 0, 0, 0, 0.08);
-    for (let k = 0; k < 5; k++) ellip(gp, k % 2 ? '#4d7c0f' : '#84cc16', lx + Math.cos(k * 1.3) * 0.022, ly - 0.025, lz + 0.02 + Math.sin(k * 1.3) * 0.022, 0.016, 0.01, 0.012);
+    lathe(gp, [[0, 0], [0.04, 0], [0.05, 0.035], [0.047, 0.04], [0.038, 0.01], [0, 0.008]], '#9a8150', lx, ly - 0.06, lz + 0.02, 12);
+    ring(gp, '#7a6440', lx, ly - 0.015, lz + 0.02, 0.04, 0, 0, 0, 0.08);
+    for (let k = 0; k < 5; k++) ellip(gp, k % 2 ? '#6a5236' : '#5e6a44', lx + Math.cos(k * 1.3) * 0.022, ly - 0.025, lz + 0.02 + Math.sin(k * 1.3) * 0.022, 0.016, 0.008, 0.01);
   },
 
-  /** Marco Polo with his travel book and quill, a laden Bactrian camel and a Venetian mooring post behind. */
+  /** Marco Polo, Venetian merchant at the Yuan court (1275–92): 13th-c. Italian gown, mantle and coif, holding the gold
+   *  paiza (牌子) of Kublai Khan; a laden Bactrian camel and a felt ger at Shangdu. Ref: Met paiza, 13th-c. Italian dress. */
   pp_marcopolo: gp => {
-    const y = figureBase(gp, '#dcc394', '#7a5b3a');
-    // a corner of a Venetian canal with a gondola and striped mooring posts
-    const wat = lathe(gp, [[0, 0], [0.17, 0], [0.17, 0.004], [0, 0.004]], '#2f7fb5', 0.25, y, -0.2, 20); wat.scale.z = 0.75;
-    for (let i = 0; i < 7; i++) box(gp, '#a8957a', 0.25 + Math.cos(Math.PI * 0.55 + i * 0.32) * 0.175, y, -0.2 + Math.sin(Math.PI * 0.55 + i * 0.32) * 0.13, 0.04, 0.012, 0.02, -(Math.PI * 0.55 + i * 0.32));
-    const gon = ellip(gp, '#111827', 0.26, y + 0.012, -0.21, 0.11, 0.012, 0.022, 0.5);
-    void gon;
-    metal(box(gp, '#d1d5db', 0.26 - Math.cos(0.5) * 0.11, y + 0.012, -0.21 + Math.sin(0.5) * 0.11, 0.004, 0.03, 0.016, 0.5), '#d1d5db');
-    for (const [px, pz] of [[0.12, -0.08], [0.16, -0.06]] as const) for (let k = 0; k < 4; k++) cyl(gp, k % 2 ? '#f8fafc' : '#b91c1c', px, y + k * 0.04, pz, 0.01, 0.04, 8);
-    camel(gp, -0.22, y, -0.16, 0.52, 0.35);
-    // trade goods
-    rbox(gp, '#7c4a1e', 0.3, y, 0.15, 0.1, 0.06, 0.07, 0.006);
-    metal(box(gp, '#d4a72c', 0.3, y + 0.03, 0.186, 0.02, 0.02, 0.004), '#d4a72c');
-    for (const [sx, sc] of [[0.2, '#c2410c'], [0.25, '#a16207']] as const) { lathe(gp, [[0, 0], [0.03, 0], [0.033, 0.04], [0.02, 0.06], [0.008, 0.07], [0, 0.07]], sc, sx, y, 0.28, 10); }
+    const y = figureBase(gp, '#aaa47c', '#6e6046');
+    for (let i = 0; i < 14; i++) { const a2 = i * 2.2, r = 0.16 + (i % 4) * 0.07; ellip(gp, tint('#8e9064', (i % 3) * 0.05), Math.cos(a2) * r, y + 0.002, Math.sin(a2) * r, 0.03, 0.004, 0.02, a2); }
+    // Mongol felt ger with lattice band, roof ropes and a painted wooden door
+    const GX = 0.24, GZ = -0.2;
+    lathe(gp, [[0, 0], [0.15, 0], [0.152, 0.09], [0.14, 0.1], [0.03, 0.17], [0, 0.17]], '#d6ccb4', GX, y, GZ, 22);
+    lathe(gp, [[0.026, 0.168], [0.034, 0.168], [0.034, 0.18], [0.026, 0.18]], '#6b5a46', GX, y, GZ, 12);
+    for (const yy of [0.03, 0.075]) lathe(gp, [[0.151, yy], [0.155, yy], [0.155, yy + 0.006], [0.151, yy + 0.006]], '#6b5a46', GX, y, GZ, 22);
+    const dg = new THREE.Group(); dg.position.set(GX, y, GZ); dg.rotation.y = -0.45; gp.add(dg);
+    box(dg, '#7a4a2e', 0, 0, 0.15, 0.05, 0.08, 0.01);
+    box(dg, '#a88a4c', 0, 0.035, 0.156, 0.03, 0.004, 0.002);
+    camel(gp, -0.15, y, -0.2, 0.5, Math.PI + 0.4);
+    // trade goods: felt-wrapped bales and a bolt of silk
+    for (const [bx, bz, br] of [[0.3, 0.12, 0.3], [0.33, 0.22, -0.2]] as const) {
+      rbox(gp, '#8c7a5c', bx, y, bz, 0.08, 0.045, 0.06, 0.012, br);
+      box(gp, '#4a3a2a', bx, y, bz, 0.008, 0.047, 0.062, br);
+    }
+    const bolt = cyl(gp, '#6e4a52', 0, 0, 0, 0.018, 0.07, 10); bolt.rotation.set(Math.PI / 2, 0, 0.7); bolt.position.set(0.22, y + 0.018, 0.26);
     const o: FigureOpts = {
-      y, x: -0.02, z: 0.1, top: '#8f1d1d', accent: '#d4b26a', bottom: '#5a1414', outfit: 'robe', cape: '#5a1414', hair: '#5a3a22', hairStyle: 'short',
-      beard: 'full', beardColor: '#5a3a22', armL: { fwd: 0.85, side: 0.12, bend: 0.65, inward: 0.3 }, armR: { fwd: 0.85, side: 0.2, bend: 0.75, inward: 0.45 },
+      y, x: -0.03, z: 0.1, top: '#6e2c24', accent: '#3a2a20', bottom: '#4a2a22', outfit: 'dress', cape: '#3d4656', hair: '#5a3a22', hairStyle: 'short',
+      beard: 'short', beardColor: '#5a3a22', skin: '#e0b896', shoes: '#2a201a',
+      armL: { fwd: 0.35, side: 0.25, bend: 0.5, inward: 0.1 }, armR: { fwd: 1.0, side: 0.12, bend: 0.75, inward: 0.35 },
     };
-    const a = figure(gp, o), hr = a.headR;
-    // tall Venetian cap with a fur brim
-    const [hx, hy, hz] = a.head;
-    lathe(gp, [[0, 0], [hr * 1.02, 0], [hr * 1.06, hr * 0.4], [hr * 0.92, hr * 0.9], [hr * 0.55, hr * 1.18], [0, hr * 1.22]], '#b91c1c', hx, hy + hr * 0.42, hz - hr * 0.08, 16);
-    lathe(gp, [[hr * 1.0, 0], [hr * 1.16, 0.0], [hr * 1.18, hr * 0.12], [hr * 1.14, hr * 0.26], [hr * 1.0, hr * 0.26]], '#7c5a3a', hx, hy + hr * 0.4, hz - hr * 0.08, 16);
-    // open travel journal
-    const [lx, ly, lz] = a.handL, [rx, rY, rz] = a.handR;
-    const cx = (lx + rx) / 2 - 0.01, cy = Math.max(ly, rY) + 0.01, cz = (lz + rz) / 2 + 0.03;
-    box(gp, '#5b3a1d', cx, cy - 0.006, cz, 0.13, 0.006, 0.09, 0, -0.5);
-    for (const sx of [-1, 1]) { box(gp, '#f5ecd6', cx + sx * 0.031, cy, cz, 0.058, 0.006, 0.082, 0, -0.5, sx * 0.12); for (let k = 0; k < 4; k++) box(gp, '#6b5640', cx + sx * 0.031, cy + 0.0035, cz - 0.02 + k * 0.012 - 0.006, 0.04, 0.003, 0.003, 0, -0.5, sx * 0.12); }
-    // quill
-    const q = slab(gp, [[0, 0], [0.012, 0.03], [0.008, 0.09], [-0.002, 0.1], [-0.006, 0.04]], 0.003, '#f8fafc', 0, true);
-    q.position.set(rx + 0.005, rY, rz + 0.01); q.rotation.z = -0.4;
+    const a = figure(gp, o), b = bodyOf(a), u = a.u, hr = a.headR;
+    // soft round felt cap with a rolled brim
+    lathe(b, [[hr * 1.06, 0], [hr * 1.12, hr * 0.1], [hr * 1.06, hr * 0.24], [hr * 0.96, hr * 0.27], [hr * 0.92, hr * 0.5], [hr * 0.6, hr * 0.72], [0, hr * 0.78]], '#3e3228', 0, 0.93 * u + hr * 0.42, -hr * 0.04, 16);
+    // leather purse (escarcelle) and knife on the belt
+    rbox(b, '#4a3424', -0.1 * u, 0.44 * u, 0.09 * u, 0.05 * u, 0.06 * u, 0.02 * u, 0.006 * u);
+    rod(b, [0.11 * u, 0.5 * u, 0.08 * u], [0.13 * u, 0.4 * u, 0.09 * u], 0.008 * u, '#2a201a', 4);
+    // travelling staff in the left hand
+    const [lx, ly, lz] = a.handL;
+    rod(gp, [lx - 0.01, y, lz + 0.01], [lx + 0.006, ly + 0.2, lz - 0.004], 0.006, '#5a4632', 6);
+    // gold paiza: a round-topped tablet with a hanging ring, held up to show
+    const [rx, ry, rz] = a.handR, pz = new THREE.Group(); pz.position.set(rx, ry + 0.045, rz + 0.015); gp.add(pz);
+    metal(box(pz, '#b8954a', 0, -0.035, 0, 0.026, 0.06, 0.004), '#b8954a', 0.7, 0.35);
+    const disc = metal(cyl(pz, '#b8954a', 0, 0, 0, 0.013, 0.004, 14), '#b8954a', 0.7, 0.35); disc.rotation.x = Math.PI / 2; disc.position.set(0, 0.025, 0);
+    ring(pz, '#8a6a3a', 0, 0.042, 0, 0.007, Math.PI / 2, 0, 0, 0.2);
+    for (let k = 0; k < 3; k++) box(pz, '#6e5226', -0.006 + k * 0.006, -0.03, 0.0025, 0.002, 0.045, 0.001);
   },
 
   /** Ibn Battuta from Tangier: turban, travelling staff and a map of his routes, a city gate and palm behind. */
@@ -1058,7 +1076,7 @@ function slim(gp: THREE.Group, bias = 1): void {
 }
 
 /** a few busy scenes (many small animals / fur tufts) get coarser spheres to stay inside the triangle budget */
-const BIAS: Record<string, number> = { pp_huatuo: 1.5, pp_amundsen: 1.25 };
+const BIAS: Record<string, number> = { pp_amundsen: 1.25 };
 
 export const H_PEOPLE_C: Record<string, Builder> = Object.fromEntries(
   Object.entries(BUILDERS).map(([k, f]) => [k, ((gp, r) => { f(gp, r); slim(gp, BIAS[k]); }) as Builder]),

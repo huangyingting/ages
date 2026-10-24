@@ -1,4 +1,4 @@
-import { passerby } from '../human.ts';
+import { human, passerby } from '../human.ts';
 import * as THREE from 'three';
 import {
   type Builder, type V3, type Paint, add, g, mat, box, cyl, cone, rod, sweep, lathe, slab, skin, prism, gable, panel, archPath,
@@ -196,8 +196,14 @@ function tblock(p: THREE.Object3D, o: TBlock): void {
 /** Front-face z of a battered block at height y. */
 const tfront = (o: TBlock, y: number) => o.z + o.d / 2 - (o.bat ?? 0.1) * (y - o.y0);
 
-const potala: Builder = (gp, r) => {
-  const WH = '#efe9dc', RED = typeof r.roof === 'string' ? r.roof : '#8b2b2b', GOLD = '#d9a93a', YEL = '#d8a640';
+// Viewed from the south as in the classic Shol-side photographs: the White Palace (Potrang Karpo, 1645–48) to the
+// east (+x) with its sun-terrace top storey, the Red Palace (Potrang Marpo, 1690–94) in the centre with the black
+// yak-hair curtain and gilt-copper chapel roofs, the yellow building between them, lower white monastic wings to
+// the west, the zig-zag stairways and the walled village of Shol below. Squashed slightly to fit the footprint.
+const potala: Builder = root => {
+  const gp = grp(root, 0, 0);
+  gp.scale.set(0.9, 0.86, 0.9);
+  const WH = '#ebe5d8', RED = '#86302a', GOLD = '#c99a3a', YEL = '#c99a45';
   // Marpo Ri: rocky hill rising behind the palace, Shol village plain in front
   const crest = (x: number) => 0.1 + 0.11 * Math.exp(-((x / 0.36) ** 2));
   const hf: HFn = (x, z) => {
@@ -223,18 +229,18 @@ const potala: Builder = (gp, r) => {
   const blocks: TBlock[] = [
     // Lower bastion walls that the zig-zag stairways climb
     { x: 0, z: 0.1, w: 0.9, d: 0.1, y0: 0.03, y1: 0.2, c: WH, bat: 0.16, rows: 2, cols: 26, wb: 0.15 },
-    // East White Palace (Dalai Lama's living quarters) and the eastern end bastion
-    { x: -0.25, z: -0.01, w: 0.34, d: 0.22, y0: 0.03, y1: 0.37, c: WH, bat: 0.09, rows: 6, cols: 13, wb: 0.215 },
-    { x: -0.2, z: -0.07, w: 0.2, d: 0.13, y0: 0.3, y1: 0.42, c: WH, bat: 0.06, rows: 2, cols: 8, wb: 0.37 },
-    { x: -0.415, z: 0.02, w: 0.1, d: 0.16, y0: 0.03, y1: 0.285, c: WH, bat: 0.12, rows: 3, cols: 3, wb: 0.2 },
-    // West White Palace and the western end
-    { x: 0.27, z: -0.01, w: 0.3, d: 0.2, y0: 0.03, y1: 0.385, c: WH, bat: 0.09, rows: 6, cols: 11, wb: 0.215 },
-    { x: 0.425, z: 0.03, w: 0.09, d: 0.14, y0: 0.03, y1: 0.285, c: WH, bat: 0.12, rows: 3, cols: 2, wb: 0.2 },
-    // Red Palace on its white base, with the yellow Gyaltsab building to the west
+    // White Palace to the east (the Dalai Lamas' quarters, sun-terrace storey on top) and the eastern end bastion
+    { x: 0.25, z: -0.01, w: 0.34, d: 0.22, y0: 0.03, y1: 0.37, c: WH, bat: 0.09, rows: 6, cols: 13, wb: 0.215 },
+    { x: 0.25, z: -0.07, w: 0.16, d: 0.13, y0: 0.3, y1: 0.42, c: WH, bat: 0.06, rows: 2, cols: 6, wb: 0.37 },
+    { x: 0.415, z: 0.02, w: 0.1, d: 0.16, y0: 0.03, y1: 0.285, c: WH, bat: 0.12, rows: 3, cols: 3, wb: 0.2 },
+    // Lower white monastic wings (Namgyal) to the west and the western end
+    { x: -0.27, z: -0.01, w: 0.3, d: 0.2, y0: 0.03, y1: 0.345, c: WH, bat: 0.09, rows: 5, cols: 11, wb: 0.215 },
+    { x: -0.425, z: 0.03, w: 0.09, d: 0.14, y0: 0.03, y1: 0.285, c: WH, bat: 0.12, rows: 3, cols: 2, wb: 0.2 },
+    // Red Palace on its white base, with the yellow building between it and the White Palace
     { x: 0.01, z: -0.03, w: 0.27, d: 0.24, y0: 0.03, y1: 0.33, c: WH, bat: 0.08, rows: 3, cols: 10, wb: 0.215 },
     { x: 0.01, z: -0.05, w: 0.23, d: 0.2, y0: 0.31, y1: 0.5, c: RED, bat: 0.05, rows: 6, cols: 9, wb: 0.335, frieze: '#3d1712', lintel: '#d9c9a0', top: '#7a6a58' },
     { x: 0.01, z: -0.075, w: 0.16, d: 0.13, y0: 0.48, y1: 0.535, c: RED, bat: 0.03, rows: 1, cols: 7, wb: 0.495, frieze: '#3d1712', lintel: '#d9c9a0', top: '#7a6a58' },
-    { x: 0.175, z: -0.06, w: 0.075, d: 0.09, y0: 0.33, y1: 0.445, c: YEL, bat: 0.05, rows: 2, cols: 3, wb: 0.39 },
+    { x: 0.155, z: -0.06, w: 0.06, d: 0.09, y0: 0.33, y1: 0.445, c: YEL, bat: 0.05, rows: 2, cols: 2, wb: 0.39 },
   ];
   for (const b of blocks) tblock(gp, b);
   // Black yak-hair curtain hanging down the Red Palace front, white drapes beside it
@@ -244,10 +250,10 @@ const potala: Builder = (gp, r) => {
   }
   // Gilded Chinese-style roofs over the stupa chapels, victory banners (gyaltsen) and the dharma wheel
   const RT = { tile: GOLD, rib: shade(GOLD, 1.15), eave: '#7a3b1e', under: '#5a2a18', ridgeC: '#e8bd52' };
-  for (const [x, z, w, d, h] of [[-0.03, -0.09, 0.07, 0.06, 0.035], [0.05, -0.09, 0.06, 0.05, 0.03], [-0.03, -0.03, 0.045, 0.04, 0.026], [0.06, -0.035, 0.04, 0.035, 0.024]] as const) {
-    box(gp, '#7a2a20', x, 0.53, z, w * 0.8, 0.012, d * 0.8);
-    const R = roof(gp, { x, z, y: 0.542, w, d, h, ridge: w * 0.25, gable: 0.55, lift: 0.006, nr: 4, step: 0.009, ...RT, hipR: 0.0022, ridgeH: 0.004 });
-    lathe(gp, [[0.003, 0], [0.004, 0.006], [0.002, 0.012], [0, 0.016]], GOLD, x, R.top, z, 6);
+  for (const [x, z, w, d, h] of [[-0.03, -0.095, 0.056, 0.048, 0.026], [0.05, -0.095, 0.05, 0.042, 0.024], [-0.025, -0.04, 0.04, 0.034, 0.02], [0.055, -0.04, 0.036, 0.03, 0.018]] as const) {
+    box(gp, '#7a2a20', x, 0.53, z, w * 0.8, 0.01, d * 0.8);
+    const R = roof(gp, { x, z, y: 0.54, w, d, h, ridge: w * 0.25, gable: 0.55, lift: 0.005, nr: 4, step: 0.008, ...RT, hipR: 0.002, ridgeH: 0.0035 });
+    lathe(gp, [[0.0025, 0], [0.0032, 0.005], [0.0018, 0.009], [0, 0.012]], GOLD, x, R.top, z, 6);
   }
   for (const b of [blocks[1], blocks[4], blocks[7], blocks[2]]) {
     const ins = (b.bat ?? 0.1) * (b.y1 - b.y0);
@@ -294,9 +300,12 @@ const potala: Builder = (gp, r) => {
     box(gp, '#5a2219', x, gy(x, z) + h - 0.003, z, 0.041, 0.003, 0.031);
     box(gp, '#1d1714', x, gy(x, z) + h * 0.5, z + 0.0155, 0.008, 0.007, 0.001);
   }
-  // Prayer flags and visitors on the plaza
-  for (let i = 0; i < 10; i++) box(gp, ['#3b82f6', '#f8fafc', '#ef4444', '#22c55e', '#facc15'][i % 5], -0.44 + i * 0.012, 0.15 - Math.sin(i / 3) * 0.01, 0.2, 0.01, 0.008, 0.001);
-  for (let i = 0; i < 10; i++) person(gp, -0.3 + hash3(i, 9, 1) * 0.6, 0.04, 0.41 + hash3(i, 9, 2) * 0.05, ['#7c2d12', '#1f2937', '#b91c1c', '#f8fafc'][i % 4]);
+  // Five-colour prayer flags (weathered) and pilgrims in chuba robes before the Shol gate
+  for (let i = 0; i < 10; i++) box(gp, ['#3f5f8f', '#e4ded0', '#9a3d32', '#4f7a52', '#c9a24a'][i % 5], -0.44 + i * 0.012, 0.15 - Math.sin(i / 3) * 0.01, 0.2, 0.01, 0.008, 0.001);
+  for (let i = 0; i < 10; i++) {
+    const c = ['#5a3a2a', '#3a332c', '#7a2e24', '#6b5a46'][i % 4];
+    human(gp, -0.3 + hash3(i, 9, 1) * 0.6, 0.038, 0.41 + hash3(i, 9, 2) * 0.04, { h: 0.024, ry: Math.PI + (hash3(i, 9, 3) - 0.5), pose: i % 3 ? 'walk' : 'stand', phase: i, top: c, bottom: shade(c, 0.8), skin: '#a8785a', hair: '#1d1915', hatStyle: i % 4 === 1 ? 'fur' : undefined, hat: '#4a3d30', dress: 'ankle', shoes: '#2a2420', detail: 'lo' });
+  }
 };
 
 // ---------------------------------------------------------------------------------------------------------
@@ -347,15 +356,20 @@ function drum(p: THREE.Object3D, key: string, x: number, y: number, z: number, r
   add(p, geo, mat('#ffffff', { vc: true, flat: true }), x, y, z, 1, 1, 1);
 }
 
-const templeofheaven: Builder = (gp, r) => {
-  const BLUE = typeof r.roof === 'string' ? r.roof : '#1e40af', TILE = mix(BLUE, '#20305e', 0.35), M = '#f1eee6', M2 = '#d8d2c4', GOLD = '#e0b03a', RED = r.color ?? '#9b2c2c';
+// 祈年殿 as rebuilt in 1890 to the 1752 design: 32.7 m across, 38 m tall, on the 5.6 m three-tier marble 祈谷坛
+// (≈0.0085 per metre). Deep cobalt-blue glazed roofs over painted drums, 28 columns, gilt 宝顶; 祈年门 to the
+// south, a green-glazed 燎炉 furnace in the south-east and Qing officials attending the rite. Scaled to fit.
+const templeofheaven: Builder = root => {
+  const gp = grp(root, 0, 0);
+  gp.scale.setScalar(0.9);
+  const TILE = '#2c4682', M = '#e9e5db', M2 = '#d2ccbe', GOLD = '#c99a3a', RED = '#8e2a1f';
   // Square courtyard paved in grey brick, enclosed by red walls under blue-glazed copings
-  paved(gp, 1.0, 1.0, 0, 0.02, '#a9a398', 0.05);
+  paved(gp, 1.0, 1.0, 0, 0.02, '#a39d92', 0.05);
   const WY = 0.02;
   for (const [x, z, L, ry] of [[0, -0.48, 0.98, 0], [-0.48, 0, 0.98, Math.PI / 2], [0.48, 0, 0.98, Math.PI / 2], [-0.31, 0.48, 0.36, 0], [0.31, 0.48, 0.36, 0]] as const) {
     const wg = grp(gp, x, z, ry);
     box(wg, RED, 0, WY, 0, L, 0.045, 0.016);
-    box(wg, '#d6a841', 0, WY + 0.04, 0, L, 0.003, 0.018);
+    box(wg, '#3d5a6a', 0, WY + 0.04, 0, L, 0.003, 0.018);
     gable(wg, L, 0.012, 0.03, TILE, 0, WY + 0.045, 0);
   }
   // Qinian Gate in the south wall
@@ -364,7 +378,7 @@ const templeofheaven: Builder = (gp, r) => {
   box(gp, '#2f6a5e', 0, WY + 0.055, 0.48, 0.25, 0.008, 0.056);
   roof(gp, { z: 0.48, y: WY + 0.063, w: 0.3, d: 0.09, h: 0.04, ridge: 0.1, lift: 0.008, nr: 4, step: 0.014, tile: TILE, eave: '#2f6a5e', under: '#2f6a5e', ridgeC: shade(TILE, 1.2) });
   // Three-tier white marble altar with balustrades, dragon-head spouts and four stairways
-  const R = [0.385, 0.315, 0.25], TH = 0.032;
+  const R = [0.385, 0.315, 0.25], TH = 0.019;
   for (let k = 0; k < 3; k++) {
     const y = WY + k * TH, rad = R[k];
     cyl(gp, M2, 0, y, 0, rad + 0.004, 0.007, 64);
@@ -375,7 +389,7 @@ const templeofheaven: Builder = (gp, r) => {
     for (let i = 0; i < n; i++) {
       const a0 = (i / n) * Math.PI * 2;
       if (inGap(a0)) continue;
-      box(gp, M, Math.cos(a0) * rr, y + TH, Math.sin(a0) * rr, 0.0045, 0.017, 0.0045, -a0);
+      box(gp, M, Math.cos(a0) * rr, y + TH, Math.sin(a0) * rr, 0.0045, 0.015, 0.0045, -a0);
       if (i % 2 === 0) box(gp, '#cfc8b8', Math.cos(a0) * (rad + 0.006), y + TH - 0.009, Math.sin(a0) * (rad + 0.006), 0.009, 0.004, 0.004, -a0);
     }
     // Carved balustrade panels: one lathe arc per quadrant between the stair openings
@@ -388,13 +402,13 @@ const templeofheaven: Builder = (gp, r) => {
     // Stairways on the four axes; the south stair is a triple flight with a carved dragon ramp
     for (let q = 0; q < 4; q++) {
       const sg = grp(gp, 0, 0, (q * Math.PI) / 2);
-      const run = 0.04, zf = rad + run;
+      const run = 0.03, zf = rad + run;
       if (q === 0) {
-        for (const sx of [-1, 1]) flight(sg, sx * 0.037, zf, y, y + TH, 0.028, run, M2, 7);
-        add(sg, g('box', () => new THREE.BoxGeometry(1, 1, 1)), mat('#e9e4d8'), 0, y + TH / 2, zf - run / 2, 0.042, 0.004, Math.hypot(run, TH), 0, Math.atan2(TH, run));
+        for (const sx of [-1, 1]) flight(sg, sx * 0.037, zf, y, y + TH, 0.028, run, M2, 5);
+        add(sg, g('box', () => new THREE.BoxGeometry(1, 1, 1)), mat('#d9d3c5'), 0, y + TH / 2, zf - run / 2, 0.042, 0.004, Math.hypot(run, TH), 0, Math.atan2(TH, run));
         for (const sx of [-1, 0, 1]) rod(sg, [sx * 0.056 + (sx === 0 ? 0 : 0), y + 0.012, zf], [sx * 0.056, y + TH + 0.012, zf - run], 0.0022, M, 4);
       } else {
-        flight(sg, 0, zf, y, y + TH, 0.06, run, M2, 7);
+        flight(sg, 0, zf, y, y + TH, 0.06, run, M2, 5);
         for (const sx of [-1, 1]) rod(sg, [sx * 0.033, y + 0.012, zf], [sx * 0.033, y + TH + 0.012, zf - run], 0.0022, M, 4);
       }
     }
@@ -409,27 +423,28 @@ const templeofheaven: Builder = (gp, r) => {
     const a = ((i + 0.5) / 24) * Math.PI * 2;
     cyl(gp, RED, Math.cos(a) * 0.15, B0, Math.sin(a) * 0.15, 0.0055, 0.08, 6);
   }
-  let y = roundRoof(gp, 0, B0 + 0.1, 0, 0.2, 0.128, 0.05, { tile: TILE });
-  drum(gp, 'toh2', 0, y - 0.012, 0, 0.122, 0.06, 0.6, 48, false);
-  y = roundRoof(gp, 0, y + 0.046, 0, 0.165, 0.098, 0.044, { tile: TILE });
-  drum(gp, 'toh3', 0, y - 0.01, 0, 0.094, 0.058, 0.6, 40, false);
+  let y = roundRoof(gp, 0, B0 + 0.1, 0, 0.188, 0.124, 0.048, { tile: TILE });
+  drum(gp, 'toh2', 0, y - 0.012, 0, 0.12, 0.068, 0.55, 48, false);
+  y = roundRoof(gp, 0, y + 0.054, 0, 0.152, 0.094, 0.042, { tile: TILE });
+  drum(gp, 'toh3', 0, y - 0.01, 0, 0.09, 0.066, 0.55, 40, false);
   // Gilded plaque with the hall's name under the top eave
-  mbox(gp, GOLD, 0, y + 0.006, 0.094, 0.032, 0.04, 0.004);
-  box(gp, '#1e3a8a', 0, y + 0.01, 0.0965, 0.022, 0.032, 0.002);
-  y = roundRoof(gp, 0, y + 0.046, 0, 0.13, 0.014, 0.088, { tile: TILE, k: 0.35 });
+  mbox(gp, GOLD, 0, y + 0.01, 0.09, 0.032, 0.04, 0.004);
+  box(gp, '#23345e', 0, y + 0.014, 0.0925, 0.022, 0.032, 0.002);
+  y = roundRoof(gp, 0, y + 0.054, 0, 0.12, 0.014, 0.084, { tile: TILE, k: 0.35 });
   gild(lathe(gp, [[0.016, 0], [0.012, 0.006], [0.008, 0.01], [0.009, 0.018], [0.014, 0.028], [0.0145, 0.036], [0.01, 0.046], [0, 0.05]], GOLD, 0, y - 0.004, 0, 16), GOLD);
-  // Red lantern kiosks, bronze urns and visitors in the courtyard
-  for (const sx of [-1, 1]) {
-    const x = sx * 0.2, z = 0.41;
-    for (const dx of [-0.012, 0.012]) for (const dz of [-0.012, 0.012]) box(gp, RED, x + dx, WY, z + dz, 0.004, 0.04, 0.004);
-    box(gp, '#b23a2e', x, WY + 0.012, z, 0.026, 0.026, 0.026);
-    cone(gp, '#b23a2e', x, WY + 0.04, z, 0.024, 0.02, 4, Math.PI / 4);
-    lathe(gp, [[0.006, 0], [0.01, 0.008], [0.008, 0.016], [0, 0.016]], '#c2803a', sx * 0.1, WY, 0.43, 8);
-  }
-  const pc = ['#1f2937', '#dc2626', '#2563eb', '#f8fafc', '#16a34a', '#7c3aed'];
-  for (let i = 0; i < 16; i++) {
-    const a = hash3(i, 7, 1) * Math.PI * 2, d = 0.4 + hash3(i, 7, 2) * 0.05;
-    person(gp, Math.cos(a) * d, WY, Math.sin(a) * d, pc[i % pc.length]);
+  // Green-glazed 燎炉 sacrificial furnace (south-east) and iron burners
+  const LZ = '#3f6b4f';
+  box(gp, '#6b7a62', 0.36, WY, 0.38, 0.05, 0.006, 0.04);
+  box(gp, LZ, 0.36, WY + 0.006, 0.38, 0.04, 0.032, 0.03);
+  box(gp, '#2a221c', 0.36, WY + 0.01, 0.396, 0.014, 0.016, 0.001);
+  roof(gp, { x: 0.36, z: 0.38, y: WY + 0.038, w: 0.05, d: 0.04, h: 0.018, ridge: 0.012, gable: 0.55, lift: 0.004, nr: 3, step: 0.008, tile: LZ, ridgeC: shade(LZ, 1.1), hipR: 0.0018, ridgeH: 0.003 });
+  for (const sx of [-1, 1]) lathe(gp, [[0.006, 0], [0.01, 0.006], [0.009, 0.016], [0, 0.016]], '#3e3a34', sx * 0.11, WY, 0.4, 8);
+  // Qing officials in dark 补服 lining the south approach, facing the hall
+  for (const sx of [-1, 1]) for (let i = 0; i < 5; i++) {
+    human(gp, sx * (0.075 + (i % 2) * 0.03), WY, 0.425 - i * 0.012 - (i % 2) * 0.006, {
+      h: 0.024, ry: Math.PI, top: i === 0 ? '#3b2f2a' : '#2a2d3a', bottom: '#1f2029', skin: '#c49a76', hair: '#1d1915',
+      hat: '#2a2622', hatStyle: 'qing', hatBadge: '#a8322a', dress: 'ankle', shoes: '#1c1a18', detail: 'lo',
+    });
   }
 };
 

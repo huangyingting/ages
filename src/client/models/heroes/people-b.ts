@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Builder, V3 } from '../prims.ts';
 import { add, box, cone, cyl, g, lathe, mat, prism, rbox, rod, shade, sweep, tube } from '../prims.ts';
 import { figure, figureBase, type FigureAnchors } from '../figure.ts';
+import { human } from '../human.ts';
 
 // Famous people B: artists, writers, poets and musicians. Each is a figurine diorama (base r≈0.46, figure ≈0.6 tall)
 // with the props and a miniature scene that make them recognisable.
@@ -166,152 +167,164 @@ function note(p: THREE.Object3D, x: number, y: number, z: number, s = 1, c = '#1
   box(q, c, 0.02 * s, 0.038 * s, 0, 0.016 * s, 0.006 * s, 0.0035 * s, 0, 0, -0.5);
 }
 
-// ---------------------------------------------------------------- Li Bai: raising a cup to the moon
+// ---------------------------------------------------------------- Li Bai: drinking alone under the moon
+// 《月下独酌》 "举杯邀明月，对影成三人" and 梁楷《李白行吟图》: a Tang 圆领袍 with a 软脚幞头, cup raised to the moon rising
+// over a ridge, the wine jar and gourd on a rush mat by a pine and a still pool holding the moon's reflection.
 const libai: Builder = gp => {
-  const Y = figureBase(gp, '#cbc5a4', '#55654a');
-  // misty Sichuan peaks with the full moon rising behind them
-  lathe(gp, [[0, 0], [0.16, 0], [0.12, 0.1], [0.075, 0.22], [0.035, 0.33], [0, 0.36]], '#7f927a', -0.24, Y, -0.24, 9);
-  lathe(gp, [[0, 0], [0.12, 0], [0.085, 0.09], [0.045, 0.18], [0, 0.21]], '#9aab90', -0.05, Y, -0.32, 8);
-  ellip(gp, '#f3f1e6', -0.24, Y + 0.33, -0.24, 0.03, 0.012, 0.03);
-  glow(ellip(gp, '#fff4c2', -0.3, Y + 0.44, -0.36, 0.1, 0.1, 0.018), '#fff4c2', '#e8cf7a');
-  // pine leaning over a moonlit pond
-  tube(gp, [[0.3, Y, -0.2], [0.27, Y + 0.14, -0.2], [0.33, Y + 0.26, -0.16], [0.24, Y + 0.36, -0.1]], 0.024, 0.012, '#5b4636', { radial: 7, sub: 3 });
+  const Y = figureBase(gp, '#b9b79a', '#4f5a48');
+  // dark ridges with the full moon just clearing them
+  lathe(gp, [[0, 0], [0.17, 0], [0.13, 0.08], [0.1, 0.17], [0.06, 0.27], [0.03, 0.33], [0, 0.35]], '#5f6b62', -0.24, Y, -0.24, 9);
+  lathe(gp, [[0, 0], [0.12, 0], [0.09, 0.08], [0.05, 0.16], [0, 0.2]], '#727e72', -0.04, Y, -0.32, 8);
+  const moon = cyl(gp, '#ebe5cc', -0.28, Y + 0.33, -0.36, 0.065, 0.006, 28);
+  moon.rotation.x = Math.PI / 2;
+  glow(moon, '#ebe5cc', '#6e6650');
+  // old pine leaning over the pool
+  tube(gp, [[0.3, Y, -0.2], [0.27, Y + 0.14, -0.2], [0.33, Y + 0.26, -0.16], [0.24, Y + 0.36, -0.1]], 0.024, 0.012, '#4e3e30', { radial: 7, sub: 3 });
   for (const [px, py, pz, s] of [[0.24, 0.38, -0.1, 1], [0.34, 0.29, -0.14, 0.8], [0.18, 0.33, -0.05, 0.7], [0.3, 0.42, -0.16, 0.75]])
-    ellip(gp, shade('#3f6b45', 0.9 + s * 0.15), px, Y + py, pz, 0.075 * s, 0.022 * s, 0.06 * s);
-  pond(gp, 0.17, Y, 0.21, 0.17, 0.12, '#355f80');
-  glow(ellip(gp, '#fff4c2', 0.2, Y + 0.011, 0.22, 0.035, 0.002, 0.026), '#fff4c2', '#d9c070');
-  rocks(gp, 0.17, Y, 0.21, 0.18, 0.13, 9, '#8d8b84', 0.02);
-  // wine jar with a red paper label
-  lathe(gp, [[0, 0], [0.035, 0], [0.055, 0.04], [0.05, 0.075], [0.025, 0.095], [0.022, 0.105], [0, 0.105]], '#6b4a32', -0.2, Y, 0.17, 14);
-  ellip(gp, '#c9b48a', -0.2, Y + 0.108, 0.17, 0.03, 0.012, 0.03);
-  box(gp, '#c0262d', -0.2, Y + 0.035, 0.222, 0.036, 0.036, 0.004, 0, 0, Math.PI / 4);
+    ellip(gp, shade('#34503a', 0.9 + s * 0.15), px, Y + py, pz, 0.075 * s, 0.022 * s, 0.06 * s);
+  pond(gp, 0.17, Y, 0.21, 0.17, 0.12, '#3e5868');
+  disc(gp, '#a9ab9c', 0.12, Y + 0.0102, 0.2, 0.024, 0.016, 0.002); // the moon in the water
+  rocks(gp, 0.17, Y, 0.21, 0.18, 0.13, 9, '#7d7b72', 0.02);
+  // rush mat where he sat, with a stoneware wine jar (cloth-tied lid) and a small dish
+  rbox(gp, '#a28f62', -0.2, Y, 0.16, 0.16, 0.006, 0.12, 0.003, 0.3);
+  lathe(gp, [[0, 0], [0.032, 0], [0.05, 0.035], [0.048, 0.07], [0.026, 0.092], [0.022, 0.1], [0, 0.1]], '#4a3a2c', -0.23, Y + 0.006, 0.15, 14);
+  ellip(gp, '#b8a888', -0.23, Y + 0.104, 0.15, 0.028, 0.012, 0.028);
+  cyl(gp, '#7a6a4a', -0.23, Y + 0.094, 0.15, 0.024, 0.006, 12);
+  lathe(gp, [[0, 0], [0.018, 0], [0.026, 0.01], [0, 0.01]], '#a7b39c', -0.15, Y + 0.006, 0.19, 12);
   const a = figure(gp, {
-    y: Y, z: -0.03, ry: -0.2, top: '#eeeadf', accent: '#3d6a8f', outfit: 'robe', wideSleeves: true, hair: '#1f1a17', hairStyle: 'short',
-    hat: 'futou', hatColor: '#1b1b1d', beard: 'goatee', beardColor: '#1f1a17', shoes: '#2b2b2b',
+    y: Y, z: -0.03, ry: -0.2, top: '#cfc6ae', accent: '#3a3128', bottom: '#8a826e', outfit: 'roundrobe', hair: '#1f1a17', hairStyle: 'topknot',
+    hat: 'ruanjiao', hatColor: '#1b1b1d', beard: 'goatee', beardColor: '#1f1a17', shoes: '#2b2622',
     armR: { fwd: 2.0, side: 1.0, bend: 0.2 }, armL: { fwd: 0.45, side: 0.22, bend: 0.55, inward: 0.1 },
   });
-  // wine cup raised toward the moon, gourd flask in the other hand
-  lathe(gp, [[0.004, 0], [0.012, 0.004], [0.024, 0.028], [0.021, 0.03], [0.009, 0.013], [0, 0.013]], BRASS, a.handR[0], a.handR[1] + 0.022, a.handR[2], 14);
-  rod(gp, a.handL, off(a.handL, 0, -0.035, 0.01), 0.002, '#c0262d');
-  ellip(gp, '#c98a3a', a.handL[0], a.handL[1] - 0.055, a.handL[2] + 0.012, 0.018, 0.02, 0.018);
-  ellip(gp, '#c98a3a', a.handL[0], a.handL[1] - 0.095, a.handL[2] + 0.012, 0.028, 0.03, 0.028);
+  // small celadon cup raised to the moon, the wine gourd hanging from the other hand by its cord
+  lathe(gp, [[0.006, 0], [0.012, 0.004], [0.022, 0.024], [0.02, 0.026], [0.009, 0.012], [0, 0.012]], '#a3b39a', a.handR[0], a.handR[1] + 0.02, a.handR[2], 14);
+  rod(gp, a.handL, off(a.handL, 0, -0.035, 0.01), 0.003, '#6b5a3a');
+  ellip(gp, '#a8844e', a.handL[0], a.handL[1] - 0.055, a.handL[2] + 0.012, 0.018, 0.02, 0.018);
+  ellip(gp, '#a8844e', a.handL[0], a.handL[1] - 0.095, a.handL[2] + 0.012, 0.028, 0.03, 0.028);
+  cyl(gp, '#6b5a3a', a.handL[0], a.handL[1] - 0.04, a.handL[2] + 0.012, 0.009, 0.006, 8);
 };
 
-// ---------------------------------------------------------------- Qu Yuan: poet on the riverbank, dragon boat, zongzi
+// ---------------------------------------------------------------- Qu Yuan: wandering by the Miluo
+// 陈洪绶《屈子行吟图》 (1616): gaunt, stooping, the tall slanted 切云冠 and the long sword (长铗) at his waist, hands in
+// his sleeves; 《渔父》: "行吟泽畔，颜色憔悴" — a reedy bank of the Miluo with orchids (兰) and the fisherman's skiff.
 const quyuan: Builder = gp => {
-  const Y = figureBase(gp, '#c3c49f', '#4f6b55');
+  const Y = figureBase(gp, '#b7b493', '#4f5f50');
   const river: [number, number][] = [];
   for (let i = 0; i <= 20; i++) { const t = 0.06 * Math.PI + (i / 20) * 0.88 * Math.PI; river.push([Math.cos(t) * 0.445, Math.sin(t) * 0.445]); }
-  prism(gp, river, Y, 0.01, '#3c7896');
-  for (let i = 0; i < 6; i++) box(gp, '#7fb2c8', -0.3 + i * 0.12, Y + 0.01, 0.36 - (i % 2) * 0.05, 0.05, 0.002, 0.006);
-  // dragon boat with rowers and a drummer
-  const bz = 0.27, by = Y + 0.012;
-  sweep(gp, [
-    { p: [-0.25, by + 0.03, bz], w: 0.006, h: 0.006 }, { p: [-0.17, by + 0.015, bz], w: 0.026, h: 0.018 },
-    { p: [0, by + 0.012, bz], w: 0.034, h: 0.022 }, { p: [0.17, by + 0.015, bz], w: 0.026, h: 0.018 }, { p: [0.24, by + 0.03, bz], w: 0.006, h: 0.006 },
-  ], '#b8281f', { radial: 10, sub: 4, squash: 0.7 });
-  box(gp, '#e2b13c', -0.18, by + 0.03, bz + 0.029, 0.36, 0.006, 0.004);
-  box(gp, '#e2b13c', -0.18, by + 0.03, bz - 0.029, 0.36, 0.006, 0.004);
-  tube(gp, [[0.23, by + 0.03, bz], [0.265, by + 0.07, bz], [0.27, by + 0.1, bz]], 0.012, 0.015, '#d9a62e', { radial: 8, sub: 3 });
-  ellip(gp, '#d9a62e', 0.285, by + 0.108, bz, 0.028, 0.017, 0.016);
-  ellip(gp, '#b8281f', 0.31, by + 0.1, bz, 0.012, 0.006, 0.011);
-  for (const s of [-1, 1]) {
-    rod(gp, [0.27, by + 0.12, bz + s * 0.008], [0.255, by + 0.15, bz + s * 0.016], 0.003, '#e2b13c');
-    ellip(gp, '#ffffff', 0.297, by + 0.115, bz + s * 0.011, 0.005);
-    ellip(gp, INK, 0.3, by + 0.115, bz + s * 0.014, 0.003);
-  }
-  tube(gp, [[-0.24, by + 0.03, bz], [-0.28, by + 0.07, bz], [-0.26, by + 0.1, bz]], 0.01, 0.004, '#d9a62e', { radial: 6, sub: 3 });
-  const shirts = ['#f2c12e', '#2f6fd0', '#f2c12e', '#2f6fd0'];
-  for (let i = 0; i < 4; i++) {
-    const x = -0.13 + i * 0.065;
-    cyl(gp, shirts[i], x, by + 0.03, bz, 0.011, 0.028, 8);
-    ellip(gp, '#e9b993', x, by + 0.068, bz, 0.01);
-    rod(gp, [x + 0.005, by + 0.05, bz + 0.012], [x - 0.02, by - 0.004, bz + 0.05], 0.0022, '#8b5a2b');
-  }
-  cyl(gp, '#b8281f', 0.15, by + 0.03, bz, 0.016, 0.022, 12);
-  cyl(gp, '#efe2c4', 0.15, by + 0.052, bz, 0.016, 0.002, 12);
-  // zongzi on leaves, and fragrant orchids on the bank
-  disc(gp, '#4f8a3a', -0.26, Y, -0.04, 0.07, 0.05, 0.004);
-  for (const [zx, zz, r] of [[-0.28, -0.05, 0], [-0.24, -0.03, 1.1], [-0.26, -0.01, 2.3]]) {
-    add(gp, g('pb-tet', () => new THREE.TetrahedronGeometry(1)), mat('#5d9a3c'), zx, Y + 0.022, zz, 0.024, 0.024, 0.024, r, 0.6);
-    rod(gp, [zx - 0.015, Y + 0.022, zz], [zx + 0.015, Y + 0.022, zz], 0.0018, '#d9c48a');
-  }
-  for (let i = 0; i < 7; i++) {
-    const t = i / 6, bx = 0.22 + Math.sin(i * 2.3) * 0.05, bzz = -0.12 + Math.cos(i * 1.7) * 0.04;
-    tube(gp, [[bx, Y, bzz], [bx + 0.01 + t * 0.02, Y + 0.08, bzz + 0.01], [bx + 0.04, Y + 0.13 + t * 0.03, bzz + 0.02]], 0.004, 0.0015, '#4d7c2f', { radial: 5, sub: 2 });
-    if (i % 2 === 0) ellip(gp, '#c9a0dc', bx + 0.04, Y + 0.135 + t * 0.03, bzz + 0.02, 0.009, 0.007, 0.009);
-  }
+  river.push([-0.3, 0.2], [0.3, 0.2]);
+  prism(gp, river.map(([x, z]) => [x, z]), Y, 0.008, '#4b6a6c');
+  for (let i = 0; i < 5; i++) box(gp, '#6f8c8a', -0.26 + i * 0.13, Y + 0.008, 0.34 - (i % 2) * 0.05, 0.05, 0.002, 0.006);
+  // the fisherman's skiff drifting on the river
+  const sk = grp(gp, 0.17, Y + 0.008, 0.33, -0.25);
+  sweep(sk, [
+    { p: [-0.13, 0.024, 0], w: 0.008, h: 0.008 }, { p: [-0.08, 0.012, 0], w: 0.04, h: 0.024 },
+    { p: [0.04, 0.01, 0], w: 0.046, h: 0.026 }, { p: [0.11, 0.016, 0], w: 0.03, h: 0.02 }, { p: [0.14, 0.026, 0], w: 0.01, h: 0.008 },
+  ], '#5a4632', { radial: 10, sub: 4, squash: 0.7 });
+  box(sk, '#6e5a40', 0, 0.024, 0, 0.17, 0.004, 0.034);
+  human(sk, -0.04, 0.026, 0, { h: 0.26, ry: Math.PI / 2, pose: 'sit', top: '#7a7462', bottom: '#5e5a4c', hair: '#2a2420', hat: '#a08a5a', hatStyle: 'conical', detail: 'lo', hipY: 0.12, feet: [[-0.07, 0.03, 0.22], [0.07, 0.03, 0.21]] });
+  rod(sk, [0.0, 0.12, 0.02], [0.1, -0.02, 0.06], 0.005, '#6b5034');
+  // reeds and orchids on the bank
+  const reed = (x: number, z: number, h: number) => {
+    for (let i = 0; i < 4; i++) {
+      const t = i * 1.9 + x * 13, dx = Math.cos(t) * 0.012, dz = Math.sin(t) * 0.012, hh = h * (0.75 + (i % 3) * 0.15);
+      tube(gp, [[x + dx, Y, z + dz], [x + dx * 1.5, Y + hh * 0.6, z + dz * 1.5], [x + dx * 2.5 + 0.01, Y + hh, z + dz * 2.5]], 0.004, 0.003, i % 2 ? '#7d7c4e' : '#6a7448', { radial: 4, sub: 2 });
+      if (i % 2 === 0) ellip(gp, '#b3a27c', x + dx * 2.5 + 0.01, Y + hh + 0.012, z + dz * 2.5, 0.007, 0.018, 0.007, 0, 0, -0.2);
+    }
+  };
+  for (const [rx, rz, h] of [[-0.34, 0.16, 0.2], [-0.28, 0.2, 0.16], [0.36, 0.12, 0.19], [0.3, 0.19, 0.14], [-0.05, 0.22, 0.12]]) reed(rx, rz, h);
+  const orchid = (x: number, z: number) => {
+    for (let i = 0; i < 6; i++) {
+      const t = i * 1.05 + x * 7, c = Math.cos(t), s = Math.sin(t);
+      tube(gp, [[x, Y, z], [x + c * 0.03, Y + 0.05, z + s * 0.03], [x + c * 0.07, Y + 0.035, z + s * 0.07]], 0.0045, 0.002, '#3e5a34', { radial: 4, sub: 2 });
+    }
+    for (let i = 0; i < 3; i++) ellip(gp, '#d6d0a6', x + Math.cos(i * 2.1) * 0.015, Y + 0.06 + i * 0.008, z + Math.sin(i * 2.1) * 0.015, 0.007, 0.005, 0.007);
+  };
+  orchid(0.2, -0.12); orchid(-0.25, -0.05); orchid(0.3, -0.25);
+  rocks(gp, -0.22, Y, -0.24, 0.07, 0.05, 5, '#7d7b70', 0.03);
   const a = figure(gp, {
-    y: Y, z: -0.1, x: -0.02, top: '#3e5c4a', accent: '#b8862e', outfit: 'robe', wideSleeves: true, hair: '#1c1917', hairStyle: 'topknot',
-    beard: 'long', beardColor: '#1c1917', armR: { fwd: 1.55, side: 0.4, bend: 0.55 }, armL: { fwd: 0.35, side: 0.15, bend: 0.55, inward: 0.35 },
+    y: Y, z: -0.06, x: -0.02, ry: 0.15, lean: 0.07, top: '#5b6656', accent: '#2a2a24', bottom: '#3e463b', outfit: 'robe', wideSleeves: true, hair: '#2a2622', hairStyle: 'topknot',
+    beard: 'long', beardColor: '#3a3632', armR: { fwd: 0.6, side: 0.02, bend: 1.25, inward: 0.62 }, armL: { fwd: 0.6, side: 0.02, bend: 1.25, inward: 0.62 },
   });
-  // tall slanted "cloud-cutting" hat
-  box(gp, '#1d1d1f', a.top[0], a.top[1] - 0.012, a.top[2] - 0.01, a.headR * 0.55, a.headR * 1.4, a.headR * 0.85, 0, -0.32);
-  rod(gp, off(a.top, -a.headR * 0.8, 0.03, -0.01), off(a.top, a.headR * 0.8, 0.03, -0.01), 0.003, GOLD);
-  // sword at the hip
-  rod(gp, off(a.handL, -0.005, 0.0, -0.01), off(a.handL, -0.02, -0.2, -0.09), 0.006, '#4b5563');
-  box(gp, GOLD, a.handL[0] - 0.02, a.handL[1] - 0.02, a.handL[2] - 0.01, 0.04, 0.008, 0.012);
-  // rolled poem scroll raised as he recites
-  const s0 = off(a.handR, 0, 0.0, 0.012);
-  cyl(gp, '#8b5a2b', s0[0], s0[1] - 0.04, s0[2], 0.009, 0.08, 8);
-  box(gp, PAPER, s0[0] + 0.012, s0[1] - 0.11, s0[2] + 0.004, 0.05, 0.1, 0.002);
-  for (let i = 0; i < 4; i++) box(gp, INK, s0[0] + 0.0 + i * 0.011, s0[1] - 0.1, s0[2] + 0.006, 0.003, 0.075, 0.001);
+  const body = a.group.children[0] as THREE.Group, u = a.u, hr = a.headR, ty = 0.93 * u + hr * 0.95;
+  // 切云冠: a tall black cap rising and slanting back from the topknot, with a hairpin
+  const hat = grp(body, 0, ty - hr * 0.15, -hr * 0.2, 0, -0.5);
+  box(hat, '#1d1c1a', 0, 0, 0, hr * 0.9, hr * 1.8, hr * 1.05);
+  box(hat, '#2b2926', 0, hr * 1.8, 0, hr * 1.0, hr * 0.14, hr * 1.2);
+  rod(body, [-hr * 1.0, ty + hr * 0.35, -hr * 0.2], [hr * 1.0, ty + hr * 0.35, -hr * 0.2], 0.004, '#b89a52');
+  // 长铗: the long sword slung at the left hip, hilt forward, scabbard trailing behind
+  const H: V3 = [-0.15 * u, 0.6 * u, 0.15 * u], T: V3 = [-0.2 * u, 0.1 * u, -0.3 * u];
+  const sw = aim(body, H, [T[0] - H[0], T[1] - H[1], T[2] - H[2]]), L = Math.hypot(T[0] - H[0], T[1] - H[1], T[2] - H[2]);
+  box(sw, '#4a3a28', 0, 0, 0.05 * u, 0.018 * u, 0.018 * u, 0.1 * u);
+  box(sw, '#8a7535', 0, 0, 0.105 * u, 0.04 * u, 0.034 * u, 0.012 * u);
+  box(sw, '#2a2420', 0, 0, (0.11 * u + L) / 2, 0.02 * u, 0.026 * u, L - 0.11 * u);
+  box(sw, '#8a7535', 0, 0, L, 0.024 * u, 0.03 * u, 0.02 * u);
 };
 
-// ---------------------------------------------------------------- Wang Xizhi: calligraphy at the Orchid Pavilion, geese
+// ---------------------------------------------------------------- Wang Xizhi: the Orchid Pavilion, watching geese
+// 钱选《王羲之观鹅图》 (Met) and 《兰亭集序》 (353): an Eastern Jin scholar in 褒衣博带 and a small black cap (小冠) by the
+// pavilion, a winding stream (曲水) with a floating 羽觞 wine cup, Chinese geese, 茂林修竹, a low 案 with his writing.
 function goose(p: THREE.Object3D, x: number, y: number, z: number, ry: number, s = 1): void {
   const q = grp(p, x, y, z, ry);
-  ellip(q, '#f7f5ef', 0, 0.035 * s, 0, 0.026 * s, 0.024 * s, 0.045 * s);
-  ellip(q, '#ece8de', 0, 0.042 * s, -0.035 * s, 0.014 * s, 0.014 * s, 0.022 * s, 0, 0.5);
-  tube(q, [[0, 0.05 * s, 0.03 * s], [0, 0.08 * s, 0.045 * s], [0, 0.105 * s, 0.04 * s]], 0.009 * s, 0.008 * s, '#f7f5ef', { radial: 7, sub: 3 });
-  ellip(q, '#f7f5ef', 0, 0.112 * s, 0.048 * s, 0.012 * s, 0.012 * s, 0.016 * s);
-  ellip(q, '#e88a1a', 0, 0.108 * s, 0.07 * s, 0.005 * s, 0.005 * s, 0.012 * s);
-  ellip(q, '#e88a1a', 0, 0.118 * s, 0.059 * s, 0.005 * s);
+  ellip(q, '#efece4', 0, 0.035 * s, 0, 0.026 * s, 0.024 * s, 0.045 * s);
+  ellip(q, '#e2ded2', 0, 0.042 * s, -0.035 * s, 0.014 * s, 0.014 * s, 0.022 * s, 0, 0.5);
+  tube(q, [[0, 0.05 * s, 0.03 * s], [0, 0.08 * s, 0.045 * s], [0, 0.105 * s, 0.04 * s]], 0.009 * s, 0.008 * s, '#efece4', { radial: 7, sub: 3 });
+  ellip(q, '#efece4', 0, 0.112 * s, 0.048 * s, 0.012 * s, 0.012 * s, 0.016 * s);
+  ellip(q, '#d08a3a', 0, 0.108 * s, 0.07 * s, 0.005 * s, 0.005 * s, 0.012 * s);
+  ellip(q, '#c07a30', 0, 0.12 * s, 0.059 * s, 0.006 * s); // the knob at the base of the bill of the Chinese goose
   for (const sx of [-1, 1]) {
     ellip(q, INK, sx * 0.01 * s, 0.116 * s, 0.054 * s, 0.002 * s);
-    rod(q, [sx * 0.01 * s, 0.015 * s, 0], [sx * 0.01 * s, 0, 0.005 * s], 0.0025 * s, '#e88a1a');
+    rod(q, [sx * 0.01 * s, 0.015 * s, 0], [sx * 0.01 * s, 0, 0.005 * s], 0.0025 * s, '#c88a3a');
   }
 }
 
 const wangxizhi: Builder = gp => {
-  const Y = figureBase(gp, '#d2c8a6', '#6e5a40');
-  // the Orchid Pavilion
+  const Y = figureBase(gp, '#bdb592', '#5e4e38');
+  // the Orchid Pavilion: a square open pavilion with a hipped pyramid roof on a stone platform
   const px = -0.24, pz = -0.22;
-  for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) cyl(gp, '#9b2f25', px + dx * 0.065, Y, pz + dz * 0.065, 0.008, 0.16, 8);
-  cyl(gp, '#a8a196', px, Y, pz, 0.095, 0.012, 4).rotation.y = Math.PI / 4;
-  cone(gp, '#4b5a5e', px, Y + 0.16, pz, 0.13, 0.09, 4, Math.PI / 4);
-  ellip(gp, GOLD, px, Y + 0.255, pz, 0.01, 0.016, 0.01);
-  box(gp, '#2f3b3e', px, Y + 0.155, pz, 0.15, 0.012, 0.15);
-  // bamboo
-  for (const [bx, bz, h] of [[0.3, -0.24, 0.42], [0.35, -0.16, 0.34], [0.25, -0.3, 0.36]]) {
-    cyl(gp, '#6f9a3a', bx, Y, bz, 0.009, h, 7);
-    for (let k = 1; k < 5; k++) cyl(gp, '#56782c', bx, Y + h * k / 5, bz, 0.0105, 0.006, 7);
-    for (let k = 0; k < 4; k++) ellip(gp, '#5a8f3c', bx + (k % 2 ? 0.025 : -0.025), Y + h * (0.55 + k * 0.12), bz + 0.01, 0.028, 0.004, 0.008, k % 2 ? 0.4 : -0.4, 0, k % 2 ? -0.5 : 0.5);
+  rbox(gp, '#9c968a', px, Y, pz, 0.17, 0.014, 0.17, 0.004);
+  for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) cyl(gp, '#6e3a2c', px + dx * 0.065, Y + 0.014, pz + dz * 0.065, 0.008, 0.15, 8);
+  box(gp, '#5a3024', px, Y + 0.15, pz, 0.15, 0.014, 0.15);
+  cone(gp, '#4a4f4c', px, Y + 0.16, pz, 0.135, 0.09, 4, Math.PI / 4);
+  cone(gp, '#3d423f', px, Y + 0.24, pz, 0.012, 0.03, 6);
+  // 茂林修竹: a bamboo grove behind
+  for (const [bx, bz, h] of [[0.3, -0.24, 0.42], [0.35, -0.16, 0.34], [0.25, -0.3, 0.38], [0.16, -0.34, 0.33], [0.38, -0.05, 0.28]]) {
+    cyl(gp, '#6d8545', bx, Y, bz, 0.008, h, 7);
+    for (let k = 1; k < 5; k++) cyl(gp, '#56692f', bx, Y + h * k / 5, bz, 0.0095, 0.006, 7);
+    for (let k = 0; k < 4; k++) ellip(gp, '#4f6e3a', bx + (k % 2 ? 0.025 : -0.025), Y + h * (0.55 + k * 0.12), bz + 0.01, 0.03, 0.005, 0.009, k % 2 ? 0.4 : -0.4, 0, k % 2 ? -0.5 : 0.5);
   }
-  // pond with geese
-  pond(gp, -0.2, Y, 0.22, 0.17, 0.12, '#4a7f9a');
-  rocks(gp, -0.2, Y, 0.22, 0.18, 0.13, 8, '#8e8a80', 0.018);
-  goose(gp, -0.24, Y + 0.002, 0.2, 0.5, 0.95);
-  goose(gp, -0.13, Y + 0.002, 0.26, -0.3, 0.8);
-  goose(gp, -0.05, Y, 0.08, 0.2, 0.85);
-  // writing table with paper, inkstone and calligraphy
-  const tx = 0.17, tz = 0.12, ty = Y + 0.2;
-  for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) box(gp, '#3b2a20', tx + dx * 0.1, Y, tz + dz * 0.055, 0.014, 0.2, 0.014);
-  rbox(gp, '#4a3427', tx, ty, tz, 0.24, 0.016, 0.14, 0.005);
-  box(gp, PAPER, tx + 0.015, ty + 0.016, tz + 0.005, 0.15, 0.002, 0.11);
-  for (let c = 0; c < 5; c++) for (let r = 0; r < 4; r++)
-    box(gp, INK, tx + 0.07 - c * 0.027, ty + 0.018, tz - 0.035 + r * 0.024, 0.014, 0.001, 0.004 + ((c + r) % 3) * 0.003, (c * r) % 2 ? 0.6 : -0.3);
-  rbox(gp, '#2b2d30', tx - 0.09, ty + 0.016, tz - 0.02, 0.035, 0.01, 0.05, 0.003);
+  // 曲水: a winding stream across the front with a floating lacquer 羽觞 and geese
+  const st: V3[] = [[-0.44, 0, 0.08], [-0.25, 0, 0.2], [-0.05, 0, 0.14], [0.12, 0, 0.27], [0.3, 0, 0.24], [0.44, 0, 0.1]];
+  for (let i = 0; i < st.length; i++) {
+    disc(gp, '#4b6a72', st[i][0], Y, st[i][2], 0.035, 0.035, 0.007, 16);
+    if (i === 0) continue;
+    const [x0, , z0] = st[i - 1], [x1, , z1] = st[i];
+    box(gp, '#4b6a72', (x0 + x1) / 2, Y, (z0 + z1) / 2, Math.hypot(x1 - x0, z1 - z0), 0.007, 0.07, Math.atan2(-(z1 - z0), x1 - x0));
+  }
+  rocks(gp, -0.05, Y, 0.14, 0.06, 0.06, 4, '#86827a', 0.018);
+  rocks(gp, 0.3, Y, 0.24, 0.06, 0.06, 4, '#86827a', 0.018);
+  const cup = grp(gp, 0.05, Y + 0.008, 0.2, 0.6);
+  ellip(cup, '#2a1a14', 0, 0, 0, 0.022, 0.008, 0.014);
+  ellip(cup, '#7a2a1c', 0, 0.004, 0, 0.017, 0.004, 0.01);
+  for (const sx of [-1, 1]) box(cup, '#2a1a14', 0, 0.006, sx * 0.016, 0.018, 0.003, 0.008);
+  goose(gp, -0.26, Y + 0.002, 0.19, 0.9, 0.95);
+  goose(gp, -0.14, Y + 0.002, 0.2, 1.6, 0.8);
+  goose(gp, 0.2, Y, 0.37, -2.4, 0.85);
+  // low writing table (案) on a mat: paper with columns of characters, inkstone, brush rest
+  const tx = 0.2, tz = 0.02;
+  rbox(gp, '#9a8a62', tx, Y, tz, 0.2, 0.005, 0.14, 0.002, -0.3);
+  const tb = grp(gp, tx, Y + 0.005, tz, -0.3);
+  for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) box(tb, '#2e221a', dx * 0.075, 0, dz * 0.04, 0.012, 0.06, 0.012);
+  rbox(tb, '#3a2a20', 0, 0.06, 0, 0.18, 0.012, 0.1, 0.004);
+  box(tb, PAPER, 0.01, 0.072, 0.005, 0.13, 0.002, 0.08);
+  for (let c = 0; c < 6; c++) for (let r = 0; r < 5; r++)
+    box(tb, INK, 0.06 - c * 0.02, 0.0735, -0.026 + r * 0.013, 0.008, 0.001, 0.007 + ((c + r) % 3) * 0.002, 0, (c * r) % 2 ? 0.5 : -0.3);
+  rbox(tb, '#2b2d30', -0.07, 0.072, -0.01, 0.026, 0.008, 0.04, 0.003);
   const a = figure(gp, {
-    y: Y, z: -0.06, x: -0.04, ry: 0.25, top: '#5c84ad', accent: '#4f8a68', outfit: 'robe', wideSleeves: true, hair: '#1c1917', hairStyle: 'topknot',
-    beard: 'goatee', beardColor: '#1c1917', armR: { fwd: 1.05, side: 0.12, bend: 0.25, inward: 0.15 }, armL: { fwd: 0.6, side: 0.1, bend: 0.8, inward: 0.55 },
+    y: Y, z: -0.06, x: -0.04, ry: -0.35, top: '#d6d0bf', accent: '#3d3a35', bottom: '#a8a290', outfit: 'robe', wideSleeves: true, hair: '#1c1917', hairStyle: 'topknot',
+    hat: 'scholar', hatColor: '#1c1b1a', beard: 'goatee', beardColor: '#1c1917', armR: { fwd: 0.75, side: 0.25, bend: 0.9, inward: 0.1 }, armL: { fwd: 0.55, side: 0.02, bend: 1.2, inward: 0.6 },
   });
-  // soft grey scholar's head-cloth with ribbons
-  ellip(gp, '#8f949a', a.top[0], a.top[1] - a.headR * 0.25, a.top[2] - a.headR * 0.1, a.headR * 1.1, a.headR * 0.7, a.headR * 1.12);
-  ellip(gp, '#9aa0a6', a.top[0], a.top[1] + a.headR * 0.2, a.top[2] - a.headR * 0.2, a.headR * 0.6, a.headR * 0.5, a.headR * 0.6);
-  for (const s of [-1, 1]) box(gp, '#8f949a', a.top[0] + s * a.headR * 0.4, a.top[1] - a.headR * 1.6, a.top[2] - a.headR * 1.05, a.headR * 0.3, a.headR * 1.3, 0.004, 0, 0, s * 0.15);
-  // brush poised over the paper
-  brush(gp, off(a.handR, 0, 0.05, 0), off(a.handR, 0.004, -0.04, 0.01));
+  // brush just lifted from the paper
+  brush(gp, off(a.handR, 0, 0.05, 0), off(a.handR, 0.004, -0.035, 0.01));
 };
 
 // ---------------------------------------------------------------- Murasaki Shikibu: Heian court lady writing Genji
