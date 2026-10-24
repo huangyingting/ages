@@ -95,35 +95,29 @@ h2, h3 { font-weight: 700; }
 .labels {
   position: absolute; inset: 0; pointer-events: none; overflow: hidden; contain: strict; --lz: 1;
   /* sizes */
-  --fs-cap: 14px; --fs-1: 13px; --fs-2: 12px; --fs-3: 11px; --fs-4: 10.5px;
+  --fs-place: 13px; --fs-1: 13px; --fs-2: 12px; --fs-3: 11px;
   /* colours: dark relief (ink) */
-  --c-city: #f1ece2; --c-city-2: #d6d0c4; --c-cap: #ffe2b0; --c-water: #9fcbe0; --c-relief: #cfc6b4;
+  --c-city: #fbf7ee; --c-cap: #ffd38a; --c-water: #9fcbe0; --c-relief: #cfc6b4;
   --c-admin: #ddd0b4; --c-admin-1: #f2e2bf;
-  --halo: 0 0 2px #0c0e10, 0 0 4px #0c0e10, 0 1px 6px rgba(0, 0, 0, 0.85);
 }
 :root:not([data-map=ink]) .labels {
-  --c-city: #2b2620; --c-city-2: #5a5248; --c-cap: #8f1f16; --c-water: #1f5f8b; --c-relief: #4a5d6b;
-  --c-admin: #5b4a36; --c-admin-1: #47321d;
-  --halo: 0 0 2px #fbf8f1, 0 0 3px #fbf8f1, 0 0 6px rgba(251, 248, 241, 0.9);
+  --c-city: #1c1814; --c-cap: #a3180d; --c-water: #134f7a; --c-relief: #33475a;
+  --c-admin: #4a3a28; --c-admin-1: #3a2715;
 }
 .labels > * { position: absolute; left: 0; top: 0; will-change: transform; white-space: nowrap; }
 .labels { --marker-size: 22px; }
-.place, .river, .admin, .work { text-shadow: var(--halo); }
-
-/* Clickable geographical names: one location anchor, replaced by the model's base ring when modeled. */
+/* Clickable geographical names: one size and weight, solid colour by category, no halo.
+   The location anchor is replaced by the model's base ring when modeled. */
 .place {
-  --k: var(--c-city-2);
-  border: 0; background: none; padding: 3px; font-family: inherit; font-size: calc(var(--fs-2) * var(--lz));
-  font-weight: 500; color: var(--c-city); letter-spacing: 0.03em; pointer-events: auto; cursor: pointer;
+  --k: var(--c-city);
+  border: 0; background: none; padding: 3px; font-family: inherit; font-size: calc(var(--fs-place) * var(--lz));
+  font-weight: 600; color: var(--c-city); letter-spacing: 0.03em; pointer-events: auto; cursor: pointer;
   display: flex; align-items: center; gap: 4px; border-radius: 3px; text-decoration: none;
 }
 .place.modeled .b { display: none; }
-.place.t1 { font-size: calc(var(--fs-1) * var(--lz)); font-weight: 600; }
-.place.t3 { font-size: calc(var(--fs-3) * var(--lz)); font-weight: 400; color: var(--c-city-2); }
-.place.minor { font-size: calc(var(--fs-4) * var(--lz)); font-weight: 400; color: var(--c-city-2); opacity: 0.8; }
 .place.k-mountain, .place.k-pass { --k: var(--c-relief); color: var(--c-relief); }
 .place.k-water { --k: var(--c-water); color: var(--c-water); }
-.place.cap { --k: var(--c-cap); font-size: calc(var(--fs-cap) * var(--lz)); font-weight: 700; color: var(--c-cap); letter-spacing: 0.08em; }
+.place.cap { --k: var(--c-cap); color: var(--c-cap); }
 .place:focus-visible, .pin:focus-visible { outline: none; }
 
 /* water: rivers and lakes, spaced along their course */
@@ -154,7 +148,7 @@ h2, h3 { font-weight: 700; }
 :lang(en) .work { letter-spacing: 0.05em; }
 
 /* polities: the largest, heaviest names, sized by their area and tinted with their colour */
-.polity { font-weight: 800; letter-spacing: 0.3em; color: color-mix(in srgb, var(--c) 45%, #fff6e4); opacity: 0.92; text-shadow: 0 0 3px rgba(10, 10, 12, 0.95), 0 0 10px rgba(10, 10, 12, 0.7); }
+.polity { font-weight: 800; letter-spacing: 0.3em; color: color-mix(in srgb, var(--c) 45%, #fff6e4); opacity: 0.92; }
 .polity.s-xl { font-size: 26px; letter-spacing: 0.5em; }
 .polity.s-l { font-size: 19px; }
 .polity.s-m { font-size: 14px; }
@@ -162,7 +156,7 @@ h2, h3 { font-weight: 700; }
 .polity.r-neighbor { opacity: 0.6; font-weight: 600; }
 :lang(en) .polity { letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; }
 :lang(en) .polity.s-xl { letter-spacing: 0.2em; }
-:root:not([data-map=ink]) .polity { color: color-mix(in srgb, var(--c) 70%, #0d0a06); text-shadow: 0 0 3px rgba(255, 252, 245, 0.95), 0 0 8px rgba(255, 252, 245, 0.7); }
+:root:not([data-map=ink]) .polity { color: color-mix(in srgb, var(--c) 70%, #0d0a06); }
 
 
 /* One compact marker for all content: a quiet circular glyph, without stems or a second location dot. */

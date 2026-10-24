@@ -4,22 +4,23 @@ Every map label uses one scale, defined as CSS tokens on `.labels` in `src/clien
 
 | Property | Meaning |
 |---|---|
-| **Size** | importance (tier) |
-| **Weight** | rank inside a category |
-| **Colour** | category: settlement, water, relief, admin, work, polity |
+| **Size** | label type: every place name has one size; only rivers, admin areas and polities scale by their own rank |
+| **Weight** | place names are all 600; other labels use weight for rank inside their category |
+| **Colour** | category: settlement, capital, water, relief, admin, work, polity |
 | **Letter-spacing** | areal features (rivers, regions, polities) are spread along their extent |
 | **Italic** | man-made lines (walls, canals, roads, sea routes), and English river names |
-| **Halo** | every label except polities has a thin halo in the background colour, so it reads over any relief |
+| **No halo** | labels are solid, high-contrast colours with no glow or text shadow |
 
 ## Size tokens
 
 | Token | px | Used for |
 |---|---|---|
-| `--fs-cap` | 14 | capital of the year |
-| `--fs-1` | 13 | tier-1 cities, trunk rivers |
-| `--fs-2` | 12 | ordinary places, first-level admin areas |
-| `--fs-3` | 11 | tier-3 places, rivers and lakes, admin areas, works |
-| `--fs-4` | 10.5 | minor sites (shown only close up) |
+| `--fs-place` | 13 | every place name: capitals, cities, sites, mountains, passes, waters |
+| `--fs-1` | 13 | trunk rivers |
+| `--fs-2` | 12 | first-level admin areas |
+| `--fs-3` | 11 | rivers and lakes, admin areas, works |
+
+Place tiers decide only priority and the distance at which a name appears, never its size, weight or opacity.
 
 Polity names are sized by territory area (`s-xl` 26, `s-l` 19, `s-m` 14, `s-s` 12 px) and keep that size at every zoom.
 
@@ -29,21 +30,20 @@ Polity names are sized by territory area (`s-xl` 26, `s-l` 19, `s-m` 14, `s-s` 1
 
 | Label | Class | Weight | Colour token | Ink (dark) | Paper / plain |
 |---|---|---|---|---|---|
-| Capital | `.place.cap` | 700 | `--c-cap` + circular location anchor | `#ffe2b0` | `#8f1f16` |
-| Tier-1 city | `.place.t1` | 600 | `--c-city` | `#f1ece2` | `#2b2620` |
-| Place | `.place` | 500 | `--c-city` | `#f1ece2` | `#2b2620` |
-| Tier-3 / minor | `.place.t3`, `.minor` | 400 | `--c-city-2` | `#d6d0c4` | `#5a5248` |
-| Mountain, pass | `.place.k-mountain`, `.k-pass` | as tier | `--c-relief` | `#cfc6b4` | `#4a5d6b` |
-| Trunk river | `.river.k-trunk` | 600 | `--c-water` | `#9fcbe0` | `#1f5f8b` |
-| River, lake | `.river` | 500 | `--c-water` | `#9fcbe0` | `#1f5f8b` |
-| Admin area, level 1 | `.admin.l1` | 600 | `--c-admin-1` | `#f2e2bf` | `#47321d` |
-| Admin area | `.admin` | 500 | `--c-admin` | `#ddd0b4` | `#5b4a36` |
+| Capital | `.place.cap` | 600 | `--c-cap` | `#ffd38a` | `#a3180d` |
+| Place (any tier) | `.place` | 600 | `--c-city` | `#fbf7ee` | `#1c1814` |
+| Mountain, pass | `.place.k-mountain`, `.k-pass` | 600 | `--c-relief` | `#cfc6b4` | `#33475a` |
+| Water site | `.place.k-water` | 600 | `--c-water` | `#9fcbe0` | `#134f7a` |
+| Trunk river | `.river.k-trunk` | 600 | `--c-water` | `#9fcbe0` | `#134f7a` |
+| River, lake | `.river` | 500 | `--c-water` | `#9fcbe0` | `#134f7a` |
+| Admin area, level 1 | `.admin.l1` | 600 | `--c-admin-1` | `#f2e2bf` | `#3a2715` |
+| Admin area | `.admin` | 500 | `--c-admin` | `#ddd0b4` | `#4a3a28` |
 | Wall, canal, road, sea route | `.work.k-*` | 600 italic | the work's line colour | | |
 | Polity | `.polity` | 800 (neighbours 600) | the polity's colour mixed toward the background | | |
 
 Interactive text such as tooltips (`.maptip`) and model tags (`.tag`) belongs to the UI, not the map, and is not covered by these tokens.
 
-Clickable names are semantic buttons with the same 22 px circular icon as other compact markers; capitals are no larger.
+Clickable names are semantic buttons with the same 22 px circular icon as other compact markers; capitals differ only by colour.
 Hover and keyboard focus highlight only the circle, without underlining text or resizing the icon. When the place has a model, its base ring
 replaces that anchor and the same name sits above the model; both open the same card. Model bounds participate in label
 avoidance, so unrelated names never cover models. There are no separate importance-based model name plates.

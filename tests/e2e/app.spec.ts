@@ -308,6 +308,10 @@ test.describe('Ages atlas', () => {
       const sizes = await page.locator('.place.on:not(.modeled) .b, .pin.on:not(.model-hit) .b').evaluateAll(els =>
         [...new Set(els.map(el => { const r = el.getBoundingClientRect(); return `${r.width.toFixed(2)}x${r.height.toFixed(2)}`; }))]);
       expect(sizes).toEqual(['22.00x22.00']);
+      const text = await page.locator('.place.on').evaluateAll(els =>
+        [...new Set(els.map(el => { const s = getComputedStyle(el); return `${s.fontSize}/${s.fontWeight}/${s.textShadow}/${s.opacity}`; }))]);
+      expect(text).toHaveLength(1);
+      expect(text[0]).toMatch(/\/600\/none\/1$/);
     }
     await capital.focus();
     await expect(page.getByRole('tooltip')).toBeVisible();

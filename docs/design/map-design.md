@@ -45,7 +45,8 @@ expanded form is a model. Both use the same `MapTarget` interaction path. There 
 Only geographical names remain on the map; people, events, customs and foods introduce themselves in the tooltip.
 Plain river, polity and administrative text is not styled as a button.
 All compact icons, including geographical locations and capitals without models, share a 22 px diameter. Their size
-stays fixed when hovered or focused; only the ring changes. Text is never underlined.
+stays fixed when hovered or focused; only the ring changes. Text is never underlined. Every place name has the same
+size and weight (13 px, 600) in a solid category colour without a halo; tier changes only when a name appears.
 
 **Importance sets priority, not name plates.** `sceneryOf` retains three priority levels, but they no longer dictate
 three different appearances or sizes. Up to six representative items are given leading priority; this is not a quota
