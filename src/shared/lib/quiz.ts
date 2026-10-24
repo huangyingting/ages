@@ -1,5 +1,10 @@
-import type { Book, HistEvent, I18n, Place, Year } from '../data/types.ts';
-import { eraAt } from './timeline.ts';
+import { formatArea, snapPolities } from '../data/areas.ts';
+import { PLACE, mapName } from '../data/places.ts';
+import { POLITY } from '../data/polities.ts';
+import type { Book, HistEvent, I18n, Place, Snapshot, Year } from '../data/types.ts';
+import { SNAPSHOTS } from '../data/territories.ts';
+import { CHAPTERS, CHRONICLE, phaseAt, type Phase } from './chronicle.ts';
+import { eraAt, formatYear } from './timeline.ts';
 
 export type Question =
   | { type: 'when'; event: string; prompt: I18n; options: number[]; answer: number }
@@ -99,3 +104,71 @@ export const RANKS: { min: number; name: I18n }[] = [
   { min: 0, name: { zh: '书院童生', en: 'Academy Novice' } },
 ];
 export const rankOf = (score: number, max: number): I18n => RANKS.find(x => score >= x.min * max)!.name;
+
+/** One multiple-choice question about a territorial phase (随堂检测): four options, the answer's index and why. */
+export interface PeriodQuestion { snap: string; prompt: I18n; options: I18n[]; answer: number; why: I18n }
+
+const hash = (s: string): number => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+const both = (f: (l: 'zh' | 'en') => string): I18n => ({ zh: f('zh'), en: f('en') });
+const span = (ph: Phase, l: 'zh' | 'en') => `${formatYear(ph.from, l)} – ${formatYear(ph.to, l)}`;
+
+/**
+ * The question for one phase of the map, always the same for that phase: the capital (first phase of a dynasty with
+ * one), a polity on the map at the time, or an event of the phase, with three wrong options from other times.
+ */
+export function periodQuestion(snap: Snapshot): PeriodQuestion | null {
+  const ph = phaseAt(snap.year);
+  if (!ph || ph.snap !== snap) return null;
+  const r = rng(hash(snap.id));
+  const era = eraAt(snap.year);
+  const make = (prompt: I18n, right: I18n, wrong: I18n[], why: I18n): PeriodQuestion | null => {
+    const seen = new Set([right.zh]);
+    const picks = shuffle(wrong, r).filter(w => !seen.has(w.zh) && seen.add(w.zh)).slice(0, 3);
+    if (picks.length < 3) return null;
+    const options = shuffle([right, ...picks], r);
+    return { snap: snap.id, prompt, options, answer: options.indexOf(right), why };
+  };
+
+  const capital = era?.capital ? PLACE.get(era.capital) : undefined;
+  if (era && capital && ph.index === 0) {
+    const name = (id: string | undefined, y: Year) => { const p = id ? PLACE.get(id) : undefined; return p ? mapName(p, y) ?? p.name : null; };
+    const right = name(era.capital, era.start)!;
+    // one option per city (洛邑 and 洛阳 are the same place)
+    const cities = new Map(CHAPTERS.filter(e => e.capital && e.capital !== era.capital).map(e => [e.capital!, name(e.capital, e.start)]));
+    const wrong = [...cities.values()].filter((n): n is I18n => !!n);
+    const q = make(both(l => (l === 'zh' ? `${era.name.zh}的都城是？` : `Where was the capital of ${era.name.en}?`)), right, wrong,
+      both(l => (l === 'zh' ? `${era.name.zh}定都${right.zh}${right.zh === capital.name.zh ? '' : `（今${capital.name.zh}）`}。` : `${era.name.en} ruled from ${right.en}${right.en === capital.name.en ? '' : ` (today's ${capital.name.en})`}.`)));
+    if (q) return q;
+  }
+
+  const inPhase = (y: Year) => y >= ph.from && y <= ph.to;
+  const events = CHRONICLE.filter(e => e.year >= -2070);
+  const key = events.filter(e => e.weight <= 2);
+  const mine = key.some(e => inPhase(e.year)) ? key.filter(e => inPhase(e.year)) : events.filter(e => inPhase(e.year));
+  const here = new Map(snapPolities(snap.id).map(([id, k]) => [id, k]));
+  const named = [...here.keys()].map(id => POLITY.get(id)).filter(p => !!p);
+  const useEvent = mine.length > 0 && (named.length < 2 || r() < 0.6);
+
+  if (useEvent) {
+    const e = mine[Math.floor(r() * mine.length)];
+    const far = key.filter(x => Math.abs(x.year - e.year) > 40 && !inPhase(x.year) && Math.abs(x.year - e.year) < 900);
+    const q = make(both(l => (l === 'zh' ? '下列哪件事发生在这一时期？' : 'Which of these happened in this period?')), e.title, far.map(x => x.title),
+      both(l => (l === 'zh' ? `${e.title.zh}发生于${formatYear(e.year, l)}，在本时期（${span(ph, l)}）之内。` : `${e.title.en} took place in ${formatYear(e.year, l)}, within this period (${span(ph, l)}).`)));
+    if (q) return q;
+  }
+
+  // a polity on this map and three that were not on any map within two centuries
+  const near = new Set<string>();
+  for (const s of SNAPSHOTS) if (Math.abs(s.year - snap.year) < 200) for (const [id] of snapPolities(s.id)) near.add(POLITY.get(id)?.name.zh ?? id);
+  // the polities of Chinese history rather than distant neighbours, on both sides of the question
+  const ours = (x: { role: string }) => x.role !== 'neighbor';
+  const pool = named.some(ours) ? named.filter(ours) : named;
+  const sorted = pool.slice().sort((a, b) => (here.get(b.id) ?? 0) - (here.get(a.id) ?? 0));
+  if (!sorted.length) return null;
+  const p = sorted[Math.floor(r() * Math.min(4, sorted.length))];
+  const away = [...POLITY.values()].filter(x => !near.has(x.name.zh));
+  const others = away.filter(ours).length >= 3 ? away.filter(ours) : away;
+  const k = here.get(p.id) ?? 0;
+  return make(both(l => (l === 'zh' ? '下列哪个政权出现在这一时期的地图上？' : 'Which of these polities is on the map in this period?')), p.name, others.map(x => x.name),
+    both(l => (l === 'zh' ? `${p.name.zh}在本时期（${span(ph, l)}）的地图上${k ? `，${formatArea(k, l)}` : ''}；其余三个都不在前后二百年的地图上。` : `${p.name.en} is on the map in this period (${span(ph, l)})${k ? `, ${formatArea(k, l)}` : ''}; the other three are on no map within two centuries.`)));
+}

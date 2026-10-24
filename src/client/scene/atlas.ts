@@ -16,7 +16,7 @@ import { eraAt, formatYear } from '../../shared/lib/timeline.ts';
 import { kindName, t as ui } from '../lib/i18n.ts';
 import { glyph } from '../ui/icons.ts';
 import { Fx, type SpawnState } from './fx.ts';
-import { Halo } from './halo.ts';
+import { Beam, Halo } from './halo.ts';
 import { Geo } from './geo.ts';
 import { Labels, type Label } from './labels.ts';
 import type { LayoutItem, ScreenBox } from './layout.ts';
@@ -25,6 +25,7 @@ import { TerrainDetail } from './detail.ts';
 import { ShapeStore } from './shapes.ts';
 import { TerritoryPainter, regionAnchor, texture, type PaintOpts } from './territory.ts';
 import { TerritoryDetail } from './territory-detail.ts';
+import { morphTexture } from './morph.ts';
 import { View, type CamPose } from './view.ts';
 
 interface MapTarget {
@@ -100,8 +101,9 @@ export class Atlas {
   private places = new Map<string, MapTarget>();
   private riverLabels: [RiverLabel, Label][] = [];
   private polityLabels: Label[] = [];
-  private fade: { t: number; tex: THREE.Texture; src: TexSource; wipe?: { dur: number; r: number } } | null = null;
+  private fade: { t: number; tex: THREE.Texture; src: TexSource; wipe?: { dur: number; r: number }; morph?: THREE.Texture } | null = null;
   private texA: THREE.Texture | null = null;
+  private morphTex: THREE.Texture | null = null;
   private capitalKey = '';
   private sceneryKey = '';
   private storyMode = false;
@@ -112,6 +114,7 @@ export class Atlas {
   private selAt: LonLat | null = null;
   private hoverHalo!: Halo;
   private selHalo!: Halo;
+  private beam!: Beam;
   private tip!: HTMLElement;
   private overCanvas = false;
   private raycaster = new THREE.Raycaster();
@@ -149,7 +152,8 @@ export class Atlas {
     this.view.jump(this.geo.stage.home);
     this.hoverHalo = new Halo(this.geo, '#22c3e6');
     this.selHalo = new Halo(this.geo, '#e0402f');
-    this.view.scene.add(this.hoverHalo.obj, this.selHalo.obj);
+    this.beam = new Beam(this.geo, '#e0402f');
+    this.view.scene.add(this.hoverHalo.obj, this.selHalo.obj, this.beam.obj);
     this.tip = document.createElement('div');
     this.tip.className = 'maptip';
     this.tip.id = 'map-tooltip';
@@ -175,7 +179,7 @@ export class Atlas {
       (u.uWipe.value as THREE.Vector4).z = w.r * (1 - Math.pow(1 - k, 2));
       if (k >= 1) this.finishFade();
     } else if (this.fade) {
-      this.fade.t = Math.min(1, this.fade.t + dt / 0.8);
+      this.fade.t = Math.min(1, this.fade.t + dt / (this.fade.morph ? 1.4 : 0.8));
       u.uMix.value = this.fade.t * this.fade.t * (3 - 2 * this.fade.t);
       if (this.fade.t >= 1) this.finishFade();
     }
@@ -370,8 +374,12 @@ export class Atlas {
       this.selHalo.place(p.x, p.z, minR * 0.9);
     }
     this.selHalo.on = !this.storyMode && !this.pickHandler && (!target || Atlas.live(target)) && (!!sm || !!this.selAt);
+    // an open event also gets a light over its ring
+    this.beam.on = this.selHalo.on && !!this.selKey?.startsWith('event:');
+    if (this.beam.on) this.beam.place(this.selHalo.obj.position.x, this.selHalo.obj.position.z, this.selHalo.radius);
     this.hoverHalo.tick(dt);
     this.selHalo.tick(dt);
+    this.beam.tick(dt);
   }
 
   private setHover(h: Hover | null): void {
@@ -579,7 +587,11 @@ export class Atlas {
       } else {
         if (this.fade) this.finishFade();
         this.terrain.uniforms.uTerrB.value = tex;
-        this.fade = { t: 0, tex, src };
+        // a new phase grows from the old borders; a layer toggle just cross-fades
+        const morph = snapChanged && this.texA.image instanceof HTMLCanvasElement ? morphTexture(this.texA.image, tex.image as HTMLCanvasElement) : null;
+        if (morph) { this.morphTex?.dispose(); this.morphTex = morph; this.terrain.uniforms.uMorph.value = morph; }
+        this.terrain.uniforms.uMorphOn.value = morph ? 1 : 0;
+        this.fade = { t: 0, tex, src, morph: morph ?? undefined };
       }
       if (snapChanged || !this.polityLabels.length) { this.buildPolityLabels(); this.buildAdminLabels(); }
     }
@@ -621,6 +633,7 @@ export class Atlas {
   private finishFade(): void {
     if (!this.fade) return;
     (this.terrain.uniforms.uWipe.value as THREE.Vector4).set(0, 0, 0, 0);
+    this.terrain.uniforms.uMorphOn.value = 0;
     this.texA?.dispose();
     this.texA = this.fade.tex;
     this.terrain.uniforms.uTerrA.value = this.texA;

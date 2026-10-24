@@ -3,6 +3,7 @@ import { readLink } from '../../src/client/lib/link.ts';
 import { articleUrl, parseExtract } from '../../src/client/lib/wikipedia.ts';
 import { deploy, shape } from '../../src/client/scene/formation.ts';
 import { declutter, type LayoutItem } from '../../src/client/scene/layout.ts';
+import { growthField } from '../../src/client/scene/morph.ts';
 
 describe('shared map layout', () => {
   const item = (owner: string, x: number, prio = 10): LayoutItem => ({
@@ -126,5 +127,17 @@ describe('battle formations', () => {
     // after 1840 rifles replace spears and bows
     const late = deploy('line', 'foot', 20, 1911);
     expect(count(late, 'gun')).toBe(20);
+  });
+});
+
+describe('border morph', () => {
+  it('grows a conquering polity outward from its old border', () => {
+    // 8×1 strip: red holds x < 2 and takes everything up to x < 6 from blue
+    const w = 8, px = (red: number) => Array.from({ length: w }, (_, x) => (x < red ? [200, 0, 0, 255] : [0, 0, 200, 255])).flat();
+    const f = growthField(new Uint8ClampedArray(px(2)), new Uint8ClampedArray(px(6)), w, 1);
+    expect([f[0], f[1], f[6], f[7]]).toEqual([0, 0, 0, 0]);
+    expect(f[2]).toBeLessThan(f[3]);
+    expect(f[4]).toBeLessThan(f[5]);
+    expect(f[5]).toBe(1);
   });
 });

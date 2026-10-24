@@ -32,6 +32,8 @@ uniform sampler2D uTerrA;
 uniform sampler2D uTerrB;
 uniform sampler2D uHi;
 uniform float uMix;
+uniform sampler2D uMorph; // per-texel switch time of the border morph (0–1)
+uniform float uMorphOn;
 uniform vec4 uWipe; // centre x, z, radius, on
 uniform vec3 uWipeColor;
 uniform float uTerrOn;
@@ -157,7 +159,13 @@ void main() {
   }
   vec4 tb = texture2D(uTerrB, vUv);
   float wd = distance(vWorld.xz, uWipe.xy) - uWipe.z;
-  float mixK = uWipe.w > 0.5 ? 1.0 - smoothstep(-0.6, 0.0, wd) : uMix;
+  float mixK = uMix;
+  if (uWipe.w > 0.5) mixK = 1.0 - smoothstep(-0.6, 0.0, wd);
+  else if (uMorphOn > 0.5) {
+    // borders advance: each texel switches at its own time, with a short soft edge
+    float g = texture2D(uMorph, vUv).r * 0.85;
+    mixK = smoothstep(g, g + 0.15, uMix);
+  }
   vec4 t = mix(ta, tb, mixK);
   // the polity colour is lit like the ground beneath it, so mountains read through the fill
   vec3 lit = t.rgb * (ink ? 0.9 + 1.0 * rel : plain ? 1.0 + 0.35 * rel : 0.99 + 0.5 * rel) * tint;
@@ -243,7 +251,7 @@ export function buildTerrain(geo: Geo, lowfx: boolean): Terrain {
   const texelKm = ((b.north - b.south) / geo.h) * 111;
   const uniforms: Record<string, THREE.IUniform> = {
     uElev: { value: elevTex }, uMask: { value: maskTex }, uTerrA: { value: blank }, uTerrB: { value: blank }, uHi: { value: blank },
-    uMix: { value: 0 }, uWipe: { value: new THREE.Vector4(0, 0, 0, 0) }, uWipeColor: { value: new THREE.Color().setHex(0xc0392b, THREE.LinearSRGBColorSpace) }, uTerrOn: { value: 1 }, uHiAmt: { value: 0 }, uHiColor: { value: new THREE.Color('#fff3b0') },
+    uMix: { value: 0 }, uMorph: { value: blank }, uMorphOn: { value: 0 }, uWipe: { value: new THREE.Vector4(0, 0, 0, 0) }, uWipeColor: { value: new THREE.Color().setHex(0xc0392b, THREE.LinearSRGBColorSpace) }, uTerrOn: { value: 1 }, uHiAmt: { value: 0 }, uHiColor: { value: new THREE.Color('#fff3b0') },
     uTexel: { value: new THREE.Vector2(1 / geo.w, 1 / geo.h) }, uRelief: { value: 18 / (2 * texelKm) * 1.4 }, uTime: { value: 0 },
     uDet: { value: blank }, uDetBox: { value: new THREE.Vector4(0, 1, 0, 1) }, uDetTexel: { value: new THREE.Vector2(1, 1) }, uDetRelief: { value: new THREE.Vector2() }, uDetOn: { value: 0 },
     uTD: { value: blank }, uTDBox: { value: new THREE.Vector4(0, 1, 0, 1) }, uTDOn: { value: 0 },

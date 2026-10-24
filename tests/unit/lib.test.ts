@@ -4,8 +4,9 @@ import { ERAS } from '../../src/shared/data/eras.ts';
 import { EVENTS } from '../../src/shared/data/events.ts';
 import { JOURNEYS, PEOPLE } from '../../src/shared/data/jiangshan.ts';
 import { PLACES } from '../../src/shared/data/places.ts';
-import { distKm, gradeWhere, locatePoints, makeLocateQuiz, makeQuiz, rankOf } from '../../src/shared/lib/quiz.ts';
+import { distKm, gradeWhere, locatePoints, makeLocateQuiz, makeQuiz, periodQuestion, rankOf } from '../../src/shared/lib/quiz.ts';
 import { CHRONICLE, chapterAt, currentEntry, phaseAt, previousSnap, stepStop } from '../../src/shared/lib/chronicle.ts';
+import { SNAPSHOTS } from '../../src/shared/data/territories.ts';
 import { search } from '../../src/shared/lib/search.ts';
 import { ANCHORS, eraAt, formatYear, parseYear, rulerAt, tToYear, ticks, yearToT } from '../../src/shared/lib/timeline.ts';
 
@@ -157,5 +158,22 @@ describe('ancient place quiz', () => {
     expect(locatePoints(900)).toBe(0);
     expect(rankOf(950, 1000).zh).toContain('太史令');
     expect(rankOf(0, 1000).zh).toBe('书院童生');
+  });
+});
+
+describe('period check (随堂检测)', () => {
+  it('asks one stable four-option question per phase, with events taken from inside the phase', () => {
+    for (const s of SNAPSHOTS) {
+      const q = periodQuestion(s)!;
+      expect(q, s.id).toBeTruthy();
+      expect(new Set(q.options.map(o => o.zh)).size).toBe(4);
+      expect(q.answer).toBeGreaterThanOrEqual(0);
+      expect(periodQuestion(s)).toEqual(q);
+      if (q.prompt.zh.startsWith('下列哪件事')) {
+        const ph = phaseAt(s.year)!;
+        const e = CHRONICLE.find(x => x.title.zh === q.options[q.answer].zh && x.year >= ph.from && x.year <= ph.to);
+        expect(e, s.id).toBeTruthy();
+      }
+    }
   });
 });

@@ -10,6 +10,9 @@ export const realmArea = (snapId: string): number => AREAS[snapId]?.m ?? 0;
 /** Area of one polity in a snapshot, in thousands of km² (0 when unknown or tiny). */
 export const polityArea = (snapId: string, polity: string): number => AREAS[snapId]?.p.find(([p]) => p === polity)?.[1] ?? 0;
 
+/** The polities drawn in a snapshot with their areas, largest first (tiny ones are left out). */
+export const snapPolities = (snapId: string): [string, number][] => AREAS[snapId]?.p ?? [];
+
 /** "约 903 万平方千米" / "≈ 9.03 million km²" (`short`: "903万" / "9.0M") from thousands of km². */
 export function formatArea(k: number, lang: Lang, short = false): string {
   if (lang === 'zh') {

@@ -88,7 +88,7 @@ Invisible keyboard targets follow visible models without reserving extra space.
 |---|---|
 | Hover or keyboard focus on a model, marker or clickable name | one tooltip and one highlighted ring; models may grow gently ×1.06, compact icons and text stay unchanged |
 | Hover over open land | the same tooltip names the polity under the pointer, with its role and area (with the admin layer on: the administrative area) |
-| Click, tap, Enter or Space on a focused object | opens the card directly; the object gets one selection ring, with no second name plate or hover ring |
+| Click, tap, Enter or Space on a focused object | opens the card directly; the object gets one selection ring, with no second name plate or hover ring. An open **event** also gets a soft light beam rising from its ring (`Beam` in `halo.ts`): the ring's colour, faded from the ground up, fading in and out with the ring and never pulsing, so the one open event can be found from afar |
 | Esc | closes the card and clears the selection |
 
 The model's transparent keyboard target does not intercept map dragging. When its geographical name is visible, only
@@ -128,6 +128,7 @@ Variants change one property only:
 | Camera | `fly` eases; battle shots (`low`, `close`, `side`, `top`, `shake`) frame the action. Camera moves must serve the content: the play button is shown only for events with a real staged animation, never for a bare camera spin |
 | Ambient | figures idle and flags wave; nothing on the map blinks or spins for decoration |
 | Story mode | the dynasty scenery hides, and the timeline and map follow the story's year |
+| Borders change | moving to the next territorial phase **grows** the borders instead of cross-fading: each changed spot switches in order of its distance from where its new owner already stood (`morph.ts`), so a conqueror spreads out from its old border over 1.4 s. Layer toggles cross-fade (0.8 s); a story's conquest front (`wipeTo`) sweeps from a point |
 
 ## 6. Period specificity
 
