@@ -12,6 +12,7 @@ import { LIFE, lifeOf } from '../../src/shared/data/life.ts';
 import { capitalModel } from '../../src/shared/data/heroes.ts';
 import { STORIES, journeyStory } from '../../src/shared/data/stories.ts';
 import { SNAPSHOTS, snapshotAt } from '../../src/shared/data/territories.ts';
+import { formatArea, realmArea } from '../../src/shared/data/areas.ts';
 import { decodeRing } from '../../src/shared/lib/rings.ts';
 import type { I18n, LonLat, Snapshot, StoryStep } from '../../src/shared/data/types.ts';
 import { readFileSync } from 'node:fs';
@@ -84,6 +85,14 @@ describe('content is bilingual and well-formed', () => {
 });
 
 describe('territorial snapshots', () => {
+  it('have precomputed areas (npm run data:areas after editing territories)', () => {
+    for (const s of SNAPSHOTS) expect(realmArea(s.id), s.id).toBeGreaterThan(0);
+    const at = (y: number) => realmArea(snapshotAt(y)!.id);
+    expect(at(2000)).toBeGreaterThan(9300);
+    expect(at(2000)).toBeLessThan(9800);
+    expect(at(1760)).toBeGreaterThan(at(1450));
+    expect(formatArea(at(2000), 'zh')).toMatch(/^约 9\d\d 万平方千米$/);
+  });
   it('are sorted, reference known polities and stay on stage', () => {
     unique(SNAPSHOTS.map(s => s.id));
     for (let i = 1; i < SNAPSHOTS.length; i++) expect(SNAPSHOTS[i].year).toBeGreaterThan(SNAPSHOTS[i - 1].year);

@@ -1,9 +1,10 @@
 /* 长河 · Ages — a clean, modern atlas interface.
    The 3D map fills the window; everything else floats on it as light translucent panels (frosted white,
-   cut-corner slabs after pocket-planet, a hairline frame and vermilion lines on the cuts) so the terrain stays the subject. One accent — vermilion (朱) — marks what is selected, live or
-   primary; dynasty colours come from the data. Layout: brand · search · period on the top left, tools on the top
-   right, the chronicle (大事年表) down the right edge, the phase legend at the bottom left and the timeline across
-   the bottom. Every panel folds away. Type: Geist for Latin and numbers, the system CJK sans for Chinese. */
+   cut-corner slabs after pocket-planet, a hairline frame and vermilion lines on the cuts) so the terrain stays the subject;
+   the ink map style switches them to dark slabs with light text and gold cuts. One accent — vermilion (朱) — marks what is selected, live or
+   primary; dynasty colours come from the data. Layout: brand · search on the top left with the year headline (year, era · ruler,
+   territory area) under them, tools on the top right, the chronicle (大事年表, with the phase legend) down the right
+   edge and the timeline (with the territory-area curve) across the bottom. Every panel folds away. Type: Geist for Latin and numbers, the system CJK sans for Chinese. */
 @font-face { font-family: "Geist"; src: url("./fonts/geist.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
 @font-face { font-family: "Geist Mono"; src: url("./fonts/geist-mono.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
 
@@ -47,6 +48,39 @@
   color: var(--ink);
   -webkit-tap-highlight-color: transparent;
 }
+:root[data-map=ink] {
+  /* the dark map gets matching dark frosted panels with warm-gold accents */
+  --panel: rgba(16, 17, 19, 0.82);
+  --panel-solid: #15171a;
+  --well: rgba(255, 255, 255, 0.06);
+  --well-2: rgba(255, 255, 255, 0.11);
+  --ink: #ece6da;
+  --ink-2: #b5ad9f;
+  --ink-3: #7f786d;
+  --rule: rgba(255, 240, 210, 0.09);
+  --rule-2: rgba(255, 240, 210, 0.17);
+  --zhu-fill: rgba(219, 74, 63, 0.16);
+  --link: #7fa8f0;
+  --edge: rgba(212, 168, 82, 0.8);
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 10px 28px -6px rgba(0, 0, 0, 0.7);
+  --shadow-s: 0 1px 0 rgba(0, 0, 0, 0.4), 0 3px 8px -2px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+:root[data-map=ink] * { scrollbar-color: rgba(255, 240, 210, 0.2) transparent; }
+:root[data-map=ink] .modal-box, :root[data-map=ink] .menu, :root[data-map=ink] .hits { background: var(--pp-cuts), rgba(20, 21, 24, 0.96); }
+:root[data-map=ink] .info-hero { background: radial-gradient(ellipse 70% 60% at 50% 70%, #34312c, transparent 70%), linear-gradient(180deg, #1c1d20, #121315); }
+:root[data-map=ink] .card-nav .ib { background: rgba(20, 21, 24, 0.9); }
+:root[data-map=ink] .card-nav .ib:hover, :root[data-map=ink] .chronicle.folded .ch-tab:hover { background: #26282c; }
+:root[data-map=ink] .tl-band { background: color-mix(in srgb, var(--c) 42%, #1a1b1e); border-right-color: rgba(0, 0, 0, 0.5); }
+:root[data-map=ink] .tl-band:hover { background: color-mix(in srgb, var(--c) 62%, #1a1b1e); }
+:root[data-map=ink] .tl-band.cur { background: var(--c); }
+:root[data-map=ink] .tl-band span { color: #e8e2d6; }
+:root[data-map=ink] .legend-card { background: rgba(255, 255, 255, 0.04); }
+:root[data-map=ink] .skel i { background: linear-gradient(90deg, #1e2023 0%, #2a2c30 50%, #1e2023 100%); background-size: 200% 100%; }
+:root[data-map=ink] .tl-phases i { background: rgba(0, 0, 0, 0.45); }
+:root[data-map=ink] .tl-tip { background: rgba(20, 21, 24, 0.97); }
+:root[data-map=ink] .tl-flag { background: #ece6da; color: #15171a; }
+:root[data-map=ink] .tl-flag::after { border-top-color: #ece6da; }
 * { box-sizing: border-box; }
 ::selection { background: rgba(200, 55, 45, 0.22); }
 * { scrollbar-width: thin; scrollbar-color: rgba(15, 23, 42, 0.22) transparent; }
@@ -63,6 +97,10 @@ h2, h3 { font-weight: 700; }
 .stage { position: absolute; inset: 0; }
 .stage canvas.gl { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
 .stage.picking canvas.gl { cursor: crosshair; }
+/* a soft darkening towards the screen edges keeps the eye on the middle of the map */
+.stage .vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 46%, transparent 55%, rgba(40, 30, 18, 0.22) 100%); }
+:root[data-map=ink] .stage .vignette { background: radial-gradient(ellipse 72% 68% at 50% 46%, transparent 45%, rgba(0, 0, 0, 0.5) 100%); }
+:root[data-map=plain] .stage .vignette { display: none; }
 
 /* ================================================================ panels: cut-corner slabs
    The pocket-planet slab: top-left and bottom-right corners are cut at 45°, and a vermilion hairline traces each cut.
@@ -444,6 +482,7 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .lg-title { margin: 0 0 6px; font-size: 12.5px; font-weight: 600; line-height: 1.5; color: var(--ink); }
 .lg-pols { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .lg-pol { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 5px; border: 1px solid var(--rule); border-radius: 0; background: var(--panel-solid); font-size: 12px; color: var(--ink-2); }
+.lg-pol small { margin-left: 5px; font-size: 10.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .lg-pol i { width: 11px; height: 11px; border-radius: 4px; background: color-mix(in srgb, var(--c) 70%, #fff); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 80%, #000); }
 .lg-pol.r-main { color: var(--ink); font-weight: 600; }
 .lg-pol.r-protectorate i, .lg-pol.r-occupied i { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--c) 80%, #000) 0 1.5px, color-mix(in srgb, var(--c) 30%, #fff) 1.5px 4px); }
@@ -650,7 +689,29 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
   position: absolute; left: var(--gap); right: var(--gap); bottom: var(--gap); height: var(--tl-h); display: flex; align-items: stretch; z-index: 8;
   padding: 0 8px 0 12px; gap: 14px; user-select: none; -webkit-user-select: none;
 }
-.tl-read { display: flex; align-items: center; gap: 10px; width: 250px; flex: none; padding-right: 14px; border-right: 1px solid var(--rule); }
+.tl-read { display: flex; align-items: center; flex: none; padding-right: 14px; border-right: 1px solid var(--rule); }
+/* the year headline over the map, top left (the reference atlas look): large light numerals, era · ruler, territory area */
+.hero {
+  position: absolute; left: calc(var(--gap) + 2px); top: calc(var(--gap) * 2 + var(--bar-h) + 4px); z-index: 3; pointer-events: none;
+  padding: 4px 28px 14px 4px; transition: opacity .25s;
+  background: radial-gradient(ellipse 100% 100% at 0 0, color-mix(in srgb, var(--panel-solid) 72%, transparent), transparent 78%);
+}
+.hero > * { pointer-events: auto; width: max-content; }
+.hero .tl-yr .ib { height: 40px; color: var(--ink-2); }
+.hero .tl-year { font-size: 42px; font-weight: 300; letter-spacing: -0.02em; line-height: 1.05; }
+.hero .tl-in { font-size: 28px; font-weight: 300; width: 6em; height: 44px; }
+.hero .tl-sub { font-size: 14px; margin: 2px 0 0 2px; gap: 10px; }
+.hero .tl-ruler { font-size: 13px; color: var(--ink-2); }
+.tl-area { display: flex; gap: 8px; align-items: baseline; margin: 5px 0 0 2px; font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tl-area b { font-size: 10.5px; font-weight: 700; letter-spacing: 0.24em; color: var(--ink-2); }
+#app:has(.card:not([hidden])) .hero { opacity: 0; pointer-events: none; }
+#app:has(.card:not([hidden])) .hero > * { pointer-events: none; }
+:root[data-map=ink] .tl-era { color: color-mix(in srgb, var(--c) 65%, #fff); }
+/* the dynasty's territorial area per phase: a faint stepped area in the age row, above the era bands */
+.tl-curve { position: absolute; left: 0; right: 0; top: 1px; height: 19px; pointer-events: none; }
+.tl-curve svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.tl-curve polygon { fill: var(--ink); opacity: 0.08; }
+.tl-curve polyline { fill: none; stroke: var(--ink-2); stroke-width: 1.2; opacity: 0.7; stroke-linejoin: round; }
 .tl-play { width: 42px !important; height: 42px !important; border-radius: 0 !important; flex: none; color: #fff !important; background: var(--zhu) !important; box-shadow: 0 3px 10px rgba(200, 55, 45, 0.35); }
 .tl-play:hover { background: var(--zhu-hi) !important; }
 .tl-txt { min-width: 0; }
@@ -759,7 +820,7 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 
 /* ================================================================ phones */
 @media (max-width: 720px) {
-  :root { --tl-h: 114px; --gap: 8px; --bar-h: 42px; }
+  :root { --tl-h: 80px; --gap: 8px; --bar-h: 42px; }
   #app:has(.tl.folded) { --tl-h: 52px; }
   .top-l { right: 178px; }
   .search { flex: 1; width: auto; min-width: 0; padding: 0 12px; }
@@ -769,14 +830,18 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
   .menu { width: calc(100vw - 2 * var(--gap)); max-height: calc(100vh - 220px); }
   .chronicle:not(.folded) { left: var(--gap); width: auto; z-index: 8; }
   .chronicle.folded { right: var(--gap); }
-  .tl { flex-wrap: wrap; gap: 0 8px; padding: 6px 8px 0 8px; }
-  .tl-read { width: auto; flex: 1; height: 40px; border-right: 0; padding-right: 0; min-width: 0; }
+  .tl { gap: 0 8px; padding: 6px 4px 0 8px; }
+  .tl-read { height: 64px; padding-right: 8px; }
   .tl-play { width: 34px !important; height: 34px !important; }
-  .tl-txt { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
-  .tl-sub { margin-top: 0; }
-  .tl-ruler { display: none; }
-  .tl-year { font-size: 17px; }
-  .tl-track { flex: 1 0 100%; height: 64px; order: 9; }
+  .hero { top: calc(var(--gap) * 2 + var(--bar-h)); padding: 2px 20px 8px 2px; }
+  .hero .tl-yr .ib { height: 30px; }
+  .hero .tl-year { font-size: 26px; }
+  .hero .tl-sub { font-size: 12.5px; }
+  .hero .tl-ruler, .tl-area { display: none; }
+  #app:has(.card:not([hidden])) .hero { opacity: 1; }
+  #app:has(.card:not([hidden])) .hero > * { pointer-events: auto; }
+  .tl-track { height: 64px; }
+  .tl-curve { height: 13px; top: 0; }
   .tl-ages { top: 0; }
   .tl-bands, .tl-phases { top: 14px; }
   .tl-dots { top: 38px; }

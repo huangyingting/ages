@@ -34,6 +34,8 @@ Add an entry keyed by the event id to `STORIES` in `stories.ts`. Use the helpers
 * Keep a story under about 40 s at 1×, and end on the outcome caption.
 
 ## Add or fix a territory snapshot
+After adding or changing a snapshot (or rerunning the jiangshan import), run `npm run data:areas` to refresh the territory areas; a unit test fails while any snapshot lacks one.
+
 Snapshots in `territories.ts` are listed in time order. `year` is when the map starts to apply, and `title` names the year the outline depicts. Regions paint in order, so put large polities first and carve neighbours after them. Use `hatch: true` for occupied areas and a `label` point when the centroid falls in a bad place. Borders are drawn crisply at close zoom, so trace outlines from a textbook map with enough points to follow rivers and ridges (roughly 40–150 per state), and let neighbouring states share one border chain so they meet without gaps. Sea-side vertices may sit a little offshore (the land mask trims them). A curated snapshot can also name precise geometry in the shape store with `shapes` (the modern maps use the union of the official provincial outlines, built by `scripts/import-jiangshan.ts`); its own regions are then only the fallback while shapes load.
 
 ## Places

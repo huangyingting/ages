@@ -4,19 +4,25 @@ import { tr } from '../../shared/data/i18n.ts';
 import type { HistEvent, Year } from '../../shared/data/types.ts';
 import { reignAt, regionalReignsAt } from '../../shared/data/jiangshan.ts';
 import { STOPS, stepStop } from '../../shared/lib/chronicle.ts';
-import { SNAPSHOTS } from '../../shared/data/territories.ts';
+import { formatArea, realmArea } from '../../shared/data/areas.ts';
+import { SNAPSHOTS, snapshotAt } from '../../shared/data/territories.ts';
 import { eraAt, formatYear, normYear, parseYear, rulerAt, tToYear, ticks, yearToT } from '../../shared/lib/timeline.ts';
 import { lang, t } from '../lib/i18n.ts';
 import { load, save } from '../lib/storage.ts';
 import { h, iconBtn, setIcon } from './dom.ts';
 
 /**
- * The compact bottom timeline: year/era/ruler readout, play button, age headers, coloured era bands (two lanes for
- * overlapping regimes), event ticks and a draggable thumb. The axis is piecewise-linear (see shared/lib/timeline.ts)
+ * The bottom timeline: play button, age headers, coloured era bands (two lanes for overlapping regimes) over the curve of
+ * the dynasty's territorial area, event ticks and a draggable thumb. Its readout — year with ‹ › stepping, era, ruler
+ * and territory area — is the `hero` headline the app places at the top left of the map. The axis is piecewise-linear (see shared/lib/timeline.ts)
  * so the dense recent centuries get room while prehistory stays visible.
  */
 export class Timeline {
   readonly el: HTMLElement;
+  /** The large year headline (year, era · ruler, territory area), placed over the map by the app. */
+  readonly hero: HTMLElement;
+  private areaEl: HTMLElement;
+  private curve: HTMLElement;
   private track: HTMLElement;
   private thumb: HTMLElement;
   private yearEl: HTMLElement;
@@ -55,7 +61,9 @@ export class Timeline {
     this.flag = h('div', { class: 'tl-flag' });
     this.thumb = h('div', { class: 'tl-thumb' }, h('i'), this.flag);
     this.tip = h('div', { class: 'tl-tip' });
-    this.track = h('div', { class: 'tl-track', role: 'slider', tabindex: 0, 'aria-label': t('era') }, this.agesEl, this.bands, this.phases, this.dots, this.axis, this.thumb, this.tip);
+    this.curve = h('div', { class: 'tl-curve', 'aria-hidden': 'true' });
+    this.areaEl = h('div', { class: 'tl-area' });
+    this.track = h('div', { class: 'tl-track', role: 'slider', tabindex: 0, 'aria-label': t('era') }, this.curve, this.agesEl, this.bands, this.phases, this.dots, this.axis, this.thumb, this.tip);
     this.foldBtn = iconBtn('down', t('fold'), () => this.fold(!this.el.classList.contains('folded')), 'tl-fold');
     // the year itself is the go-to-year field: click to type (前221, 1415), Enter/blur to jump
     this.input = h('input', { class: 'tl-in', type: 'text', inputmode: 'numeric', 'aria-label': t('goYear'), title: t('goYear'), hidden: true });
@@ -72,9 +80,8 @@ export class Timeline {
     const row = h('div', { class: 'tl-yr' },
       iconBtn('chevL', t('prevStop'), () => this.step(-1), 'tl-prev'), this.yearEl, this.input,
       iconBtn('chevron', t('nextStop'), () => this.step(1), 'tl-next'));
-    this.el = h('div', { class: 'tl' },
-      h('div', { class: 'tl-read' }, this.playBtn, h('div', { class: 'tl-txt' }, row, h('div', { class: 'tl-sub' }, this.eraEl, this.rulerEl))),
-      this.track, this.foldBtn);
+    this.hero = h('div', { class: 'hero' }, row, h('div', { class: 'tl-sub' }, this.eraEl, this.rulerEl), this.areaEl);
+    this.el = h('div', { class: 'tl' }, h('div', { class: 'tl-read' }, this.playBtn), this.track, this.foldBtn);
     if (load<boolean>('tlFolded', false)) this.fold(true);
     this.build();
     this.bind();
@@ -96,6 +103,7 @@ export class Timeline {
       b.append(h('span', { text: tr(e.short, lang) }));
       return b;
     }));
+    this.curve.replaceChildren(this.areaCurve());
     this.phases.replaceChildren(...SNAPSHOTS.filter(x => x.year >= -2070).map(x => h('i', { style: `left:${yearToT(x.year) * 100}%` })));
     // textbook events on top of the (fainter) imported chronicle entries
     this.dots.replaceChildren(...EVENTS.filter(e => e.scope === 'china').sort((a, b) => b.weight - a.weight).map(e => {
@@ -107,6 +115,30 @@ export class Timeline {
     }));
     this.layoutAxis();
     this.render();
+  }
+
+  /** The dynasty's territorial area per phase as a stepped, filled line (one step per territorial snapshot). */
+  private areaCurve(): SVGSVGElement {
+    const NS = 'http://www.w3.org/2000/svg';
+    const snaps = SNAPSHOTS.filter(x => x.year >= -2070);
+    const max = Math.max(...snaps.map(x => realmArea(x.id)), 1);
+    const pts: string[] = [];
+    snaps.forEach((x, i) => {
+      const a = 1000 * (1 - realmArea(x.id) / max);
+      const x0 = yearToT(x.year) * 1000, x1 = yearToT(snaps[i + 1]?.year ?? tToYear(1)) * 1000;
+      pts.push(`${x0.toFixed(1)},${a.toFixed(0)}`, `${x1.toFixed(1)},${a.toFixed(0)}`);
+    });
+    const first = (yearToT(snaps[0].year) * 1000).toFixed(1), last = (yearToT(tToYear(1)) * 1000).toFixed(1);
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 1000 1000');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    const fill = document.createElementNS(NS, 'polygon');
+    fill.setAttribute('points', `${first},1000 ${pts.join(' ')} ${last},1000`);
+    const line = document.createElementNS(NS, 'polyline');
+    line.setAttribute('points', pts.join(' '));
+    line.setAttribute('vector-effect', 'non-scaling-stroke');
+    svg.append(fill, line);
+    return svg;
   }
 
   private layoutAxis(): void {
@@ -214,6 +246,9 @@ export class Timeline {
     this.rulerEl.textContent = reign ? tr(reign.label, lang) : r ? tr(r.name, lang) : '';
     this.flag.textContent = `${formatYear(y, lang)}${reign ? ' · ' + tr(reign.label, lang).replace(/^.*· /, '') : ''}`;
     this.rulerEl.title = [this.rulerEl.textContent, ...regionalReignsAt(y).map(x => `${tr(x.regime, lang)}${lang === 'zh' ? '：' : ': '}${tr(x.reign.label, lang)}`)].filter(Boolean).join('\n');
+    const snap = snapshotAt(y), area = snap ? realmArea(snap.id) : 0;
+    this.areaEl.hidden = !area;
+    if (area) this.areaEl.replaceChildren(h('b', { text: t('territory') }), h('span', { text: formatArea(area, lang) }));
     this.track.setAttribute('aria-valuetext', `${formatYear(y, lang)} ${era ? tr(era.name, lang) : ''}`);
     for (const b of this.bands.children as HTMLCollectionOf<HTMLElement>) b.classList.toggle('cur', b.dataset.era === era?.id);
     this.onRender(y);
@@ -223,7 +258,7 @@ export class Timeline {
     this.track.setAttribute('aria-label', t('era'));
     this.yearEl.title = this.input.title = t('goYear');
     this.input.setAttribute('aria-label', t('goYear'));
-    for (const [c, k] of [['.tl-prev', 'prevStop'], ['.tl-next', 'nextStop']] as const) { const b = this.el.querySelector<HTMLElement>(c)!; b.title = t(k); b.setAttribute('aria-label', t(k)); }
+    for (const [c, k] of [['.tl-prev', 'prevStop'], ['.tl-next', 'nextStop']] as const) { const b = this.hero.querySelector<HTMLElement>(c)!; b.title = t(k); b.setAttribute('aria-label', t(k)); }
     this.playBtn.title = this.playBtn.ariaLabel = t(this.playing ? 'pause' : 'play');
     this.foldBtn.title = this.foldBtn.ariaLabel = t(this.el.classList.contains('folded') ? 'unfold' : 'fold');
     this.build();

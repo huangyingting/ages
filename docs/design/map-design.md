@@ -14,12 +14,17 @@ The rules, in short:
 
 ## 1. Layers
 
+**Light.** One warm, low sun from the north-west lights the relief; slopes facing it warm up, slopes away cool down.
+Territory colour is multiplied by that same light rather than laid over it, so mountains read through every polity.
+A vignette darkens the screen edges (stronger in the ink style, none in plain). The ink style is the dark theme: its
+panels turn dark with light text, so map and interface share one key.
+
 From the ground up (`scene/ink.ts` `INK` orders, then depth-tested models, then the HTML label layer):
 
 | # | Layer | Contents | Notes |
 |---|---|---|---|
 | 1 | Terrain | relief, water, finer relief streamed in close up | `terrain.ts`, `detail.ts` |
-| 2 | Territory | polity fills and borders, the previous phase dashed | crossfades between phases |
+| 2 | Territory | polity fills lit by the relief beneath, borders with a pale rim under the line, the previous phase dashed | crossfades between phases |
 | 3 | Works | walls (3D), canals, roads, sea routes | one style table, `WORK` in `fx.ts` |
 | 4 | Map ink | route strokes, arrowheads, base rings, selection ring, battlefields | painted flat on the map: no depth test, so hills never cut them |
 | 5 | Models | capital, dynasty scenery, event models, story actors | depth-tested and stand on top of the ink |

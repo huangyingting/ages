@@ -141,6 +141,15 @@ export class TerritoryPainter {
       ctx.stroke();
       ctx.restore();
     }
+    // a lit rim: a soft pale glow along the border under the crisp line
+    for (const r of s?.regions ?? []) {
+      const st = this.style(r);
+      if (!st || st.role === 'neighbor' || st.role === 'protectorate') continue;
+      this.path(ctx, r.rings);
+      ctx.strokeStyle = withAlpha(tint(st.color, 0.6), st.role === 'main' ? 0.55 : 0.4);
+      ctx.lineWidth = (st.role === 'main' ? 4.2 : 3.2) * k;
+      ctx.stroke();
+    }
     for (const r of s?.regions ?? []) {
       const st = this.style(r);
       if (!st) continue;
@@ -261,6 +270,10 @@ function fillTone(hex: string): string {
   if (lum >= 0.5) return hex;
   const k = (0.5 - lum) / 0.5 * 0.75;
   return '#' + [r, g, b].map((v, i) => Math.round(v + ([196, 176, 150][i] - v) * k).toString(16).padStart(2, '0')).join('');
+}
+/** Mixes a colour towards white by `f`. */
+function tint(hex: string, f: number): string {
+  return '#' + rgb(hex).map(v => Math.round(v + (255 - v) * f).toString(16).padStart(2, '0')).join('');
 }
 function shade(hex: string, f: number): string {
   return '#' + rgb(hex).map(v => Math.round(Math.min(255, v * f)).toString(16).padStart(2, '0')).join('');

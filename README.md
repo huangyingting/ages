@@ -24,8 +24,9 @@ It is an original 3D re-imagining inspired by [jiangshan-map](https://github.com
 * **Learn by textbook unit**: a drawer listing the units for each book, with progress (watched / learned).
 * **Quiz** in two modes. *History questions* has three types: *when* (pick the year), *where* (click the map; graded by distance) and *order* (sort events). *Ancient places* (古地名定位) asks where a period name was (五代十国时期的「祯州」在哪里？): place names are hidden, you click the map, score up to 100 by distance and earn an official rank (书院童生 → 太史令 · 舆图大家). Every answer is revealed on the map.
 * **Chronicle (大事年表)**: a side panel lists every event of the dynasty in view — all 907, not just the textbook ones — with a 全部 / 课本 filter, ◆ for map-changing events and ▶ for scripted stories. It follows the timeline, highlights the current year and folds to a tab.
-* **Phase legend (阶段图例)**: a bottom-left card names the territorial phase (e.g. 明 · 阶段 6/10 · 1408–1427), with dots to jump between phases, the polities on the map (click to fly there, hover to highlight), a note on what changed, and a key for walls, canals, roads and sea routes. The previous phase's borders show as a dashed red **ghost line**, so expansion and loss stand out.
-* **Year stepper**: the timeline has a floating year flag (公元1415年 · 永乐十三年) and a ‹ year › stepper; type a year (1415, -221, 前221, 221 BC) or step to the previous / next event or phase. The arrow keys do the same (Shift = ±10 years).
+* **Phase legend (阶段图例)**: a card at the top of the chronicle panel names the territorial phase (e.g. 明 · 阶段 6/10 · 1408–1427), with dots to jump between phases, the polities on the map (click to fly there, hover to highlight), a note on what changed, and a key for walls, canals, roads and sea routes. The previous phase's borders show as a dashed red **ghost line**, so expansion and loss stand out.
+* **Year headline and area curve**: the year, dynasty, reign era and the dynasty's territorial area (唐 669 · 约 903 万平方千米) stand large at the top left of the map, the legend lists each polity's area, and a faint curve over the timeline traces the area phase by phase, so rise and fall show at a glance (areas precomputed by `npm run data:areas`).
+* **Year stepper**: the timeline has a floating year flag (公元1415年 · 永乐十三年) and the headline has a ‹ year › stepper; type a year (1415, -221, 前221, 221 BC) or step to the previous / next event or phase. The arrow keys do the same (Shift = ±10 years).
 * **Guqin music (雅乐)**: optional background guqin tracks from the toolbar.
 * **Modern interface**: clean frosted-glass panels on a full-screen light relief map, with Geist / system CJK sans type and a vermilion accent. One toolbar (search, music, language, a **hub** menu for learn / quiz / journeys / help, and a **settings** menu for map style and layers) keeps the screen clear. Events open a card with a live 3D model preview; the timeline and chronicle fold away. Panels slide away during stories, and the camera re-frames itself so the subject is never under a panel. On phones the card becomes a bottom sheet.
 * **No anachronistic names**: the map only prints a place name in the years it was actually used (e.g. 西安 only from 1369, 上海 from 1292, 北京 from 1403); before that it shows the period name (长安, 汴京, 燕京 …) or nothing.
@@ -70,7 +71,7 @@ src/client/models   procedural model kit, builders, Web Worker baking
 src/client/story    story player (runs StoryStep scripts)
 src/client/ui       DOM components (timeline, card, reader, learn, quiz, caption, menus)
 src/client/lib      i18n, Wikipedia client, storage, deep links, speech
-scripts/            fetch-terrain.ts (terrain heightmap), import-jiangshan.ts (jiangshan-map content)
+scripts/            fetch-terrain.ts (terrain heightmap), import-jiangshan.ts (jiangshan-map content), compute-areas.ts (territory areas)
 docs/               product spec, roadmap, architecture & ADRs, content guide
 ```
 See [docs/README.md](docs/README.md).

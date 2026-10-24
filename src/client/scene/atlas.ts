@@ -132,7 +132,9 @@ export class Atlas {
     this.geo.setHeightmap(hm.rgba, hm.w, hm.h);
     const canvas = document.createElement('canvas');
     canvas.className = 'gl';
-    this.host.append(canvas);
+    const vignette = document.createElement('div');
+    vignette.className = 'vignette';
+    this.host.append(canvas, vignette);
     this.view = new View(canvas, this.geo, this.lowfx);
     this.labels = new Labels(this.view, this.host);
     this.terrain = buildTerrain(this.geo, this.lowfx);

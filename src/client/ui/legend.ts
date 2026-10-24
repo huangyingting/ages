@@ -1,3 +1,4 @@
+import { formatArea, polityArea } from '../../shared/data/areas.ts';
 import { tr } from '../../shared/data/i18n.ts';
 import { WORKS } from '../../shared/data/jiangshan.ts';
 import { POLITY } from '../../shared/data/polities.ts';
@@ -68,9 +69,15 @@ export class Legend {
       type: 'button', role: 'tab', class: g === s ? 'on' : '', 'aria-selected': String(g === s), title: tr(g.title, L),
       'aria-label': `${t('phase', { i: i + 1, n: ph.group.length })} ${tr(g.title, L)}`, onclick: () => this.onYear(g.year),
     }))) : null;
-    const pols = this.polities(s).map(({ id, color: c, role, name: n }) => {
+    // each polity's area, for those drawn as one polity (not the collapsed neighbours or a polity split into named parts)
+    const list = this.polities(s);
+    const area = (id: string) => {
+      const k = id && list.filter(p => p.id === id).length === 1 ? polityArea(s.id, id) : 0;
+      return k ? h('small', { text: formatArea(k, L, true) }) : null;
+    };
+    const pols = list.map(({ id, color: c, role, name: n }) => {
       const b = h('button', { type: 'button', class: `lg-pol r-${role}`, style: `--c:${c}`, 'data-polity': id, onclick: () => this.onPolity(id) },
-        h('i'), h('span', { text: n }));
+        h('i'), h('span', { text: n }), area(id));
       b.addEventListener('pointerenter', () => this.onHold(id));
       b.addEventListener('pointerleave', () => this.onHold(null));
       b.addEventListener('focus', () => this.onHold(id));

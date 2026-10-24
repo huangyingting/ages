@@ -109,13 +109,16 @@ void main() {
       h = mix(h, hd, k);
     }
   }
-  vec3 L = normalize(vec3(-0.9, 1.25, -0.8));
-  float diff = dot(n, L);
+  // a low north-west sun: strong relief, warm lit slopes and cool shade (flat ground keeps its brightness)
+  vec3 L = normalize(vec3(-0.9, 0.85, -0.8));
+  float rel = dot(n, L) - L.y;
   bool ink = uStyle < 0.5, plain = uStyle > 1.5;
-  float shade = ink ? 0.48 + 0.68 * diff : plain ? 0.86 + 0.2 * diff : 0.62 + 0.5 * diff;
+  float shade = ink ? 0.97 + 1.05 * rel : plain ? 1.0 + 0.32 * rel : 0.99 + 0.55 * rel;
+  vec3 tint = mix(ink ? vec3(0.82, 0.88, 1.08) : vec3(0.95, 0.97, 1.03), ink ? vec3(1.12, 1.0, 0.84) : vec3(1.03, 1.0, 0.96), smoothstep(-0.35, 0.3, rel));
+  if (plain) tint = vec3(1.0);
 
   float hp = max(h, 0.0);
-  vec3 col = (ink ? hypsoInk(hp) : plain ? hypsoPlain(hp) : hypso(hp)) * shade;
+  vec3 col = (ink ? hypsoInk(hp) : plain ? hypsoPlain(hp) : hypso(hp)) * shade * tint;
   // ocean: depth tint, gentle moving sheen
   float depth = smoothstep(0.0, 1.0, sqrt(clamp(-h / 4.5, 0.0, 1.0)));
   vec3 sea = ink ? mix(hex(34.0, 52.0, 60.0), hex(14.0, 24.0, 32.0), depth)
@@ -156,7 +159,9 @@ void main() {
   float wd = distance(vWorld.xz, uWipe.xy) - uWipe.z;
   float mixK = uWipe.w > 0.5 ? 1.0 - smoothstep(-0.6, 0.0, wd) : uMix;
   vec4 t = mix(ta, tb, mixK);
-  col = mix(col, t.rgb * (ink ? 0.5 + 0.42 * shade : 0.82 + 0.25 * shade), t.a * land * uTerrOn * (ink ? 0.92 : 1.0));
+  // the polity colour is lit like the ground beneath it, so mountains read through the fill
+  vec3 lit = t.rgb * (ink ? 0.9 + 1.0 * rel : plain ? 1.0 + 0.35 * rel : 0.99 + 0.5 * rel) * tint;
+  col = mix(col, lit, t.a * land * uTerrOn * (ink ? 0.92 : 1.0));
   // the conquest front: a glowing ink edge sweeping outwards
   if (uWipe.w > 0.5) col = mix(col, uWipeColor, (1.0 - smoothstep(0.0, 0.5, abs(wd + 0.25))) * 0.75 * land * smoothstep(0.0, 1.0, uWipe.z));
 

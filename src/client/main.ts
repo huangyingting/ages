@@ -201,7 +201,7 @@ class App {
       if ((!this.hub.el.hidden || !this.settings.el.hidden) && !top.contains(e.target as Node)) this.pop(null);
     });
 
-    this.root.append(this.bar, top, this.chronicle.el, this.learn.el, this.card.el, this.reader.el, this.quiz.el, this.caption.el, this.timeline.el, this.help.el);
+    this.root.append(this.bar, this.timeline.hero, top, this.chronicle.el, this.learn.el, this.card.el, this.reader.el, this.quiz.el, this.caption.el, this.timeline.el, this.help.el);
     this.relabel();
     onLang(l => this.onLang(l));
 
