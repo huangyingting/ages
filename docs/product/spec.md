@@ -19,7 +19,7 @@ Chinese middle-school (grades 7–8, 统编版 textbooks) and high-school studen
 | Chronicle | Right panel listing the dynasty's events (all / textbook filter); current year highlighted and auto-scrolled; ◆ map change, ▶ scripted story; folds to a tab |
 | Phase legend | Phase i/N with jump dots, polity chips (hover highlights, click flies), phase note, line key; previous phase drawn as a dashed ghost border |
 | Event card | Info panel with a live 3D model preview (turntable); category, year, place, importance, watched status; summary; key points; people; textbook units; prev/next; Play; Wikipedia; mark as learned |
-| Era card | Era summary, dates, capital, prev/next era, Wikipedia, list of its events |
+| Era card | Era summary, capital, dates and length, prev/next era, Wikipedia, territorial overview, the era's people, buildings, customs and foods (its events are in the chronicle beside it) |
 | Stories | Scripted steps (fly, year, caption, army, route, build, spawn, fx, highlight); pause, skip, speed (1× / 1.5× / 2× / 0.75×), narration, stop; captions bilingual |
 | Battles | `clash` steps stage two armies on a battlefield decal with camps: troop types (foot, horse, archer, chariot, gun, mixed) equipped by era (bronze chariots and ge, Qin crossbows, Tang/Song lamellar, Mongol horse archers, Ming/Qing firearms, modern rifles), formations (横阵 line, 长蛇阵 column, 锋矢阵 wedge, 鹤翼阵 wings, 方阵 square, 圆阵 circle) with archers in the rear and cavalry on the flanks, arrow volleys, muzzle flashes, trebuchets or cannon and a gate in sieges, a rout and fires; camera shots (wide, low, close, top, side, shake) via the `shot` step and an automatic low → push-in → crane sequence |
 | Costumes | People are dressed for their era (Shang/Zhou robes, Qin–Han armour and caps, Tang futou, Song/Ming official dress, Qing queue and mandarin hat, Republic suits and uniforms) |
@@ -27,7 +27,7 @@ Chinese middle-school (grades 7–8, 统编版 textbooks) and high-school studen
 | Learn | Books → units → events with progress bars; opening an event closes the drawer on phones |
 | Quiz | History mode: 9 questions per round from the chosen book: when / where (map click, graded by km) / order; best score saved. Ancient-places mode: 10 period place names to find on the map with labels hidden, 0–100 points by distance and a final rank. Every answer is revealed on the map |
 | Search | Events, eras and places, matched in both languages; `/` focuses |
-| Menus | Hub (learn, quiz, journeys, help) and Settings (map style paper / ink / plain, layers, narration, quality); guqin music toggle and full screen in one cut-corner toolbar (zoom by wheel or pinch); foldable timeline |
+| Menus | Hub (one list: learn, quiz, help, then the journeys) and Settings (map style paper / ink / plain, layers, narration, quality); guqin music toggle and full screen in one cut-corner toolbar (zoom by wheel or pinch); foldable timeline |
 | Layers | Territory, place names, event pins, 3D models |
 | Help | Controls, category legend, disclaimer, credits, phase 2 note |
 | Deep links | `#e=`, `#y=`, `#p=`, `#person=`, `#life=`, `#j=`, `&lang=`, also as query parameters (kept up to date as you browse, so the address bar is always shareable) |

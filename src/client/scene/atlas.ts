@@ -37,7 +37,8 @@ interface Mark {
 }
 
 /** What the pointer is over: a 3D mark or an event pin. */
-type Hover = { mark: Mark } | { pin: HistEvent; label: Label };
+/** what the pointer is over: a model, an event pin, or an administrative area (tooltip only, anchored at the pointer) */
+type Hover = { mark: Mark } | { pin: HistEvent; label: Label } | { area: AdminUnit; at: THREE.Vector3 };
 
 export interface Layers {
   territory: boolean; places: boolean; events: boolean; models: boolean;
@@ -76,8 +77,6 @@ export class Atlas {
   onPlace: (p: Place) => void = () => {};
   onPerson: (p: Person) => void = () => {};
   onLife: (l: LifeItem) => void = () => {};
-  /** hover over the map: the administrative unit under the pointer (admin layer only) */
-  onHover: (info: { unit: AdminUnit; x: number; y: number } | null) => void = () => {};
   private pins = new Map<string, Label>();
   private placeLabels = new Map<string, Label>();
   private polityLabels: Label[] = [];
@@ -90,8 +89,9 @@ export class Atlas {
   private storyMode = false;
   private marks: Mark[] = [];
   private hover: Hover | null = null;
-  /** the map object whose card is open (gets the selection ring) */
+  /** the map object whose card is open (gets the selection ring), and where to ring it while it has no model up */
   private selKey: string | null = null;
+  private selAt: LonLat | null = null;
   private hoverHalo!: Halo;
   private selHalo!: Halo;
   private tip!: HTMLElement;
@@ -186,29 +186,29 @@ export class Atlas {
         this.hoverHalo.place(hv.mark.g.position.x, hv.mark.g.position.z, Math.max(minR, ud.rad * 1.8));
         v.copy(hv.mark.g.position);
         v.y += ud.top;
-      } else {
+      } else if ('pin' in hv) {
         v.copy(hv.label.pos);
         this.hoverHalo.place(v.x, v.z, minR * 0.8);
         lift = hv.label.el.offsetHeight;
-      }
+      } else v.copy(hv.at);
       const p = this.view.project(v, v);
       this.tip.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y - lift - 10)}px) translate(-50%, -100%)`;
     }
-    this.hoverHalo.on = !!hv && !this.storyMode;
+    this.hoverHalo.on = !!hv && !('area' in hv) && !this.storyMode;
     // a pin steps aside while a model on the map stands for its event: the model takes the hover and the click
     const rep = new Set<string>();
     if (!this.storyMode) for (const m of this.marks) if (m.event && Atlas.live(m)) rep.add(m.event);
     for (const [id, l] of this.pins) l.off = rep.has(id);
-    // the selection ring sits under the open card's object, or at the selected event's spot
+    // the selection ring sits under the open card's object, or at its spot on the map
     const sm = this.selKey ? this.marks.find(m => m.key === this.selKey && Atlas.live(m)) : undefined;
     if (sm) {
       const ud = sm.g.userData as SpawnState;
       this.selHalo.place(sm.g.position.x, sm.g.position.z, Math.max(minR, ud.rad * 2));
-    } else if (this.selected && this.selKey === `event:${this.selected.id}`) {
-      const p = this.geo.pos(this.selected.lon, this.selected.lat, 0, v);
+    } else if (this.selAt) {
+      const p = this.geo.pos(this.selAt[0], this.selAt[1], 0, v);
       this.selHalo.place(p.x, p.z, minR * 0.9);
     }
-    this.selHalo.on = !this.storyMode && !this.pickHandler && (!!sm || (!!this.selected && this.selKey === `event:${this.selected.id}`));
+    this.selHalo.on = !this.storyMode && !this.pickHandler && (!!sm || !!this.selAt);
     this.hoverHalo.tick(dt, t);
     this.selHalo.tick(dt, t);
   }
@@ -216,7 +216,8 @@ export class Atlas {
   private setHover(h: Hover | null): void {
     const old = this.hover;
     const same = (a: Hover | null, b: Hover | null) => (a && b && 'mark' in a && 'mark' in b ? a.mark === b.mark : a && b && 'pin' in a && 'pin' in b ? a.pin === b.pin : a === b);
-    if (same(old, h)) return;
+    if (old && h && 'area' in old && 'area' in h) old.at.copy(h.at);
+    if (same(old, h) || (old && h && 'area' in old && 'area' in h && old.area === h.area)) return;
     if (old && 'mark' in old) (old.mark.g.userData as SpawnState).boost = 1;
     if (old && 'pin' in old) old.label.el.classList.remove('hot');
     this.hover = h;
@@ -227,15 +228,20 @@ export class Atlas {
       (h.mark.g.userData as SpawnState).boost = 1.18;
       ({ title, sub } = h.mark.info());
       icon = h.mark.icon;
-    } else {
+    } else if ('pin' in h) {
       h.label.el.classList.add('hot');
       icon = h.pin.kind;
       title = tr(h.pin.title, this.lang);
       sub = this.eventSub(h.pin);
+    } else {
+      icon = 'area';
+      title = tr(h.area.name, this.lang);
+      sub = h.area.category.zh ? tr(h.area.category, this.lang) : '';
     }
     this.tip.className = `maptip k-${icon}`;
     const [ic, b, small] = this.tip.children as unknown as HTMLElement[];
-    ic.innerHTML = glyph(icon);
+    ic.innerHTML = icon === 'area' ? '' : glyph(icon);
+    ic.hidden = icon === 'area';
     b.textContent = title;
     small.textContent = sub;
     small.hidden = !sub;
@@ -277,9 +283,10 @@ export class Atlas {
     this.marks.push(m);
   }
 
-  /** Puts the selection ring under a map object (`life:<id>`, `person:<id>`, ...) or clears it. */
-  focus(key: string | null): void {
+  /** Puts the selection ring under a map object (`life:<id>`, `person:<id>`, ...), or at lon/lat while it has no model up; null clears it. */
+  focus(key: string | null, at: LonLat | null = null): void {
     this.selKey = key;
+    this.selAt = at;
   }
 
   // ------------------------------------------------------------ input
@@ -315,16 +322,17 @@ export class Atlas {
         pending = false;
         if (!this.overCanvas) return;
         const m = this.pickMark(last.x, last.y);
-        this.setHover(m ? { mark: m } : null);
-        const ll = !m && this.layers.admin ? this.view.pick(last.x, last.y) : null;
-        const unit = ll ? this.adminAt(ll[0], ll[1]) : null;
-        this.onHover(unit ? { unit, x: last.x, y: last.y } : null);
+        if (m) return this.setHover({ mark: m });
+        if (this.hover && 'pin' in this.hover) return;
+        // over open land with the admin layer on: the same tooltip names the area under the pointer
+        const ll = this.layers.admin && !this.storyMode ? this.view.pick(last.x, last.y) : null;
+        const area = ll ? this.adminAt(ll[0], ll[1]) : null;
+        this.setHover(area && ll ? { area, at: this.geo.pos(ll[0], ll[1], 0) } : null);
       });
     });
     canvas.addEventListener('pointerleave', () => {
       this.overCanvas = false;
-      this.onHover(null);
-      if (this.hover && 'mark' in this.hover) this.setHover(null);
+      if (this.hover && !('pin' in this.hover)) this.setHover(null);
     });
   }
 
@@ -689,7 +697,7 @@ export class Atlas {
   select(e: HistEvent | null, fly = true): void {
     const prev = this.selected;
     this.selected = e;
-    this.selKey = e ? `event:${e.id}` : null;
+    this.focus(e ? `event:${e.id}` : null, e ? [e.lon, e.lat] : null);
     if (this.hover && 'pin' in this.hover && this.hover.pin === e) this.setHover(null);
     this.fx.clear('event');
     if (prev) { const l = this.pins.get(prev.id); if (l) { l.pinned = false; l.el.classList.remove('sel'); } }
@@ -732,7 +740,7 @@ export class Atlas {
       this.labels.setGroupVisible('polity', on);
     }
     if (k === 'places') { this.labels.setGroupVisible('places', on); this.labels.setGroupVisible('rivers', on); }
-    if (k === 'admin' || k === 'modern' || k === 'ghost') { this.setYear(this.year, true); this.labels.setGroupVisible('admin', this.layers.admin); if (!this.layers.admin) this.onHover(null); }
+    if (k === 'admin' || k === 'modern' || k === 'ghost') { this.setYear(this.year, true); this.labels.setGroupVisible('admin', this.layers.admin); if (!this.layers.admin && this.hover && 'area' in this.hover) this.setHover(null); }
     if (k === 'works') this.updateWorks();
     if (k === 'events') this.labels.setGroupVisible('pins', on && !this.pickHandler);
     if (k === 'models') { this.capitalKey = '-'; this.updateCapital(); if (!on) this.fx.clear('event'); }

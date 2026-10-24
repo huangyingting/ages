@@ -30,36 +30,30 @@ export class SettingsMenu {
   toggle(on = this.el.hidden): void { this.el.hidden = !on; }
 }
 
-/** Study hall popover: tabs for study tools (textbook, quiz, help) and the journeys of historical figures. */
+/** Study hall popover: the study tools (textbook, quiz, help), then the journeys of historical figures. */
 export class HubMenu {
   readonly el: HTMLElement;
-  private tab: 'study' | 'journeys' = 'study';
   onPlay: (j: Journey) => void = () => {};
   onPick: (what: 'learn' | 'quiz' | 'help') => void = () => {};
   constructor() {
     this.el = h('div', { class: 'pop menu hub', hidden: true, role: 'dialog', 'aria-label': t('hub') });
     this.render();
   }
-  private card(cls: string, ic: IconName, title: string, desc: string, onclick: () => void, extra?: Node): HTMLElement {
-    return h('button', { type: 'button', class: `hub-card ${cls}`, onclick }, icon(ic), h('span', { class: 'hc-t' }, h('b', { text: title }), h('small', { text: desc })), extra ?? null);
+  private card(cls: string, ic: IconName, title: string, desc: string, onclick: () => void): HTMLElement {
+    return h('button', { type: 'button', class: `hub-card ${cls}`, onclick }, icon(ic), h('span', { class: 'hc-t' }, h('b', { text: title }), h('small', { text: desc })));
   }
   render(): void {
-    const tabs = h('div', { class: 'hub-tabs', role: 'tablist' },
-      ...([['study', 'book', 'study'], ['journeys', 'journey', 'journeys']] as const).map(([id, ic, k]) => h('button', {
-        type: 'button', role: 'tab', class: `ht ht-${id}` + (id === 'journeys' ? ' b-journeys' : '') + (this.tab === id ? ' on' : ''), 'aria-selected': String(this.tab === id),
-        onclick: () => { this.tab = id; this.render(); },
-      }, icon(ic), h('span', { text: t(k) }))));
-    const body = this.tab === 'study'
-      ? h('div', { class: 'hub-list' },
+    this.el.replaceChildren(
+      h('h3', { text: t('study') }),
+      h('div', { class: 'hub-list' },
         this.card('b-learn', 'book', t('learnTitle'), t('learnDesc'), () => this.onPick('learn')),
         this.card('b-quiz', 'quiz', t('quizTitle'), t('quizDesc'), () => this.onPick('quiz')),
-        this.card('b-journeys-go', 'journey', t('journeys'), t('journeysDesc'), () => { this.tab = 'journeys'; this.render(); }, h('em', { text: String(JOURNEYS.length) })),
-        this.card('b-help2', 'help', t('helpTitle'), t('helpDesc'), () => this.onPick('help')))
-      : h('div', { class: 'hub-list journeys' }, ...JOURNEYS.map((j, i) => h('button', {
+        this.card('b-help2', 'help', t('helpTitle'), t('helpDesc'), () => this.onPick('help'))),
+      h('h3', { text: t('journeys') }),
+      h('div', { class: 'hub-list journeys' }, ...JOURNEYS.map((j, i) => h('button', {
         type: 'button', class: 'jn', 'data-journey': j.id, style: `--c:${j.color}`,
         onclick: () => { this.toggle(false); this.onPlay(j); },
-      }, h('i', { text: String(i + 1).padStart(2, '0') }), h('b', { text: tr(j.title, lang) }), h('small', { text: tr(j.span, lang).replace(/（.*）|\(.*\)/, '') }))));
-    this.el.replaceChildren(tabs, body);
+      }, h('i', { text: String(i + 1).padStart(2, '0') }), h('b', { text: tr(j.title, lang) }), h('small', { text: tr(j.span, lang).replace(/（.*）|\(.*\)/, '') })))));
   }
   toggle(on = this.el.hidden): void { this.el.hidden = !on; }
 }
@@ -76,7 +70,6 @@ export class Help {
       h('header', {}, h('h2', { text: t('helpTitle') }), iconBtn('close', t('close'), () => this.toggle(false))),
       h('ul', {}, ...(['helpControls', 'helpTimeline', 'helpStory', 'helpKeys'] as Key[]).map(k => h('li', { text: t(k) }))),
       h('div', { class: 'legend' }, ...(['politics', 'war', 'reform', 'culture', 'science', 'economy', 'diplomacy', 'revolution'] as const).map(k => h('span', { class: `lg k-${k}` }, h('i'), h('span', { text: kindName(k) })))),
-      h('p', { class: 'note', text: t('disclaimer') }),
       h('p', { class: 'small', text: t('credits') }),
       h('p', { class: 'small', text: t('creditsJsm') }),
       h('p', { class: 'small', text: t('phase2') })));

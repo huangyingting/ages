@@ -182,7 +182,6 @@ test.describe('Ages atlas', () => {
     await openApp(page, 'y=1085&lang=zh');
     await expect(page.locator('.tl-ruler')).toHaveText('北宋神宗 · 元丰八年');
     await page.locator('.b-hub').click();
-    await page.locator('.b-journeys').click();
     await expect(page.locator('.journeys .jn')).toHaveCount(7);
     await page.locator('[data-journey=sushi]').click();
     await expect(page.locator('.caption')).toBeVisible();

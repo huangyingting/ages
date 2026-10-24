@@ -68,7 +68,7 @@ h2, h3 { font-weight: 700; }
    The pocket-planet slab: top-left and bottom-right corners are cut at 45°, and a vermilion hairline traces each cut.
    Panels whose children spill outside them (search results, the timeline's year flag) draw the slab on ::before so
    nothing inside is clipped; everything else clips itself. */
-.brand, .search, .tools, .menu, .card, .reader, .drawer, .quiz, .tl, .modal-box, .caption, .hits, .hovertip, .chronicle {
+.brand, .search, .tools, .menu, .card, .reader, .drawer, .quiz, .tl, .modal-box, .caption, .hits, .chronicle {
   --cut: 12px;
   position: relative;
   background: var(--pp-cuts), var(--panel);
@@ -79,7 +79,7 @@ h2, h3 { font-weight: 700; }
   clip-path: var(--pp-clip);
   color: var(--ink);
 }
-.brand, .search, .tools, .tl, .hovertip { --cut: 9px; }
+.brand, .search, .tools, .tl { --cut: 9px; }
 .search, .tl { background: none; border: 0; clip-path: none; -webkit-backdrop-filter: none; backdrop-filter: none; isolation: isolate; }
 .search::before, .tl::before {
   content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
@@ -153,8 +153,6 @@ h2, h3 { font-weight: 700; }
 :root:not([data-map=ink]) .admin.l1 { color: #47321d; }
 :root:not([data-map=ink]) .polity { color: color-mix(in srgb, var(--c) 70%, #0d0a06); text-shadow: 0 0 3px rgba(255, 252, 245, 0.95), 0 0 8px rgba(255, 252, 245, 0.7); }
 
-.hovertip { position: fixed; z-index: 30; pointer-events: none; padding: 5px 10px; font-size: 12.5px; border-radius: 0; transform: translate(14px, 14px); }
-.hovertip small { color: var(--ink-3); margin-left: 8px; font-size: 11px; }
 
 /* event pins: round lacquer badges with the event kind's glyph on a hairline stem; the title shows in the map tooltip
    on hover; the selected one stays lit and the map's selection ring sits under it */
@@ -208,17 +206,20 @@ h2, h3 { font-weight: 700; }
   background: rgb(16, 15, 14); border-right: 1px solid color-mix(in srgb, var(--k) 55%, rgba(255, 255, 255, 0.2));
   border-bottom: 1px solid color-mix(in srgb, var(--k) 55%, rgba(255, 255, 255, 0.2));
 }
+.maptip .ic[hidden] { display: none; }
 .maptip .ic { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #fff; background: var(--k); flex: none; }
 .maptip .ic svg { width: 15px; height: 15px; }
 .maptip b { font-size: 13.5px; font-weight: 650; letter-spacing: 0.04em; }
 .maptip small { font-size: 11.5px; color: rgba(248, 242, 230, 0.62); }
+.maptip .ic[hidden] ~ b { margin-left: 6px; }
 .maptip small::before { content: ''; display: inline-block; width: 1px; height: 10px; margin: 0 8px -1px 0; background: rgba(255, 255, 255, 0.22); }
 :lang(en) .maptip b { letter-spacing: 0.01em; }
 @keyframes tipIn { from { opacity: 0; margin-top: 4px; } }
 :root:not([data-map=ink]) .maptip { color: #241f1a; background: linear-gradient(180deg, #fffdf9, #f6efe2); box-shadow: 0 8px 22px -4px rgba(60, 40, 20, 0.35), 0 0 0 3px color-mix(in srgb, var(--k) 16%, transparent); }
 :root:not([data-map=ink]) .maptip::after { background: #f6efe2; }
 :root:not([data-map=ink]) .maptip small { color: #7a6a58; }
-:root:not([data-map=ink]) .maptip small::before { background: rgba(60, 40, 20, 0.2); }
+:root:not([data-map=ink]) .maptip .ic[hidden] ~ b { margin-left: 6px; }
+.maptip small::before { background: rgba(60, 40, 20, 0.2); }
 .k-building { --k: #7d5a32; } .k-custom { --k: #2c6e5c; } .k-food { --k: #b4652a; } .k-person { --k: #b8322a; } .k-capital { --k: #b8322a; }
 .chip.life-chip { box-shadow: inset 3px 0 0 var(--k); padding-left: 10px; }
 .k-prehistory { --k: var(--k-prehistory); } .k-politics { --k: var(--k-politics); } .k-war { --k: var(--k-war); }
@@ -368,16 +369,12 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .switch-card:has(input:checked) { color: var(--ink); }
 .switch-card:has(input:focus-visible) { outline: 2px solid var(--zhu); }
 
-.hub-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 3px; margin-bottom: 12px; border-radius: 0; background: var(--well); font-size: 13px; }
-.ht { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 7px 6px; border: 0; border-radius: 0; background: none; color: var(--ink-2); font-weight: 600; }
-.ht .ic { width: 16px; height: 16px; fill: currentColor; }
-.ht:hover { color: var(--ink); }
-.ht.on { color: var(--ink); background: var(--panel-solid); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14); }
 .hub-list { display: flex; flex-direction: column; gap: 6px; }
 .hub-card {
   position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 34px 10px 10px; border: 0; border-radius: 0;
   background: none; text-align: left; color: var(--ink); transition: background .15s;
 }
+.hub-list.journeys { display: grid; gap: 0; }
 .hub-card > .ic { width: 38px; height: 38px; padding: 9px; flex: none; fill: var(--zhu); background: var(--zhu-fill); border-radius: 0; transition: background .15s, fill .15s; }
 .hc-t { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .hc-t b { font-size: 14px; font-weight: 700; }
@@ -387,7 +384,7 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .hub-card:hover { background: var(--well); }
 .hub-card:hover > .ic { background: var(--zhu); fill: #fff; }
 .hub-card:hover::after { color: var(--zhu); transform: translate(2px, -52%); }
-.jn { display: grid; grid-template-columns: 32px 1fr; column-gap: 10px; align-items: center; text-align: left; border: 0; border-radius: 0; background: none; padding: 8px 10px; color: var(--ink); }
+.jn { display: grid; grid-template-columns: 32px 1fr; column-gap: 10px; align-items: center; text-align: left; border: 0; border-radius: 0; background: none; padding: 6px 10px; color: var(--ink); }
 .jn:hover, .jn:focus-visible { background: var(--well); }
 .jn i { grid-row: span 2; width: 28px; height: 28px; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 700; color: #fff; background: var(--c); border-radius: 50%; }
 .jn b { font-size: 14px; font-weight: 600; }
@@ -746,12 +743,12 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 /* ================================================================ narrower screens */
 /* ================================================================ small cut-corner slabs: buttons, chips, map labels
    (after the component rules so their background shorthands don't drop the cut lines) */
-.btn, .chip, .type-chip, .badge, .lg-pol, .tag, .tl-play, .ib, .hub-card, .opt, .qz-mode, .sw, .stats > div, .ht, .seg, .seg button, .tabs, .tabs button {
+.btn, .chip, .type-chip, .badge, .lg-pol, .tag, .tl-play, .ib, .hub-card, .opt, .qz-mode, .sw, .stats > div, .seg, .seg button, .tabs, .tabs button {
   --cut: 6px; border-radius: 0 !important; clip-path: var(--pp-clip);
 }
-.ib, .seg button, .tabs button, .ht { --cut: 5px; }
+.ib, .seg button, .tabs button { --cut: 5px; }
 .btn, .hub-card, .opt, .qz-mode, .sw, .lg-pol, .chip { background-image: var(--pp-cuts); --edge: var(--rule-2); }
-.btn:focus-visible, .chip:focus-visible, .ib:focus-visible, .hub-card:focus-visible, .opt:focus-visible, .ht:focus-visible, .seg button:focus-visible, .tabs button:focus-visible { outline-offset: -2px; }
+.btn:focus-visible, .chip:focus-visible, .ib:focus-visible, .hub-card:focus-visible, .opt:focus-visible, .seg button:focus-visible, .tabs button:focus-visible { outline-offset: -2px; }
 .btn.primary, .sw.on, .qz-mode.on, .opt.no, .lg-pol:hover, .chip.link:hover { --edge: var(--zhu); }
 .opt.ok { --edge: var(--ok); }
 

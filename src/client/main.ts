@@ -3,7 +3,6 @@ import { EVENT, EVENTS } from '../shared/data/events.ts';
 import type { Lang } from '../shared/data/i18n.ts';
 import { PLACE } from '../shared/data/places.ts';
 import type { Era, HistEvent, Place, Wiki, Year } from '../shared/data/types.ts';
-import { tr } from '../shared/data/i18n.ts';
 import type { Hit } from '../shared/lib/search.ts';
 import { lang, onLang, setLang, t } from './lib/i18n.ts';
 import { readLink, writeLink } from './lib/link.ts';
@@ -66,7 +65,6 @@ class App {
       journey: j => this.playJourney(j),
       person: p => this.openPerson(p),
       life: l => this.openLife(l),
-      fly: (lon, lat) => this.atlas.flyTo({ lon, lat: lat - 0.6, dist: 12, tilt: 0.85 }, 1.4),
     }, this.progress, lowfx);
     this.learn = new Learn(this.progress);
   }
@@ -103,15 +101,6 @@ class App {
     this.atlas.onPlace = p => this.openPlace(p);
     this.atlas.onPerson = p => this.openPerson(p);
     this.atlas.onLife = l => this.openLife(l);
-    const tip = h('div', { class: 'hovertip', hidden: true });
-    this.root.append(tip);
-    this.atlas.onHover = x => {
-      tip.hidden = !x || this.player.state !== 'idle';
-      if (!x || tip.hidden) return;
-      tip.replaceChildren(tr(x.unit.name, lang), x.unit.category.zh ? h('small', { text: tr(x.unit.category, lang) }) : '');
-      tip.style.left = `${x.x}px`;
-      tip.style.top = `${x.y}px`;
-    };
     if (ev) this.openEvent(ev, false);
     if (ev) this.atlas.view.jump({ lon: ev.lon, lat: ev.lat - 1.2, dist: 26, tilt: 0.85 });
     else if (linkPlace) { this.atlas.view.jump({ lon: linkPlace.lon, lat: linkPlace.lat - 1, dist: 18, tilt: 0.85 }); this.openPlace(linkPlace, false); }
@@ -295,12 +284,12 @@ class App {
     this.timeline.select(null);
     if (fly) this.atlas.flyTo({ lon: p.lon, lat: p.lat - 0.6, dist: Math.min(this.atlas.view.pose().dist, 22), tilt: 0.85 }, 1.2);
     this.card.showPlace(p, this.timeline.year);
-    this.atlas.focus(`capital:${p.id}`);
+    this.atlas.focus(`capital:${p.id}`, [p.lon, p.lat]);
     this.root.classList.add('card-on');
     writeLink({ place: p.id, year: this.timeline.year, lang });
   }
 
-  /** A building, custom, food or figure standing on the map: jumps time into its dynasty and opens its card. */
+  /** A building, custom, food or figure standing on the map: jumps time into its dynasty, flies there and opens its card. */
   openLife(x: LifeItem): void {
     this.stopStory();
     this.atlas.select(null);
@@ -311,13 +300,17 @@ class App {
       this.timeline.set(y, true, false);
       this.atlas.setYear(y);
     }
+    this.atlas.flyTo({ lon: x.lon, lat: x.lat - 0.6, dist: Math.min(this.atlas.view.pose().dist, 14), tilt: 0.85 }, 1.2);
     this.card.showLife(x);
-    this.atlas.focus(`life:${x.id}`);
+    this.atlas.focus(`life:${x.id}`, [x.lon, x.lat]);
     this.root.classList.add('card-on');
     writeLink({ life: x.id, lang });
   }
 
   openPerson(p: Person): void {
+    // a figure who stands on the map as one of the dynasty's people has a single card: theirs there
+    const li = LIFE.find(x => x.person === p);
+    if (li) return this.openLife(li);
     this.stopStory();
     this.atlas.select(null);
     this.timeline.select(null);
