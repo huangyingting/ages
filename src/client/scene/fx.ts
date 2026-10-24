@@ -1009,7 +1009,7 @@ export class Fx {
     }
     if (o.label) {
       const el = typeof o.label === 'string' ? tag(o.label, o.labelClass ?? 'model') : o.label;
-      it.label = this.labels.add({ el, pos: base.clone(), prio: layer === 'scenery' ? 40 : 80, group: layer === 'story' || layer === 'event' ? 'story' : layer, anchor: 'above', maxD: o.labelMaxD });
+      it.label = this.labels.add({ el, pos: base.clone(), prio: layer === 'scenery' ? 44 : 80, group: layer === 'story' || layer === 'event' ? 'story' : layer, anchor: 'above', maxD: o.labelMaxD });
     }
     let m: THREE.Group;
     try { m = await instance(o.model, true); } catch { this.remove(it); return null; }
@@ -1036,7 +1036,8 @@ export class Fx {
       if (base0) base0.visible = m.visible;
       ud.top = h * z * e; ud.rad = r * z; ud.shown = m.visible;
       animate(rigs, t, seed);
-      if (it.label) it.label.pos.set(base.x, base.y + h * z * e + 0.05 * z, base.z);
+      // the name clears the model's far rim too (wide dioramas would otherwise wear it on their back half)
+      if (it.label) { it.label.pos.set(base.x, base.y + (h * e + r * 0.5 + 0.05) * z, base.z); it.label.off = !g.visible || !m.visible; }
     };
     it.update(0, 0, this.s);
     // the rise uses real time when paused so selected-event models still appear

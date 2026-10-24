@@ -71,6 +71,7 @@ Models and icons on the map work the same way, after pocket-planet's globe. `Atl
 
 **Design system.** The display, interaction, line and animation rules are in [map design](../design/map-design.md). In code:
 - every map model is spawned with a `ring` in its type colour (`KIND_COLOR` in `atlas.ts`, which matches the `.k-*` CSS glyph colours);
+- scenery items carry a `level` (`sceneryOf`); `updateScenery` spawns key items with a name label and gives notable and detail items a far form (badge or dot, `addBadge`) that shares the model's `Mark`, so hover, click and the selection ring work in every form (`ZOOM`, `LEVEL_SCALE`);
 - the capital's model comes from `capitalModel(era)` (`shared/data/heroes.ts`), one per architectural period (hero pack `capitals`);
 - `route`, `army`, `fleet` and journeys all draw the one route stroke, `trailArrow`, with only the `StrokeOpts` variants weight, dashed and dim;
 - `build` and the works layer share one style table (`WORK`);

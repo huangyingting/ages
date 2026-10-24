@@ -22,10 +22,19 @@ export interface SceneryItem {
   person?: Person;
   /** the curated life item (opens its own card) */
   life?: LifeItem;
-  /** 1 shown at any zoom, 2 only once zoomed in */
-  tier: 1 | 2;
+  /**
+   * How much the item matters to the period, which sets how it shows at each zoom (docs/design/map-design.md §2):
+   * 1 key — a model and its name at any zoom; 2 notable — a badge from afar, its model once zoomed in;
+   * 3 detail — a dot at mid zoom, its model up close.
+   */
+  level: Level;
   yaw?: number;
 }
+
+export type Level = 1 | 2 | 3;
+
+/** key items per dynasty (the capital comes on top), so the period reads at a glance */
+export const MAX_KEY = 6;
 
 const MAX_LANDMARKS = 6;
 const MAX_PEOPLE = 4;
@@ -77,7 +86,7 @@ export function sceneryOf(era: Era, events: HistEvent[] = EVENTS): SceneryItem[]
     const at = room(l, taken, LIFE_RINGS, LIFE_SPACING);
     if (!at) continue;
     taken.push(at);
-    life.push({ event: '', kind: l.kind, ...at, model: l.model, name: l.name, ...(l.person ? { person: l.person } : {}), life: l, tier: l.tier, yaw: l.kind === 'person' ? -0.4 : 0.3 });
+    life.push({ event: '', kind: l.kind, ...at, model: l.model, name: l.name, ...(l.person ? { person: l.person } : {}), life: l, level: l.tier === 2 ? 3 : 2, yaw: l.kind === 'person' ? -0.4 : 0.3 });
   }
   const sameModel = (a: ModelRecipe, b: ModelRecipe) => (a.hero ? a.hero === b.hero : !b.hero && a.kind === b.kind && a.style === b.style);
   const marks: SceneryItem[] = [];
@@ -90,7 +99,7 @@ export function sceneryOf(era: Era, events: HistEvent[] = EVENTS): SceneryItem[]
     const at = room(e, taken, LANDMARK_RINGS);
     if (!at) continue;
     taken.push(at);
-    marks.push({ event: e.id, kind: 'landmark', ...at, model: e.model, tier: 1, yaw: 0.3 });
+    marks.push({ event: e.id, kind: 'landmark', ...at, model: e.model, level: 2, yaw: 0.3 });
   }
   const seen = new Set<string>(life.filter(l => l.kind === 'person').map(l => l.name!.zh));
   const people: SceneryItem[] = [];
@@ -106,9 +115,35 @@ export function sceneryOf(era: Era, events: HistEvent[] = EVENTS): SceneryItem[]
     if (!at) continue;
     taken.push(at);
     seen.add(zh);
-    people.push({ event: e.id, kind: 'person', ...at, model: bare(personModel(p)), name: p.name, person: p, tier: 2, yaw: -0.4 });
+    people.push({ event: e.id, kind: 'person', ...at, model: bare(personModel(p)), name: p.name, person: p, level: e.weight === 1 ? 2 : 3, yaw: -0.4 });
   }
-  return [...life, ...marks, ...people];
+  const all = [...life, ...marks, ...people];
+  keyItems(all, list);
+  return all;
+}
+
+/**
+ * Raises the period's key items to level 1: its foremost people (curated ones first, then those of its weight-1 events),
+ * buildings (curated order) and the landmarks of its weight-1 events, two of each, then the rest in the same order until
+ * MAX_KEY.
+ */
+function keyItems(items: SceneryItem[], events: HistEvent[]): void {
+  const w1 = new Set(events.filter(e => e.weight === 1).map(e => e.id));
+  const groups = [
+    items.filter(s => s.level === 2 && s.kind === 'person'),
+    items.filter(s => s.life && s.level === 2 && s.kind === 'building'),
+    items.filter(s => s.kind === 'landmark' && w1.has(s.event)),
+  ];
+  let n = 0;
+  for (const take of [2, Infinity]) {
+    for (const g of groups) {
+      for (const s of g.filter(s => s.level === 2).slice(0, take)) {
+        if (n >= MAX_KEY) return;
+        s.level = 1;
+        n++;
+      }
+    }
+  }
 }
 
 let twins: Map<string, HistEvent> | null = null;

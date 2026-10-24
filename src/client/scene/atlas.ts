@@ -3,7 +3,7 @@ import { EVENTS } from '../../shared/data/events.ts';
 import { tr, type Lang } from '../../shared/data/i18n.ts';
 import { RIVER_LABELS, WORKS, type Person, type RiverLabel } from '../../shared/data/jiangshan.ts';
 import { PLACE, PLACES, isCapital, mapName, riverName } from '../../shared/data/places.ts';
-import { lifeEvent, sceneryOf } from '../../shared/data/scenery.ts';
+import { lifeEvent, sceneryOf, type Level, type SceneryItem } from '../../shared/data/scenery.ts';
 import type { LifeItem } from '../../shared/data/life.ts';
 import { POLITY, polityMatches } from '../../shared/data/polities.ts';
 import { capitalModel } from '../../shared/data/heroes.ts';
@@ -36,6 +36,8 @@ interface Mark {
   icon: string;
   info: () => { title: string; sub: string };
   open: () => void;
+  /** its far form while the model waits for the camera to come closer: a badge (notable) or a dot (detail) */
+  badge?: Label;
 }
 
 /** What the pointer is over: a 3D mark or an event pin. */
@@ -177,17 +179,27 @@ export class Atlas {
     return true;
   }
 
+  /** On the map in some form: its model, or its badge / dot while the camera is too far for the model. */
+  private static onMap(m: Mark): boolean {
+    return Atlas.live(m) || (!!m.badge && !!m.badge.shown && m.badge.el.isConnected);
+  }
+
   /** Halos, hover growth and the tooltip follow their objects every frame (models grow as the camera zooms). */
   private frameMarks(dt: number, t: number): void {
     const h = this.hover;
-    if (h && 'mark' in h && (!Atlas.live(h.mark) || this.storyMode)) this.setHover(null);
+    if (h && 'mark' in h && (!Atlas.onMap(h.mark) || this.storyMode)) this.setHover(null);
     else if (h && 'pin' in h && (!h.label.shown || !h.label.el.isConnected)) this.setHover(null);
     const minR = this.fx.s * 0.42;
     const v = new THREE.Vector3();
     const hv = this.hover;
     if (hv) {
       let lift = 0;
-      if ('mark' in hv) {
+      if ('mark' in hv && !Atlas.live(hv.mark)) {
+        const b = hv.mark.badge!;
+        v.copy(b.pos);
+        this.hoverHalo.place(v.x, v.z, minR * 0.8);
+        lift = b.anchor === 'above' ? b.el.offsetHeight : b.el.offsetHeight / 2;
+      } else if ('mark' in hv) {
         const ud = hv.mark.g.userData as SpawnState;
         this.hoverHalo.place(hv.mark.g.position.x, hv.mark.g.position.z, Math.max(minR, ud.rad * 1.8));
         v.copy(hv.mark.g.position);
@@ -203,7 +215,7 @@ export class Atlas {
     this.hoverHalo.on = !!hv && !('area' in hv) && !this.storyMode;
     // a pin steps aside while a model on the map stands for its event: the model takes the hover and the click
     const rep = new Set<string>();
-    if (!this.storyMode) for (const m of this.marks) if (m.event && Atlas.live(m)) rep.add(m.event);
+    if (!this.storyMode) for (const m of this.marks) if (m.event && Atlas.onMap(m)) rep.add(m.event);
     for (const [id, l] of this.pins) l.off = rep.has(id);
     // the capital's name stands just above its model, so the name and the building never cover each other
     for (const m of this.marks) {
@@ -215,8 +227,10 @@ export class Atlas {
       else if (l.anchor) { const p = PLACE.get(m.key.slice(8))!; this.geo.pos(p.lon, p.lat, 0.05, l.pos); l.anchor = undefined; }
     }
     // the selection ring sits under the open card's object, or at its spot on the map
-    const sm = this.selKey ? this.marks.find(m => m.key === this.selKey && Atlas.live(m)) : undefined;
-    if (sm) {
+    const sm = this.selKey ? this.marks.find(m => m.key === this.selKey && Atlas.onMap(m)) : undefined;
+    if (sm && !Atlas.live(sm)) {
+      this.selHalo.place(sm.badge!.pos.x, sm.badge!.pos.z, minR * 0.9);
+    } else if (sm) {
       const ud = sm.g.userData as SpawnState;
       this.selHalo.place(sm.g.position.x, sm.g.position.z, Math.max(minR, ud.rad * 2));
     } else if (this.selAt) {
@@ -233,7 +247,7 @@ export class Atlas {
     const same = (a: Hover | null, b: Hover | null) => (a && b && 'mark' in a && 'mark' in b ? a.mark === b.mark : a && b && 'pin' in a && 'pin' in b ? a.pin === b.pin : a === b);
     if (old && h && 'area' in old && 'area' in h) old.at.copy(h.at);
     if (same(old, h) || (old && h && 'area' in old && 'area' in h && old.area === h.area)) return;
-    if (old && 'mark' in old) (old.mark.g.userData as SpawnState).boost = 1;
+    if (old && 'mark' in old) { (old.mark.g.userData as SpawnState).boost = 1; old.mark.badge?.el.classList.remove('hot'); }
     if (old && 'pin' in old) old.label.el.classList.remove('hot');
     this.hover = h;
     this.view.canvas.style.cursor = h && 'mark' in h ? 'pointer' : '';
@@ -241,6 +255,7 @@ export class Atlas {
     let icon: string, title: string, sub: string;
     if ('mark' in h) {
       (h.mark.g.userData as SpawnState).boost = 1.18;
+      h.mark.badge?.el.classList.add('hot');
       ({ title, sub } = h.mark.info());
       icon = h.mark.icon;
     } else if ('pin' in h) {
@@ -662,7 +677,9 @@ export class Atlas {
 
   /**
    * The dynasty on the map: its curated people, buildings, customs and foods, then landmarks of its key events and
-   * more of its people in period dress (see sceneryOf). Detail (tier 2) items only stand up once zoomed in.
+   * more of its people in period dress (see sceneryOf). Each item's level sets its form at each zoom (semantic zoom,
+   * docs/design/map-design.md §2): key items stand as named models; notable ones are badges until the camera comes
+   * within ZOOM.notable; details are dots until ZOOM.detail.
    */
   private updateScenery(): void {
     const era = eraAt(this.year);
@@ -670,30 +687,39 @@ export class Atlas {
     if (key === this.sceneryKey) return;
     this.sceneryKey = key;
     this.fx.clear('scenery');
+    this.labels.clear('badges');
     this.sceneryMarks.clear();
     const items = era && key ? sceneryOf(era) : [];
     this.modelPlaces = new Set(PLACES.filter(p => p.kind !== 'city' && items.some(({ life: l }) =>
       l && l.kind !== 'person' && Math.hypot(l.lon - p.lon, l.lat - p.lat) < 0.5 && (l.name.zh.startsWith(p.name.zh) || l.wiki.zh === p.name.zh))).map(p => p.id));
     this.updatePlaces();
     if (!era || !key) return;
-    // models carry no name plates: hovering one shows its name in the map tooltip, clicking opens its card
+    // only key items carry a name; the rest name themselves in the map tooltip on hover; a click opens the card
     for (const s of items) {
       const p = s.person, l = s.life;
       const ev = !p && !l && s.event ? EVENTS.find(x => x.id === s.event) : undefined;
-      const minor = s.tier === 2;
-      const scale = s.kind === 'person' ? 2.1 : s.kind === 'food' ? 1.5 : s.kind === 'custom' ? 1.6 : 1.7;
-      this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale, yaw: s.yaw, maxD: minor ? 32 : undefined, ring: KIND_COLOR[s.kind] }, 'scenery').then(g => {
+      const name = l ? tr(l.name, this.lang) : p ? tr(p.name, this.lang) : ev ? tr(ev.title, this.lang) : '';
+      const scale = (s.kind === 'person' ? 2.1 : s.kind === 'food' ? 1.5 : s.kind === 'custom' ? 1.6 : 1.7) * LEVEL_SCALE[s.level];
+      const maxD = s.level === 2 ? ZOOM.notable : s.level === 3 ? ZOOM.detail : undefined;
+      let el: HTMLElement | undefined;
+      if (s.level === 1 && name) { el = document.createElement('span'); el.className = `lvname k-${s.kind}`; el.textContent = name; }
+      this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale, yaw: s.yaw, maxD, ring: KIND_COLOR[s.kind], label: el }, 'scenery').then(g => {
         if (!g || this.sceneryKey !== key) return;
         const twin = l ? lifeEvent(l) : undefined;
+        let m: Mark | undefined;
         if (l) {
-          this.addMark({
+          m = {
             key: `life:${l.id}`, g, icon: l.kind, event: twin?.id, open: () => this.onLife(l),
             info: () => ({ title: tr(l.name, this.lang), sub: l.kind === 'person' && l.person ? tr(l.person.title, this.lang) : `${ui(l.kind)} · ${tr(era.name, this.lang)}` }),
-          });
+          };
         } else if (p) {
-          this.addMark({ key: `person:${p.id}`, g, icon: 'person', open: () => this.onPerson(p), info: () => ({ title: tr(p.name, this.lang), sub: tr(p.title, this.lang) }) });
+          m = { key: `person:${p.id}`, g, icon: 'person', open: () => this.onPerson(p), info: () => ({ title: tr(p.name, this.lang), sub: tr(p.title, this.lang) }) };
         } else if (ev) {
-          this.addMark({ key: `event:${ev.id}`, g, icon: ev.kind, event: ev.id, open: () => this.onPin(ev), info: () => ({ title: tr(ev.title, this.lang), sub: this.eventSub(ev) }) });
+          m = { key: `event:${ev.id}`, g, icon: ev.kind, event: ev.id, open: () => this.onPin(ev), info: () => ({ title: tr(ev.title, this.lang), sub: this.eventSub(ev) }) };
+        }
+        if (m) {
+          if (s.level > 1) m.badge = this.addBadge(m, s);
+          this.addMark(m);
         }
         // a landmark (or a life item about the same thing) steps aside for its event's own model; people stay
         const stand = s.kind === 'landmark' ? s.event : twin?.id;
@@ -702,6 +728,28 @@ export class Atlas {
         this.syncScenery();
       });
     }
+  }
+
+  /** The far form of a notable (badge, like an event pin) or detail (dot) item: same hover tooltip, same click. */
+  private addBadge(m: Mark, s: SceneryItem): Label {
+    const notable = s.level === 2;
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = `pin ${notable ? 'w3' : 'dot'} k-${m.icon}`;
+    el.dataset.key = m.key;
+    el.innerHTML = notable ? `<span class="b">${glyph(m.icon)}</span><i></i>` : '';
+    el.setAttribute('aria-label', m.info().title);
+    el.addEventListener('click', ev => { ev.stopPropagation(); this.setHover(null); m.open(); });
+    const enter = () => { if (!this.storyMode) this.setHover({ mark: m }); };
+    const leave = () => { if (this.hover && 'mark' in this.hover && this.hover.mark === m) this.setHover(null); };
+    el.addEventListener('pointerenter', enter);
+    el.addEventListener('pointerleave', leave);
+    el.addEventListener('focus', enter);
+    el.addEventListener('blur', leave);
+    return this.labels.add({
+      el, pos: this.geo.pos(s.lon, s.lat, 0.02), group: 'badges', anchor: notable ? 'above' : 'center', prio: notable ? 34 : 12,
+      minD: notable ? ZOOM.notable : ZOOM.detail, maxD: notable ? ZOOM.badge : ZOOM.dot,
+    });
   }
 
   private syncScenery(): void {
@@ -714,6 +762,7 @@ export class Atlas {
     this.storyMode = on;
     if (on) this.setHover(null);
     this.fx.showLayer('scenery', !on);
+    this.labels.setGroupVisible('badges', !on && !this.pickHandler);
     this.syncScenery();
   }
 
@@ -787,6 +836,7 @@ export class Atlas {
     this.pickHandler = fn;
     if (fn) this.setHover(null);
     this.labels.setGroupVisible('pins', this.layers.events && !fn);
+    this.labels.setGroupVisible('badges', !fn && !this.storyMode);
     this.labels.setGroupVisible('places', this.layers.places && !(fn && blind));
     this.labels.setGroupVisible('admin', this.layers.admin && !(fn && blind));
     this.host.classList.toggle('picking', !!fn);
@@ -803,6 +853,14 @@ export class Atlas {
 
 /** Chronicle (imported) events are pinned within ±CHRONICLE_WINDOW years, re-evaluated every CHRONICLE_STEP years. */
 const CHRONICLE_WINDOW = 12, CHRONICLE_STEP = 6;
+
+/**
+ * Semantic zoom (docs/design/map-design.md §2), camera distances (home view ≈ 48): notable items stand as models within
+ * `notable` and as badges out to `badge`; detail items as models within `detail` and as dots out to `dot`.
+ */
+const ZOOM = { notable: 40, badge: 90, detail: 22, dot: 45 };
+/** model size by level: key items lead, details stay small */
+const LEVEL_SCALE: Record<Level, number> = { 1: 1.15, 2: 0.9, 3: 0.7 };
 
 /** Type colours of map items: the base ring each model stands in, matching the tooltip glyphs (.k-* in styles.css). */
 const KIND_COLOR: Record<string, string> = {

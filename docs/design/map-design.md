@@ -31,11 +31,28 @@ From the ground up (`scene/ink.ts` `INK` orders, then depth-tested models, then 
 | Content | Shown as | Type colour | When |
 |---|---|---|---|
 | Capital of the year | period capital model (below) and a capital label | `#b8322a` | always |
-| Dynasty people | figure in period dress | `#b8322a` | tier 1 always; tier 2 within distance 32 |
-| Buildings and landmarks | landmark model | `#7d5a32` | same tiers |
-| Customs | scene model | `#2c6e5c` | same tiers |
-| Foods | dish model | `#b4652a` | same tiers |
+| Dynasty people | figure in period dress | `#b8322a` | by level (below) |
+| Buildings and landmarks | landmark model | `#7d5a32` | by level |
+| Customs | scene model | `#2c6e5c` | by level |
+| Foods | dish model | `#b4652a` | by level |
 | Events | kind-glyph pin | kind colour | weight 1 always; weight 2 within distance 75; others within 30–38 |
+
+**Importance, not representation, decides how much an item asks for attention.** Models, pins and text draw the eye
+unequally, so each dynasty's scenery item gets a level (`sceneryOf` in `shared/data/scenery.ts`), and the level sets its
+form at each zoom (*semantic zoom*: dot → badge → model). Distances are camera distances (home view ≈ 48; `ZOOM` and
+`LEVEL_SCALE` in `atlas.ts`).
+
+| Level | Which items | Far | Mid | Near | Name on the map | Model size |
+|---|---|---|---|---|---|---|
+| 1 key | at most 6 per dynasty (`MAX_KEY`): its foremost people (curated, then those of weight-1 events), curated buildings and the landmarks of its weight-1 events, two of each first | model | model | model | yes, above the model (`.lvname`) | ×1.15 |
+| 2 notable | the other tier-1 curated items, landmarks and people of weight-1 events | badge, out to 90 | model within 40 | model | tooltip only | ×0.9 |
+| 3 detail | curated tier-2 items, people beside lesser events | — | dot within 45 | model within 22 | tooltip only | ×0.7 |
+
+- A badge is the same round kind-glyph badge as an event pin (`.pin.w3`), and a dot is a small disc in the type colour
+  (`.pin.dot`). Badge, dot and model are one object in three forms: the same tooltip, hover growth, click and selection
+  ring.
+- Only key items and places carry names on the map. Everything else names itself in the tooltip, which keeps the period
+  readable at a glance: about six named models plus the capital.
 | Selected event | its model replaces its pin | `#7d5a32` | while selected |
 | Places | label only | see typography | by tier and zoom |
 | Works | line and italic label | water blue, road brown, wall stone | the works layer |
@@ -49,7 +66,7 @@ From the ground up (`scene/ink.ts` `INK` orders, then depth-tested models, then 
 **Base standard.** Every map model stands on a soft contact shadow inside a thin ring of its type colour. The ring is `spawn({ ring })` in `fx.ts`, with colours from `KIND_COLOR` in `atlas.ts`, which match the `.k-*` tooltip glyphs in `styles.css`.
 - The ring is map ink, so it is always a perfect circle.
 - Its size follows the model's footprint, clamped so that small figures and large dioramas read as the same class of object.
-- Models have no name plates. The name is in the tooltip.
+- Only key (level 1) models carry their name above them. Every other model is named by the tooltip.
 
 **Zoom.** Map models keep a constant screen size when far away and grow as you close in (`mapScale`). Story actors keep a constant screen size so camera shots frame them the same way. Labels grow through `--lz`.
 

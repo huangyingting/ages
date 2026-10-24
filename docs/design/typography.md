@@ -39,6 +39,7 @@ Polity names are sized by territory area (`s-xl` 26, `s-l` 19, `s-m` 14, `s-s` 1
 | Admin area, level 1 | `.admin.l1` | 600 | `--c-admin-1` | `#f2e2bf` | `#47321d` |
 | Admin area | `.admin` | 500 | `--c-admin` | `#ddd0b4` | `#5b4a36` |
 | Wall, canal, road, sea route | `.work.k-*` | 600 italic | the work's line colour | | |
+| Key item of the period (level 1 model) | `.lvname` | 600, `--fs-2` | `--c-city` tinted 30 % toward its type colour | | |
 | Polity | `.polity` | 800 (neighbours 600) | the polity's colour mixed toward the background | | |
 
 Interactive text such as tooltips (`.maptip`) and model tags (`.tag`) belongs to the UI, not the map, and is not covered by these tokens.

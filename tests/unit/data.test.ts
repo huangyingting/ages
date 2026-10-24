@@ -7,7 +7,7 @@ import { PLACE, PLACES, isCapital, mapName, placeExists, placeName, riverName } 
 import { JOURNEYS, RIVER_LABELS, WORKS, reignAt } from '../../src/shared/data/jiangshan.ts';
 import { POLITY, POLITIES, polityMatches } from '../../src/shared/data/polities.ts';
 import { STAGES } from '../../src/shared/data/stage.ts';
-import { sceneryOf } from '../../src/shared/data/scenery.ts';
+import { MAX_KEY, sceneryOf } from '../../src/shared/data/scenery.ts';
 import { LIFE, lifeOf } from '../../src/shared/data/life.ts';
 import { STORIES, journeyStory } from '../../src/shared/data/stories.ts';
 import { SNAPSHOTS, snapshotAt } from '../../src/shared/data/territories.ts';
@@ -234,6 +234,25 @@ describe('dynasty scenery', () => {
     expect(total).toBeGreaterThan(200);
     const tang = sceneryOf(ERAS.find(x => x.id === 'tang')!);
     expect(tang.some(i => i.name?.zh === '玄奘')).toBe(true);
+  });
+
+  it('ranks each dynasty into a few key items, notable ones and details', () => {
+    for (const era of ERAS.filter(x => x.scope === 'china')) {
+      const items = sceneryOf(era);
+      const key = items.filter(i => i.level === 1);
+      expect(key.length, era.id).toBeLessThanOrEqual(MAX_KEY);
+      expect(key.length, era.id).toBeGreaterThan(0);
+      for (const i of key) expect(i.kind === 'person' || i.kind === 'building' || i.kind === 'landmark', era.id).toBe(true);
+      // details: the curated tier-2 pieces and the people beside lesser events never lead
+      for (const i of items) {
+        const minor = !i.life && i.kind === 'person' && EVENTS.find(e => e.id === i.event)!.weight > 1;
+        if (i.life?.tier === 2 || minor) expect(i.level, `${era.id} ${i.name?.zh}`).toBe(3);
+      }
+    }
+    const tang = sceneryOf(ERAS.find(x => x.id === 'tang')!);
+    expect(tang.filter(i => i.level === 1).length).toBe(MAX_KEY);
+    expect(tang.some(i => i.level === 2) && tang.some(i => i.level === 3)).toBe(true);
+    expect(sceneryOf(ERAS.find(x => x.id === 'qin')!).find(i => i.name?.zh === '秦始皇')?.level).toBe(1);
   });
 
   it('curates people, buildings and customs or foods for every China dynasty', () => {

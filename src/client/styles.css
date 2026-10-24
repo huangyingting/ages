@@ -123,6 +123,13 @@ h2, h3 { font-weight: 700; }
 }
 .place:hover { text-decoration: underline dotted; }
 
+/* key items of the period (level 1): the name above the model, tinted by its type colour */
+.lvname {
+  font-size: calc(var(--fs-2) * var(--lz)); font-weight: 600; letter-spacing: 0.04em; text-shadow: var(--halo);
+  color: color-mix(in srgb, var(--k) 30%, var(--c-city));
+}
+:lang(en) .lvname { letter-spacing: 0.01em; }
+
 /* water: rivers and lakes, spaced along their course */
 .river { font-size: calc(var(--fs-3) * var(--lz)); font-weight: 500; color: var(--c-water); letter-spacing: 0.32em; }
 .river.k-trunk { font-size: calc(var(--fs-1) * var(--lz)); font-weight: 600; letter-spacing: 0.5em; }
@@ -198,6 +205,15 @@ h2, h3 { font-weight: 700; }
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--k) 18%, transparent), 0 2px 7px -1px rgba(60, 40, 20, 0.4);
 }
 :root:not([data-map=ink]) .pin i { background: linear-gradient(180deg, var(--k), rgba(40, 30, 20, 0.6)); }
+/* detail items far off: a dot of their type colour (their model stands up as the camera comes close) */
+.pin.dot { padding: 5px; }
+.pin.dot::after {
+  content: ''; display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--k); border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); transition: transform 0.18s var(--ease-out), box-shadow 0.18s;
+}
+.pin.dot:hover::after, .pin.dot.hot::after, .pin.dot:focus-visible::after {
+  transform: scale(1.5); box-shadow: 0 0 0 3px color-mix(in srgb, var(--k) 35%, transparent), 0 0 10px var(--k);
+}
 
 /* the map tooltip for anything on the map (3D models and event badges): glyph, name, and a subtitle */
 .maptip {
@@ -228,7 +244,7 @@ h2, h3 { font-weight: 700; }
 :root:not([data-map=ink]) .maptip small { color: #7a6a58; }
 :root:not([data-map=ink]) .maptip .ic[hidden] ~ b { margin-left: 6px; }
 .maptip small::before { background: rgba(60, 40, 20, 0.2); }
-.k-building { --k: #7d5a32; } .k-custom { --k: #2c6e5c; } .k-food { --k: #b4652a; } .k-person { --k: #b8322a; } .k-capital { --k: #b8322a; }
+.k-building { --k: #7d5a32; } .k-custom { --k: #2c6e5c; } .k-food { --k: #b4652a; } .k-person { --k: #b8322a; } .k-capital { --k: #b8322a; } .k-landmark { --k: #7d5a32; }
 .chip.life-chip { box-shadow: inset 3px 0 0 var(--k); padding-left: 10px; }
 .k-prehistory { --k: var(--k-prehistory); } .k-politics { --k: var(--k-politics); } .k-war { --k: var(--k-war); }
 .k-reform { --k: var(--k-reform); } .k-culture { --k: var(--k-culture); } .k-science { --k: var(--k-science); }

@@ -230,7 +230,7 @@ test.describe('Ages atlas', () => {
     await expect(card.locator('h2')).toHaveText(free!.title);
     await expect(tip).toBeHidden();
     // event pins are kind badges: hovering one shows its title in the same tooltip
-    const pinId = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.labels .pin:not(.sel)')].find(el => {
+    const pinId = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.labels .pin[data-id]:not(.sel)')].find(el => {
       const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 3;
       return r.width > 0 && document.elementFromPoint(x, y)?.closest('.pin') === el;
     })?.dataset.id);
