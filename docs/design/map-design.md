@@ -87,7 +87,7 @@ Invisible keyboard targets follow visible models without reserving extra space.
 | Gesture | Result |
 |---|---|
 | Hover or keyboard focus on a model, marker or clickable name | one tooltip and one highlighted ring; models may grow gently ×1.06, compact icons and text stay unchanged |
-| Hover over open land with the admin layer on | the same tooltip names the area |
+| Hover over open land | the same tooltip names the polity under the pointer, with its role and area (with the admin layer on: the administrative area) |
 | Click, tap, Enter or Space on a focused object | opens the card directly; the object gets one selection ring, with no second name plate or hover ring |
 | Esc | closes the card and clears the selection |
 
@@ -174,16 +174,18 @@ Every new or rebuilt model:
 2. **Follows the builder conventions.**
    - Front faces +z.
    - The footprint fits about ±0.45.
-   - It stands on a small low plinth from the shared `ground()` / terrace helpers.
-   - It uses flat-shaded low-poly materials from the shared palette.
+   - It stands on the shared `plinth()` (`prims.ts`): one bevelled disc with the same dark walnut side (`PLINTH_SIDE`) for every model, its top in a muted site tone from `SITE` (loess, earth, paving, stone, grass, sand, water, snow…).
+   - Trees come from the shared `tree()`: natural leaf clumps and Chinese layered pines, never lollipops or cone firs.
+   - Architecture is flat-shaded; organic forms (bodies, pottery, hills, canopies) are smooth.
 3. **Reads from the map camera.**
    - A clear silhouette from a high oblique view.
    - Detail kept to what reads at map size.
    - No hairline props: anything thinner than about 0.25 head-heights becomes a stray line on the map.
 4. **Keeps a triangle budget** close to the existing models of its class.
-5. **Is checked in the gallery** (`gallery.html?k=…`) next to its neighbours, so a family looks like a family.
-6. **Belongs to one subject.** A model stands for exactly one place, building, event or thing. A landmark of one city is never reused for another (Shenzhen is not the Lujiazui skyline, Lhasa in 641 is not the 17th-century Potala), and a period's map never shows the same model twice. Generic kinds tell their subjects apart with a `style` (`factory: soviet | oil | joint | jiangnan`, `bridge: hongqiao | lugou` …) or a dedicated hero (`heroes/sites-*.ts`). The data test "gives every subject its own model" enforces this for the map, capitals and stories.
-7. **Is realistic, not a toy.** Ages is a history atlas, so models are faithful miniatures:
+5. **Shares one colour grade.** `kit.ts` grades every baked colour once (`gradeColor`): saturation eased, greens pulled toward olive and sage, near-whites turned to warm plaster, the darkest tones lifted. Together with the baked ambient occlusion, this gives every model the same museum-miniature look whatever palette its author used.
+6. **Is checked in the gallery** (`gallery.html?k=…`) next to its neighbours, so a family looks like a family.
+7. **Belongs to one subject.** A model stands for exactly one place, building, event or thing. A landmark of one city is never reused for another (Shenzhen is not the Lujiazui skyline, Lhasa in 641 is not the 17th-century Potala), and a period's map never shows the same model twice. Generic kinds tell their subjects apart with a `style` (`factory: soviet | oil | joint | jiangnan`, `bridge: hongqiao | lugou` …) or a dedicated hero (`heroes/sites-*.ts`). The data test "gives every subject its own model" enforces this for the map, capitals and stories.
+8. **Is realistic, not a toy.** Ages is a history atlas, so models are faithful miniatures:
    - **People** are about 7 heads tall (`figure.ts`, `human.ts`), with small eyes, no blush and no cartoon highlights.
    - **Proportions and form** follow the reference: storey counts, plan shape (square, octagonal, dodecagonal), roof type (庑殿, 歇山, 攒尖, 卷棚), bay counts, bracket depth, bridge span and the shape of each vessel.
    - **Materials and colour** come from the real object: rammed earth, grey brick, weathered timber, vermilion only on columns and walls that were painted, green-grey glazed tile (yellow only for imperial buildings from the Ming on), bronze patina, celadon, iron, undyed hemp and indigo cloth. There are no candy colours, no rainbow crowds and no cartoon clouds.

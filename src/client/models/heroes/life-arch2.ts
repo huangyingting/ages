@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   type Builder, type V3, type Paint, add, g, mat, box, rbox, cyl, cone, ellip, rod, strut, lathe, prism, skin, panel, archPath, tbox, gable,
-  paintFaces, shade, mix, hash3, fbm, sweep, slab,
+  paintFaces, shade, mix, hash3, fbm, sweep, slab, tree, plinth, SITE,
 } from '../prims.ts';
 import { grp, minipine, proof, storey, hall, gourd } from '../timber.ts';
 import { human } from '../human.ts';
@@ -32,10 +32,9 @@ function anim(p: THREE.Object3D, name: 'spin' | 'flap' | 'sway' | 'bob' | 'flick
   p.add(gr);
   return gr;
 }
-function ground(p: THREE.Object3D, R: number, top: string, side = shade(top, 0.7), h = 0.03): number {
-  lathe(p, [[0, 0], [R, 0], [R * 0.98, h * 0.8], [R * 0.95, h], [0, h]], side, 0, 0, 0, 40);
-  lathe(p, [[0, h], [R * 0.95, h], [0, h + 0.002]], top, 0, 0, 0, 40);
-  return h;
+/** The shared museum plinth (dark side, site-coloured top) whose top sits at the land height Y0. */
+function ground(p: THREE.Object3D, top: string, paint?: Paint): number {
+  return plinth(p, top, { R: 0.46, h: Y0, paint });
 }
 type HF = (x: number, z: number) => number;
 /** Polar heightfield disc (hills, slopes, lake shores) painted per face; returns the surface height function. */
@@ -151,27 +150,16 @@ function lantern(p: THREE.Object3D, x: number, y: number, z: number, s = 0.012):
   add(p, g('la2:sph', () => new THREE.SphereGeometry(0.5, 10, 8)), mat('#e0402a', { emissive: '#b02010' }), x, y, z, s, s * 1.15, s);
   box(p, '#2a1d16', x, y + s * 0.55, z, s * 0.5, s * 0.2, s * 0.5);
 }
-function leafy(p: THREE.Object3D, x: number, y: number, z: number, s: number, c: string, seed = 0): void {
-  strut(p, [x, y, z], [x + (hash3(seed, 1, 1) - 0.5) * s * 0.2, y + s * 0.85, z], s * 0.07, s * 0.04, '#5a4030', 5);
-  for (let i = 0; i < 4; i++) {
-    const a = seed * 2.1 + i * 1.9, d = i ? s * 0.3 : 0;
-    blob(p, shade(c, 0.88 + hash3(seed, i, 3) * 0.26), x + Math.cos(a) * d, y + s * (i ? 0.82 : 1.02) + hash3(i, seed, 1) * s * 0.15, z + Math.sin(a) * d, s * (i ? 0.3 : 0.4), s * (i ? 0.26 : 0.34), s * (i ? 0.3 : 0.4), a);
-  }
-}
-function willow(p: THREE.Object3D, x: number, y: number, z: number, s: number, seed = 0): void {
-  strut(p, [x, y, z], [x + s * 0.12, y + s * 0.8, z], s * 0.07, s * 0.04, '#5a4532', 5);
-  blob(p, '#5a7038', x + s * 0.12, y + s * 0.92, z, s * 0.34, s * 0.2, s * 0.34);
-  for (let i = 0; i < 7; i++) {
-    const a = (i / 7) * TAU + seed, r = s * 0.27;
-    ellip(p, i % 2 ? '#5e763c' : '#536a36', x + s * 0.12 + Math.cos(a) * r, y + s * 0.62, z + Math.sin(a) * r, s * 0.07, s * 0.28, s * 0.07);
-  }
-}
+/** Deciduous tree (shared natural clump), overall height ≈ 1.1·s. */
+const leafy = (p: THREE.Object3D, x: number, y: number, z: number, s: number, c: string, _seed = 0) => tree(p, x, y, z, s * 0.78, c);
+/** Weeping willow: the shared clump in the pale sage of willow foliage. */
+const willow = (p: THREE.Object3D, x: number, y: number, z: number, s: number, _seed = 0) => tree(p, x, y, z, s * 0.72, '#7d8a52');
 function bamboo(p: THREE.Object3D, x: number, y: number, z: number, s: number, n = 5, seed = 0): void {
   for (let i = 0; i < n; i++) {
     const a = seed + i * 2.4, d = s * 0.08 * Math.sqrt(i), bx = x + Math.cos(a) * d, bz = z + Math.sin(a) * d;
     const tx = bx + Math.cos(a) * s * 0.12, tz = bz + Math.sin(a) * s * 0.12, th = s * (0.85 + hash3(i, seed, 2) * 0.3);
-    rod(p, [bx, y, bz], [tx, y + th, tz], s * 0.012, i % 2 ? '#6a8a40' : '#5a7a38', 4);
-    blob(p, i % 2 ? '#4a6a34' : '#56783a', tx, y + th * 0.82, tz, s * 0.1, s * 0.2, s * 0.1, a);
+    rod(p, [bx, y, bz], [tx, y + th, tz], s * 0.012, i % 2 ? '#74804c' : '#66733f', 4);
+    blob(p, i % 2 ? '#52663a' : '#5c7042', tx, y + th * 0.82, tz, s * 0.1, s * 0.2, s * 0.1, a);
   }
 }
 /** Paint helper: masonry courses with random brick shading and optional plaster patches. */
@@ -280,18 +268,18 @@ function xhall(p: THREE.Object3D, x: number, y: number, z: number, w: number, d:
 // crown lost; reached up the hill through the Yuan-dynasty 二山门.
 
 const lf_huqiu: Builder = gp => {
-  ground(gp, 0.47, '#566e3e', C.earth);
+  ground(gp, SITE.grass);
   const hf: HF = (x, z) => {
     const r = Math.hypot(x, z), m = Math.max(0, 1 - r / 0.45);
     const n = (fbm(x * 8 + 3, 1, z * 8) - 0.5) * 0.07 * sstep(0.13, 0.2, r);
     return Math.min(0.13, 0.21 * m ** 1.3) + n * m;
   };
-  const Y = land(gp, 0.448, hf, (x, _y, z, _nx, ny) => {
+  const Y = land(gp, 0.444, hf, (x, _y, z, _nx, ny) => {
     const r = Math.hypot(x, z);
     if (r < 0.125) return hash3(Math.floor(x * 70), 0, Math.floor(z * 70)) > 0.5 ? '#b6ad9c' : '#a69d8c';
     if (Math.abs(x) < 0.03 && z > 0) return '#a39b8a';
     if (ny < 0.74 || fbm(x * 14, 2, z * 14) > 0.63) return mix('#8b857a', '#6a655c', hash3(x * 99, 1, z * 99));
-    return mix('#5a7342', '#465e35', fbm(x * 10, 5, z * 10));
+    return mix(SITE.grass, shade(SITE.grass, 0.86), fbm(x * 10, 5, z * 10));
   });
   // stone steps up the front slope and the Yuan-dynasty second gate (二山门)
   for (let i = 0; i < 13; i++) {
@@ -300,13 +288,13 @@ const lf_huqiu: Builder = gp => {
   }
   const yg = Y(0, 0.3) + 0.004;
   box(gp, '#9a927f', 0, Y(0, 0.36) - 0.01, 0.3, 0.15, yg - Y(0, 0.36) + 0.01, 0.075);
-  hall(gp, 0, yg, 0.3, 0.13, 0.055, 0.038, '#45484d', 0, '#e6dfcf', { col: '#5a3a28', band: '#3d2c22', rh: 0.034, lift: 0.3 });
+  hall(gp, 0, yg, 0.3, 0.13, 0.055, 0.038, '#4f5458', 0, '#d6cebc', { col: '#5a3a28', band: '#3d2c22', rh: 0.034, lift: 0.3 });
   box(gp, C.dark, 0, yg, 0.3 + 0.0285, 0.026, 0.03, 0.003);
   // the leaning tower: octagonal brick imitation of a timber pagoda, 7 storeys, finial long gone
   const tw = grp(gp, 0, -0.02, 0, Y0 + 0.13);
   tw.rotation.set(-0.055, 0, -0.035);
   poly(tw, 8, 0.118, 0.112, 0.022, 0, -0.01, 0, '#a59c8c');
-  const brick = '#9a8166', bp = brickPaint(brick, '#b9ab92');
+  const brick = '#8f7c66', bp = brickPaint(brick, '#ada08a');
   let y = 0.012;
   for (let i = 0; i < 7; i++) {
     const R = 0.084 - i * 0.0046, h = i === 0 ? 0.072 : 0.056 - i * 0.0015;
@@ -324,7 +312,7 @@ const lf_huqiu: Builder = gp => {
     }
     // brick bracket course, short corbelled eave, then the balcony (平座) of the next storey
     poly(tw, 8, R * 1.02, R * 1.08, 0.012, 0, y + h, 0, '#b49d7c', ringPaint('#6e5a45', 64), 1, 8);
-    const ey = proof(tw, 0, y + h + 0.012, 0, { n: 8, R0: R * 1.42, R1: R * 0.97, h: 0.016, lift: 0.14, k: 0.25, tile: '#5c4b3c', rib: '#6b5847', under: '#8c7760' });
+    const ey = proof(tw, 0, y + h + 0.012, 0, { n: 8, R0: R * 1.3, R1: R * 0.97, h: 0.014, lift: 0.08, k: 0.25, tile: '#6a5c4c', rib: '#77685a', under: '#8a7862' });
     if (i < 6) {
       const Rn = 0.084 - (i + 1) * 0.0046;
       poly(tw, 8, Rn * 1.14, Rn * 1.16, 0.009, 0, ey - 0.002, 0, '#a89274', ringPaint('#7a6650', 64), 1, 8);
@@ -334,7 +322,7 @@ const lf_huqiu: Builder = gp => {
       poly(tw, 8, R * 0.95, R * 0.9, 0.016, 0, ey - 0.003, 0, brick, bp, 3, 2);
       for (let k = 0; k < 7; k++) {
         const a = k * 0.9 + 0.3;
-        blob(tw, k % 3 ? shade(brick, 0.85) : '#4f7a32', Math.cos(a) * R * 0.7, ey + 0.014, Math.sin(a) * R * 0.7, 0.008 + (k % 3) * 0.003, 0.007, 0.008);
+        blob(tw, k % 3 ? shade(brick, 0.85) : '#5a6e40', Math.cos(a) * R * 0.7, ey + 0.014, Math.sin(a) * R * 0.7, 0.008 + (k % 3) * 0.003, 0.007, 0.008);
       }
     }
   }
@@ -356,15 +344,15 @@ const lf_huqiu: Builder = gp => {
 // ---------------------------------------------------------------------------------------------------------
 // 开封铁塔 — the "Iron Pagoda" of Youguo Temple, Kaifeng (1049). Ref: Baidu/zh.wikipedia 开封铁塔: octagonal, 13 storeys,
 // 55.88 m, slender; brown "iron-coloured" glazed relief bricks, glazed brackets under short eaves, small doors alternating;
-// stands on a stone terrace in today's Tieta Park among old trees (the lotus pond/pavilion were invented).
+// stands on a stone terrace in today's Tieta Park among old trees. Ref: Commons "Iron Pagoda Park" (2025 photos).
 
 const lf_tieta: Builder = gp => {
-  ground(gp, 0.47, '#6f8c4c', C.earth);
-  poly(gp, 8, 0.22, 0.22, 0.004, 0, 0.03, -0.07, '#bdb5a3');
+  ground(gp, SITE.grass);
+  poly(gp, 8, 0.22, 0.22, 0.004, 0, 0.03, -0.07, '#aaa497');
   const pg = grp(gp, 0, -0.07, 0, 0.034);
   poly(pg, 8, 0.12, 0.115, 0.012, 0, 0, 0, '#a8a090');
   poly(pg, 8, 0.1, 0.096, 0.026, 0, 0.012, 0, '#b3ab9a', ringPaint('#9a9282', 32), 1, 4);
-  const glaze = '#5f3b26';
+  const glaze = '#674330';
   const gpaint: Paint = (x, y, z, _nx, ny) => {
     if (Math.abs(ny) > 0.6) return null;
     const c = Math.floor(y / 0.0048), a = Math.atan2(z, x), b = Math.floor(a * 14 + (c % 2) * 0.5);
@@ -397,21 +385,20 @@ const lf_tieta: Builder = gp => {
     const mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
     if (mz > 0.1 && Math.abs(mx) < 0.03) continue;
     const ry = -Math.atan2(z1 - z0, x1 - x0), L = Math.hypot(x1 - x0, z1 - z0);
-    box(gp, '#c9c3b5', mx, 0.034, mz, L, 0.012, 0.007, ry);
-    box(gp, '#d2ccbf', mx, 0.046, mz, L, 0.004, 0.009, ry);
-    cyl(gp, '#cfc9bb', x0, 0.034, z0, 0.006, 0.02, 6);
+    box(gp, '#7e6152', mx, 0.034, mz, L, 0.013, 0.011, ry);
+    box(gp, '#8f877a', mx, 0.047, mz, L, 0.004, 0.013, ry);
+    cyl(gp, '#7a5d4e', x0, 0.034, z0, 0.008, 0.02, 6);
   }
-  pbox(gp, '#b0a898', 0, 0.03, 0.31, 0.06, 0.005, 0.3, (x, _y, z, _nx, ny) => (ny < 0.5 ? null : hash3(Math.floor(x / 0.02), 4, Math.floor(z / 0.015)) > 0.5 ? '#b8b0a0' : '#a8a090'), 0.015);
+  pbox(gp, SITE.paving, 0, 0.03, 0.31, 0.06, 0.005, 0.3, (x, _y, z, _nx, ny) => (ny < 0.5 ? null : hash3(Math.floor(x / 0.02), 4, Math.floor(z / 0.015)) > 0.5 ? '#aca69a' : '#9d978a'), 0.015);
   box(gp, '#8a8478', 0.13, 0.034, 0.22, 0.03, 0.01, 0.016);
   box(gp, '#9a958a', 0.13, 0.044, 0.22, 0.022, 0.05, 0.007);
   ellip(gp, '#9a958a', 0.13, 0.094, 0.22, 0.012, 0.008, 0.004);
   // the park: cypress rows along the approach, old pines and broadleaf trees behind
   for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) {
     const x = sx * 0.075, z = 0.24 + k * 0.075;
-    cyl(gp, '#4a3a2c', x, 0.034, z, 0.004, 0.02, 5);
-    for (let i = 0; i < 3; i++) blob(gp, shade('#33502f', 0.92 + i * 0.06), x, 0.05 + i * 0.016, z, 0.02 - i * 0.005, 0.016, 0.02 - i * 0.005, i + k);
+    tree(gp, x, 0.034, z, 0.055, '#3c5a3a', true);
   }
-  for (const [x, z, s] of [[-0.33, -0.1, 0.1], [0.33, -0.12, 0.11], [-0.3, -0.28, 0.09], [0.28, -0.3, 0.1], [-0.3, 0.22, 0.09], [0.31, 0.24, 0.1]] as const) leafy(gp, x, 0.032, z, s, '#47693a', x * 10);
+  for (const [x, z, s] of [[-0.33, -0.1, 0.1], [0.33, -0.12, 0.11], [-0.3, -0.28, 0.09], [0.28, -0.3, 0.1], [-0.3, 0.22, 0.09], [0.31, 0.24, 0.1]] as const) leafy(gp, x, 0.034, z, s, '#4f6a3c', x * 10);
   for (const [x, z] of [[-0.36, 0.06], [0.37, 0.05], [-0.18, 0.35], [0.2, 0.36]] as const) minipine(gp, x, 0.034, z, 0.1);
   human(gp, 0.02, 0.034, 0.36, { h: 0.028, pose: 'walk', ry: Math.PI, top: '#4a5868', bottom: '#2f2c2a', hair: '#1c1714', detail: 'lo' });
   human(gp, -0.04, 0.038, 0.1, { h: 0.028, pose: 'point', ry: Math.PI * 0.9, top: '#7a6a52', bottom: '#3a3128', hair: '#1c1714', detail: 'lo', dress: 'ankle' });
@@ -435,10 +422,15 @@ function bowGable(p: THREE.Object3D, x: number, y: number, z: number, d: number,
   c.rotation.y = Math.PI / 2;
 }
 const lf_academy: Builder = gp => {
-  ground(gp, 0.47, '#66784a', C.earth);
-  const wall = '#ebe7dc', tile = '#4a4d52', col = '#4f2c22', dark = '#33261e';
-  const pave: Paint = (x, _y, z, _nx, ny) => (ny < 0.5 ? null : Math.abs(x) < 0.025 ? '#aaa393' : hash3(Math.floor(x / 0.02), 0, Math.floor(z / 0.02)) > 0.5 ? '#bdb6a6' : '#b4ad9c');
-  pbox(gp, '#b4ad9c', 0, 0.03, 0, 0.44, 0.004, 0.78, pave, 0.02);
+  ground(gp, SITE.grass);
+  const wall = '#dcd7cb', tile = '#5d6266', col = '#7a3528', dark = '#33261e';
+  const pave: Paint = (x, _y, z, _nx, ny) => (ny < 0.5 ? null : Math.abs(x) < 0.025 ? '#9a9488' : hash3(Math.floor(x / 0.02), 0, Math.floor(z / 0.02)) > 0.5 ? SITE.paving : '#a19c90');
+  pbox(gp, SITE.paving, 0, 0.03, 0, 0.43, 0.004, 0.76, pave, 0.02);
+  // lawns and clipped cypresses in the lecture-hall court
+  for (const sx of [-1, 1]) {
+    box(gp, SITE.grass, sx * 0.065, 0.034, -0.005, 0.07, 0.002, 0.08);
+    tree(gp, sx * 0.065, 0.036, -0.005, 0.05, '#3e5a3a', true);
+  }
   // compound wall (whitewash, grey coping); the gate hall sits in the front wall
   wallSeg(gp, -0.21, -0.39, 0.21, -0.39, Y0, 0.05, wall, tile, 0.012);
   for (const sx of [-1, 1]) {
@@ -485,7 +477,7 @@ const lf_academy: Builder = gp => {
   xroof(gp, { z: zl, y: ys, w: 0.215, d: 0.105, h: 0.026, ridge: 0.215 / 2 - 0.105 / 2, upto: 0.5, tile, lift: 0.008 });
   xhall(gp, 0, ys + 0.008, zl, 0.15, 0.06, 0.036, { roof: 'xs', tile, wall: '#5a3c2c', front: '#5a3c2c', bar: '#2a1e17', col, band: '#3e3a32', rh: 0.034 });
   // camphor, pine and a muted maple outside the walls; scholars in long gowns
-  for (const [x, z, c, s] of [[-0.31, 0.18, '#3f5c36', 0.12], [-0.32, -0.12, '#465f38', 0.13], [0.31, 0.16, '#425e37', 0.12], [0.32, -0.15, '#7a4630', 0.1], [-0.26, -0.33, '#3f5c36', 0.1], [0.27, -0.32, '#465f38', 0.1]] as const) leafy(gp, x, 0.03, z, s, c, x * 7 + z);
+  for (const [x, z, c, s] of [[-0.31, 0.18, '#3f5c36', 0.12], [-0.32, -0.12, '#465f38', 0.13], [0.31, 0.16, '#425e37', 0.12], [0.32, -0.15, '#7a5236', 0.1], [-0.26, -0.33, '#3f5c36', 0.1], [0.27, -0.32, '#465f38', 0.1]] as const) leafy(gp, x, 0.034, z, s, c, x * 7 + z);
   for (const [x, z] of [[-0.17, 0.33], [0.17, 0.33]] as const) minipine(gp, x, 0.034, z, 0.08);
   for (const [x, z, t, ry, pose] of [[-0.04, 0.0, '#d8d0bc', 0.4, 'stand'], [0.035, -0.01, '#4a5466', -2.4, 'point'], [0.02, 0.28, '#5a5048', Math.PI, 'walk']] as const)
     human(gp, x, Y0, z, { h: 0.03, pose, ry, top: t, bottom: shade(t, 0.8), hair: '#1c1714', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
@@ -506,39 +498,47 @@ function frust(p: THREE.Object3D, bot: [number, number][], top: [number, number]
   return skin(p, rings, c, { caps: true, flat: true, paint });
 }
 const lf_guanxing: Builder = gp => {
-  ground(gp, 0.47, '#a39b88', '#6f685a');
-  const pave: Paint = (x, _y, z, _nx, ny) => (ny < 0.5 ? null : hash3(Math.floor(x / 0.016), 3, Math.floor(z / 0.011)) > 0.5 ? '#a59d8b' : '#9f9784');
-  pbox(gp, '#a39b88', 0, 0.03, 0.0, 0.5, 0.003, 0.78, pave, 0.011);
-  const brick = '#938b7f', zc = 0.2, B = 0.11, T = 0.056, H = 0.135, gap = 0.024, sd = 0.03, y0 = 0.033;
-  const bp: Paint = (x, yy, z, _nx, ny) => (Math.abs(ny) > 0.7 ? '#a0988a' : shade(brick, 0.9 + hash3(Math.floor(yy / 0.0045), Math.floor((x + z) / 0.014), 5) * 0.18));
+  ground(gp, SITE.grass);
+  const pave: Paint = (x, _y, z, _nx, ny) => (ny < 0.5 ? null : hash3(Math.floor(x / 0.016), 3, Math.floor(z / 0.011)) > 0.5 ? '#9c978c' : '#928d82');
+  pbox(gp, SITE.paving, 0, Y0 - 0.001, 0.07, 0.12, 0.003, 0.74, pave, 0.011);
+  pbox(gp, SITE.paving, 0, Y0 - 0.001, -0.24, 0.4, 0.003, 0.34, pave, 0.011);
+  // the tower is turned so its north face (slot + 量天尺 gauge) faces the viewer, as in the classic photographs
+  const gq = grp(gp, 0, 0, Math.PI, -0.005);
+  gq.scale.setScalar(1.15);
+  const brick = '#7f7a71', zc = 0.2, B = 0.11, T = 0.056, H = 0.135, gap = 0.024, sd = 0.03, y0 = 0.033;
+  const bp: Paint = (x, yy, z, _nx, ny) => (Math.abs(ny) > 0.7 ? '#8e887c' : shade(brick, 0.9 + hash3(Math.floor(yy / 0.0045), Math.floor((x + z) / 0.014), 5) * 0.18));
   // the truncated-pyramid tower in two halves either side of the north slot, plus the block behind the slot
   for (const sx of [-1, 1]) {
     const q = (a: number, b: number): [number, number][] => [[sx * gap / 2, zc - a], [sx * b, zc - a], [sx * b, zc + a], [sx * gap / 2, zc + a]];
-    frust(gp, q(B, B), q(T, T), y0, H, brick, bp, 20);
+    frust(gq, q(B, B), q(T, T), y0, H, brick, bp, 20);
   }
-  frust(gp, [[-gap / 2, zc - B + sd], [gap / 2, zc - B + sd], [gap / 2, zc + B], [-gap / 2, zc + B]], [[-gap / 2, zc - T + sd], [gap / 2, zc - T + sd], [gap / 2, zc + T], [-gap / 2, zc + T]], y0, H, shade(brick, 0.8), bp, 20);
+  frust(gq, [[-gap / 2, zc - B + sd], [gap / 2, zc - B + sd], [gap / 2, zc + B], [-gap / 2, zc + B]], [[-gap / 2, zc - T + sd], [gap / 2, zc - T + sd], [gap / 2, zc + T], [-gap / 2, zc + T]], y0, H, shade(brick, 0.8), bp, 20);
   const top = y0 + H;
   // brick parapet round the top (open over the slot)
   for (const sx of [-1, 1]) {
-    box(gp, '#9d958a', sx * (T - 0.003), top, zc, 0.006, 0.011, 2 * T);
-    box(gp, '#9d958a', sx * (gap / 2 + (T - gap / 2) / 2), top, zc - T + 0.003, T - gap / 2, 0.011, 0.006);
+    box(gq, '#9d958a', sx * (T - 0.003), top, zc, 0.006, 0.011, 2 * T);
+    box(gq, '#9d958a', sx * (gap / 2 + (T - gap / 2) / 2), top, zc - T + 0.003, T - gap / 2, 0.011, 0.006);
   }
-  box(gp, '#9d958a', 0, top, zc + T - 0.003, 2 * T, 0.011, 0.006);
-  // two small Ming rooms on top flanking the slot, joined by the gnomon crossbar
+  box(gq, '#9d958a', 0, top, zc + T - 0.003, 2 * T, 0.011, 0.006);
+  // two small flat-roofed brick rooms on top flanking the slot (arched windows, grey-tile coping), joined by the gnomon crossbar
   for (const sx of [-1, 1]) {
-    const rx = sx * (gap / 2 + 0.021), rz = zc - T + 0.034;
-    pbox(gp, '#9a9286', rx, top, rz, 0.036, 0.034, 0.05, bp, 0.006);
-    box(gp, '#2a241e', rx, top, rz - 0.0255, 0.012, 0.022, 0.002);
-    xroof(gp, { x: rx, z: rz, y: top + 0.034, w: 0.05, d: 0.064, h: 0.02, ridge: 0.004, tile: '#55585a', lift: 0.004 });
+    const rx = sx * (gap / 2 + 0.021), rz = zc - T + 0.034, rb = '#9a8b72';
+    pbox(gq, rb, rx, top, rz, 0.036, 0.034, 0.05, brickPaint(rb), 0.006);
+    for (const fz of [-1, 1]) {
+      box(gq, '#2a241e', rx, top + 0.016, rz + fz * 0.0255, 0.01, 0.01, 0.002);
+      ellip(gq, '#2a241e', rx, top + 0.026, rz + fz * 0.0255, 0.005, 0.005, 0.001);
+    }
+    box(gq, '#5d6266', rx, top + 0.034, rz, 0.04, 0.004, 0.054);
+    gable(gq, 0.04, 0.004, 0.054, '#5d6266', rx, top + 0.038, rz, 0);
   }
-  box(gp, '#4a4038', 0, top + 0.028, zc - T + 0.012, gap + 0.012, 0.006, 0.008);
+  box(gq, '#4a4038', 0, top + 0.028, zc - T + 0.012, gap + 0.012, 0.006, 0.008);
   // stairways: entrances on the north side, climbing south along the east and west faces to the top
   const faceX = (yy: number) => B - (B - T) * ((yy - y0) / H), sw = 0.024, N = 12, st = '#9e9789';
   for (const sx of [-1, 1]) for (let k = 0; k < N; k++) {
     const yt = y0 + (H * (k + 1)) / N, z = zc - B + 0.012 + ((k + 0.5) / N) * (2 * B - 0.024), len = (2 * B - 0.024) / N + 0.001;
     const x = sx * (faceX(yt) + sw / 2 - 0.003);
-    box(gp, st, x, y0, z, sw, yt - y0, len);
-    box(gp, '#a39b8e', x + sx * (sw / 2 - 0.003), yt, z, 0.006, 0.011, len);
+    box(gq, st, x, y0, z, sw, yt - y0, len);
+    box(gq, '#a39b8e', x + sx * (sw / 2 - 0.003), yt, z, 0.006, 0.011, len);
   }
   // 量天尺: blue-stone gnomon bed starting inside the slot, with twin water channels and graduations
   const z0 = zc - B + sd - 0.004, L = 0.42, zm = z0 - L / 2;
@@ -547,20 +547,19 @@ const lf_guanxing: Builder = gp => {
     if (Math.abs(Math.abs(x) - 0.0055) < 0.0015) return '#3d4a52';
     return Math.floor((z0 - z) / 0.0117) % 2 ? '#8a8e8c' : (Math.abs((z0 - z) % 0.0117) < 0.0012 ? '#5a5e5c' : null);
   };
-  pbox(gp, '#939795', 0, 0.033, zm, 0.018, 0.009, L, gpaint, 0.0015);
-  box(gp, '#3d4a52', 0, 0.034, z0 - L + 0.004, 0.022, 0.009, 0.008);
+  pbox(gq, '#939795', 0, 0.033, zm, 0.018, 0.009, L, gpaint, 0.0015);
+  box(gq, '#3d4a52', 0, 0.034, z0 - L + 0.004, 0.022, 0.009, 0.008);
   // the Tang 周公测景台: a stone gnomon pillar on a stepped base south of the tower
-  box(gp, '#9a968a', 0, 0.033, 0.4, 0.034, 0.012, 0.034);
-  tbox(gp, 0.024, 0.024, 0.016, 0.016, 0.014, '#a6a296', 0, 0.045, 0.4);
-  box(gp, '#a6a296', 0, 0.059, 0.4, 0.008, 0.026, 0.008);
+  box(gq, '#9a968a', 0.19, 0.033, 0.3, 0.034, 0.012, 0.034);
+  tbox(gq, 0.024, 0.024, 0.016, 0.016, 0.014, '#a6a296', 0.19, 0.045, 0.3);
+  box(gq, '#a6a296', 0.19, 0.059, 0.3, 0.008, 0.026, 0.008);
   // astronomers in Yuan robes: one kneeling to read the noon shadow on the scale, one on the tower
-  human(gp, 0.022, 0.036, -0.08, { h: 0.03, pose: 'kneel', ry: -Math.PI / 2, top: '#6a5a44', bottom: '#4a3e30', hair: '#1c1714', hat: '#2a2622', hatStyle: 'cap', dress: 'ankle', detail: 'hi' });
-  human(gp, -0.03, 0.036, -0.02, { h: 0.031, pose: 'point', ry: Math.PI * 0.15, top: '#4a4a52', bottom: '#3a3530', hair: '#1c1714', hat: '#2a2622', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
-  human(gp, 0.03, top, zc + 0.02, { h: 0.03, pose: 'stand', ry: Math.PI, top: '#5a4a3a', bottom: '#3a3128', hair: '#1c1714', hat: '#2a2622', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
+  human(gq, 0.022, 0.036, -0.08, { h: 0.026, pose: 'kneel', ry: -Math.PI / 2, top: '#6a5a44', bottom: '#4a3e30', hair: '#1c1714', hat: '#2a2622', hatStyle: 'cap', dress: 'ankle', detail: 'hi' });
+  human(gq, -0.03, 0.036, -0.02, { h: 0.026, pose: 'point', ry: Math.PI * 0.15, top: '#4a4a52', bottom: '#3a3530', hair: '#1c1714', hat: '#2a2622', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
+  human(gq, 0.03, top, zc + 0.02, { h: 0.026, pose: 'stand', ry: Math.PI, top: '#5a4a3a', bottom: '#3a3128', hair: '#1c1714', hat: '#2a2622', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
   // old cypresses of the temple courtyard
-  for (const [x, z, s] of [[-0.3, 0.2, 0.12], [0.31, 0.22, 0.11], [-0.27, -0.12, 0.13], [0.28, -0.1, 0.12], [-0.17, -0.34, 0.1], [0.18, -0.33, 0.11], [-0.33, 0.04, 0.1]] as const) {
-    cyl(gp, '#4a3a2c', x, 0.03, z, s * 0.07, s * 0.3, 5);
-    for (let i = 0; i < 3; i++) blob(gp, shade('#34502f', 0.9 + i * 0.07), x + (i - 1) * s * 0.06, 0.03 + s * (0.42 + i * 0.22), z, s * (0.28 - i * 0.06), s * 0.24, s * (0.26 - i * 0.05), i);
+  for (const [x, z, s] of [[-0.3, 0.2, 0.12], [0.31, 0.22, 0.11], [-0.3, -0.16, 0.13], [0.31, -0.14, 0.12], [-0.2, -0.36, 0.1], [0.22, -0.35, 0.11], [-0.34, 0.03, 0.1], [0.35, 0.05, 0.1]] as const) {
+    tree(gp, x, Y0, z, s * 0.85, '#3e5a3a', true);
   }
 };
 
@@ -590,8 +589,8 @@ function sumeru(p: THREE.Object3D, s: number, k: number, y: number, h: number, c
   return y + h;
 }
 const lf_baita: Builder = gp => {
-  ground(gp, 0.47, '#a8a294', '#6f6a60');
-  const white = '#ebe8e0', red = '#9a3a2c', tile = '#55585b', bronze = '#5e5844', gilt = '#c9a043';
+  ground(gp, SITE.paving);
+  const white = '#e0dccf', red = '#9a3a2c', tile = '#55585b', bronze = '#5e5844', gilt = '#c9a043';
   const pave: Paint = (x, _y, z, _nx, ny) => (ny < 0.5 ? null : hash3(Math.floor(x / 0.02), 1, Math.floor(z / 0.02)) > 0.5 ? '#b2ac9e' : null);
   pbox(gp, '#aaa496', 0, 0.03, 0, 0.62, 0.003, 0.62, pave, 0.02);
   // tower-yard enclosure: red walls with grey coping, small corner halls, the front hall
@@ -605,18 +604,18 @@ const lf_baita: Builder = gp => {
   for (let i = 0; i < 3; i++) box(sg, '#bdb8ab', 0, 0.033, 0.288 + i * 0.008, 0.07, 0.026 - (i + 1) * 0.0068, 0.009);
   let y = 0.059;
   // three-tier base: plain wall, then two 亚-plan sumeru
-  prism(sg, yaPlan(0.205, 0.03), y, 0.035, '#e4e0d6');
+  prism(sg, yaPlan(0.205, 0.03), y, 0.035, '#dad5c9');
   y = sumeru(sg, 0.19, 0.028, y + 0.035, 0.048, white);
   y = sumeru(sg, 0.165, 0.024, y, 0.048, white);
   // lotus seat and the five vajra rings
   const pet: [number, number][] = [[0, 0], [0.13, 0], [0.142, 0.006], [0.146, 0.013], [0.138, 0.02], [0.13, 0.022], [0, 0.022]];
-  lathe(sg, pet, '#e6e2d9', 0, y, 0, 32);
+  lathe(sg, pet, '#dcd8cc', 0, y, 0, 32);
   for (let i = 0; i < 24; i++) {
     const a = (i / 24) * TAU;
-    ellip(sg, '#f0ede6', Math.cos(a) * 0.14, y + 0.012, Math.sin(a) * 0.14, 0.012, 0.01, 0.006, Math.PI / 2 - a);
+    ellip(sg, '#e4e0d4', Math.cos(a) * 0.14, y + 0.012, Math.sin(a) * 0.14, 0.012, 0.01, 0.006, Math.PI / 2 - a);
   }
   y += 0.022;
-  for (let i = 0; i < 5; i++) lathe(sg, [[0, 0], [0.122 - i * 0.002, 0], [0.126 - i * 0.002, 0.0025], [0.122 - i * 0.002, 0.005], [0, 0.005]], i % 2 ? '#e2ded4' : white, 0, y + i * 0.005, 0, 32);
+  for (let i = 0; i < 5; i++) lathe(sg, [[0, 0], [0.122 - i * 0.002, 0], [0.126 - i * 0.002, 0.0025], [0.122 - i * 0.002, 0.005], [0, 0.005]], i % 2 ? '#d8d4c8' : white, 0, y + i * 0.005, 0, 32);
   y += 0.025;
   // the inverted-bowl body (塔肚): slightly flared foot, widest high up, broad flattened shoulders
   const bowl: [number, number][] = [[0, 0], [0.112, 0], [0.114, 0.012], [0.12, 0.04], [0.128, 0.075], [0.134, 0.105], [0.135, 0.12], [0.13, 0.138], [0.118, 0.152], [0.098, 0.162], [0.072, 0.168], [0, 0.17]];
@@ -636,7 +635,7 @@ const lf_baita: Builder = gp => {
     ring.push([r - 0.002, yy], [r + 0.002, yy + dh * 0.25], [r + 0.002, yy + dh * 0.7], [r - 0.002, yy + dh]);
   }
   ring.push([0.03, sh + 0.004], [0, sh + 0.004]);
-  lathe(sg, ring, '#e9e6de', 0, y, 0, 24);
+  lathe(sg, ring, '#dfdbd0', 0, y, 0, 24);
   y += sh + 0.004;
   // bronze canopy (华盖) with a ring of pierced plaques (华鬘) and wind-bells
   lathe(sg, [[0, 0], [0.07, 0], [0.072, 0.006], [0.062, 0.016], [0.035, 0.026], [0, 0.03]], bronze, 0, y, 0, 36);
@@ -649,9 +648,8 @@ const lf_baita: Builder = gp => {
   // gilt-bronze small stupa (宝顶) on top
   lathe(sg, [[0, 0], [0.02, 0], [0.02, 0.006], [0.014, 0.008], [0.019, 0.022], [0.014, 0.033], [0.006, 0.036], [0.005, 0.048], [0.009, 0.052], [0.006, 0.062], [0, 0.072]], gilt, 0, y, 0, 16);
   // juniper trees and a few visitors
-  for (const [x, z] of [[-0.23, 0.2], [0.23, 0.2], [-0.24, -0.23], [0.24, -0.23]] as const) {
-    cyl(gp, '#4a3a2c', x, 0.03, z, 0.006, 0.03, 5);
-    for (let i = 0; i < 3; i++) blob(gp, shade('#33502f', 0.92 + i * 0.06), x, 0.05 + i * 0.022, z, 0.03 - i * 0.007, 0.022, 0.028 - i * 0.007, i);
+  for (const [x, z] of [[-0.266, 0.13], [0.266, 0.13], [-0.266, -0.1], [0.266, -0.1]] as const) {
+    tree(gp, x, Y0, z, 0.07, '#3e5a3a', true);
   }
   human(gp, 0.06, 0.033, 0.4, { h: 0.032, pose: 'pray', ry: Math.PI, top: '#7a2a24', bottom: '#6a2620', hair: null, detail: 'lo', dress: 'ankle' });
   human(gp, -0.05, 0.033, 0.4, { h: 0.032, pose: 'walk', ry: Math.PI, top: '#4a5260', bottom: '#2f2c2a', hair: '#1c1714', detail: 'lo' });
@@ -682,8 +680,8 @@ function ringWall(p: THREE.Object3D, R: number, y: number, h: number, c: string,
   skin(p, rings, c, { paint, inward });
 }
 const lf_tulou: Builder = gp => {
-  ground(gp, 0.47, '#62784a', C.earth);
-  const Y = Y0 - 0.002, RO = 0.33, RI = 0.262, H = 0.15, fl = H / 4, tile = '#47494c', earth = '#a98760', timber = '#6a4a32';
+  ground(gp, SITE.grass);
+  const Y = Y0 - 0.002, RO = 0.33, RI = 0.262, H = 0.15, fl = H / 4, tile = '#555a5e', earth = '#b98f57', timber = '#6a4a32';
   const ang = (x: number, z: number) => (Math.atan2(z, x) + TAU) / TAU;
   lathe(gp, [[0, 0], [RI, 0], [RI, 0.004], [0, 0.004]], '#a39d90', 0, Y - 0.002, 0, 48);
   // outer ring: stone footing, rammed-earth wall in pour layers, windows only on the 3rd and 4th floors
@@ -731,18 +729,20 @@ const lf_tulou: Builder = gp => {
   house(gp, 0, Y + 0.003, -0.012, 0.09, 0.06, 0.034, 0, { wall: '#d8d0c0', roof: tile, front: '#5a3c2a', bar: '#2e2019', col: '#4a2c20', rh: 0.022 });
   // the granite-framed arched gate with its name board, a stone path and tea terraces, bamboo behind
   const gz = RO + 0.004;
-  box(gp, '#aaa496', 0, Y, gz, 0.05, 0.056, 0.014);
+  box(gp, '#d2c9b6', 0, Y, gz - 0.001, 0.085, 0.078, 0.012);
+  box(gp, '#9a5a48', 0, Y + 0.074, gz + 0.0002, 0.088, 0.006, 0.014);
+  box(gp, '#a39d90', 0, Y, gz, 0.05, 0.056, 0.016);
   box(gp, '#2a1f18', 0, Y, gz + 0.002, 0.03, 0.04, 0.014);
   ellip(gp, '#2a1f18', 0, Y + 0.04, gz + 0.002, 0.015, 0.012, 0.007);
   box(gp, '#2a1d16', 0, Y + 0.06, gz + 0.003, 0.04, 0.012, 0.004);
   box(gp, '#b8963e', 0, Y + 0.063, gz + 0.0052, 0.028, 0.005, 0.001);
   for (const sx of [-1, 1]) box(gp, '#8a3a2c', sx * 0.0195, Y + 0.008, gz + 0.0072, 0.006, 0.034, 0.001);
-  box(gp, '#a39d90', 0, 0.03, 0.4, 0.04, 0.004, 0.11);
+  box(gp, '#a39d90', 0, 0.03, 0.39, 0.04, 0.004, 0.09);
   for (const [a0, a1, r] of [[0.25, 1.3, 0.385], [0.28, 1.28, 0.43], [1.85, 2.9, 0.385], [1.88, 2.86, 0.43]] as const) {
     const n = Math.round(((a1 - a0) * r) / 0.011);
     for (let i = 0; i <= n; i++) { const a = a0 + ((a1 - a0) * i) / n; blob(gp, shade(r > 0.41 ? '#3c5a30' : '#466636', 0.92 + hash3(i, r * 100, 1) * 0.14), Math.cos(a) * r, Y + 0.006, Math.sin(a) * r, 0.008, 0.007, 0.008, a); }
   }
-  for (const a of [3.7, 4.3, 4.9, 5.5]) bamboo(gp, Math.cos(a) * 0.4, Y, Math.sin(a) * 0.4, 0.17, 5, a);
+  for (const a of [3.7, 4.3, 4.9, 5.5]) bamboo(gp, Math.cos(a) * 0.39, Y, Math.sin(a) * 0.39, 0.21, 5, a);
   human(gp, 0.05, Y, 0.38, { h: 0.026, pose: 'carry', ry: Math.PI, top: '#3a4656', bottom: '#2a2a2a', hair: '#1c1714', hat: '#b89e6a', hatStyle: 'conical', detail: 'lo' });
   human(gp, -0.03, Y + 0.003, 0.22, { h: 0.025, pose: 'walk', ry: 0.4, top: '#4a4a52', bottom: '#2a2a2a', hair: '#1c1714', detail: 'lo' });
 };
@@ -774,8 +774,8 @@ function archBridge(p: THREE.Object3D, L: number, H: number, W: number, n: numbe
 }
 const lf_yiheyuan: Builder = gp => {
   const water = '#4f7684';
-  ground(gp, 0.47, water, '#6b6a5a');
-  const yellow = '#d6a734', ver = '#9a3328', marble = '#e3ddd0', green = '#2f5a50';
+  ground(gp, SITE.water);
+  const yellow = '#c9a13a', ver = '#9a3328', marble = '#d8d3c6', green = '#2f5a50';
   const hf: HF = (x, z) => {
     const isl = Math.max(0, 1 - Math.hypot(x - 0.09, z - 0.33) / 0.06);
     if (z > 0.016 && x < 0.37) return isl > 0 ? 0.004 + sstep(0, 0.4, isl) * 0.016 : 0;
@@ -783,16 +783,16 @@ const lf_yiheyuan: Builder = gp => {
     const s = sstep(-0.005, -0.25, z), ridge = Math.max(0, 1 - (x / 0.5) ** 2);
     return 0.012 + s * 0.24 * ridge * (0.85 + 0.3 * fbm(x * 6, 1, z * 6));
   };
-  const Y = land(gp, 0.448, hf, (x, y, z, _nx, ny) => {
+  const Y = land(gp, 0.444, hf, (x, y, z, _nx, ny) => {
     if (y < 0.0365) return hash3(Math.floor(x * 30), 1, Math.floor(z * 50)) > 0.94 ? '#5c8592' : water;
     if (z > 0.2 && y > 0.042) return '#56703e';
-    if (y < 0.05 && z > -0.06 && x < 0.36) return '#cdc6b4';
+    if (y < 0.05 && z > -0.06 && x < 0.36) return '#bdb7a8';
     if (ny < 0.6) return '#77775e';
     return mix('#56703e', '#435f34', fbm(x * 12, 3, z * 12));
   });
   // Tower of Buddhist Incense on its great stone terrace, with the stair up from the Hall of Dispelling Clouds
   const zt = -0.17, yt = Y0 + 0.2;
-  pbox(gp, '#b4ab98', 0, 0.1, zt, 0.17, yt - 0.1, 0.15, (_x, yy, _z, _nx, ny) => (ny > 0.5 ? '#cfc8b6' : Math.floor(yy / 0.012) % 2 ? '#a9a08c' : null), 0.012);
+  pbox(gp, '#b4ab98', 0, 0.1, zt, 0.17, yt - 0.1, 0.15, (_x, yy, _z, _nx, ny) => (ny > 0.5 ? '#c2bcac' : Math.floor(yy / 0.012) % 2 ? '#a9a08c' : null), 0.012);
   for (let i = 0; i < 8; i++) box(gp, '#c4bba8', 0, Y(0, -0.06) - 0.01 + i * 0.012, -0.075 - i * 0.002, 0.04, 0.014, 0.012);
   for (let i = 0; i <= 10; i++) for (const sz of [-1, 1]) box(gp, marble, -0.08 + i * 0.016, yt, zt + sz * 0.074, 0.003, 0.01, 0.003);
   for (const sz of [-1, 1]) box(gp, marble, 0, yt + 0.008, zt + sz * 0.074, 0.165, 0.002, 0.003);
@@ -836,14 +836,14 @@ const lf_yiheyuan: Builder = gp => {
   }
   // Seventeen-Arch Bridge to Nanhu Island
   const bg = grp(gp, 0.26, 0.16, Math.PI / 4, 0.03);
-  const top = archBridge(bg, 0.4, 0.05, 0.03, 17, '#e6e2d8');
+  const top = archBridge(bg, 0.4, 0.05, 0.03, 17, '#d4cfc2');
   for (let i = 0; i <= 20; i++) {
     const x = -0.2 + (i / 20) * 0.4;
-    for (const sz of [-1, 1]) box(bg, '#efece4', x, top(x), sz * 0.0135, 0.004, 0.01, 0.004);
+    for (const sz of [-1, 1]) box(bg, '#d8d3c6', x, top(x), sz * 0.0135, 0.005, 0.01, 0.005);
   }
   for (const sz of [-1, 1]) for (let i = 0; i < 10; i++) {
     const xa = -0.2 + (i / 10) * 0.4, xb = xa + 0.04;
-    rod(bg, [xa, top(xa) + 0.007, sz * 0.0135], [xb, top(xb) + 0.007, sz * 0.0135], 0.0018, '#efece4', 4);
+    rod(bg, [xa, top(xa) + 0.007, sz * 0.0135], [xb, top(xb) + 0.007, sz * 0.0135], 0.003, '#d8d3c6', 4);
   }
   xhall(gp, 0.09, Y(0.09, 0.33), 0.34, 0.055, 0.032, 0.022, { roof: 'xs', tile: '#4f5a55', wall: ver, col: ver, band: green, under: green, rh: 0.02 });
   leafy(gp, 0.05, Y(0.05, 0.31) - 0.004, 0.31, 0.045, '#3f5f34', 1);
@@ -855,9 +855,9 @@ const lf_yiheyuan: Builder = gp => {
     const u = Math.abs(nx) > 0.5 ? z : x;
     return Math.abs(((u + 1) % 0.014) - 0.007) < wx && yy > 0.004 && yy < 0.004 + wy ? '#4e6170' : null;
   };
-  pbox(mb, '#ebe5d6', 0, 0.022, 0, 0.11, 0.022, 0.032, win(0.0035, 0.013), 0.0035);
+  pbox(mb, '#dcd6c8', 0, 0.022, 0, 0.11, 0.022, 0.032, win(0.0035, 0.013), 0.0035);
   box(mb, '#d8d1c0', 0, 0.044, 0, 0.116, 0.003, 0.038);
-  pbox(mb, '#ebe5d6', 0.006, 0.047, 0, 0.074, 0.018, 0.027, win(0.0035, 0.01), 0.0035);
+  pbox(mb, '#dcd6c8', 0.006, 0.047, 0, 0.074, 0.018, 0.027, win(0.0035, 0.01), 0.0035);
   box(mb, '#d8d1c0', 0.006, 0.065, 0, 0.08, 0.003, 0.032);
   box(mb, '#c9c1ae', 0.006, 0.068, 0, 0.06, 0.004, 0.02);
   for (let i = 0; i <= 12; i++) for (const sz of [-1, 1]) box(mb, '#d8d1c0', -0.055 + i * 0.0092, 0.047, sz * 0.018, 0.002, 0.005, 0.002);
@@ -871,8 +871,7 @@ const lf_yiheyuan: Builder = gp => {
     if (Math.abs(x) < 0.17 && z > -0.28) continue;
     if (Math.abs(x) < 0.07) continue;
     if (Math.hypot(x, z) > 0.42) continue;
-    if (k % 3) blob(gp, k % 2 ? '#2f5232' : '#3b5e38', x, Y(x, z) + 0.018, z, 0.032, 0.026, 0.032, k);
-    else minipine(gp, x, Y(x, z), z, 0.07, '#2f5232');
+    tree(gp, x, Y(x, z), z, k % 3 ? 0.05 : 0.065, k % 2 ? '#3a5a38' : '#45603c', k % 3 === 0);
   }
   for (const [x, z] of [[-0.38, 0.006], [-0.2, 0.006], [0.2, 0.006], [0.4, 0.07]] as const) willow(gp, x, 0.046, z, 0.06, x * 9);
 };
@@ -898,128 +897,134 @@ function slopeWing(p: THREE.Object3D, x: number, z: number, len: number, dep: nu
   box(p, shade(tile, 0.75), x + sx * (dep / 2 - 0.006), y0 + hOut, z, 0.016, 0.006, len + 0.006);
 }
 function rishengchang(gp: THREE.Object3D): void {
-  rbox(gp, '#6f6a60', 0, 0, 0, 0.9, 0.03, 0.9, 0.006);
-  const brick = '#8c8a84', tile = '#4a4c50', wood = '#4a3224', y0 = Y0;
+  // stone-paved 西大街 across the front of the plinth (with its drain line), lane paving elsewhere
+  ground(gp, '#9a968e', (x, _y, z) => {
+    const dz = z - 0.307;
+    if (Math.abs(dz) < 0.054) return Math.abs(dz) < 0.003 ? '#5f5c56' : hash3(Math.floor(x / 0.025), 7, Math.floor(z / 0.015)) > 0.5 ? '#827d74' : '#78746c';
+    return hash3(Math.floor(x / 0.018), 2, Math.floor(z / 0.0135)) > 0.5 ? '#8f8a80' : '#878279';
+  });
+  // the street block is built at 0.82 so its square plots sit inside the round plinth
+  const S = 0.82, g = grp(gp, 0, 0, 0, Y0 * (1 - S));
+  g.scale.setScalar(S);
+  const brick = '#8c8a84', tile = '#555a5e', wood = '#4a3224', y0 = Y0;
   const bp: Paint = (_x, yy, _z, _nx, ny) => (Math.abs(ny) > 0.5 ? null : shade(brick, 0.92 + hash3(Math.floor(yy / 0.004), Math.floor(_x / 0.01 + _z / 0.01), 1) * 0.14));
-  box(gp, '#9a968e', 0, 0.03, 0, 0.88, 0.004, 0.88);
-  ptop(gp, '#9a968e', 0, Y0 + 0.0003, 0, 0.88, 0.88, (x, _y, z) => (hash3(Math.floor(x / 0.022), 2, Math.floor(z / 0.0165)) > 0.5 ? '#a29e95' : null), 0.022, 0.0165);
-  // 西大街: the stone-paved street in front with its drain line
-  box(gp, '#8f8b82', 0, y0, 0.375, 0.88, 0.002, 0.13);
-  ptop(gp, '#8f8b82', 0, y0 + 0.0023, 0.375, 0.88, 0.13, (x, _y, z) => (Math.abs(z) < 0.004 ? '#6f6c66' : hash3(Math.floor(x / 0.03), 7, Math.floor(z / 0.018)) > 0.5 ? '#98948a' : null), 0.03, 0.006);
   /** One street plot: shop front, courtyards with single-slope wings, cross halls and a back range. */
   const plot = (cx: number, w: number, main: boolean) => {
     const wd = main ? 0.06 : 0.055;
     // shop front: one-storey 硬山 range with timber shutters
-    house(gp, cx, y0, 0.26, w, 0.075, 0.05, 0, { wall: brick, roof: tile, front: wood, bar: '#2a1c14', col: '#3a2418', rh: 0.03 });
-    for (const sx of [-1, 1]) pbox(gp, brick, cx + sx * (w / 2 + 0.004), y0, 0.26, 0.01, 0.085, 0.085, bp, BRC);
+    house(g, cx, y0, 0.26, w, 0.075, 0.05, 0, { wall: brick, roof: tile, front: wood, bar: '#2a1c14', col: '#3a2418', rh: 0.03 });
+    for (const sx of [-1, 1]) pbox(g, brick, cx + sx * (w / 2 + 0.004), y0, 0.26, 0.01, 0.085, 0.085, bp, BRC);
     // courtyards in series
     const courts = main ? [[0.21, 0.04], [-0.02, -0.19]] : [[0.21, -0.12]];
     for (const [z1, z0] of courts) {
-      box(gp, '#a39f96', cx, y0, (z0 + z1) / 2, w - 2 * wd + 0.002, 0.003, z1 - z0);
-      ptop(gp, '#a39f96', cx, y0 + 0.0033, (z0 + z1) / 2, w - 2 * wd + 0.002, z1 - z0, (x, _y, z) => ((Math.floor(x / 0.016) + Math.floor(z / 0.016)) % 2 ? '#aaa69c' : null), 0.016);
-      for (const sx of [-1, 1]) slopeWing(gp, cx + sx * (w / 2 - wd / 2), (z0 + z1) / 2, z1 - z0, wd, 0.045, 0.072, sx, brick, bp, tile);
+      box(g, '#a39f96', cx, y0, (z0 + z1) / 2, w - 2 * wd + 0.002, 0.003, z1 - z0);
+      ptop(g, '#a39f96', cx, y0 + 0.0033, (z0 + z1) / 2, w - 2 * wd + 0.002, z1 - z0, (x, _y, z) => ((Math.floor(x / 0.016) + Math.floor(z / 0.016)) % 2 ? '#aaa69c' : null), 0.016);
+      for (const sx of [-1, 1]) slopeWing(g, cx + sx * (w / 2 - wd / 2), (z0 + z1) / 2, z1 - z0, wd, 0.045, 0.072, sx, brick, bp, tile);
     }
     if (main) {
       // 过厅 between the two courtyards
-      box(gp, '#a5a097', cx, y0, 0.01, w - 0.01, 0.008, 0.07);
-      house(gp, cx, y0 + 0.008, 0.01, w - 0.02, 0.06, 0.048, 0, { wall: brick, roof: tile, front: wood, bar: '#2a1c14', col: '#3a2418', rh: 0.028 });
+      box(g, '#a5a097', cx, y0, 0.01, w - 0.01, 0.008, 0.07);
+      house(g, cx, y0 + 0.008, 0.01, w - 0.02, 0.06, 0.048, 0, { wall: brick, roof: tile, front: wood, bar: '#2a1c14', col: '#3a2418', rh: 0.028 });
       // back range: brick-vaulted 窑洞 ground floor with arched lattice openings, a timber storey above
       const zb = -0.27, db = 0.13, hb = 0.056;
-      box(gp, '#a5a097', cx, y0, zb, w, 0.01, db + 0.01);
-      pbox(gp, brick, cx, y0 + 0.01, zb, w, hb, db, bp, BRC);
+      box(g, '#a5a097', cx, y0, zb, w, 0.01, db + 0.01);
+      pbox(g, brick, cx, y0 + 0.01, zb, w, hb, db, bp, BRC);
       for (let i = 0; i < 5; i++) {
         const ax = cx - w * 0.36 + i * w * 0.18, af = zb + db / 2;
-        box(gp, '#5a3c2a', ax, y0 + 0.012, af + 0.001, 0.036, 0.028, 0.003);
-        ellip(gp, '#5a3c2a', ax, y0 + 0.04, af + 0.001, 0.018, 0.016, 0.0015);
-        pfront(gp, '#5a3c2a', ax, y0 + 0.016, af + 0.0026, 0.03, 0.03, 0.0005, lattice('#2e2019', 3, 3), 0.005);
-        box(gp, '#2e2019', ax, y0 + 0.012, af + 0.0032, 0.01, 0.026, 0.001);
+        box(g, '#5a3c2a', ax, y0 + 0.012, af + 0.001, 0.036, 0.028, 0.003);
+        ellip(g, '#5a3c2a', ax, y0 + 0.04, af + 0.001, 0.018, 0.016, 0.0015);
+        pfront(g, '#5a3c2a', ax, y0 + 0.016, af + 0.0026, 0.03, 0.03, 0.0005, lattice('#2e2019', 3, 3), 0.005);
+        box(g, '#2e2019', ax, y0 + 0.012, af + 0.0032, 0.01, 0.026, 0.001);
       }
-      box(gp, '#7a7670', cx, y0 + 0.01 + hb, zb, w + 0.004, 0.004, db + 0.004);
-      for (let i = 0; i <= 16; i++) box(gp, '#3a2418', cx - w / 2 + 0.01 + i * ((w - 0.02) / 16), y0 + 0.07, zb + db / 2 - 0.004, 0.002, 0.012, 0.002);
-      box(gp, '#3a2418', cx, y0 + 0.081, zb + db / 2 - 0.004, w - 0.02, 0.002, 0.003);
-      house(gp, cx, y0 + 0.066, zb - 0.02, w * 0.72, 0.065, 0.04, 0, { wall: brick, roof: tile, front: wood, bar: '#2a1c14', col: '#3a2418', rh: 0.028 });
-      for (const sx of [-1, 1]) pbox(gp, brick, cx + sx * w * 0.42, y0 + 0.066, zb - 0.02, w * 0.16, 0.03, 0.065, bp, BRC);
+      box(g, '#7a7670', cx, y0 + 0.01 + hb, zb, w + 0.004, 0.004, db + 0.004);
+      for (let i = 0; i <= 16; i++) box(g, '#3a2418', cx - w / 2 + 0.01 + i * ((w - 0.02) / 16), y0 + 0.07, zb + db / 2 - 0.004, 0.002, 0.012, 0.002);
+      box(g, '#3a2418', cx, y0 + 0.081, zb + db / 2 - 0.004, w - 0.02, 0.002, 0.003);
+      house(g, cx, y0 + 0.066, zb - 0.02, w * 0.72, 0.065, 0.04, 0, { wall: brick, roof: tile, front: wood, bar: '#2a1c14', col: '#3a2418', rh: 0.028 });
+      for (const sx of [-1, 1]) pbox(g, brick, cx + sx * w * 0.42, y0 + 0.066, zb - 0.02, w * 0.16, 0.03, 0.065, bp, BRC);
     } else {
-      house(gp, cx, y0, -0.2, w, 0.12, 0.05, 0, { wall: brick, roof: tile, front: wood, bar: '#2a1c14', col: '#3a2418', rh: 0.04 });
+      house(g, cx, y0, -0.2, w, 0.12, 0.05, 0, { wall: brick, roof: tile, front: wood, bar: '#2a1c14', col: '#3a2418', rh: 0.04 });
     }
     // high blank side walls running the depth of the plot
-    for (const sx of [-1, 1]) pbox(gp, brick, cx + sx * (w / 2 + 0.004), y0, main ? -0.06 : -0.03, 0.008, 0.074, main ? 0.53 : 0.46, bp, BRC);
-    pbox(gp, brick, cx, y0, main ? -0.345 : -0.27, w + 0.016, 0.06, 0.012, bp, BRC);
+    for (const sx of [-1, 1]) pbox(g, brick, cx + sx * (w / 2 + 0.004), y0, main ? -0.06 : -0.03, 0.008, 0.074, main ? 0.53 : 0.46, bp, BRC);
+    pbox(g, brick, cx, y0, main ? -0.345 : -0.27, w + 0.016, 0.06, 0.012, bp, BRC);
   };
   plot(0, 0.32, true);
   plot(-0.3, 0.24, false);
   plot(0.3, 0.24, false);
   // the 日升昌 signboard and the bank's raised entrance
   const zf = 0.26 + 0.0375;
-  box(gp, '#a5a097', 0, y0, zf + 0.012, 0.32, 0.006, 0.024);
-  box(gp, '#1a1714', 0, y0 + 0.054, zf + 0.012, 0.13, 0.02, 0.004);
-  box(gp, '#b8963e', 0, y0 + 0.054, zf + 0.0144, 0.134, 0.0016, 0.0012);
-  box(gp, '#b8963e', 0, y0 + 0.0724, zf + 0.0144, 0.134, 0.0016, 0.0012);
-  for (let i = 0; i < 3; i++) box(gp, '#c4a048', -0.036 + i * 0.036, y0 + 0.058, zf + 0.0145, 0.018, 0.012, 0.001);
-  for (const sx of [-1, 1]) cyl(gp, '#3a2418', sx * 0.068, y0 + 0.006, zf + 0.012, 0.003, 0.048, 6);
+  box(g, '#a5a097', 0, y0, zf + 0.012, 0.32, 0.006, 0.024);
+  box(g, '#1a1714', 0, y0 + 0.054, zf + 0.012, 0.13, 0.02, 0.004);
+  box(g, '#b8963e', 0, y0 + 0.054, zf + 0.0144, 0.134, 0.0016, 0.0012);
+  box(g, '#b8963e', 0, y0 + 0.0724, zf + 0.0144, 0.134, 0.0016, 0.0012);
+  for (let i = 0; i < 3; i++) box(g, '#c4a048', -0.036 + i * 0.036, y0 + 0.058, zf + 0.0145, 0.018, 0.012, 0.001);
+  for (const sx of [-1, 1]) cyl(g, '#3a2418', sx * 0.068, y0 + 0.006, zf + 0.012, 0.003, 0.048, 6);
   // neighbours' hanging shop signs (幌子)
   for (const sx of [-1, 1]) {
-    box(gp, '#3a2418', sx * 0.3, y0 + 0.05, zf + 0.022, 0.003, 0.003, 0.03);
-    box(gp, '#2a1c14', sx * 0.3, y0 + 0.016, zf + 0.034, 0.012, 0.034, 0.003);
-    box(gp, '#b8963e', sx * 0.3, y0 + 0.022, zf + 0.0358, 0.006, 0.022, 0.001);
+    box(g, '#3a2418', sx * 0.3, y0 + 0.05, zf + 0.022, 0.003, 0.003, 0.03);
+    box(g, '#2a1c14', sx * 0.3, y0 + 0.016, zf + 0.034, 0.012, 0.034, 0.003);
+    box(g, '#b8963e', sx * 0.3, y0 + 0.022, zf + 0.0358, 0.006, 0.022, 0.001);
   }
   // merchants and a porter in the street, a clerk in the first courtyard
-  human(gp, 0.04, y0, 0.36, { h: 0.032, pose: 'point', ry: Math.PI * 0.9, top: '#2f3440', bottom: '#2a2a2a', hair: '#1c1714', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
-  human(gp, -0.02, y0, 0.37, { h: 0.031, pose: 'stand', ry: Math.PI * 0.1, top: '#4a4038', bottom: '#2a2420', hair: '#1c1714', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
-  human(gp, -0.2, y0, 0.39, { h: 0.031, pose: 'carry', ry: Math.PI / 2, top: '#6a5a48', bottom: '#3a3128', hair: '#1c1714', detail: 'lo' });
-  human(gp, 0.02, y0, 0.12, { h: 0.03, pose: 'walk', ry: Math.PI, top: '#3a4250', bottom: '#2a2a2a', hair: '#1c1714', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
+  human(g, 0.04, y0, 0.36, { h: 0.032, pose: 'point', ry: Math.PI * 0.9, top: '#2f3440', bottom: '#2a2a2a', hair: '#1c1714', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
+  human(g, -0.02, y0, 0.37, { h: 0.031, pose: 'stand', ry: Math.PI * 0.1, top: '#4a4038', bottom: '#2a2420', hair: '#1c1714', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
+  human(g, -0.2, y0, 0.39, { h: 0.031, pose: 'carry', ry: Math.PI / 2, top: '#6a5a48', bottom: '#3a3128', hair: '#1c1714', detail: 'lo' });
+  human(g, 0.02, y0, 0.12, { h: 0.03, pose: 'walk', ry: Math.PI, top: '#3a4250', bottom: '#2a2a2a', hair: '#1c1714', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
 }
 const lf_siheyuan: Builder = (gp, r) => {
   if (str(r.style, 'beijing') === 'pingyao') { rishengchang(gp); return; }
-  rbox(gp, '#6f6a60', 0, 0, 0, 0.9, 0.03, 0.9, 0.006);
-  pbox(gp, '#9a968e', 0, 0.03, 0, 0.88, 0.004, 0.88, (x, _y, z, _nx, ny) => (ny < 0.5 ? null : hash3(Math.floor(x / 0.03), 2, Math.floor(z / 0.015)) > 0.5 ? '#a19d94' : null), 0.015);
-  const brick = '#8e8d88', tile = '#4a4c50', red = '#9b2d24', front = '#7a2a1f', y0 = Y0;
+  // hutong paving round the compound
+  ground(gp, SITE.paving, (x, _y, z) => (hash3(Math.floor(x / 0.03), 2, Math.floor(z / 0.015)) > 0.5 ? '#8f8a80' : '#878279'));
+  // the compound is built at 0.82 so its square walls sit inside the round plinth
+  const S = 0.82, g = grp(gp, 0, 0, 0, Y0 * (1 - S));
+  g.scale.setScalar(S);
+  const brick = '#8e8d88', tile = '#5d6266', red = '#9a3b2c', front = '#7a2e22', y0 = Y0;
   const bp: Paint = (_x, yy, _z, _nx, ny) => (Math.abs(ny) > 0.5 ? null : shade(brick, 0.93 + hash3(Math.floor(yy / 0.006), Math.floor(_x / 0.012 + _z / 0.012), 1) * 0.12));
   // courtyard paving with cross walks
-  pbox(gp, '#b3afa6', 0, y0, -0.03, 0.42, 0.003, 0.36, (x, _y, z, _nx, ny) => (ny < 0.5 ? null : Math.abs(x) < 0.025 || Math.abs(z + 0.03) < 0.02 ? '#cdc8bd' : (Math.floor(x / 0.02) + Math.floor(z / 0.02)) % 2 ? '#a9a59c' : null), 0.01);
+  pbox(g, '#b3afa6', 0, y0, -0.03, 0.42, 0.003, 0.36, (x, _y, z, _nx, ny) => (ny < 0.5 ? null : Math.abs(x) < 0.025 || Math.abs(z + 0.03) < 0.02 ? '#cdc8bd' : (Math.floor(x / 0.02) + Math.floor(z / 0.02)) % 2 ? '#a9a59c' : null), 0.01);
   // outer brick walls
-  for (const sx of [-1, 1]) pbox(gp, brick, sx * 0.36, y0, -0.05, 0.02, 0.075, 0.66, bp, 0.01);
-  pbox(gp, brick, 0, y0, -0.38, 0.74, 0.075, 0.02, bp, 0.01);
+  for (const sx of [-1, 1]) pbox(g, brick, sx * 0.36, y0, -0.05, 0.02, 0.075, 0.66, bp, 0.01);
+  pbox(g, brick, 0, y0, -0.38, 0.74, 0.075, 0.02, bp, 0.01);
   // north main hall (正房) on a platform, flanked by side rooms (耳房)
-  box(gp, '#a5a097', 0, y0, -0.29, 0.44, 0.02, 0.17);
-  for (let i = 0; i < 3; i++) box(gp, '#a5a097', 0, y0, -0.2 + i * 0.012, 0.08, 0.02 - i * 0.007, 0.012);
-  house(gp, 0, y0 + 0.02, -0.29, 0.4, 0.14, 0.1, 0, { wall: brick, roof: tile, front: red, bar: '#2f5a4a', rh: 0.06, col: front });
-  for (const sx of [-1, 1]) house(gp, sx * 0.29, y0, -0.3, 0.14, 0.12, 0.08, 0, { wall: brick, roof: tile, front: '#8a3a2a', bar: '#2f3a3a', rh: 0.045 });
-  for (const sx of [-1, 1]) lantern(gp, sx * 0.07, y0 + 0.11, -0.205, 0.014);
+  box(g, '#a5a097', 0, y0, -0.29, 0.44, 0.02, 0.17);
+  for (let i = 0; i < 3; i++) box(g, '#a5a097', 0, y0, -0.2 + i * 0.012, 0.08, 0.02 - i * 0.007, 0.012);
+  house(g, 0, y0 + 0.02, -0.29, 0.4, 0.14, 0.1, 0, { wall: brick, roof: tile, front: red, bar: '#2f5a4a', rh: 0.06, col: front });
+  for (const sx of [-1, 1]) house(g, sx * 0.29, y0, -0.3, 0.14, 0.12, 0.08, 0, { wall: brick, roof: tile, front: '#8a3a2a', bar: '#2f3a3a', rh: 0.045 });
+  for (const sx of [-1, 1]) lantern(g, sx * 0.07, y0 + 0.11, -0.205, 0.014);
   // east and west wings (厢房)
-  for (const sx of [-1, 1]) house(gp, sx * 0.27, y0, -0.07, 0.24, 0.13, 0.085, -sx * Math.PI / 2, { wall: brick, roof: tile, front: red, bar: '#2f5a4a', rh: 0.05, col: front });
+  for (const sx of [-1, 1]) house(g, sx * 0.27, y0, -0.07, 0.24, 0.13, 0.085, -sx * Math.PI / 2, { wall: brick, roof: tile, front: red, bar: '#2f5a4a', rh: 0.05, col: front });
   // south range (倒座房) facing the courtyard, its blank back to the street
-  house(gp, -0.06, y0, 0.22, 0.52, 0.11, 0.08, Math.PI, { wall: brick, roof: tile, front: '#8a3a2a', bar: '#2f3a3a', rh: 0.042 });
+  house(g, -0.06, y0, 0.22, 0.52, 0.11, 0.08, Math.PI, { wall: brick, roof: tile, front: '#8a3a2a', bar: '#2f3a3a', rh: 0.042 });
   // the gate in the south-east corner, with stone drums and lanterns
   const gx = 0.29, gz = 0.22;
-  box(gp, '#a5a097', gx, y0, gz, 0.12, 0.012, 0.13);
-  pbox(gp, brick, gx, y0 + 0.012, gz - 0.01, 0.12, 0.085, 0.09, bp, 0.01);
-  box(gp, '#3a2a20', gx, y0 + 0.012, gz + 0.035, 0.06, 0.08, 0.004);
-  for (const sx of [-1, 1]) box(gp, red, gx + sx * 0.0135, y0 + 0.012, gz + 0.038, 0.026, 0.065, 0.003);
-  for (const sx of [-1, 1]) ellip(gp, '#7c7a74', gx + sx * 0.035, y0 + 0.024, gz + 0.05, 0.009, 0.012, 0.009);
-  gable(gp, 0.12, 0.05, 0.13, brick, gx, y0 + 0.097, gz);
-  groof(gp, gx, y0 + 0.097, gz, 0.12, 0.13, 0.05, tile, 0, 0.014);
-  for (const sx of [-1, 1]) lantern(gp, gx + sx * 0.04, y0 + 0.085, gz + 0.072, 0.013);
+  box(g, '#a5a097', gx, y0, gz, 0.12, 0.012, 0.13);
+  pbox(g, brick, gx, y0 + 0.012, gz - 0.01, 0.12, 0.085, 0.09, bp, 0.01);
+  box(g, '#3a2a20', gx, y0 + 0.012, gz + 0.035, 0.06, 0.08, 0.004);
+  for (const sx of [-1, 1]) box(g, red, gx + sx * 0.0135, y0 + 0.012, gz + 0.038, 0.026, 0.065, 0.003);
+  for (const sx of [-1, 1]) ellip(g, '#7c7a74', gx + sx * 0.035, y0 + 0.024, gz + 0.05, 0.009, 0.012, 0.009);
+  gable(g, 0.12, 0.05, 0.13, brick, gx, y0 + 0.097, gz);
+  groof(g, gx, y0 + 0.097, gz, 0.12, 0.13, 0.05, tile, 0, 0.014);
+  for (const sx of [-1, 1]) lantern(g, gx + sx * 0.04, y0 + 0.085, gz + 0.072, 0.013);
   // screen wall (影壁) facing the gate inside
-  pbox(gp, brick, gx, y0, 0.1, 0.11, 0.09, 0.018, bp, 0.01);
-  box(gp, '#c9c4b8', gx, y0 + 0.025, 0.1, 0.07, 0.05, 0.022);
-  ellip(gp, '#8a8680', gx, y0 + 0.05, 0.112, 0.012, 0.012, 0.002);
-  groof(gp, gx, y0 + 0.09, 0.1, 0.11, 0.022, 0.012, tile, 0, 0.008);
+  pbox(g, brick, gx, y0, 0.1, 0.11, 0.09, 0.018, bp, 0.01);
+  box(g, '#c9c4b8', gx, y0 + 0.025, 0.1, 0.07, 0.05, 0.022);
+  ellip(g, '#8a8680', gx, y0 + 0.05, 0.112, 0.012, 0.012, 0.002);
+  groof(g, gx, y0 + 0.09, 0.1, 0.11, 0.022, 0.012, tile, 0, 0.008);
   // courtyard life: scholar tree, pomegranate tubs, fish jar, family
-  leafy(gp, -0.12, y0, 0.06, 0.17, '#4a6a38', 3);
+  leafy(g, -0.12, y0, 0.06, 0.17, '#4a6a38', 3);
   for (const sx of [-1, 1]) {
-    lathe(gp, [[0, 0], [0.016, 0], [0.02, 0.022], [0, 0.022]], '#6a4a30', sx * 0.08, y0, -0.17, 10);
-    blob(gp, '#3f7a34', sx * 0.08, y0 + 0.04, -0.17, 0.02);
-    for (let i = 0; i < 3; i++) ellip(gp, '#d9402a', sx * 0.08 + Math.cos(i * 2) * 0.016, y0 + 0.04 + (i - 1) * 0.008, -0.17 + Math.sin(i * 2) * 0.016, 0.004);
+    lathe(g, [[0, 0], [0.016, 0], [0.02, 0.022], [0, 0.022]], '#6a4a30', sx * 0.08, y0, -0.17, 10);
+    add(g, ICO(), mat('#4f6e3c'), sx * 0.08, y0 + 0.04, -0.17, 0.02, 0.02, 0.02);
+    for (let i = 0; i < 3; i++) ellip(g, '#d9402a', sx * 0.08 + Math.cos(i * 2) * 0.016, y0 + 0.04 + (i - 1) * 0.008, -0.17 + Math.sin(i * 2) * 0.016, 0.004);
   }
-  lathe(gp, [[0, 0], [0.018, 0], [0.026, 0.02], [0.024, 0.03], [0, 0.03]], '#5a4a3a', 0.12, y0, -0.02, 14);
-  cyl(gp, '#3f6f7a', 0.12, y0 + 0.028, -0.02, 0.022, 0.002, 14);
-  human(gp, 0.05, y0, -0.1, { h: 0.042, pose: 'stand', top: '#3a3f4a', bottom: '#2a2a2a', hair: '#bbbbbb', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'hi' });
-  human(gp, -0.02, y0, 0.0, { h: 0.03, pose: 'run', phase: 0.3, top: '#7a4a3a', bottom: '#2a2a5a', hair: '#1c1714', detail: 'lo' });
-  human(gp, -0.2, y0, -0.12, { h: 0.04, pose: 'walk', ry: Math.PI / 2, top: '#6a7a9a', bottom: '#2a2a2a', hair: '#1c1714', dress: 'ankle', detail: 'lo' });
-  for (let i = 0; i < 5; i++) box(gp, '#3a3a3a', -0.26 + i * 0.1, y0 + 0.07, 0.276, 0.022, 0.012, 0.004);
-  leafy(gp, -0.3, y0, 0.37, 0.12, '#4a6a38', 5);
-  human(gp, 0.18, y0, 0.36, { h: 0.04, pose: 'walk', ry: -Math.PI / 2, top: '#3a5a7a', bottom: '#2a2a2a', hair: '#1c1714', detail: 'lo' });
+  lathe(g, [[0, 0], [0.018, 0], [0.026, 0.02], [0.024, 0.03], [0, 0.03]], '#5a4a3a', 0.12, y0, -0.02, 14);
+  cyl(g, '#3f6f7a', 0.12, y0 + 0.028, -0.02, 0.022, 0.002, 14);
+  human(g, 0.05, y0, -0.1, { h: 0.042, pose: 'stand', top: '#3a3f4a', bottom: '#2a2a2a', hair: '#bbbbbb', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'hi' });
+  human(g, -0.02, y0, 0.0, { h: 0.03, pose: 'run', phase: 0.3, top: '#7a4a3a', bottom: '#2a2a5a', hair: '#1c1714', detail: 'lo' });
+  human(g, -0.2, y0, -0.12, { h: 0.04, pose: 'walk', ry: Math.PI / 2, top: '#6a7a9a', bottom: '#2a2a2a', hair: '#1c1714', dress: 'ankle', detail: 'lo' });
+  for (let i = 0; i < 5; i++) box(g, '#3a3a3a', -0.26 + i * 0.1, y0 + 0.07, 0.276, 0.022, 0.012, 0.004);
+  leafy(g, -0.3, y0, 0.37, 0.12, '#4a6a38', 5);
+  human(g, 0.18, y0, 0.36, { h: 0.04, pose: 'walk', ry: -Math.PI / 2, top: '#3a5a7a', bottom: '#2a2a2a', hair: '#1c1714', detail: 'lo' });
 };
 
 // ---------------------------------------------------------------------------------------------------------
@@ -1030,8 +1035,8 @@ const lf_siheyuan: Builder = (gp, r) => {
 // Refs: Wikipedia "Sun Yat-sen Mausoleum"; 中山陵园管理局 site descriptions.
 
 const lf_zhongshanling: Builder = gp => {
-  ground(gp, 0.47, '#4d6a3a', C.earth);
-  const blue = '#2b5288', rib = '#3a649c', granite = '#ebe8e0', stone = '#dcd8ce', dark = '#26262a';
+  ground(gp, SITE.grass);
+  const blue = '#2e4f7c', rib = '#3a5c88', granite = '#d8d4c9', stone = '#cbc6ba', dark = '#26262a';
   // stair profile: [from z, to z, is-flight]: gate step, gate/stele court, then flights and landings up to the hall terrace
   const segs: [number, number, boolean][] = [[0.255, 0.24, true], [0.24, 0.115, false], [0.115, 0.06, true], [0.06, 0.035, false], [0.035, -0.025, true], [-0.025, -0.05, false], [-0.05, -0.11, true]];
   const rise = 0.25, flightLen = segs.reduce((s, [a, b, f]) => s + (f ? a - b : 0), 0);
@@ -1050,7 +1055,7 @@ const lf_zhongshanling: Builder = gp => {
     const k = sstep(0.085, 0.17, Math.abs(x));
     return base - 0.004 + k * (0.015 + Math.max(0, 0.3 - z) * 0.08 + (fbm(x * 9, 4, z * 9) - 0.5) * 0.04) * (z < 0.3 ? 1 : 0.3);
   };
-  const Y = land(gp, 0.448, hf, (x, _y, z, _nx, ny) => {
+  const Y = land(gp, 0.444, hf, (x, _y, z, _nx, ny) => {
     if (Math.abs(x) < 0.03 && z > 0.255) return '#cfcabd';
     if (Math.abs(x) < 0.08 && z < 0.255 && z > -0.3) return '#d6d2c6';
     return ny < 0.7 ? '#5a6244' : mix('#4f6e3c', '#3b5a32', fbm(x * 11, 2, z * 11));
@@ -1064,7 +1069,7 @@ const lf_zhongshanling: Builder = gp => {
         const z = a - (i + 0.5) * ((a - b) / n), yt = Y0 + sy(a - (i + 1) * ((a - b) / n));
         box(gp, i % 2 ? granite : stone, 0, Y0 + sy(a) - 0.01, z, W, yt - (Y0 + sy(a)) + 0.01, (a - b) / n + 0.001);
       }
-    } else box(gp, '#e2dfd6', 0, Y0 + sy(a) - 0.01, (a + b) / 2, W, 0.01, a - b);
+    } else box(gp, '#d2cec3', 0, Y0 + sy(a) - 0.01, (a + b) / 2, W, 0.01, a - b);
     for (const sx of [-1, 1]) {
       const ya = Y0 + sy(a), yb = Y0 + sy(b);
       strut(gp, [sx * (W / 2 + 0.003), ya + 0.004, a], [sx * (W / 2 + 0.003), yb + 0.004, b], 0.004, 0.004, stone, 4);
@@ -1088,10 +1093,10 @@ const lf_zhongshanling: Builder = gp => {
   arches(0, yg + 0.004, zb + 0.0175, 1, 0, 0.016, 0.024);
   // 祭堂 on its terrace: granite mass, corner bastions, three arched doors, double-eave blue roof
   const zh = -0.2, yh = Y0 + rise;
-  box(gp, '#e2dfd6', 0, yh - 0.01, zh + 0.01, 0.3, 0.012, 0.2);
+  box(gp, '#d2cec3', 0, yh - 0.01, zh + 0.01, 0.3, 0.012, 0.2);
   for (let i = 0; i <= 24; i++) box(gp, granite, -0.15 + i * 0.0125, yh, zh + 0.109, 0.003, 0.008, 0.003);
   xhall(gp, 0, yh, zh, 0.17, 0.1, 0.06, { roof: 'xs2', tile: blue, rib, wall: granite, col: granite, band: stone, under: '#b9b6ae', rh: 0.06, ncol: 1, baseH: 0.006, base: stone, lift: 0.014 });
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(gp, '#f0eee8', sx * 0.07, yh + 0.006, zh + sz * 0.038, 0.04, 0.057, 0.036);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(gp, '#dcd8ce', sx * 0.07, yh + 0.006, zh + sz * 0.038, 0.04, 0.057, 0.036);
   arches(0, yh + 0.006, zh + 0.0425, 3, 0.03, 0.015, 0.034);
   box(gp, '#1f2a3e', 0, yh + 0.049, zh + 0.0425, 0.05, 0.008, 0.002);
   box(gp, C.gold, 0, yh + 0.051, zh + 0.0435, 0.036, 0.004, 0.001);
@@ -1116,7 +1121,7 @@ const lf_zhongshanling: Builder = gp => {
   for (let k = 0; k < 64; k++) {
     const sx = k % 2 ? 1 : -1, x = sx * (0.12 + hash3(k, 1, 2) * 0.26), z = 0.36 - hash3(k, 3, 2) * 0.74;
     if (Math.hypot(x, z) > 0.42 || (z < -0.1 && Math.abs(x) < 0.2)) continue;
-    if (k % 3 === 2) blob(gp, k % 2 ? '#3a5832' : '#44603a', x, Y(x, z) + 0.02, z, 0.034, 0.028, 0.034, k);
+    if (k % 3 === 2) tree(gp, x, Y(x, z), z, 0.05, k % 2 ? '#425e3a' : '#4a643e');
     else minipine(gp, x, Y(x, z), z, 0.06 + hash3(k, 5, 1) * 0.03, k % 4 ? '#2c4c30' : '#365a38');
   }
   // visitors climbing the stairs (≈ one storey of the gatehouse)
@@ -1129,14 +1134,16 @@ const lf_zhongshanling: Builder = gp => {
 // ---------------------------------------------------------------------------------------------------------
 // 北大红楼 — the Red Building of Peking University (1918), cradle of the May Fourth Movement. Ref: Baidu/zh.wikipedia 北京大学
 // 红楼: 工-shaped plan, main block ≈100 × 14 m facing south with 34 m east/west wings, four storeys over a semi-basement,
-// red brick with white-trimmed windows and a red-tile hipped roof; arched central entrance.
+// red brick over a grey-brick ground floor, white-trimmed windows, red-tile hipped roof; arched central entrance.
+// Commons "Red Building of Peking University".
 
 const lf_honglou: Builder = gp => {
-  ground(gp, 0.47, '#a9a59b', '#6f6a60');
-  pbox(gp, '#9c988e', 0, 0.03, 0.24, 0.7, 0.003, 0.2, (x, _y, z, _nx, ny) => (ny > 0.5 && (Math.floor(x / 0.025) + Math.floor(z / 0.025)) % 2 ? '#a19d93' : null), 0.025);
-  const red = '#9c4632', trim = '#ddd6c8', glass = '#2b3138', rtile = '#7a3a2c';
-  const bp: Paint = (x, yy, z, _nx, ny) => (Math.abs(ny) > 0.5 ? null : shade(red, 0.92 + hash3(Math.floor(yy / 0.004), Math.floor((x + z) / 0.01), 4) * 0.14));
-  const zc = -0.03, W = 0.76, D = 0.106, ww = 0.106, wz0 = -0.16, wz1 = 0.1, sh = 0.03, nS = 4, bh = 0.016, yb = Y0;
+  ground(gp, SITE.paving);
+  pbox(gp, '#9c988e', 0, 0.03, 0.2, 0.52, 0.003, 0.16, (x, _y, z, _nx, ny) => (ny > 0.5 && (Math.floor(x / 0.025) + Math.floor(z / 0.025)) % 2 ? '#a19d93' : null), 0.025);
+  const red = '#a05a4a', grey = '#8a877f', trim = '#bfb7a7', glass = '#2b3138', rtile = '#7a3a2c';
+  // grey-brick ground floor, red brick above
+  const bp: Paint = (x, yy, z, _nx, ny) => (Math.abs(ny) > 0.5 ? null : shade(yy < Y0 + 0.044 ? grey : red, 0.92 + hash3(Math.floor(yy / 0.004), Math.floor((x + z) / 0.01), 4) * 0.14));
+  const zc = -0.03, W = 0.72, D = 0.106, ww = 0.106, wz0 = -0.16, wz1 = 0.1, sh = 0.03, nS = 4, bh = 0.016, yb = Y0;
   const H = bh + nS * sh + 0.008, wx = W / 2 - ww / 2;
   // brick masses: main block and the two end wings
   pbox(gp, red, 0, yb, zc, W - 2 * ww + 0.002, H, D, bp, 0.008);
@@ -1200,15 +1207,15 @@ const lf_honglou: Builder = gp => {
   for (const x of [-0.11, 0.0]) {
     box(gp, '#5a4a38', x - 0.022, 0.033, 0.16, 0.002, 0.04, 0.002);
     box(gp, '#5a4a38', x + 0.022, 0.033, 0.16, 0.002, 0.04, 0.002);
-    box(gp, '#eeeae0', x, 0.06, 0.16, 0.042, 0.012, 0.0015);
+    box(gp, '#dcd6c8', x, 0.06, 0.16, 0.042, 0.012, 0.002);
   }
-  for (const [x, z] of [[-0.37, 0.26], [0.37, 0.26], [-0.26, 0.37], [0.26, 0.37]] as const) leafy(gp, x, 0.033, z, 0.08, '#4a6a3a', x * 9 + z);
+  for (const [x, z] of [[-0.33, 0.24], [0.33, 0.24], [-0.22, 0.34], [0.22, 0.34]] as const) leafy(gp, x, 0.033, z, 0.08, '#4a6a3a', x * 9 + z);
 };
 
 // ---------------------------------------------------------------------------------------------------------
 // lf_pavilion — two gardens. style 'zhuozheng' 拙政园 (Ming, Suzhou, 1509–): Ref: Baidu/zh.wikipedia 拙政园, 《园冶》: central pond
 // with lotus, 远香堂 (single-eave 歇山 hall with lattice all round), hexagonal 荷风四面亭 on an islet, zigzag stone bridge,
-// whitewashed walls with grey coping, 漏窗 and moon gate, Taihu rockery, chestnut-lacquered timber (栗壳色), grey tiles.
+// whitewashed walls with grey coping, 漏窗 and moon gate, Taihu rockery, chestnut-lacquered timber (栗壳色), grey tiles. Commons "Humble Administrator's Garden".
 // style 'jingu' 金谷园 (Western Jin, Shi Chong's villa at Luoyang): Ref: 石崇《金谷诗序》, Jin/N. Wei architecture (rammed-earth
 // terraces, straight-eaved hip roofs, red columns, whitewashed walls) and Han–Jin pottery tower models for the 崇绮楼.
 
@@ -1268,9 +1275,9 @@ function suPavilion(p: THREE.Object3D, x: number, y: number, z: number, R: numbe
 }
 const lf_pavilion: Builder = (gp, r) => {
   const jingu = str(r.style, 'zhuozheng') === 'jingu';
-  const tile = '#4a4d52', wallc = '#ebe8e0';
+  const tile = '#5d6266', wallc = '#dcd7cb';
   if (!jingu) {
-    ground(gp, 0.47, '#5f7346', C.earth);
+    ground(gp, SITE.grass);
     const wood = '#5b3a2a';
     // back wall with 漏窗 and a moon gate
     const zw = -0.36, ww = 0.5, wh = 0.065;
@@ -1295,11 +1302,11 @@ const lf_pavilion: Builder = (gp, r) => {
     const yb = Y0 + 0.006;
     for (let i = 0; i < zz.length - 1; i++) {
       const [ax, az] = zz[i], [bx, bz] = zz[i + 1], len = Math.hypot(bx - ax, bz - az), ry = Math.atan2(bx - ax, bz - az);
-      box(gp, '#b9b3a6', (ax + bx) / 2, yb - 0.004, (az + bz) / 2, 0.024, 0.004, len + 0.024, ry);
+      box(gp, '#a39d90', (ax + bx) / 2, yb - 0.004, (az + bz) / 2, 0.024, 0.004, len + 0.024, ry);
       cyl(gp, '#8f8a7e', (ax + bx) / 2, Y0 - 0.002, (az + bz) / 2, 0.004, yb - Y0 - 0.002, 6);
       for (const sd of [-1, 1]) {
         const ox = Math.cos(ry) * 0.011 * sd, oz = -Math.sin(ry) * 0.011 * sd;
-        box(gp, '#c4beb1', (ax + bx) / 2 + ox, yb, (az + bz) / 2 + oz, 0.003, 0.006, len, ry);
+        box(gp, '#aaa497', (ax + bx) / 2 + ox, yb, (az + bz) / 2 + oz, 0.003, 0.006, len, ry);
       }
     }
     // 荷风四面亭 on a rocky islet
@@ -1324,7 +1331,7 @@ const lf_pavilion: Builder = (gp, r) => {
     human(gp, -0.053, yb, 0.27, { h: 0.03, pose: 'point', ry: 2.4, top: '#3e4a58', bottom: '#2c2c2c', hair: '#1c1714', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
     human(gp, 0.165, Y0 + 0.014, 0.03, { h: 0.028, pose: 'stand', ry: Math.PI * 0.85, top: '#a59a86', bottom: '#5a5048', hair: '#1c1714', dress: 'ankle', detail: 'lo' });
   } else {
-    ground(gp, 0.47, '#6a7d4c', C.earth);
+    ground(gp, SITE.meadow);
     const red = '#8e3a2a', earth = '#a48a66';
     const ep: Paint = (_x, y, _z, _nx, ny) => (Math.abs(ny) > 0.5 ? null : Math.floor(y / 0.006) % 2 ? shade(earth, 0.93) : null);
     // the stream-fed pond (金谷涧) with earthen banks
@@ -1364,8 +1371,7 @@ const lf_pavilion: Builder = (gp, r) => {
     human(gp, 0.12, Y0, 0.12, { h: 0.03, pose: 'walk', ry: -2.4, top: '#2f2f35', bottom: '#2a2420', hair: '#1c1714', hatStyle: 'knot', dress: 'ankle', detail: 'lo' });
     // cypress and fruit-tree groves, bamboo by the water
     for (const [x, z] of [[-0.3, -0.12], [-0.33, -0.02], [0.33, 0.06], [0.2, 0.3], [0.31, 0.2]] as const) {
-      cyl(gp, '#4a3a2c', x, Y0, z, 0.005, 0.03, 5);
-      for (let i = 0; i < 3; i++) blob(gp, shade('#34502f', 0.92 + i * 0.06), x, Y0 + 0.03 + i * 0.022, z, 0.026 - i * 0.006, 0.022, 0.026 - i * 0.006, i);
+      tree(gp, x, Y0, z, 0.075, '#3e5a3a', true);
     }
     for (const [x, z, s] of [[-0.25, -0.32, 0.09], [0.12, -0.33, 0.09], [0.36, -0.22, 0.08], [0.16, 0.08, 0.08]] as const) leafy(gp, x, Y0, z, s, '#4f6a3a', x * 13 + z);
     // the stream leaving the pond, crossed by a plank bridge

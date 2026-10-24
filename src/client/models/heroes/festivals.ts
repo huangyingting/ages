@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
   type Builder, type V3, type Paint, add, g, mat, box, rbox, cyl, cone, gable, slab, lathe, rod, sweep,
-  shade, mix, hash3, fbm, SPH, paintFaces,
+  shade, mix, hash3, fbm, SPH, paintFaces, plinth, tree, PLINTH_SIDE, SITE,
 } from '../prims.ts';
 import { island, ripple, sstep } from '../nature.ts';
 import { pblob, horse } from '../animals.ts';
@@ -78,6 +78,39 @@ function fuse(root: THREE.Object3D): void {
     if (merged) { const mesh = add(root, merged, mt, 0, 0, 0, 1, 1, 1); mesh.castShadow = false; }
   }
 }
+const HSL = { h: 0, s: 0, l: 0 };
+/** Pull a candy colour toward a museum-miniature pigment: saturation above `smax` is compressed, bright saturated tones darkened. */
+function muteColor(c: THREE.Color, smax = 0.36): THREE.Color {
+  c.getHSL(HSL, THREE.SRGBColorSpace);
+  const { h, s: s0, l: l0 } = HSL;
+  const s = s0 > smax ? smax + (s0 - smax) * 0.25 : s0;
+  const l = l0 > 0.58 && s0 > 0.45 ? 0.58 + (l0 - 0.58) * 0.55 : l0;
+  return c.setHSL(h, s, l, THREE.SRGBColorSpace);
+}
+/** Mute every material / vertex colour under `root` (call before fuse); materials and painted geometry are cloned, never the shared caches. */
+function mute(root: THREE.Object3D, smax = 0.36): void {
+  const done = new Map<THREE.Material, THREE.Material>();
+  const tmp = new THREE.Color();
+  root.traverse(o => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || Array.isArray(m.material)) return;
+    const src = m.material as THREE.MeshStandardMaterial;
+    let nm = done.get(src) as THREE.MeshStandardMaterial | undefined;
+    if (!nm) {
+      nm = src.clone();
+      muteColor(nm.color, smax);
+      if (nm.emissive && nm.emissive.getHex() !== 0) muteColor(nm.emissive, smax + 0.25);
+      done.set(src, nm);
+    }
+    m.material = nm;
+    const col = m.geometry.getAttribute('color');
+    if (col) {
+      m.geometry = m.geometry.clone();
+      const c2 = m.geometry.getAttribute('color') as THREE.BufferAttribute;
+      for (let i = 0; i < c2.count; i++) { muteColor(tmp.fromBufferAttribute(c2, i), smax); c2.setXYZ(i, tmp.r, tmp.g, tmp.b); }
+    }
+  });
+}
 /** Mesh geometry → non-indexed position/normal(/color) copy in the frame of `inv`. */
 function flatGeo(m: THREE.Mesh, inv: THREE.Matrix4, keepColor: boolean): THREE.BufferGeometry {
   let geo = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
@@ -114,15 +147,15 @@ function fuseAll(root: THREE.Object3D): void {
 }
 
 /**
- * Round plaza: square-grid top (cells of R*2/n, so paving/tiles paint cleanly per cell) clipped to a circle,
+ * Round plaza on the shared museum plinth (prims.plinth, uniform PLINTH_SIDE skirt): square-grid top (cells of R*2/n, so paving/tiles paint cleanly per cell) clipped to a circle,
  * with a vertical skirt. Paint is evaluated per triangle centroid.
  */
-function plaza(gp: THREE.Object3D, R: number, h: number, n: number, paint: Paint, side = '#6b4f3a'): void {
-  const cs = (R * 2) / n, pos: number[] = [];
-  const clamp = (x: number, z: number): [number, number] => { const d = Math.hypot(x, z); return d > R ? [(x / d) * R, (z / d) * R] : [x, z]; };
+function plaza(gp: THREE.Object3D, R: number, h: number, n: number, paint: Paint, _side?: string): void {
+  const cs = (R * 2) / n, pos: number[] = [], Rc = R * 0.965;
+  const clamp = (x: number, z: number): [number, number] => { const d = Math.hypot(x, z); return d > Rc ? [(x / d) * Rc, (z / d) * Rc] : [x, z]; };
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
     const x0 = -R + i * cs, z0 = -R + j * cs;
-    if (Math.hypot(x0 + cs / 2, z0 + cs / 2) > R + cs * 0.5) continue;
+    if (Math.hypot(x0 + cs / 2, z0 + cs / 2) > Rc + cs * 0.5) continue;
     const a = clamp(x0, z0), b = clamp(x0 + cs, z0), c = clamp(x0 + cs, z0 + cs), d = clamp(x0, z0 + cs);
     pos.push(a[0], h, a[1], d[0], h, d[1], c[0], h, c[1], a[0], h, a[1], c[0], h, c[1], b[0], h, b[1]);
   }
@@ -130,14 +163,20 @@ function plaza(gp: THREE.Object3D, R: number, h: number, n: number, paint: Paint
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.computeVertexNormals();
   add(gp, paintFaces(geo, '#ffffff', paint), mat('#ffffff', { vc: true, flat: true }), 0, 0, 0, 1, 1, 1);
-  const sk = new THREE.CylinderGeometry(R, R * 0.985, h, 64, 1, true);
-  sk.translate(0, h / 2, 0);
-  add(gp, paintFaces(sk, side, (_x, y) => (y > h * 0.55 ? side : shade(side, 0.8))), mat('#ffffff', { vc: true, flat: true }), 0, 0, 0, 1, 1, 1);
+  plinth(gp, SITE.paving, { R, h: h - 0.002 });
 }
 
-/** Round base with a painted top (rings × segs polar grid) and an earth skirt. */
-function base(gp: THREE.Object3D, R: number, top: string, paint: Paint, side = '#6b4f3a', h = 0.035, hf: (x: number, z: number) => number = () => 0, rings = 14, segs = 64): void {
-  island(gp, R, hf, top, paint, { rings, segs, base: h, side: (y) => (y > h * 0.55 ? side : shade(side, 0.8)) });
+/**
+ * Round base with a painted top (rings × segs polar grid). Flat sites sit on the shared museum plinth; sculpted
+ * ones (hf given) keep their terrain with the same PLINTH_SIDE skirt. `_side` is ignored (one base for every model).
+ */
+function base(gp: THREE.Object3D, R: number, top: string, paint: Paint, _side?: string, h = 0.035, hf?: (x: number, z: number) => number, rings = 14, segs = 64): void {
+  if (!hf) {
+    plinth(gp, top, { R, h: h - 0.002 });
+    island(gp, R * 0.965, () => 0, top, paint, { rings, segs, base: h, side: () => PLINTH_SIDE });
+    return;
+  }
+  island(gp, R, hf, top, paint, { rings, segs, base: h, side: (y) => (y > h * 0.55 ? PLINTH_SIDE : shade(PLINTH_SIDE, 0.85)) });
 }
 
 /** Mortar-less stones for plaza(): s should be a multiple of the plaza cell so each stone is whole cells. */
@@ -276,6 +315,7 @@ function peachBranch(p: THREE.Object3D, a: V3, b: V3, seed: number): void {
   for (let j = 0; j < 5; j++) { const q = at(0.3 + j * 0.15); dot(p, '#d8a8aa', q[0] + 0.003, q[1], q[2], 0.0036, 5); }
 }
 const HALFDISC = () => g('fs-halfdisc', () => { const c = new THREE.CylinderGeometry(1, 1, 1, 18, 1, false, 0, Math.PI); c.rotateZ(Math.PI / 2); return c; });
+// Ref: Commons "清明上河图" Qing court version market scenes — red couplets, lanterns and crowds before tiled gateways.
 const fs_springfestival: Builder = (gp) => {
   const Y = 0.035, pv = stones('#8c887f', 1 / 24, 0.2), TIP: V3 = [0.21, Y + 0.24, 0.13];
   // granite-flag street (麻石街) strewn with red paper from the firecrackers
@@ -526,6 +566,7 @@ function lanternBoat(p: THREE.Object3D, x: number, y: number, z: number, ry: num
   const r = folk(B, -0.15, 0.02, 0.0, Math.PI / 2, 0.075, '#4e5560', { dress: undefined, hatStyle: 'conical', hat: '#8a7a58', pose: 'stand', hands: [[0.1, 0.62, 0.2], [0.14, 0.8, 0.22]], lean: 0.15 });
   rod(B, [r.handR[0] + 0.01, r.handR[1] + 0.05, r.handR[2]], [r.handR[0] - 0.02, -0.04, r.handR[2] + 0.04], 0.0018, '#7a6040', 4);
 }
+// Ref: Commons "Ming Emperor Xianzong Enjoying the Lantern Festival (Ming Dynasty).jpg" — lantern towers, red silk, courtiers.
 const fs_lantern: Builder = (gp, rc) => {
   if (str(rc.style, '') === 'qinhuai') {
     const inRiver = (z: number) => z > -0.13 && z < 0.17;
@@ -610,7 +651,7 @@ const fs_lantern: Builder = (gp, rc) => {
     if (z < -0.33) return shade('#8a7a62', 0.9 + fbm(x * 30, 0, z * 30, 2) * 0.2);
     return shade('#958468', 0.88 + fbm(x * 24, 0, z * 24, 2) * 0.22);
   };
-  base(gp, 0.5, '#958468', paint, '#5a4636', 0.035, () => 0, 18, 64);
+  base(gp, 0.5, '#958468', paint, '#5a4636', 0.035, undefined, 18, 64);
   const Y = 0.035;
   const WL = grp(gp, -0.08, Y, -0.33);
   // battered rammed-earth wall with brick-faced gate passage
@@ -678,6 +719,7 @@ function reeds(p: THREE.Object3D, x: number, y: number, z: number, n: number, s:
     if (i % 3 === 0) ellipL(p, '#a89a78', t[0], t[1] + 0.006, t[2], 0.0028, 0.009, 0.0028);
   }
 }
+// Ref: Commons "Dragon boat race" photos — long narrow hull, carved dragon head and tail, paddlers in pairs, drummer at the bow.
 const fs_dragonboat: Builder = (gp) => {
   const bank = (x: number, z: number) => sstep(-0.21, -0.29, z) * (0.045 + fbm(x * 8, 1, z * 8, 2) * 0.008);
   const paint: Paint = (x, y, z) => {
@@ -793,11 +835,12 @@ function songChair(p: THREE.Object3D, x: number, y: number, z: number, ry: numbe
   rod(C, [-0.024, 0.086, -0.016], [0.024, 0.086, -0.016], 0.0018, c, 4);
   box(C, c, 0, 0.05, -0.015, 0.012, 0.032, 0.002);
 }
+// Ref: Commons "Teisai Hokuba - Woman Looking at the Moon" and Song moon-viewing pavilion paintings — muted night palette.
 const fs_midautumn: Builder = (gp) => {
   const Y = 0.035, PX = 0.22, PZ = 0.22;
   const pond = (x: number, z: number) => Math.hypot((x - PX) / 0.16, (z - PZ) / 0.105);
   const gr = grass('#5e6a46', 26);
-  base(gp, 0.5, '#5e6a46', (x, y, z, nx, ny, nz) => (pond(x, z) < 1 ? shade('#2e3a3a', 0.9 + fbm(x * 30, 0, z * 30, 2) * 0.15) : gr(x, y, z, nx, ny, nz)), '#5a4a3a', 0.035, () => 0, 40, 120);
+  base(gp, 0.5, '#5e6a46', (x, y, z, nx, ny, nz) => (pond(x, z) < 1 ? shade('#2e3a3a', 0.9 + fbm(x * 30, 0, z * 30, 2) * 0.15) : gr(x, y, z, nx, ny, nz)), '#5a4a3a', 0.035, undefined, 40, 120);
   // whitewashed garden wall with a grey-tiled coping
   box(gp, '#d2ccbe', 0, Y, -0.37, 0.6, 0.11, 0.02);
   gable(gp, 0.62, 0.02, 0.05, '#4a4844', 0, Y + 0.11, -0.37);
@@ -926,7 +969,9 @@ const fs_midautumn: Builder = (gp) => {
 // (running bond with dark joints), lilac/green/pink-lit corner towers with spires, an arched ice gate and
 // crenellations, plus a long ice slide, a snowman and bundled-up visitors on the trampled snow.
 // ---------------------------------------------------------------------------------------------------------
-const ICE: [string, string][] = [['#e6f8ff', '#3aa0e8'], ['#c4ecff', '#1f7fd6'], ['#e4dcff', '#7c4ee6'], ['#d4fff0', '#18b07a'], ['#ffe0f0', '#e0559b']];
+// Ref: Commons "Harbin Ice and Snow Festival 2013.jpg" (daylight): sawn Songhua-river ice blocks, blue-white and glassy,
+// stepped towers and walls on packed snow; the night LED colours are reduced to cold white/blue with a few amber lamps.
+const ICE: [string, string][] = [['#dce4e8', '#2e4654'], ['#cfdbe2', '#2a4252'], ['#d6dee4', '#384a58'], ['#d4e0de', '#2e4a4a'], ['#e6e0d2', '#6e5634']];
 const iceMat = (k: number) => mat(ICE[k][0], { emissive: ICE[k][1], transparent: 0.86 });
 /** Rectangular ring of ice blocks (w×d footprint, rows of height bh) with running-bond joints. */
 function iceTier(p: THREE.Object3D, x: number, y: number, z: number, w: number, d: number, rows: number, bh: number, tint: number, seed: number): void {
@@ -947,19 +992,19 @@ function iceTier(p: THREE.Object3D, x: number, y: number, z: number, w: number, 
       }
     }
   }
-  add(p, geo, mat('#7cc4f5', { emissive: '#2a7bd4' }), x, y + (rows * bh) / 2, z, w - 0.02, rows * bh, d - 0.02);
+  add(p, geo, mat('#a9c2d0', { emissive: '#1e3644' }), x, y + (rows * bh) / 2, z, w - 0.02, rows * bh, d - 0.02);
 }
 function iceTower(p: THREE.Object3D, x: number, y: number, z: number, r: number, h: number, tint: number, spire: number): void {
   const rows = Math.round(h / 0.03);
   for (let i = 0; i < rows; i++) add(p, CYLG(10), iceMat(i % 3 === 2 ? tint : i % 2), x, y + i * 0.03 + 0.0145, z, r * 2, 0.027, r * 2, i * 0.3);
-  add(p, CYLG(10), mat('#7cc4f5', { emissive: '#2a7bd4' }), x, y + h / 2, z, r * 1.9, h, r * 1.9);
+  add(p, CYLG(10), mat('#a9c2d0', { emissive: '#1e3644' }), x, y + h / 2, z, r * 1.9, h, r * 1.9);
   add(p, CYLG(10), iceMat(tint), x, y + h + 0.008, z, r * 2.5, 0.016, r * 2.5);
   add(p, g('fs-cone10', () => new THREE.ConeGeometry(0.5, 1, 10)), iceMat(tint), x, y + h + 0.016 + spire / 2, z, r * 2.1, spire, r * 2.1);
   dotE(p, '#fff7cc', '#ffcf4a', x, y + h + 0.02 + spire, z, r * 0.3, 6);
 }
 const CYLG = (s: number) => g('fs-cyl' + s, () => new THREE.CylinderGeometry(0.5, 0.5, 1, s));
 const fs_harbin: Builder = (gp) => {
-  plaza(gp, 0.5, 0.035, 40, (x, _y, z) => shade('#eef4fb', 0.9 + fbm(x * 18, 0, z * 18, 2) * 0.12 + (Math.abs(x) < 0.08 && z > 0.05 ? -0.06 : 0)), '#8aa3bf');
+  plaza(gp, 0.5, 0.035, 40, (x, _y, z) => shade(SITE.snow, 0.9 + fbm(x * 18, 0, z * 18, 2) * 0.12 + (Math.abs(x) < 0.08 && z > 0.05 ? -0.06 : 0)), '#8aa3bf');
   const Y = 0.035;
   const C = grp(gp, 0, Y, -0.1);
   iceTier(C, 0, 0, 0, 0.5, 0.32, 3, 0.03, 0, 1);
@@ -977,32 +1022,33 @@ const fs_harbin: Builder = (gp) => {
   add(C, BOXG(), iceMat(2), 0, 0.125, 0.17, 0.11, 0.016, 0.02);
   // glowing windows on the tiers
   for (let i = 0; i < 4; i++) add(C, BOXG(), mat('#fff1c1', { emissive: '#fbbf24' }), -0.09 + i * 0.06, 0.16, 0.093, 0.016, 0.03, 0.004);
-  for (let i = 0; i < 2; i++) add(C, BOXG(), mat('#ffe0f0', { emissive: '#ec4899' }), -0.03 + i * 0.06, 0.3, 0.053, 0.014, 0.028, 0.004);
+  for (let i = 0; i < 2; i++) add(C, BOXG(), mat('#f2e6c8', { emissive: '#c08a3a' }), -0.03 + i * 0.06, 0.3, 0.053, 0.014, 0.028, 0.004);
   // ice slide down to the right
   const S = grp(gp, 0.32, Y, 0.12, -0.3);
   const ramp = add(S, BOXG(), iceMat(1), 0, 0.09, 0, 0.06, 0.012, 0.3, 0, 0.55);
   ramp.position.set(0, 0.075, 0);
   for (const sx of [-1, 1]) add(S, BOXG(), iceMat(0), sx * 0.032, 0.085, 0, 0.008, 0.03, 0.3, 0, 0.55);
   add(S, BOXG(), iceMat(1), 0, 0.08, -0.15, 0.08, 0.16, 0.06);
-  kid(S, 0, 0.08, 0.03, 0, { shirt: '#ef4444', pants: '#1e3a8a', sit: true, hands: UP, hat: (f) => { cone(f, '#facc15', 0, 0.1, -0.002, 0.022, 0.03, 10); dot(f, '#ffffff', 0, 0.132, -0.002, 0.007, 6); } }, 0.8);
+  kid(S, 0, 0.08, 0.03, 0, { shirt: '#7a3a30', pants: '#2e3846', sit: true, hands: UP, hat: (f) => { cone(f, '#a88a4a', 0, 0.1, -0.002, 0.022, 0.03, 10); dot(f, '#e6e2d8', 0, 0.132, -0.002, 0.007, 6); } }, 0.8);
   // snowman
   const SM = grp(gp, -0.3, Y, 0.2, 0.4);
-  ellip(SM, '#ffffff', 0, 0.04, 0, 0.05, 0.045, 0.05);
-  ellip(SM, '#ffffff', 0, 0.11, 0, 0.036, 0.034, 0.036);
-  ellip(SM, '#ffffff', 0, 0.165, 0, 0.026, 0.025, 0.026);
-  cone(SM, '#f97316', 0, 0.163, 0.035, 0.005, 0.022, 6).rotation.x = Math.PI / 2;
+  ellip(SM, '#e8e6e0', 0, 0.04, 0, 0.05, 0.045, 0.05);
+  ellip(SM, '#e8e6e0', 0, 0.11, 0, 0.036, 0.034, 0.036);
+  ellip(SM, '#e8e6e0', 0, 0.165, 0, 0.026, 0.025, 0.026);
+  cone(SM, '#b0603a', 0, 0.163, 0.035, 0.005, 0.022, 6).rotation.x = Math.PI / 2;
   for (const sx of [-1, 1]) dot(SM, '#111827', sx * 0.009, 0.173, 0.022, 0.004, 6);
   for (let k = 0; k < 3; k++) dot(SM, '#111827', 0, 0.09 + k * 0.018, 0.035 - Math.abs(k - 1) * 0.003, 0.004, 6);
-  cyl(SM, '#dc2626', 0, 0.135, 0, 0.03, 0.01, 12);
-  box(SM, '#dc2626', 0.015, 0.1, 0.024, 0.012, 0.035, 0.006, 0, 0.1);
+  cyl(SM, '#7a3a2e', 0, 0.135, 0, 0.03, 0.01, 12);
+  box(SM, '#7a3a2e', 0.015, 0.1, 0.024, 0.012, 0.035, 0.006, 0, 0.1);
   cyl(SM, '#111827', 0, 0.186, 0, 0.026, 0.004, 12);
   cyl(SM, '#111827', 0, 0.19, 0, 0.017, 0.03, 12);
   for (const sx of [-1, 1]) rod(SM, [sx * 0.032, 0.115, 0], [sx * 0.07, 0.15, 0.005], 0.0025, '#6b4a33');
   // visitors in puffy coats and bobble hats
-  const hatOf = (c: string) => (f: THREE.Group) => { ellip(f, c, 0, 0.115, -0.002, 0.021, 0.014, 0.02); dot(f, '#ffffff', 0, 0.13, -0.002, 0.007, 6); };
-  kid(gp, -0.12, Y, 0.3, 0.3, { shirt: '#2563eb', pants: '#1f2937', hat: hatOf('#ef4444'), hands: FWD }, 1.05);
-  kid(gp, 0.06, Y, 0.34, -0.2, { shirt: '#f97316', pants: '#334155', hat: hatOf('#22c55e'), hands: UP }, 0.95);
-  kid(gp, -0.4, Y, -0.05, 0.9, { shirt: '#be185d', pants: '#1f2937', hat: hatOf('#facc15') }, 0.95);
+  const hatOf = (c: string) => (f: THREE.Group) => { ellip(f, c, 0, 0.115, -0.002, 0.021, 0.014, 0.02); dot(f, '#e6e2d8', 0, 0.13, -0.002, 0.007, 6); };
+  kid(gp, -0.12, Y, 0.3, 0.3, { shirt: '#3e4e66', pants: '#2a2c30', hat: hatOf('#8a3a30'), hands: FWD }, 1.05);
+  kid(gp, 0.06, Y, 0.34, -0.2, { shirt: '#9a6a3a', pants: '#3a3e44', hat: hatOf('#4e5e44'), hands: UP }, 0.95);
+  kid(gp, -0.4, Y, -0.05, 0.9, { shirt: '#6e3a44', pants: '#2a2c30', hat: hatOf('#a88a4a') }, 0.95);
+  mute(gp);
   fuse(gp);
 };
 const BOXG = () => g('fs-iceblock', () => new THREE.BoxGeometry(1, 1, 1));
@@ -1023,6 +1069,7 @@ function featherFan(p: THREE.Object3D, x: number, y: number, z: number, R: numbe
   }
   return f;
 }
+// Ref: Commons "Carnival in Sambadrome Rio09s*.jpg": a gilded float with plumed costumes before stepped concrete stands.
 const fs_rio: Builder = (gp) => {
   const crowd = (x: number, y: number, z: number) => ['#f43f5e', '#facc15', '#22c55e', '#3b82f6', '#f97316', '#ffffff', '#a855f7', '#0ea5e9'][Math.floor(hash3(Math.floor(x * 70), Math.floor(y * 70), Math.floor(z * 70)) * 8)];
   plaza(gp, 0.5, 0.035, 40, (x, _y, z) => (Math.abs(z - 0.04) < 0.003 + 0.01 && Math.floor(x * 20) % 2 ? '#f8fafc' : z < -0.22 ? '#9ca3af' : shade('#6b7280', 0.92 + hash3(Math.floor(x * 40), 0, Math.floor(z * 40)) * 0.1)), '#4b5563');
@@ -1075,6 +1122,7 @@ const fs_rio: Builder = (gp) => {
   rod(gp, [0.4, Y + 0.05, 0.07], [0.42, Y + 0.3, 0.07], 0.003, '#d4d4d8');
   slab(grp(gp, 0.42, Y + 0.24, 0.07, -0.6), [[0, 0], [0.11, 0.0], [0.11, 0.065], [0, 0.065]], 0.003, '#16a34a', 0, false);
   ellip(gp, '#facc15', 0.42 + 0.05 * Math.cos(-0.6), Y + 0.272, 0.07 - 0.05 * Math.sin(-0.6) + 0.003, 0.025, 0.017, 0.002, -0.6);
+  mute(gp, 0.3);
   fuse(gp);
 };
 
@@ -1112,6 +1160,7 @@ function masker(p: THREE.Object3D, x: number, y: number, z: number, ry: number, 
   }
   for (let k = 0; k < 5; k++) dot(f, trim, Math.sin(k * 1.3) * 0.03, 0.01 + k * 0.014, Math.cos(k * 1.3) * 0.03 + 0.012, 0.0035, 6);
 }
+// Ref: Commons "Venice Carnival - Masked Lovers (2010)", Longhi "Femme à la Bautta": white/gold masks, tricorns, dark cloaks.
 const fs_venice: Builder = (gp) => {
   const water = ripple('#3a8a8c'), st = stones('#c9bfae', 1 / 24, 0.22);
   plaza(gp, 0.5, 0.035, 48, (x, y, z, nx, ny, nz) => (z > 0.02 ? water(x, y, z, nx, ny, nz) : st(x, y, z, nx, ny, nz)), '#6b5a48');
@@ -1188,6 +1237,7 @@ const fs_venice: Builder = (gp) => {
     mask(MS, -0.045 + (i % 3) * 0.045, 0.085 + Math.floor(i / 3) * 0.05, -0.012, 0.75, f0, t0);
   }
   for (let k = 0; k < 3; k++) mask(MS, -0.045 + k * 0.045, 0.06, 0.02, 0.7, ['#f8fafc', '#facc15', '#dc2626'][k], '#d4a017', [], 0).rotation.x = -1.2;
+  mute(gp, 0.32);
   fuse(gp);
 };
 
@@ -1207,6 +1257,7 @@ function powder(p: THREE.Object3D, x: number, y: number, z: number, d: V3, c: st
     add(p, SPH(8), m, x + d[0] * t + j(2, 2.4), y + d[1] * t + j(3, 1.2), z + d[2] * t + j(4, 2.4), rr * 2.2, rr * 1.7, rr * 2.2);
   }
 }
+// Ref: Commons "Barsana Holi Festival.jpg", "Lathmar Holi 2022 in Nandgaon": clouds of gulal powder over a dense crowd.
 const fs_holi: Builder = (gp) => {
   const st = stones('#d9c7a6', 1 / 24, 0.18);
   plaza(gp, 0.5, 0.035, 48, (x, y, z, nx, ny, nz) => {
@@ -1283,6 +1334,7 @@ const fs_holi: Builder = (gp) => {
   powder(gp, -0.05, Y + 0.02, 0.16, [0.1, 0.01, 0.03], GULAL[5], 7, 0.04, 7);
   powder(gp, 0.12, Y + 0.02, 0.12, [-0.06, 0.01, 0.08], GULAL[4], 6, 0.035, 8);
   powder(gp, -0.04, Y + 0.24, -0.02, [0.08, 0.06, 0.0], GULAL[5], 8, 0.05, 6);
+  mute(gp, 0.26);
   fuse(gp);
 };
 
@@ -1296,6 +1348,7 @@ function diya(p: THREE.Object3D, x: number, y: number, z: number, s = 1): void {
   add(p, SPH(6), mat('#b45309'), x, y + 0.004 * s, z, 0.022 * s, 0.01 * s, 0.016 * s);
   add(p, SPH(6), mat('#ffd36b', { emissive: '#ff9a1a' }), x, y + 0.012 * s, z, 0.008 * s, 0.018 * s, 0.008 * s);
 }
+// Ref: Commons "Diwali Diyas 1.jpg", "Diwali Diya 2.jpg": rows of small terracotta oil lamps with single warm flames.
 const fs_diwali: Builder = (gp) => {
   const water = ripple('#2a5f8a');
   // ghat steps descend toward the river at the front
@@ -1392,6 +1445,7 @@ const fs_diwali: Builder = (gp) => {
   }
   dotE(Bo, '#ffffff', '#ffe066', 0.05, 0.2, 0.03, 0.007, 6);
   kid(gp, 0.26, Y + 0.05, 0.13, -0.5, { shirt: '#16a34a', pants: '#f8fafc', hands: FWD, sit: true }, 1.0);
+  mute(gp);
   fuse(gp);
 };
 
@@ -1406,6 +1460,7 @@ function squirt(p: THREE.Object3D, pts: V3[], r0: number, r1: number): void {
   const e = pts[pts.length - 1];
   for (let k = 0; k < 5; k++) add(p, SPH(6), WET(), e[0] + (hash3(k, e[0] * 9, 1) - 0.5) * r1 * 6, e[1] + hash3(k, 2, e[2] * 9) * r1 * 2, e[2] + (hash3(k, 3, 3) - 0.5) * r1 * 6, r1 * 2.6, r1 * 2.6, r1 * 2.6);
 }
+// Ref: Commons "Songkran Firebrigade 2012", "Buddhist festivals, Songkran Festival Day": water fights, hoses, a temple stupa.
 const fs_songkran: Builder = (gp) => {
   plaza(gp, 0.5, 0.035, 48, (x, _y, z) => {
     const n = hash3(Math.floor(x * 48), 0, Math.floor(z * 48));
@@ -1497,6 +1552,7 @@ const fs_songkran: Builder = (gp) => {
     const px = -0.1 + hash3(i, 1, 9) * 0.4, pz = -0.05 + hash3(i, 2, 9) * 0.4;
     add(gp, SPH(6), WET(), px, Y + 0.008, pz, 0.016, 0.022, 0.016);
   }
+  mute(gp);
   fuse(gp);
 };
 
@@ -1531,6 +1587,7 @@ function pretzel(p: THREE.Object3D, x: number, y: number, z: number, s: number, 
   for (let k = 0; k < 7; k++) { const t = (k / 7) * TAU + 0.3; dot(f, '#ffffff', Math.sin(t) * 0.05 * (1 + 0.15 * Math.cos(t)), Math.cos(t) * 0.035 + Math.cos(2 * t) * 0.02 - 0.005 + 0.003, 0.009, 0.003, 4); }
   return f;
 }
+// Ref: Commons "München, Oktoberfest 2022, Fischer-Vroni": timber beer-tent gables, Maß steins, dirndl and Tracht.
 const fs_oktoberfest: Builder = (gp) => {
   const gr = grass('#5d9a45', 26), st = stones('#c8bba5', 1 / 24, 0.2);
   plaza(gp, 0.5, 0.035, 48, (x, y, z, nx, ny, nz) => (Math.abs(z - 0.08 + x * 0.1) < 0.1 || (x > -0.05 && x < 0.1) ? st(x, y, z, nx, ny, nz) : gr(x, y, z, nx, ny, nz)), '#6b5040');
@@ -1638,6 +1695,7 @@ const fs_oktoberfest: Builder = (gp) => {
   ellip(k3, '#f8fafc', 0, 0.035, 0.022, 0.016, 0.022, 0.004);
   heart(k3, 0, 0.06, 0.035, 0.45);
   kid(gp, -0.2, Y, 0.3, 0.6, { shirt: '#f8fafc', pants: '#5b3a1e', hands: UP, hat: (f) => { leder(f); hatT(f); } }, 1.0);
+  mute(gp);
   fuse(gp);
 };
 
@@ -1672,6 +1730,7 @@ function casa(p: THREE.Object3D, x: number, z: number, w: number, h: number, ry:
     s.scale.x *= 1.3;
   }
 }
+// Ref: Commons "Tomatina 2006.jpg", "La Tomatina Spain.jpg": a narrow Buñol street, trucks of tomatoes, pulp-red ground.
 const fs_tomatina: Builder = (gp) => {
   plaza(gp, 0.5, 0.035, 48, (x, _y, z) => {
     const n = hash3(Math.floor(x * 48), 0, Math.floor(z * 48)), f = fbm(x * 8, 5, z * 8, 2);
@@ -1726,6 +1785,7 @@ const fs_tomatina: Builder = (gp) => {
   ellip(gp, '#fcd9b6', -0.33, Y + 0.45, 0.2, 0.01, 0.008, 0.01);
   rod(gp, [-0.33, Y + 0.39, 0.2], [-0.33, Y + 0.455, 0.2], 0.0015, '#78350f', 3);
   kid(gp, -0.335, Y + 0.18, 0.214, 0.0, { shirt: '#f8fafc', pants: '#1e3a8a', hands: [[-0.006, 0.17, 0.006], [0.006, 0.15, 0.008]] }, 0.85);
+  mute(gp, 0.3);
   fuse(gp);
 };
 
@@ -1754,6 +1814,7 @@ function calavera(p: THREE.Object3D, x: number, y: number, z: number, s: number,
   dot(f, rim === '#ec4899' ? '#22c55e' : '#ec4899', 0, 0.035, 0.012, 0.004, 6);
   return f;
 }
+// Ref: Commons "Ofrenda or Day of the Dead Altar at Mission Marquee Plaza", "Altar y catrinas": marigold arch, candles, calaveras.
 const fs_dayofdead: Builder = (gp) => {
   plaza(gp, 0.5, 0.035, 48, (x, _y, z) => {
     const n = hash3(Math.floor(x * 24), 0, Math.floor(z * 24));
@@ -1818,7 +1879,7 @@ const fs_dayofdead: Builder = (gp) => {
     }
     const pts: V3[] = [];
     for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push([-0.36 + t * 0.72, y0 - Math.sin(t * Math.PI) * 0.04, zz]); }
-    tube(gp, pts, 0.0015, 0.0015, '#1f2937', { radial: 4, sub: 2 });
+    tube(gp, pts, 0.0018, 0.0018, '#2a2622', { radial: 4, sub: 2 });
   }
   // Catrina in a big flowered hat
   const C = kid(gp, -0.22, Y, 0.16, 0.45, { shirt: '#7c3aed', skin: '#fdfcf7', hair: '#1c1917', dress: true, hands: [[-0.03, 0.05, 0.02], [0.034, 0.1, 0.02]], hat: (f) => {
@@ -1837,6 +1898,7 @@ const fs_dayofdead: Builder = (gp) => {
   rod(K, [0, 0.07, 0.045], [0, 0.085, 0.05], 0.004, '#15803d', 4);
   kid(gp, 0.33, Y, 0.0, -1.0, { shirt: '#f97316', pants: '#334155', hands: DOWN }, 1.0);
   calavera(gp, 0.08, Y, 0.34, 2.2, '#ec4899', -0.3);
+  mute(gp, 0.28);
   fuse(gp);
 };
 
@@ -1845,48 +1907,66 @@ const fs_dayofdead: Builder = (gp) => {
 // picnic on blue tarps and red mats with bento boxes, paper lanterns hang between the trees, a stone lantern
 // stands by the water and petals drift down.
 // ---------------------------------------------------------------------------------------------------------
-const SAKURA = ['#f9a8d4', '#fbcfe8', '#f472b6', '#fce7f3'];
+// Ref: Commons "April 2009, hanami in Ueno Park" / "Hanami Matsuri picknick in Ueno park": dark gnarled trunks under
+// clouds of almost-white blossom with only a faint blush, blue leisure sheets on the ground, paper lanterns on cords.
+const SAKURA = ['#e9dcd6', '#ddc9c3', '#cfb4ae', '#efe6e0'];
 function sakura(p: THREE.Object3D, x: number, z: number, s: number, seed: number): void {
-  const T = grp(p, x, 0.035, z, seed, s);
-  tube(T, [[0, 0, 0], [0.005, 0.08, 0], [-0.01, 0.15, 0.005]], 0.022, 0.013, '#4a3226', { radial: 7, sub: 3 });
-  tube(T, [[0.003, 0.1, 0], [0.06, 0.16, 0.01], [0.1, 0.19, 0.0]], 0.01, 0.006, '#4a3226', { radial: 6, sub: 3 });
-  tube(T, [[-0.004, 0.12, 0], [-0.07, 0.17, -0.01], [-0.11, 0.2, 0.01]], 0.01, 0.006, '#4a3226', { radial: 6, sub: 3 });
-  const pt: Paint = (px, py, pz) => (hash3(Math.floor(px * 160), Math.floor(py * 160), Math.floor(pz * 160)) > 0.9 ? '#f9c2dc' : mix('#ec6fae', '#fcd3e6', Math.min(1, Math.max(0, fbm(px * 22, py * 22, pz * 22, 2) * 0.9 + (py - 0.22) * 2.5))));
-  const B: [number, number, number, number][] = [[0, 0.24, 0, 0.11], [0.1, 0.21, 0.02, 0.08], [-0.11, 0.22, 0.0, 0.085], [0.03, 0.2, 0.08, 0.075], [-0.04, 0.2, -0.07, 0.075]];
-  for (const [bx, by, bz, br] of B) pblob(T, SAKURA[0], bx, by, bz, br, br * 0.75, br, pt, [0, 0, 0], 13);
+  const T = grp(p, x, 0.035, z, seed, s), BK = '#3e3029';
+  tube(T, [[0, 0, 0], [0.006, 0.07, 0.002], [-0.008, 0.13, 0.006]], 0.022, 0.013, BK, { radial: 7, sub: 3 });
+  const tips: V3[] = [];
+  for (let i = 0; i < 5; i++) {
+    const a = i * 1.3 + seed, r = 0.08 + hash3(i, seed * 10, 1) * 0.05, ty = 0.17 + hash3(i, seed * 10, 2) * 0.06;
+    const tip: V3 = [Math.cos(a) * r, ty, Math.sin(a) * r * 0.8];
+    tube(T, [[0, 0.1 + i * 0.008, 0], [tip[0] * 0.5, ty - 0.03, tip[2] * 0.5], tip], 0.009, 0.004, BK, { radial: 5, sub: 3 });
+    tips.push(tip);
+  }
+  tips.push([0, 0.23, 0]);
+  // blossom: clusters of small, irregular, almost-white clumps along each branch end (not single pink balls)
+  const pt: Paint = (px, py, pz) => {
+    const n = fbm(px * 40, py * 40, pz * 40, 2);
+    return py < 0.17 && n < 0.45 ? '#c7aaa4' : n > 0.62 ? SAKURA[3] : n < 0.35 ? SAKURA[1] : SAKURA[0];
+  };
+  tips.forEach((t, i) => {
+    for (let k = 0; k < 5; k++) {
+      const h = (j: number) => hash3(i, k, j + seed * 7) - 0.5, r = 0.022 + (hash3(i, k, 9) * 0.014);
+      pblob(T, SAKURA[0], t[0] + h(1) * 0.08, t[1] + h(2) * 0.035 + 0.006, t[2] + h(3) * 0.08, r * 1.2, r * 0.6, r, pt, [0, h(4) * 3, 0], 7);
+    }
+  });
 }
 function bento(p: THREE.Object3D, x: number, y: number, z: number, ry: number): void {
   const f = grp(p, x, y, z, ry);
-  box(f, '#111827', 0, 0, 0, 0.05, 0.014, 0.036);
-  box(f, '#b91c1c', 0, 0.0141, 0, 0.044, 0.001, 0.03);
-  for (let k = 0; k < 3; k++) dot(f, '#fafaf9', -0.014 + k * 0.009, 0.017, -0.006, 0.005, 6);
-  dot(f, '#facc15', 0.012, 0.017, -0.006, 0.006, 6);
-  dot(f, '#f97316', 0.012, 0.017, 0.007, 0.006, 6);
-  dot(f, '#22c55e', -0.008, 0.017, 0.007, 0.006, 6);
-  dot(f, '#f9a8d4', 0.0, 0.017, 0.007, 0.005, 6);
+  box(f, '#2a2420', 0, 0, 0, 0.05, 0.014, 0.036);
+  box(f, '#6e2e26', 0, 0.0141, 0, 0.044, 0.001, 0.03);
+  for (let k = 0; k < 3; k++) dot(f, '#e8e2d6', -0.014 + k * 0.009, 0.017, -0.006, 0.005, 6);
+  dot(f, '#c9a64a', 0.012, 0.017, -0.006, 0.006, 6);
+  dot(f, '#b06a3a', 0.012, 0.017, 0.007, 0.006, 6);
+  dot(f, '#6a7a44', -0.008, 0.017, 0.007, 0.006, 6);
 }
 const fs_hanami: Builder = (gp) => {
-  const water = ripple('#4a9cc4'), gr = grass('#6aa84f', 26);
+  const water = ripple(SITE.water), gr = grass(SITE.grass, 26);
   const sc = (x: number) => 0.13 + Math.sin(x * 5 + 0.5) * 0.06;
   plaza(gp, 0.5, 0.035, 48, (x, y, z, nx, ny, nz) => {
     const d = Math.abs(z - sc(x));
     if (d < 0.05) return water(x, y, z, nx, ny, nz);
     if (d < 0.065) return shade('#9ca3af', 0.85 + hash3(Math.floor(x * 60), 0, Math.floor(z * 60)) * 0.25);
-    return hash3(Math.floor(x * 48), 7, Math.floor(z * 48)) > 0.86 ? '#fbcfe8' : gr(x, y, z, nx, ny, nz);
+    return hash3(Math.floor(x * 48), 7, Math.floor(z * 48)) > 0.94 ? '#b4b49a' : gr(x, y, z, nx, ny, nz);
   }, '#6b5040');
   const Y = 0.035;
   sakura(gp, -0.27, -0.2, 1.05, 0.3);
   sakura(gp, 0.12, -0.3, 1.15, 1.9);
-  sakura(gp, 0.33, 0.33, 0.9, 4.1);
-  sakura(gp, -0.36, 0.3, 0.8, 2.3);
+  sakura(gp, 0.27, 0.27, 0.85, 4.1);
+  sakura(gp, -0.3, 0.25, 0.8, 2.3);
+  // a clipped pine and dark evergreens behind, as in the Kyoto temple gardens
+  tree(gp, -0.05, Y, -0.4, 0.13, '#4a5a3a', true);
+  tree(gp, 0.38, Y, -0.1, 0.1, '#4f5e3c');
   // red arched bridge over the stream
   const Bx = 0.27, B = grp(gp, Bx, Y, sc(Bx), 1.3 + Math.PI / 2);
   const deck: V3[] = [];
   for (let i = 0; i <= 8; i++) { const t = i / 8; deck.push([0, 0.005 + Math.sin(t * Math.PI) * 0.04, -0.09 + t * 0.18]); }
-  sweep(B, deck.map(p => ({ p, w: 0.03, h: 0.006 })), '#b45309', { radial: 4, sub: 2 });
+  sweep(B, deck.map(p => ({ p, w: 0.03, h: 0.006 })), '#6e4a32', { radial: 4, sub: 2 });
   for (const sx of [-1, 1]) {
-    tube(B, deck.map(([, y, z]) => [sx * 0.03, y + 0.03, z] as V3), 0.003, 0.003, '#dc2626', { radial: 5, sub: 2 });
-    for (let i = 1; i < 8; i += 2) rod(B, [sx * 0.03, deck[i][1], deck[i][2]], [sx * 0.03, deck[i][1] + 0.03, deck[i][2]], 0.0025, '#dc2626', 5);
+    tube(B, deck.map(([, y, z]) => [sx * 0.03, y + 0.03, z] as V3), 0.003, 0.003, '#9a3b2a', { radial: 5, sub: 2 });
+    for (let i = 1; i < 8; i += 2) rod(B, [sx * 0.03, deck[i][1], deck[i][2]], [sx * 0.03, deck[i][1] + 0.03, deck[i][2]], 0.0025, '#9a3b2a', 5);
   }
   // stone lantern
   const L = grp(gp, -0.06, Y, 0.05);
@@ -1898,44 +1978,45 @@ const fs_hanami: Builder = (gp) => {
   cone(L, '#8b8b8b', 0, 0.096, 0, 0.034, 0.03, 6);
   dot(L, '#8b8b8b', 0, 0.13, 0, 0.007, 6);
   // picnic mats: blue tarp (back left), red mat (front), with families and bento
-  box(gp, '#3b82f6', -0.18, Y, -0.04, 0.24, 0.003, 0.14, 0.15);
-  box(gp, '#dc2626', 0.0, Y, 0.34, 0.2, 0.003, 0.12, -0.1);
+  box(gp, '#4c6478', -0.18, Y, -0.04, 0.24, 0.003, 0.14, 0.15);
+  box(gp, '#7a4a3a', 0.0, Y, 0.34, 0.2, 0.003, 0.12, -0.1);
   bento(gp, -0.2, Y + 0.003, -0.04, 0.2);
   bento(gp, -0.13, Y + 0.003, -0.02, -0.3);
   bento(gp, 0.01, Y + 0.003, 0.34, 0.1);
-  lathe(gp, [[0, 0], [0.008, 0.0], [0.009, 0.02], [0.006, 0.03], [0.003, 0.034]], '#f8fafc', -0.16, Y + 0.003, -0.08, 8);
-  cyl(gp, '#f8fafc', 0.045, Y + 0.003, 0.32, 0.009, 0.012, 8);
-  cyl(gp, '#f8fafc', 0.06, Y + 0.003, 0.35, 0.009, 0.012, 8);
+  lathe(gp, [[0, 0], [0.008, 0.0], [0.009, 0.02], [0.006, 0.03], [0.003, 0.034]], '#d8d2c4', -0.16, Y + 0.003, -0.08, 8);
+  cyl(gp, '#d8d2c4', 0.045, Y + 0.003, 0.32, 0.009, 0.012, 8);
+  cyl(gp, '#d8d2c4', 0.06, Y + 0.003, 0.35, 0.009, 0.012, 8);
   // hanami dango skewers
   for (let k = 0; k < 2; k++) {
     const dx = -0.04 + k * 0.012;
     rod(gp, [dx, Y + 0.005, 0.37], [dx + 0.02, Y + 0.008, 0.33], 0.0012, '#d6a96b', 3);
-    for (let j = 0; j < 3; j++) dot(gp, ['#f9a8d4', '#fafaf9', '#86efac'][j], dx + 0.005 + j * 0.006, Y + 0.012, 0.36 - j * 0.01, 0.006, 6);
+    for (let j = 0; j < 3; j++) dot(gp, ['#c9a29a', '#e6e0d4', '#8a9a66'][j], dx + 0.005 + j * 0.006, Y + 0.012, 0.36 - j * 0.01, 0.006, 6);
   }
-  kid(gp, -0.26, Y + 0.003, -0.07, 0.6, { shirt: '#f472b6', pants: '#334155', sit: true, hands: FWD }, 1.1);
-  kid(gp, -0.1, Y + 0.003, -0.08, -0.4, { shirt: '#facc15', pants: '#1e3a8a', sit: true, hands: UP }, 1.0);
-  kid(gp, -0.17, Y + 0.003, 0.02, Math.PI, { shirt: '#22c55e', pants: '#334155', sit: true, hands: FWD }, 1.05);
-  kid(gp, -0.05, Y + 0.003, 0.33, 0.4, { shirt: '#38bdf8', pants: '#334155', sit: true, hands: FWD }, 1.1);
-  kid(gp, 0.08, Y + 0.003, 0.37, -0.5, { shirt: '#c084fc', dress: true, sit: true, hands: UP }, 1.0);
+  kid(gp, -0.26, Y + 0.003, -0.07, 0.6, { shirt: '#8a5a58', pants: '#3a3e44', sit: true, hands: FWD }, 1.1);
+  kid(gp, -0.1, Y + 0.003, -0.08, -0.4, { shirt: '#b49a5a', pants: '#3a4558', sit: true, hands: UP }, 1.0);
+  kid(gp, -0.17, Y + 0.003, 0.02, Math.PI, { shirt: '#5e6e4a', pants: '#3a3e44', sit: true, hands: FWD }, 1.05);
+  kid(gp, -0.05, Y + 0.003, 0.33, 0.4, { shirt: '#5a7286', pants: '#3a3e44', sit: true, hands: FWD }, 1.1);
+  kid(gp, 0.08, Y + 0.003, 0.37, -0.5, { shirt: '#7a6a7e', dress: true, sit: true, hands: UP }, 1.0);
   // a kid in a yukata with a pink parasol on the bridge path
-  const Pk = kid(gp, 0.16, Y, -0.04, -0.2, { shirt: '#fb7185', dress: true, hands: [[-0.03, 0.04, 0.006], [0.022, 0.09, 0.02]] }, 1.05);
+  const Pk = kid(gp, 0.16, Y, -0.04, -0.2, { shirt: '#4a5a72', dress: true, hands: [[-0.03, 0.04, 0.006], [0.022, 0.09, 0.02]] }, 1.05);
   rod(Pk, [0.022, 0.09, 0.02], [0.022, 0.19, 0.0], 0.0015, '#78350f', 3);
-  cone(Pk, '#f9a8d4', 0.022, 0.17, 0.0, 0.06, 0.035, 12);
+  cone(Pk, '#b88a6a', 0.022, 0.17, 0.0, 0.06, 0.035, 12);
   // paper lanterns strung between two trees
   const pts: V3[] = [];
   for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push([-0.22 + t * 0.32, Y + 0.3 - Math.sin(t * Math.PI) * 0.05, -0.22 - t * 0.05]); }
   tube(gp, pts, 0.0015, 0.0015, '#1f2937', { radial: 4, sub: 2 });
   for (let i = 1; i < 8; i += 2) {
     const [lx, ly, lz] = pts[i];
-    glow(ellip(gp, i % 4 === 1 ? '#fff7e0' : '#fecaca', lx, ly - 0.025, lz, 0.016, 0.022, 0.016), i % 4 === 1 ? '#fff7e0' : '#fecaca', i % 4 === 1 ? '#f59e0b' : '#ef4444');
-    cyl(gp, '#111827', lx, ly - 0.05, lz, 0.01, 0.005, 8);
-    cyl(gp, '#111827', lx, ly - 0.005, lz, 0.01, 0.005, 8);
+    glow(ellip(gp, i % 4 === 1 ? '#efe2c4' : '#d8b49a', lx, ly - 0.025, lz, 0.016, 0.022, 0.016), i % 4 === 1 ? '#efe2c4' : '#d8b49a', i % 4 === 1 ? '#b8823a' : '#a8583a');
+    cyl(gp, '#2a2622', lx, ly - 0.05, lz, 0.01, 0.005, 8);
+    cyl(gp, '#2a2622', lx, ly - 0.005, lz, 0.01, 0.005, 8);
   }
   // drifting petals
   for (let i = 0; i < 26; i++) {
     const px = (hash3(i, 1, 4) - 0.5) * 0.8, pz = (hash3(i, 2, 4) - 0.5) * 0.7, py = Y + 0.05 + hash3(i, 3, 4) * 0.25;
     add(gp, SPH(6), mat(SAKURA[i % 3]), px, py, pz, 0.012, 0.004, 0.009, hash3(i, 5, 5) * 3, hash3(i, 6, 5));
   }
+  mute(gp);
   fuse(gp);
 };
 
@@ -1982,6 +2063,7 @@ function racer(p: THREE.Object3D, x: number, y: number, z: number, ry: number, c
   for (const hd of [r.handL, r.handR]) rod(H, hd, [0, seat + 0.1, 0.27], 0.003, '#2a201a', 3);
   rod(H, r.handR, [0.08, seat + 0.02, -0.12], 0.004, '#5a4632', 3); // whip
 }
+// Ref: Commons "Naadam 2023 - Horse racing 06/11.jpg" — small stocky horses ridden by boys in coloured silks on green steppe.
 const fs_naadam: Builder = (gp) => {
   const hill = (x: number, z: number) => sstep(-0.3, -0.5, z) * (0.035 + Math.sin(x * 6 + 1) * 0.012);
   const gr = grass('#7a8050', 20);

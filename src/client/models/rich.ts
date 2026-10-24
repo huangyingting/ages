@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { ModelRecipe } from '../../shared/data/types.ts';
 import {
-  type Builder, type V3, mat, box, tbox, cyl, cone, rbox, rod, skin, slab, lathe, gable, tube, shade, hash3, sweep, add, g,
+  type Builder, type V3, mat, box, tbox, cyl, cone, rbox, rod, skin, slab, lathe, gable, tube, shade, hash3, sweep, add, g, plinth, tree, SITE, PLINTH_SIDE, type Paint,
 } from './prims.ts';
 import { human, type HumanOpts, type HumanPose } from './human.ts';
 import { figure, figureBase, headwear, type Hat } from './figure.ts';
@@ -9,7 +9,7 @@ import { costume } from './costume.ts';
 import { eraOf } from '../../shared/data/era.ts';
 import type { PersonRole } from '../../shared/data/heroes.ts';
 import { horse } from './animals.ts';
-import { grp, proof, storey, hall, gourd, minipine } from './timber.ts';
+import { grp, proof, hall, gourd, minipine } from './timber.ts';
 import { RICH2 } from './rich2.ts';
 import { slab as holed } from './lite.ts';
 
@@ -116,10 +116,18 @@ function wheel(p: THREE.Object3D, x: number, y: number, z: number, R: number, c 
   cyl(w, P.bronze, 0, -R * 0.25, 0, R * 0.18, R * 0.5, 8).rotation.z = Math.PI / 2;
 }
 
-function ground(p: THREE.Object3D, R: number, top: string, side = shade(top, 0.7), h = 0.03): number {
-  lathe(p, [[0, 0], [R, 0], [R * 0.98, h * 0.8], [R * 0.95, h], [0, h]], side, 0, 0, 0, 40);
-  lathe(p, [[0, h], [R * 0.95, h], [0, h + 0.002]], top, 0, 0, 0, 40);
-  return h;
+const SITES = Object.values(SITE);
+const rgb = (c: string) => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
+/** The SITE tone nearest to `c` (old per-model ground colours snap to the shared site palette). */
+function siteTone(c: string): string {
+  const a = rgb(c);
+  let best: string = SITE.earth, bd = Infinity;
+  for (const s of SITES) { const b = rgb(s), d = (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2; if (d < bd) { bd = d; best = s; } }
+  return best;
+}
+/** The shared museum plinth (prims `plinth`: dark walnut side, SITE top). Returns the top height. */
+function ground(p: THREE.Object3D, R: number, top: string, _side?: string, h = 0.03, paint?: Paint): number {
+  return plinth(p, siteTone(top), { R: Math.min(R, 0.46), h, paint });
 }
 
 /** Stepped stone platform (须弥座) with balustrade; returns the top height. */
@@ -260,13 +268,16 @@ const bronze = (m: THREE.Mesh, c = '#5a6b55') => { m.material = mat(c, { metal: 
 // ---- builders ----------------------------------------------------------------------------------------------
 const army: Builder = (gp, r) => {
   const c = str(r.color, '#a8352a');
+  const top = ground(gp, 0.46, SITE.earth);
+  gp = grp(gp, 0, 0.02, 0, top);
+  gp.scale.setScalar(0.76);
   for (let i = 0; i < 4; i++) for (let j = 0; j < 5; j++) {
     const x = -0.3 + j * 0.15 + (i % 2) * 0.04, z = 0.16 - i * 0.13;
     soldier(gp, x, z, 0.24, c, { pose: 'walk', phase: ((i + j) % 3) / 3, arm: i === 3 ? 'ji' : 'spear', shield: i < 2 });
   }
   cavalry(gp, 0.04, 0.34, 0, '#8a5a32', shade(c, 0.85), { s: 0.5, lance: false });
-  banner(gp, -0.36, 0, 0.3, 0.62, c, 0.22);
-  banner(gp, 0.38, 0, -0.32, 0.5, c, 0.17);
+  banner(gp, -0.34, 0, 0.24, 0.62, c, 0.2);
+  banner(gp, 0.34, 0, -0.28, 0.5, c, 0.16);
   // war drum
   cyl(gp, '#7f1d1d', 0.36, 0.09, 0.24, 0.05, 0.08, 14).rotation.x = Math.PI / 2;
   for (const sx of [-1, 1]) rod(gp, [0.36 + sx * 0.04, 0, 0.24], [0.36 + sx * 0.02, 0.09, 0.24], 0.005, P.darkwood, 4);
@@ -371,6 +382,9 @@ const warrior: Builder = (gp, r) => {
   const earth = '#a8916a', brick = '#857e72';
   const top = 0.12;
   // pit floor of grey brick, earthen rim and three corridors separated by rammed-earth walls with log-roof scars
+  const base = ground(gp, 0.46, SITE.loess);
+  gp = grp(gp, 0, 0, 0, base);
+  gp.scale.setScalar(0.66);
   const fy = 0.035;
   box(gp, '#9c8664', 0, 0, 0, 0.94, fy - 0.004, 0.9);
   box(gp, brick, 0, fy - 0.004, 0.0, 0.86, 0.004, 0.82);
@@ -531,7 +545,25 @@ const chariot: Builder = (gp, r) => {
   banner(G, -bw / 2 + 0.01, fy, bz - bd / 2 + 0.01, 0.34, str(r.flag, '#a8352a'), 0.08);
 };
 
+/** Silk Road caravan (Tang): a laden Bactrian camel with a Sogdian rider led by a driver, a pack camel behind, on a
+ * desert plinth. Proportions and the striped saddle cloth / slung bales follow the Tang sancai caravan camels (Commons
+ * "Tang Sancai Camel with Attendant", "Tang Sancai Camel and Driver"). r.color: the camels' coat. */
 const camel: Builder = (gp, r) => {
+  const y0 = ground(gp, 0.46, SITE.sand);
+  for (const [x, z, sx, sz, a] of [[-0.24, 0.22, 0.13, 0.07, 0.5], [0.27, -0.12, 0.1, 0.06, -0.4], [-0.05, -0.34, 0.12, 0.05, 0.1]] as const)
+    ellip(gp, shade(SITE.sand, 0.9), x, y0 - 0.006, z, sx, 0.014, sz, a);
+  for (const [x, z] of [[0.3, 0.2], [-0.33, -0.08], [0.18, -0.33], [-0.2, 0.34]] as const) tree(gp, x, y0, z, 0.03, '#7a7a4a');
+  // heading west-south-west across the view so the caravan reads in profile
+  const A = grp(gp, -0.06, 0.06, -1.15, y0);
+  A.scale.setScalar(0.56);
+  camelFigure(A, r);
+  const B = grp(gp, 0.27, -0.1, -1.2, y0);
+  B.scale.setScalar(0.48);
+  camelFigure(B, { ...r, rider: false, driver: false });
+};
+
+/** The Bactrian camel figure itself (no base; ≈0.7 tall, facing +z); also used for camel mounts. */
+function camelFigure(gp: THREE.Object3D, r: ModelRecipe): void {
   const c = str(r.color, '#b48a5a'), d = tint(c, -0.22);
   const G = grp(gp, 0, 0, -Math.PI / 2);
   // Bactrian camel with silk bales (after pocket-planet's Silk Road camel); local +x is forward
@@ -548,9 +580,9 @@ const camel: Builder = (gp, r) => {
   ellip(G, tint(c, -0.12), 0.45, 0.66, 0, 0.03, 0.03, 0.034);
   for (const sz of [-1, 1]) { ellip(G, '#1f1a17', 0.4, 0.7, sz * 0.036, 0.01); ellip(G, c, 0.36, 0.72, sz * 0.03, 0.012, 0.02, 0.008); }
   tube(G, [[-0.23, 0.44, 0], [-0.27, 0.32, 0]], 0.012, 0.008, d, { radial: 4, sub: 2 });
-  box(G, '#9b1c1c', -0.01, 0.5, 0, 0.09, 0.012, 0.25);
+  box(G, '#7a8456', -0.01, 0.5, 0, 0.09, 0.012, 0.25);
   for (const sz of [-1, 1]) {
-    cyl(G, sz > 0 ? '#2f4f8a' : '#d6a840', 0, 0.38, sz * 0.14, 0.045, 0.14, 10).rotation.z = Math.PI / 2;
+    cyl(G, sz > 0 ? '#566478' : '#b0904e', 0, 0.38, sz * 0.14, 0.045, 0.14, 10).rotation.z = Math.PI / 2;
     box(G, '#7c5a3a', 0, 0.4, sz * 0.14, 0.012, 0.095, 0.095);
   }
   rod(G, [0.43, 0.66, 0], [0.5, 0.4, 0.16], 0.003, '#7c5a3a', 3);
@@ -559,7 +591,7 @@ const camel: Builder = (gp, r) => {
   }
   // a walking driver in front
   if (r.driver !== false) human(G, 0.5, 0, 0.18, { h: 0.42, ry: Math.PI / 2, pose: 'walk', phase: 0.3, top: '#6b5a3e', bottom: '#4a3e2c', hat: '#3a3128', hatStyle: 'brim', detail: 'lo' });
-};
+}
 
 const flag: Builder = (gp, r) => {
   // A Chinese war banner (牙旗) planted in a cairn of stones: a vertical silk field in the side's colour laced to the
@@ -639,7 +671,7 @@ function hill(p: THREE.Object3D, R: number, h: (x: number, z: number) => number,
   skin(p, rings, grass, {
     caps: true, flat: true,
     paint: (x, y, z, _nx, ny) => {
-      if (y < 0.03 && ny < 0.6) return shade(rock, 0.72);
+      if (y < 0.03 && ny < 0.6) return PLINTH_SIDE;
       const n = hash3(Math.round(x * 50), Math.round(z * 50), 3);
       return ny < 0.62 ? (n > 0.5 ? rock : shade(rock, 0.9)) : n > 0.72 ? shade(grass, 1.1) : n < 0.15 ? shade(grass, 0.88) : grass;
     },
@@ -733,7 +765,7 @@ const wall: Builder = (gp, r) => {
   const H = hill(gp, 0.47, (x, z) => crest(x) * Math.exp(-((z - zc(x)) ** 2) / 0.07) + (hash3(Math.round(x * 20), Math.round(z * 20), 9) - 0.5) * 0.012,
     ming ? '#6d7a45' : '#7a8450', ming ? '#8a8270' : '#8f8672');
   const N = 30, pts: V3[] = [];
-  for (let i = 0; i <= N; i++) { const x = -0.43 + (i / N) * 0.86, z = zc(x); pts.push([x, H(x, z), z]); }
+  for (let i = 0; i <= N; i++) { const x = -0.38 + (i / N) * 0.76, z = zc(x); pts.push([x, H(x, z), z]); }
   const stone = '#958c7c', brick = '#8b8780', granite = '#b3ab9a', path = ming ? '#7f7b74' : '#857658';
   const Hw = ming ? 0.075 : 0.06, w0 = ming ? 0.062 : 0.058, w1 = ming ? 0.058 : 0.04;
   const gateAt = 9, towers = ming ? [6, 21] : [21];
@@ -811,8 +843,8 @@ const wall: Builder = (gp, r) => {
     const x = -0.4 + hash3(k, 1, 2) * 0.8, side = k % 2 ? 1 : -1, z = zc(x) + side * (0.09 + hash3(k, 2, 2) * 0.22);
     if (Math.hypot(x, z) > 0.44) continue;
     const y = H(x, z);
-    if (k % 3) minipine(gp, x, y, z, 0.05 + hash3(k, 3, 2) * 0.03, ming ? '#3a5a30' : '#355a2e');
-    else { cyl(gp, '#5b4030', x, y, z, 0.003, 0.02, 4); ellip(gp, ming ? '#8a7a3a' : '#5a7a3a', x, y + 0.03, z, 0.022, 0.018, 0.022); }
+    if (k % 3) tree(gp, x, y, z, 0.045 + hash3(k, 3, 2) * 0.025, '#3f5a34', true);
+    else tree(gp, x, y, z, 0.03, ming ? '#7a7440' : '#5a7040');
   }
 };
 
@@ -837,9 +869,14 @@ const gate: Builder = (gp, r) => {
   // two-storey timber gate tower (城楼) with a pent eave and a grey-tile 歇山 roof. r.color tints the banners.
   // r.style 'tiananmen': 天安门 — red platform with five arches on a marble base, 9-bay double-eave yellow 歇山 tower
   // with red lanterns, the Golden Water bridges and a pair of 华表 in front.
-  const flagC = str(r.color, '#a8352a');
+  const flagC = str(r.color, '#9a3b2c');
+  // every gate stands on the shared paved plinth; the gate itself is built at 0.85 scale to sit inside it
+  const base = ground(gp, 0.46, SITE.paving);
+  const root = gp;
+  gp = grp(root, 0, 0.02, 0, base);
+  gp.scale.setScalar(0.85);
   if (r.style === 'tiananmen') {
-    const red = '#9c2e24', marble = '#ddd7c8', yellow = '#d6a530';
+    const red = '#963026', marble = '#d6d0c2', yellow = '#c99a38';
     const zc = -0.1, W = 0.86, D = 0.3, H = 0.12;
     tbox(gp, W + 0.04, D + 0.04, W + 0.03, D + 0.03, 0.02, marble, 0, 0, zc);
     tbox(gp, W, D, W - 0.024, D - 0.024, H, red, 0, 0.02, zc);
@@ -877,12 +914,12 @@ const gate: Builder = (gp, r) => {
     for (let i = 0; i < 8; i++) {
       const lx = -0.28 + (i + (i >= 4 ? 1 : 0)) * 0.0622, lz = zt + 0.125;
       rod(gp, [lx, e1 - 0.004, lz], [lx, e1 - 0.016, lz], 0.0012, '#2a1a14', 3);
-      ellip(gp, '#d42a1e', lx, e1 - 0.028, lz, 0.013, 0.014, 0.013);
+      ellip(gp, '#b8301f', lx, e1 - 0.028, lz, 0.013, 0.014, 0.013);
       box(gp, '#d6a840', lx, e1 - 0.046, lz, 0.004, 0.006, 0.004);
     }
     // the Golden Water river, five marble bridges and a pair of 华表 columns with crouching 犼
-    box(gp, '#d4ccb8', 0, 0, 0.18, 0.92, 0.004, 0.26);
-    box(gp, '#3f6f86', 0, 0.002, 0.2, 0.92, 0.004, 0.05);
+    box(gp, '#9a9a8c', 0, 0, 0.2, 0.9, 0.006, 0.07);
+    box(gp, SITE.water, 0, 0.002, 0.2, 0.9, 0.006, 0.05);
     for (const bx of [-0.24, -0.12, 0, 0.12, 0.24]) {
       const bw = bx === 0 ? 0.06 : 0.045;
       const bridgeG = grp(gp, bx, 0.2, Math.PI / 2, 0);
@@ -904,7 +941,10 @@ const gate: Builder = (gp, r) => {
     }
     return;
   }
-  const brick = '#8a867d', stone = '#b0a894', zc = -0.05, W = 0.86, D = 0.3, H = 0.2;
+  // Default: a Ming–Qing city gate (cf. 北京正阳门 / 德胜门 城楼, 嘉峪关 光化楼; Commons "20160507 China 6087 crop
+  // Jiayuguan"): battered grey-brick platform with one arched passage, crenellated parapet, and a two-storey timber gate
+  // tower under three eaves (重檐歇山三滴水) — tower ≈ ½ the platform width and ≈1.2× its height.
+  const brick = '#8d8a83', stone = '#b0a894', zc = -0.05, W = 0.86, D = 0.3, H = 0.2;
   // stone plinth and battered brick platform
   tbox(gp, W + 0.03, D + 0.03, W + 0.02, D + 0.02, 0.03, stone, 0, 0, zc);
   const sk = skin(gp, [0, 1].map(t => {
@@ -939,26 +979,35 @@ const gate: Builder = (gp, r) => {
   parapet(gp, -w2 + 0.007, yT, zc, d2 * 2, Math.PI / 2, brick);
   parapet(gp, w2 - 0.007, yT, zc, d2 * 2, Math.PI / 2, brick);
   parapet(gp, 0, yT, zc - d2 + 0.007, w2 * 2, 0, brick, false);
-  // gate tower: five-bay ground storey with a pent eave (腰檐), balcony storey above, grey-tile 歇山 roof
-  const zt = zc - 0.015;
-  rbox(gp, '#a49c8a', 0, yT, zt, 0.54, 0.012, 0.2, 0.002);
-  const e1 = hallBody(gp, 0, yT + 0.012, zt, 0.48, 0.16, 0.085, 5, { col: '#8a2e22', wall: '#8a3326', beam: '#2f5f5a' });
-  roof(gp, 0, e1, zt, 0.48, 0.16, 0.035, '#4e5157', { kind: 'hip', ov: 0.035, lift: 0.3, plain: true });
-  const y2 = e1 + 0.014;
-  for (const [x, z, len, ry] of [[0, zt + 0.07, 0.44, 0], [0, zt - 0.07, 0.44, 0], [-0.22, zt, 0.14, Math.PI / 2], [0.22, zt, 0.14, Math.PI / 2]] as const) {
-    const G = grp(gp, x, z, ry, y2);
-    box(G, '#7a2a1e', 0, 0.012, 0, len, 0.003, 0.004);
-    const n = Math.round(len / 0.025);
-    for (let i = 0; i <= n; i++) box(G, '#7a2a1e', -len / 2 + (i / n) * len, 0, 0, 0.003, 0.014, 0.003);
-  }
-  const e2 = hallBody(gp, 0, y2, zt, 0.4, 0.12, 0.06, 5, { col: '#8a2e22', wall: '#8a3326', beam: '#2f5f5a' });
-  roof(gp, 0, e2, zt, 0.4, 0.12, 0.08, '#4e5157', { kind: 'xieshan', ov: 0.045, lift: 0.45 });
+  // gate tower: five-bay ground storey under a pent eave, a balcony storey under a second pent eave, and the top
+  // storey under a grey-tile 歇山 roof — three eaves
+  const zt = zc - 0.015, col = '#9a3b2c', wallC = '#8e3428', beam = '#2f5a56', tl = '#5d6266';
+  rbox(gp, '#a49c8a', 0, yT, zt, 0.52, 0.012, 0.2, 0.002);
+  const e1 = hallBody(gp, 0, yT + 0.012, zt, 0.46, 0.16, 0.08, 5, { col, wall: wallC, beam });
+  roof(gp, 0, e1, zt, 0.46, 0.16, 0.032, tl, { kind: 'hip', ov: 0.035, lift: 0.3, plain: true });
+  const balcony = (y: number, w: number, d: number) => {
+    for (const [x, z, len, ry] of [[0, zt + d / 2, w, 0], [0, zt - d / 2, w, 0], [-w / 2, zt, d, Math.PI / 2], [w / 2, zt, d, Math.PI / 2]] as const) {
+      const G = grp(gp, x, z, ry, y);
+      box(G, col, 0, 0.012, 0, len, 0.006, 0.006);
+      const n = Math.round(len / 0.03);
+      for (let i = 0; i <= n; i++) box(G, col, -len / 2 + (i / n) * len, 0, 0, 0.006, 0.014, 0.006);
+    }
+  };
+  const y2 = e1 + 0.012;
+  balcony(y2, 0.42, 0.14);
+  const e2 = hallBody(gp, 0, y2, zt, 0.38, 0.12, 0.055, 5, { col, wall: wallC, beam });
+  roof(gp, 0, e2, zt, 0.38, 0.12, 0.026, tl, { kind: 'hip', ov: 0.032, lift: 0.3, plain: true });
+  const y3 = e2 + 0.01;
+  const e3 = hallBody(gp, 0, y3, zt, 0.34, 0.1, 0.04, 5, { col, wall: wallC, beam, open: true });
+  roof(gp, 0, e3, zt, 0.34, 0.1, 0.08, tl, { kind: 'xieshan', ov: 0.045, lift: 0.45 });
+  box(gp, '#2a3a44', 0, e3 - 0.022, zt + 0.06, 0.05, 0.022, 0.006);
+  box(gp, '#b89a4a', 0, e3 - 0.019, zt + 0.063, 0.04, 0.014, 0.003);
   // garrison banners on the corners and sentries at the parapet and gate
   const top = grp(gp, 0, 0, 0, yT);
   for (const sx of [-1, 1]) {
     banner(gp, sx * (w2 - 0.03), yT, zc + d2 - 0.03, 0.2, flagC, 0.07);
-    soldier(top, sx * 0.3, zc + d2 - 0.03, 0.07, '#7f1d1d', { detail: 'lo', shield: false });
-    soldier(gp, sx * 0.1, face + 0.04, 0.1, '#7f1d1d', { detail: 'lo', shield: false });
+    soldier(top, sx * 0.3, zc + d2 - 0.03, 0.07, '#7a2a20', { detail: 'lo', shield: false });
+    soldier(gp, sx * 0.1, face + 0.04, 0.1, '#7a2a20', { detail: 'lo', shield: false });
   }
 };
 
@@ -976,7 +1025,9 @@ const palace: Builder = (gp, r) => {
   const style = str(r.style, yr === undefined ? 'ming' : yr < -1000 ? 'early' : yr < 400 ? 'han' : yr < 960 ? 'tang' : 'ming');
   if (style === 'early') {
     const earth = '#b39a6c', thatch = str(r.roof, '#a88a52');
-    ground(gp, 0.47, '#9a8a62');
+    ground(gp, 0.46, SITE.loess);
+    gp = grp(gp, 0, 0, 0, 0.03 * (1 - 0.72));
+    gp.scale.setScalar(0.72);
     // walled courtyard with a corridor (廊庑) along the enclosure and a gate house at the front
     const R = 0.42;
     for (const [x, z, len, ry] of [[0, -R, 2 * R, 0], [-R, 0, 2 * R, Math.PI / 2], [R, 0, 2 * R, Math.PI / 2], [-0.26, R, 0.32, 0], [0.26, R, 0.32, 0]] as const) {
@@ -1002,37 +1053,39 @@ const palace: Builder = (gp, r) => {
     return;
   }
   if (style === 'han') {
-    const earth = '#b39a6c', tile = str(r.roof, '#45484d');
-    ground(gp, 0.47, '#8a7a5a');
-    const zc = -0.1;
-    // two-tier rammed-earth 高台 with timber-laced layers, stairs up the front
-    tbox(gp, 0.82, 0.5, 0.78, 0.46, 0.08, earth, 0, 0.03, zc);
-    tbox(gp, 0.62, 0.36, 0.58, 0.32, 0.07, earth, 0, 0.11, zc - 0.02);
-    for (const [y, w, d, z] of [[0.06, 0.8, 0.48, zc], [0.08, 0.79, 0.47, zc], [0.14, 0.6, 0.34, zc - 0.02], [0.16, 0.59, 0.33, zc - 0.02]] as const) box(gp, shade(earth, 0.88), 0, y, z, w, 0.003, d);
+    // 未央宫前殿 (Western Han, from the excavated 高台 at Xi'an): a hall on a two-tier rammed-earth terrace laced with
+    // timber, straight grey-tile hip roof, white walls and dark red columns, twin 阙 towers flanking the approach (cf. the
+    // Han pottery tower models and the 高颐阙 stone que).
+    const earth = '#a88d68', tile = str(r.roof, '#4f5458');
+    ground(gp, 0.46, SITE.loess);
+    const zc = -0.07;
+    tbox(gp, 0.7, 0.42, 0.66, 0.38, 0.08, earth, 0, 0.03, zc);
+    tbox(gp, 0.54, 0.3, 0.5, 0.26, 0.07, earth, 0, 0.11, zc - 0.02);
+    for (const [y, w, d, z] of [[0.06, 0.68, 0.4, zc], [0.08, 0.67, 0.39, zc], [0.14, 0.52, 0.28, zc - 0.02], [0.16, 0.51, 0.27, zc - 0.02]] as const) box(gp, shade(earth, 0.86), 0, y, z, w, 0.004, d);
     for (const sx of [-1, 1]) {
-      for (let i = 0; i < 8; i++) box(gp, shade(earth, 0.95), sx * 0.12, 0.03 + i * 0.01, zc + 0.25 + 0.06 - i * 0.008, 0.06, 0.01, 0.01);
-      for (let i = 0; i < 7; i++) box(gp, shade(earth, 0.95), sx * 0.12, 0.11 + i * 0.01, zc + 0.16 + 0.06 - i * 0.009, 0.06, 0.01, 0.01);
+      for (let i = 0; i < 8; i++) box(gp, shade(earth, 0.95), sx * 0.1, 0.03 + i * 0.01, zc + 0.19 + 0.08 - i * 0.01, 0.05, 0.01, 0.012);
+      for (let i = 0; i < 7; i++) box(gp, shade(earth, 0.95), sx * 0.1, 0.11 + i * 0.01, zc + 0.11 + 0.07 - i * 0.01, 0.05, 0.01, 0.012);
     }
-    const y = 0.18, W = 0.5, D = 0.24;
-    const e = hallBody(gp, 0, y, zc - 0.03, W, D, 0.1, 7, { col: '#6a1f16', wall: '#d9cdb0', door: '#5a2418', beam: '#3a2a20' });
+    const y = 0.18, W = 0.44, D = 0.2;
+    const e = hallBody(gp, 0, y, zc - 0.03, W, D, 0.095, 7, { col: '#6a2a1e', wall: '#d2c6aa', door: '#5a2a1e', beam: '#4a3426' });
     roof(gp, 0, e, zc - 0.03, W, D, 0.085, tile, { kind: 'hip', ov: 0.05, lift: 0.06 });
-    // twin 阙 towers flanking the approach
+    // twin 阙 towers flanking the approach: earthen base, timber bracket band, two hip-roofed tiers and a lower sub-que
     for (const sx of [-1, 1]) {
-      const qx = sx * 0.33, qz = 0.3;
-      tbox(gp, 0.1, 0.07, 0.09, 0.06, 0.16, '#cfc3a8', qx, 0.03, qz);
-      box(gp, '#6a1f16', qx, 0.15, qz, 0.092, 0.012, 0.062);
-      const t1 = roof(gp, qx, 0.19, qz, 0.09, 0.06, 0.025, tile, { kind: 'hip', ov: 0.018, lift: 0.05, plain: true });
-      box(gp, '#cfc3a8', qx, t1 - 0.006, qz, 0.05, 0.03, 0.035);
-      roof(gp, qx, t1 + 0.024, qz, 0.05, 0.035, 0.02, tile, { kind: 'hip', ov: 0.014, lift: 0.05, plain: true });
-      tbox(gp, 0.05, 0.05, 0.045, 0.045, 0.1, '#cfc3a8', qx + sx * 0.07, 0.03, qz);
-      roof(gp, qx + sx * 0.07, 0.13, qz, 0.045, 0.045, 0.02, tile, { kind: 'hip', ov: 0.012, lift: 0.05, plain: true });
+      const qx = sx * 0.24, qz = 0.27;
+      tbox(gp, 0.09, 0.06, 0.08, 0.052, 0.15, '#c9bc9e', qx, 0.03, qz);
+      box(gp, '#6a2a1e', qx, 0.14, qz, 0.084, 0.012, 0.056);
+      const t1 = roof(gp, qx, 0.18, qz, 0.084, 0.056, 0.024, tile, { kind: 'hip', ov: 0.016, lift: 0.05, plain: true });
+      box(gp, '#c9bc9e', qx, t1 - 0.006, qz, 0.046, 0.028, 0.032);
+      roof(gp, qx, t1 + 0.022, qz, 0.046, 0.032, 0.02, tile, { kind: 'hip', ov: 0.013, lift: 0.05, plain: true });
+      tbox(gp, 0.045, 0.045, 0.04, 0.04, 0.09, '#c9bc9e', qx + sx * 0.062, 0.03, qz);
+      roof(gp, qx + sx * 0.062, 0.12, qz, 0.04, 0.04, 0.018, tile, { kind: 'hip', ov: 0.011, lift: 0.05, plain: true });
     }
-    for (let k = 0; k < 3; k++) human(gp, -0.08 + k * 0.08, 0.03, 0.34, { h: 0.1, pose: 'walk', phase: k / 3, top: ['#2a2420', '#7a2318', '#2a2420'][k], bottom: '#2a2420', hair: '#1c1714', detail: 'min', dress: 'ankle', ry: Math.PI });
+    for (let k = 0; k < 3; k++) human(gp, -0.06 + k * 0.06, 0.03, 0.34, { h: 0.1, pose: 'walk', phase: k / 3, top: ['#2a2420', '#6a2a1e', '#2a2420'][k], bottom: '#2a2420', hair: '#1c1714', detail: 'min', dress: 'ankle', ry: Math.PI });
     return;
   }
   if (style === 'tang') {
-    const tile = str(r.roof, '#3f4248'), plat = '#c4b89e';
-    ground(gp, 0.47, '#9a8f74');
+    const tile = str(r.roof, '#4a4e52'), plat = '#b8ad96';
+    ground(gp, 0.46, SITE.loess);
     const zc = -0.1, W = 0.58, D = 0.36, H = 0.13;
     tbox(gp, W, D, W - 0.02, D - 0.02, H, plat, 0, 0.03, zc);
     box(gp, '#e2dccd', 0, 0.03 + H, zc, W - 0.02, 0.006, D - 0.02);
@@ -1044,14 +1097,14 @@ const palace: Builder = (gp, r) => {
     }
     // 龙尾道: the long dragon-tail ramp climbing in three flights with landings (side profile extruded across)
     const f0 = zc + D / 2, v = (k: number) => 0.03 + (H * k) / 3;
-    const prof: [number, number][] = [[f0 - 0.01, 0.03], [0.45, 0.03], [0.43, v(1)], [0.37, v(1)], [0.3, v(2)], [0.24, v(2)], [f0 + 0.04, v(3)], [f0 - 0.01, v(3)]];
+    const prof: [number, number][] = [[f0 - 0.01, 0.03], [0.42, 0.03], [0.4, v(1)], [0.35, v(1)], [0.29, v(2)], [0.24, v(2)], [f0 + 0.04, v(3)], [f0 - 0.01, v(3)]];
     for (const sx of [-1, 1]) {
       const rg = grp(gp, sx * 0.11, 0, -Math.PI / 2, 0);
       slab(rg, prof, 0.05, '#b8ac92', 0, false);
       for (const ex of [-0.025, 0.025]) {
-        rod(gp, [sx * 0.11 + ex, 0.045, 0.45], [sx * 0.11 + ex, v(1) + 0.012, 0.43], 0.002, '#e2dccd', 3);
-        rod(gp, [sx * 0.11 + ex, v(1) + 0.012, 0.37], [sx * 0.11 + ex, v(2) + 0.012, 0.3], 0.002, '#e2dccd', 3);
-        rod(gp, [sx * 0.11 + ex, v(2) + 0.012, 0.24], [sx * 0.11 + ex, v(3) + 0.012, f0 + 0.04], 0.002, '#e2dccd', 3);
+        rod(gp, [sx * 0.11 + ex, 0.045, 0.42], [sx * 0.11 + ex, v(1) + 0.012, 0.4], 0.003, '#e2dccd', 3);
+        rod(gp, [sx * 0.11 + ex, v(1) + 0.012, 0.35], [sx * 0.11 + ex, v(2) + 0.012, 0.29], 0.003, '#e2dccd', 3);
+        rod(gp, [sx * 0.11 + ex, v(2) + 0.012, 0.24], [sx * 0.11 + ex, v(3) + 0.012, f0 + 0.04], 0.003, '#e2dccd', 3);
       }
     }
     const y = 0.036 + H;
@@ -1060,68 +1113,171 @@ const palace: Builder = (gp, r) => {
     roof(gp, 0, e, zc - 0.02, 0.44, 0.2, 0.08, tile, { kind: 'hip', ov: 0.06, lift: 0.18, ridge: '#2f6f5a' });
     // 翔鸾阁 / 栖凤阁 on tall bases, joined to the hall by covered galleries
     for (const sx of [-1, 1]) {
-      const qx = sx * 0.36, qz = 0.14;
+      const qx = sx * 0.35, qz = 0.12;
       tbox(gp, 0.11, 0.11, 0.1, 0.1, 0.17, plat, qx, 0.03, qz);
       const e2 = hallBody(gp, qx, 0.2, qz, 0.08, 0.08, 0.05, 3, { col: '#a8352a', wall: '#ece4d2', beam: '#a8352a' });
       roof(gp, qx, e2, qz, 0.08, 0.08, 0.04, tile, { kind: 'hip', ov: 0.025, lift: 0.18, ridge: '#2f6f5a' });
       const gx = sx * 0.3;
       box(gp, '#ece4d2', gx, 0.03 + H + 0.005, zc + 0.02, 0.016, 0.035, 0.22).rotation.y = 0;
-      roof(gp, gx, 0.03 + H + 0.04, zc + 0.04, 0.03, 0.26, 0.018, tile, { kind: 'gable', ov: 0.008, lift: 0.05, plain: true, ry: Math.PI / 2 });
+      roof(gp, gx, 0.03 + H + 0.04, zc + 0.02, 0.24, 0.035, 0.018, tile, { kind: 'gable', ov: 0.008, lift: 0.05, plain: true, ry: Math.PI / 2 });
     }
-    for (let k = 0; k < 4; k++) human(gp, -0.15 + k * 0.1, 0.03, 0.36 - (k % 2) * 0.03, { h: 0.1, pose: 'stand', top: ['#7a2318', '#2f4f8a', '#4a6a3a', '#7a2318'][k], bottom: '#2a2420', hair: '#1c1714', detail: 'min', dress: 'ankle', ry: Math.PI });
+    for (let k = 0; k < 4; k++) human(gp, -0.15 + k * 0.1, 0.03, 0.36 - (k % 2) * 0.03, { h: 0.1, pose: 'stand', top: ['#7a2a20', '#4a5a6a', '#5a6040', '#7a2a20'][k], bottom: '#2a2420', hair: '#1c1714', detail: 'min', dress: 'ankle', ry: Math.PI });
     return;
   }
-  // 太和殿
-  const tile = str(r.roof, '#d6a530'), ridgeC = shade(tile, 0.82);
-  const y = terrace(gp, 0.9, 0.62, 3, 0.04);
-  const zc = -0.05, W = 0.6, D = 0.28;
-  rbox(gp, '#d8d0be', 0, y, zc, W + 0.05, 0.012, D + 0.05, 0.002);
-  const e1 = hallBody(gp, 0, y + 0.012, zc, W, D, 0.105, 11, { col: '#a8352a', wall: '#9a3326', door: '#a8452a', beam: '#2f6f6a' });
+  // 太和殿 (Hall of Supreme Harmony, 1695 rebuild): 11 × 5 bays, 64 m × 37 m, double-eave 庑殿 roof in imperial yellow
+  // glaze on a three-tier white-marble 须弥座 terrace (8 m) in the paved Outer Court. Refs: Commons "The Hall of Supreme
+  // Harmony.jpg", "Hall of Supreme Harmony.JPG".
+  const tile = str(r.roof, '#c3903a'), ridgeC = shade(tile, 0.82), marble = '#d6d0c2';
+  ground(gp, 0.46, SITE.paving, undefined, 0.03, (x, _y, z) => {
+    // the 御路 imperial way (larger pale slabs) up the axis, brick paving joints elsewhere
+    if (Math.abs(x) < 0.05) return Math.abs(x) > 0.043 ? shade(SITE.paving, 0.88) : shade('#b8b3a6', 0.97 + hash3(0, Math.round(z * 30), 4) * 0.06);
+    const jx = Math.abs(((x * 25) % 1 + 1) % 1 - 0.5) > 0.44, jz = Math.abs(((z * 25) % 1 + 1) % 1 - 0.5) > 0.44;
+    return jx || jz ? shade(SITE.paving, 0.9) : shade(SITE.paving, 0.96 + hash3(Math.round(x * 25), Math.round(z * 25), 3) * 0.08);
+  });
+  const terraceG = grp(gp, 0, 0, 0, 0.03);
+  const y = 0.03 + terrace(terraceG, 0.72, 0.5, 3, 0.038, marble);
+  const zc = -0.035, W = 0.5, D = 0.23;
+  rbox(gp, shade(marble, 1.02), 0, y, zc, W + 0.04, 0.012, D + 0.04, 0.002);
+  const e1 = hallBody(gp, 0, y + 0.012, zc, W, D, 0.1, 11, { col: '#9a3b2c', wall: '#8e3428', door: '#9a4a2c', beam: '#2f6560' });
   roof(gp, 0, e1, zc, W, D, 0.04, tile, { kind: 'hip', ov: 0.05, lift: 0.35, ridge: ridgeC, plain: true });
-  const e2 = hallBody(gp, 0, e1 + 0.016, zc, W * 0.86, D * 0.7, 0.035, 9, { open: true, wall: '#9a3326', beam: '#2f6f6a' });
-  roof(gp, 0, e2, zc, W * 0.86, D * 0.7, 0.12, tile, { kind: 'hip', ov: 0.05, lift: 0.4, ridge: ridgeC, beasts: true });
+  const e2 = hallBody(gp, 0, e1 + 0.016, zc, W * 0.86, D * 0.7, 0.035, 9, { open: true, wall: '#8e3428', beam: '#2f6560' });
+  roof(gp, 0, e2, zc, W * 0.86, D * 0.7, 0.13, tile, { kind: 'hip', ov: 0.05, lift: 0.4, ridge: ridgeC, beasts: true });
   // the plaque under the upper eave
-  box(gp, '#1f3f6a', 0, e2 - 0.03, zc + D * 0.35 + 0.012, 0.05, 0.025, 0.003);
-  box(gp, '#d6a840', 0, e2 - 0.026, zc + D * 0.35 + 0.014, 0.04, 0.017, 0.002);
-  // on the terrace: bronze tripod censers, a sundial, the grain measure, bronze crane and tortoise
-  const ty = y, fz = zc + D / 2 + 0.06;
+  box(gp, '#1f3f5a', 0, e2 - 0.03, zc + D * 0.35 + 0.012, 0.05, 0.025, 0.006);
+  box(gp, '#c9a24a', 0, e2 - 0.026, zc + D * 0.35 + 0.015, 0.04, 0.017, 0.003);
+  // on the terrace: bronze tripod censers, bronze cranes, the sundial (日晷) and the grain measure (嘉量)
+  const ty = y, fz = zc + D / 2 + 0.05;
   for (const sx of [-1, 1]) {
-    for (const cx of [0.08, 0.18]) {
+    for (const cx of [0.07, 0.14]) {
       const m = lathe(gp, [[0, 0], [0.008, 0.003], [0.009, 0.012], [0.006, 0.015], [0.008, 0.02], [0.005, 0.023], [0.0025, 0.03], [0, 0.031]], '#4a4a3e', sx * cx, ty, fz, 10);
-      bronze(m, '#4a5048');
+      bronze(m, '#4f5a4c');
     }
-    // bronze crane on a stand
-    bronze(add(gp, g('rich:sph7', () => new THREE.SphereGeometry(1, 7, 4)), mat('#4a5048'), sx * 0.28, ty + 0.022, fz, 0.007, 0.008, 0.012) as THREE.Mesh);
-    for (const lx of [-0.003, 0.003]) rod(gp, [sx * 0.28 + lx, ty, fz], [sx * 0.28 + lx, ty + 0.018, fz], 0.0012, '#4a5048', 3);
-    rod(gp, [sx * 0.28, ty + 0.026, fz + 0.008], [sx * 0.28, ty + 0.045, fz + 0.012], 0.0015, '#4a5048', 3);
+    bronze(add(gp, g('rich:sph7', () => new THREE.SphereGeometry(1, 7, 4)), mat('#4f5a4c'), sx * 0.2, ty + 0.022, fz, 0.007, 0.008, 0.012) as THREE.Mesh);
+    for (const lx of [-0.003, 0.003]) rod(gp, [sx * 0.2 + lx, ty, fz], [sx * 0.2 + lx, ty + 0.018, fz], 0.0018, '#4f5a4c', 3);
+    rod(gp, [sx * 0.2, ty + 0.026, fz + 0.008], [sx * 0.2, ty + 0.045, fz + 0.012], 0.002, '#4f5a4c', 3);
   }
-  tbox(gp, 0.03, 0.03, 0.026, 0.026, 0.035, '#d8d0be', -0.34, ty, fz);
-  cyl(gp, '#d8d0be', -0.34, ty + 0.04, fz, 0.024, 0.004, 14).rotation.x = -0.7;
-  tbox(gp, 0.03, 0.03, 0.026, 0.026, 0.03, '#d8d0be', 0.34, ty, fz);
-  rbox(gp, '#4a5048', 0.34, ty + 0.03, fz, 0.02, 0.016, 0.02, 0.003);
-  roof(gp, 0.34, ty + 0.046, fz, 0.022, 0.022, 0.016, tile, { kind: 'pyramid', ov: 0.006, lift: 0.2 });
-  // the paved court and a pair of guards at the foot of the stairs
-  box(gp, '#cfc6b0', 0, 0, 0.42, 0.9, 0.002, 0.1);
+  tbox(gp, 0.03, 0.03, 0.026, 0.026, 0.035, marble, -0.245, ty, fz);
+  cyl(gp, marble, -0.245, ty + 0.04, fz, 0.024, 0.006, 14).rotation.x = -0.7;
+  tbox(gp, 0.03, 0.03, 0.026, 0.026, 0.03, marble, 0.245, ty, fz);
+  rbox(gp, '#4f5a4c', 0.245, ty + 0.03, fz, 0.02, 0.016, 0.02, 0.003);
+  roof(gp, 0.245, ty + 0.046, fz, 0.022, 0.022, 0.016, tile, { kind: 'pyramid', ov: 0.006, lift: 0.2 });
+  // a pair of guards at the foot of the stairs
   for (const sx of [-1, 1]) {
-    const f = figure(gp, { h: 0.1, x: sx * 0.08, y: 0, z: 0.42, top: '#7f1d1d', accent: '#d6a840', hat: 'doumou', hatColor: '#3a3a3a', outfit: 'robe', armR: { fwd: 0.4, bend: 0.4 } });
-    rod(gp, [f.handR[0], 0.01, f.handR[2]], [f.handR[0], 0.15, f.handR[2]], 0.002, P.darkwood, 3);
+    const f = figure(gp, { h: 0.1, x: sx * 0.09, y: 0.03, z: 0.36, top: '#7a2a20', accent: '#c9a24a', hat: 'doumou', hatColor: '#3a3a3a', outfit: 'robe', armR: { fwd: 0.4, bend: 0.4 } });
+    rod(gp, [f.handR[0], 0.04, f.handR[2]], [f.handR[0], 0.18, f.handR[2]], 0.003, P.darkwood, 3);
   }
 };
 
-const pagoda: Builder = (gp, r) => {
-  // octagonal brick-and-timber pagoda (e.g. 释迦塔) with nine eaves and a gourd finial
-  ground(gp, 0.3, '#a99a7a');
-  let y = terrace(gp, 0.42, 0.42, 1, 0.035, P.white, false) + 0.03;
-  const wall = str(r.color, '#d9cdb4'), tile = str(r.roof, '#3f4248');
-  for (let i = 0; i < 7; i++) {
-    const R = 0.15 - i * 0.012, h = i === 0 ? 0.09 : 0.06;
-    storey(gp, 0, y, 0, 8, R, h, P.vermilion, wall);
-    y = proof(gp, 0, y + h, 0, { n: 8, R0: R * 1.5, R1: R * 0.9, h: 0.03, lift: 0.5, tile, rib: shade(tile, 1.3) }) - 0.005;
+/** Regular octagon prism (faces toward ±x/±z) from y to y + h, radius R to the corners; optional top radius R1. */
+function oct(p: THREE.Object3D, y: number, R: number, h: number, c: string, R1 = R): THREE.Mesh {
+  const m = lathe(p, [[0, 0], [R, 0], [R1, h], [0, h]], c, 0, y, 0, 8);
+  m.rotation.y = Math.PI / 8;
+  return m;
+}
+/** Bracket sets (斗拱) round an octagon of corner radius R at height y: a dark band with clustered corbel blocks. */
+function bracketRing(p: THREE.Object3D, y: number, R: number, h: number, c: string, per = 3): void {
+  oct(p, y, R * 0.98, h, shade(c, 0.7), R * 1.04);
+  for (let i = 0; i < 8; i++) {
+    const a0 = Math.PI / 8 + (i / 8) * Math.PI * 2, a1 = a0 + Math.PI / 4;
+    for (let k = 0; k < per; k++) {
+      const u = k / per, x = (Math.sin(a0) * (1 - u) + Math.sin(a1) * u) * R * 1.03, z = (Math.cos(a0) * (1 - u) + Math.cos(a1) * u) * R * 1.03;
+      const ry = Math.atan2(x, z), d = R * (k ? 0.14 : 0.2);
+      box(p, k ? c : shade(c, 1.12), x, y + h * 0.15, z, Math.max(0.007, R * 0.07), h * 0.85, d, ry);
+      box(p, shade(c, 1.2), x, y + h * 0.75, z, Math.max(0.008, R * 0.11), h * 0.25, d * 1.1, ry);
+    }
   }
-  lathe(gp, [[0, 0], [0.04, 0], [0.02, 0.03], [0, 0.03]], P.bronze, 0, y, 0, 8);
-  gourd(gp, 0, y + 0.03, 0, 0.03, P.gold);
-  rod(gp, [0, y, 0], [0, y + 0.16, 0], 0.003, P.gold, 4);
-  for (let k = 0; k < 5; k++) minipine(gp, Math.cos(k * 1.3 + 0.5) * 0.26, 0.03, Math.sin(k * 1.3 + 0.5) * 0.26, 0.08);
+}
+
+const pagoda: Builder = (gp, r) => {
+  // 应县木塔 (Shakyamuni Pagoda of 佛宫寺, Liao 1056): octagonal all-timber pagoda, 67.3 m tall and 30.3 m across, on a
+  // two-tier stone platform. Five storeys outside (four mezzanines inside) under six eaves — the ground storey has a
+  // peristyle (副阶) with its own pent eave — every upper storey standing on a bracketed balcony (平坐) with a railing;
+  // deep Liao bracket sets, shallow grey-tile eaves with a gentle lift, weathered red-brown timber, plaques on the front
+  // and an iron spire (塔刹) on an octagonal base. Refs: Commons "Fogong Pagoda 1.jpg", "Pagoda of Fogong Temple at
+  // Dust.jpg", "Fogong temple corner dougong.JPG". ≈0.0118 units/m. r.color: timber, r.roof: tile.
+  const tile = str(r.roof, '#4c5155'), timber = str(r.color, '#7a4630'), wall = '#9a6a48', stone = '#a9a294', iron = '#46413b';
+  const rib = shade(tile, 1.18), under = '#4a3426';
+  const y0 = ground(gp, 0.46, SITE.paving, undefined, 0.03, (x, _y, z) => {
+    // paved approach in front, worn earth elsewhere
+    if (Math.abs(x) < 0.07 && z > 0.2) return shade(SITE.paving, 0.95 + hash3(Math.round(x * 60), Math.round(z * 60), 2) * 0.08);
+    return shade(SITE.loess, 0.94 + hash3(Math.round(x * 30), Math.round(z * 30), 1) * 0.1);
+  });
+  // two-tier platform: a broad square lower terrace with front steps, an octagonal upper one
+  rbox(gp, stone, 0, y0, 0, 0.56, 0.026, 0.56, 0.004);
+  for (let i = 0; i < 4; i++) box(gp, shade(stone, 0.96), 0, y0 + (i / 4) * 0.026, 0.28 + 0.03 - i * 0.008, 0.12, 0.026 / 4, 0.008);
+  let y = y0 + 0.026;
+  oct(gp, y, 0.25, 0.024, shade(stone, 1.04), 0.245);
+  for (let i = 0; i < 3; i++) box(gp, stone, 0, y + (i / 3) * 0.024, 0.235 + 0.02 - i * 0.008, 0.08, 0.008, 0.008);
+  y += 0.024;
+  // ground storey: peristyle of 24 columns under a pent eave round the main body
+  const Rp = 0.2, Rb = 0.15, hp = 0.05;
+  for (let i = 0; i < 8; i++) for (let k = 0; k < 3; k++) {
+    const a0 = (i / 8) * Math.PI * 2 - Math.PI / 8 + Math.PI / 8, a1 = a0 + Math.PI / 4, u = k / 3;
+    const x = (Math.sin(a0 - Math.PI / 8) * (1 - u) + Math.sin(a1 - Math.PI / 8) * u) * Rp, z = (Math.cos(a0 - Math.PI / 8) * (1 - u) + Math.cos(a1 - Math.PI / 8) * u) * Rp;
+    cyl(gp, stone, x, y, z, 0.009, 0.004, 8);
+    cyl(gp, timber, x, y, z, 0.0055, hp, 6);
+  }
+  oct(gp, y + hp - 0.008, Rp + 0.004, 0.008, shade(timber, 0.8));
+  oct(gp, y, Rb, 0.12, wall);
+  // body columns and lintels, the front door
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    cyl(gp, timber, Math.sin(a) * Rb * 1.01, y, Math.cos(a) * Rb * 1.01, 0.006, 0.12, 6);
+  }
+  const ap = Math.cos(Math.PI / 8);
+  box(gp, '#3a2a20', 0, y, Rb * ap + 0.002, 0.045, 0.055, 0.004);
+  box(gp, timber, 0, y + 0.055, Rb * ap + 0.003, 0.055, 0.007, 0.004);
+  bracketRing(gp, y + hp - 0.002, Rp * 0.98, 0.012, timber, 3);
+  proof(gp, 0, y + hp + 0.008, 0, { n: 8, R0: Rp * 1.12, R1: Rb * 1.02, h: 0.03, lift: 0.22, k: 0.3, tile, rib, under });
+  y += 0.12;
+  oct(gp, y - 0.006, Rb * 1.02, 0.008, shade(timber, 0.85));
+  bracketRing(gp, y, Rb, 0.02, timber, 3);
+  y = proof(gp, 0, y + 0.02, 0, { n: 8, R0: Rb * 1.4, R1: Rb * 0.92, h: 0.032, lift: 0.28, tile, rib, under }) - 0.012;
+  // four upper storeys, each on a bracketed balcony with a railing
+  for (let s = 1; s <= 4; s++) {
+    const R = Rb - s * 0.0065, top = s === 4;
+    bracketRing(gp, y, R * 1.02, 0.016, timber, 3);
+    y += 0.016;
+    oct(gp, y, R + 0.026, 0.006, shade(timber, 0.9));
+    y += 0.006;
+    // railing: posts at the corners and mid-sides, a top rail
+    for (let i = 0; i < 8; i++) {
+      const a0 = (i / 8) * Math.PI * 2 + Math.PI / 8, a1 = a0 + Math.PI / 4, Rr = R + 0.022;
+      for (const u of [0, 0.5]) box(gp, timber, (Math.sin(a0) * (1 - u) + Math.sin(a1) * u) * Rr, y, (Math.cos(a0) * (1 - u) + Math.cos(a1) * u) * Rr, 0.006, 0.016, 0.006);
+      const mx = (Math.sin(a0) + Math.sin(a1)) / 2 * Rr, mz = (Math.cos(a0) + Math.cos(a1)) / 2 * Rr, len = 2 * Rr * Math.sin(Math.PI / 8);
+      box(gp, shade(timber, 1.1), mx, y + 0.012, mz, len, 0.006, 0.006, Math.atan2(mx, mz));
+      box(gp, shade(timber, 0.8), mx, y + 0.002, mz, len, 0.006, 0.004, Math.atan2(mx, mz));
+    }
+    const hs = 0.066;
+    oct(gp, y, R * 0.97, hs, wall);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+      cyl(gp, timber, Math.sin(a) * R, y, Math.cos(a) * R, 0.0055, hs, 6);
+      // a door / lattice panel on every face
+      const f = a - Math.PI / 8, fx = Math.sin(f) * R * 0.93, fz = Math.cos(f) * R * 0.93;
+      box(gp, shade(timber, 0.75), fx, y + 0.004, fz, 0.034, hs * 0.66, 0.006, f);
+    }
+    // the name plaque (匾) on the front of the storey
+    box(gp, '#2f3a40', 0, y + hs * 0.74, R * ap * 0.97 + 0.004, 0.034, 0.016, 0.004);
+    box(gp, '#a88a4a', 0, y + hs * 0.74 + 0.003, R * ap * 0.97 + 0.006, 0.024, 0.008, 0.002);
+    y += hs;
+    oct(gp, y - 0.008, R * 1.01, 0.008, shade(timber, 0.85));
+    bracketRing(gp, y, R, 0.02, timber, 3);
+    y += 0.02;
+    y = proof(gp, 0, y, 0, top
+      ? { n: 8, R0: R * 1.42, R1: 0.014, h: 0.085, lift: 0.28, k: 0.35, tile, rib, under }
+      : { n: 8, R0: R * 1.36, R1: R * 0.92, h: 0.03, lift: 0.28, tile, rib, under }) - (top ? 0.004 : 0.012);
+  }
+  // iron spire: octagonal brick base, lotus, the shaft with seven rings (相轮), a disc and a jewel, chains to the eaves
+  oct(gp, y - 0.01, 0.028, 0.024, '#8d8a83', 0.024);
+  lathe(gp, [[0, 0], [0.026, 0.002], [0.032, 0.014], [0.012, 0.018], [0, 0.018]], iron, 0, y + 0.014, 0, 10);
+  rod(gp, [0, y + 0.02, 0], [0, y + 0.15, 0], 0.0045, iron, 6);
+  for (let k = 0; k < 6; k++) cyl(gp, iron, 0, y + 0.04 + k * 0.012, 0, 0.014 - k * 0.0012, 0.004, 10);
+  cyl(gp, iron, 0, y + 0.118, 0, 0.018, 0.003, 10);
+  ellip(gp, iron, 0, y + 0.135, 0, 0.008, 0.01, 0.008);
+  ellip(gp, iron, 0, y + 0.153, 0, 0.005, 0.006, 0.005);
+  // old trees round the temple court
+  for (const [x, z, s, pine] of [[-0.34, 0.16, 0.07, true], [0.35, 0.14, 0.06, false], [-0.3, -0.28, 0.065, false], [0.31, -0.26, 0.07, true]] as const) tree(gp, x, y0, z, s, '#55703e', pine);
 };
 
 const temple: Builder = (gp, r) => {
@@ -1134,20 +1290,22 @@ const temple: Builder = (gp, r) => {
   const style = str(r.style, '');
   if (style === 'grotto') {
     const rock = '#b39a74', dk = '#8a7458';
-    ground(gp, 0.47, '#8a7a5a');
+    ground(gp, 0.46, SITE.loess);
     // the cliff: a ragged sandstone wall facing +z
     const cl: V3[][] = [];
     for (let j = 0; j <= 6; j++) {
       const v = j / 6, row: V3[] = [];
       for (let i = 0; i <= 14; i++) {
-        const u = i / 14, x = -0.46 + u * 0.92;
+        const u = i / 14, x = -0.4 + u * 0.8;
         const top = 0.5 + Math.sin(u * 7.3) * 0.04 + hash3(i, 3, 1) * 0.03;
         row.push([x, 0.03 + v * top, -0.08 - v * 0.08 + hash3(i, j, 5) * 0.012 * Math.sin(v * Math.PI) - 0.02 * Math.sin(u * 9)]);
       }
       cl.push(row);
     }
-    cl.push(cl[6].map(([x, y]) => [x, y, -0.36] as V3));
-    cl.push(cl[0].map(([x]) => [x, 0.03, -0.36] as V3));
+    // the back follows the plinth rim
+    const back = (x: number) => -Math.max(0.2, Math.sqrt(Math.max(0, 0.43 ** 2 - x * x)));
+    cl.push(cl[6].map(([x, y]) => [x, y, back(x)] as V3));
+    cl.push(cl[0].map(([x]) => [x, 0.03, back(x)] as V3));
     skin(gp, cl, rock, { closed: false, flat: true, paint: (_x, y, _z, _nx, ny) => (ny > 0.6 ? '#9a8a5a' : Math.floor(y * 40) % 3 === 0 ? dk : null) });
     // colossal seated Buddha (cf. Yungang cave 20, 13.7 m) in an open arched niche, with mandorla and flame halo
     const N = grp(gp, 0, -0.1, 0, 0.03);
@@ -1225,19 +1383,25 @@ const temple: Builder = (gp, r) => {
     // prayer-flag lines (wind horse colours) and pilgrims
     const cols = ['#2f5fae', '#ece6d8', '#b91c1c', '#3f8a4a', '#e0b23a'];
     for (const sx of [-1, 1]) {
-      rod(gp, [sx * 0.42, 0.03, 0.3], [sx * 0.42, 0.33, 0.3], 0.004, P.darkwood, 4);
+      rod(gp, [sx * 0.36, 0.03, 0.25], [sx * 0.36, 0.33, 0.25], 0.004, P.darkwood, 4);
       for (let i = 0; i < 9; i++) {
-        const t = (i + 0.5) / 9, x = sx * 0.42 - sx * t * 0.2, y = 0.33 - t * 0.12 - Math.sin(t * Math.PI) * 0.02;
-        box(gp, cols[i % 5], x, y - 0.025, 0.3, 0.018, 0.025, 0.002);
+        const t = (i + 0.5) / 9, x = sx * 0.36 - sx * t * 0.14, y = 0.33 - t * 0.12 - Math.sin(t * Math.PI) * 0.02;
+        box(gp, cols[i % 5], x, y - 0.025, 0.25 - t * 0.07, 0.018, 0.025, 0.003);
       }
-      rod(gp, [sx * 0.42, 0.33, 0.3], [sx * 0.22, y1 + 0.02, 0.24 - 0.06], 0.001, '#3a3128', 3);
+      rod(gp, [sx * 0.36, 0.33, 0.25], [sx * 0.22, y1 + 0.02, 0.18], 0.002, '#3a3128', 3);
     }
     for (let k = 0; k < 3; k++) figure(gp, { h: 0.1, x: -0.1 + k * 0.1, z: 0.33, ry: Math.PI, top: k === 1 ? '#7a2a22' : '#4a3a2a', accent: '#d6a840', hair: k === 1 ? undefined : '#1c1714', hairStyle: k === 1 ? 'bald' : 'long', outfit: 'robe', armR: { fwd: 0.6, bend: 0.8 } });
     return;
   }
-  ground(gp, 0.47, '#a99a7a');
-  const tile = '#4e5157', redW = '#9a3326';
-  box(gp, '#cbc1a6', 0, 0.03, 0, 0.84, 0.002, 0.84);
+  // ref: 白马寺, Luoyang (Commons "27467-Luoyang", "27495-Luoyang, White Horse Temple"): orange-red stucco 山门 with three
+  // arches, grey-tiled halls, a bronze incense burner and old cypresses in the court
+  const top = ground(gp, 0.46, SITE.paving);
+  for (const [x, z] of [[-0.36, 0.2], [0.37, 0.18], [0.38, -0.14], [-0.37, -0.18], [0.0, -0.42], [-0.22, -0.36], [0.24, -0.35]] as const) tree(gp, x, top, z, 0.07, '#4f6a44', true);
+  const S = 0.7;
+  gp = grp(gp, 0, 0.02, 0, top - 0.03 * S);
+  gp.scale.setScalar(S);
+  const tile = '#4e5157', redW = '#a0412c';
+  box(gp, '#c2b8a2', 0, 0.03, 0, 0.84, 0.002, 0.84);
   // enclosure wall with tiled coping, opening at the gate
   for (const [x, z, w, d] of [[0, -0.42, 0.86, 0.022], [-0.42, 0, 0.022, 0.84], [0.42, 0, 0.022, 0.84], [-0.29, 0.42, 0.28, 0.022], [0.29, 0.42, 0.28, 0.022]] as const) {
     box(gp, redW, x, 0.03, z, w, 0.06, d);
@@ -1277,10 +1441,7 @@ const temple: Builder = (gp, r) => {
   roof(gp, 0, 0.07, 0.04, 0.018, 0.018, 0.02, '#4a5048', { kind: 'pyramid', ov: 0.006, lift: 0.4 });
   const sm = anim(gp, 'smoke', 0, 0.11, 0.04, { size: 0.02 });
   for (let i = 0; i < 5; i++) add(sm, g('rich:ico', () => new THREE.IcosahedronGeometry(1, 0)), mat('#d6d0c4', { transparent: 0.5 }), 0, 0, 0, 0.01, 0.01, 0.01);
-  for (const [x, z] of [[-0.33, -0.08], [0.33, -0.08], [-0.33, -0.33], [0.33, -0.33]] as const) {
-    cyl(gp, '#5b4030', x, 0.03, z, 0.006, 0.06, 5);
-    for (let k = 0; k < 3; k++) ellip(gp, k % 2 ? '#2f4a2a' : '#35502e', x + (k - 1) * 0.008, 0.09 + k * 0.035, z, 0.035 - k * 0.008, 0.03, 0.035 - k * 0.008);
-  }
+  for (const [x, z] of [[-0.33, -0.08], [0.33, -0.08], [-0.33, -0.33], [0.33, -0.33]] as const) tree(gp, x, 0.03, z, 0.11, '#3f5a3a', true);
   for (let i = 0; i < 4; i++) {
     const monk = i !== 2;
     figure(gp, { h: 0.1, x: -0.12 + i * 0.08, y: 0.03, z: 0.18 - (i % 2) * 0.05, ry: Math.PI + (i - 1.5) * 0.4, top: monk ? (i % 2 ? '#a8642a' : '#6a6a64') : '#3f5f7a', accent: monk ? '#7a3a1a' : '#2a2420', hair: monk ? undefined : '#1c1714', hairStyle: monk ? 'bald' : 'topknot', outfit: 'robe', wideSleeves: true, armL: { fwd: 0.8, bend: 1.4, inward: 0.6 }, armR: { fwd: 0.8, bend: 1.4, inward: 0.6 } });
@@ -1340,7 +1501,10 @@ const bell: Builder = gp => {
   // black-lacquered beams painted in red with bronze end sleeves, the lower and middle beams held up by six bronze
   // sword-bearing caryatids (1.17 m and 0.57 m). 65 bells: 19 niuzhong on top, 33 yongzhong in the middle, 12 large
   // yongzhong and the Chu king's bo below. Players strike them with T-shaped mallets and long poles. ≈0.11 units/m.
-  const y0 = figureBase(gp, '#7d6a50', '#4a3a2a');
+  const yb0 = ground(gp, 0.46, SITE.earth);
+  gp = grp(gp, 0, 0.02, 0, yb0);
+  gp.scale.setScalar(0.86);
+  const y0 = 0;
   const lac = '#1d1814', red = '#a8352a', brz = '#6a6a48';
   const xl = -0.4, xr = 0.42, zb = -0.15, zf = 0.23;
   const yL = y0 + 0.17, yM = y0 + 0.245, yT = y0 + 0.305;
@@ -1412,8 +1576,11 @@ const ding: Builder = gp => {
   // plain central field framed by taotie / kui-dragon bands on a cloud-and-thunder ground, flanges on the corners and
   // centre lines, two upright ears on the short sides (tigers flanking a human head), four hollow columnar legs with
   // beast masks and raised string bands; dark green-grey patina. Scale ≈ 0.48 units per metre, on a museum plinth.
-  const y0 = figureBase(gp, '#a49e92', '#4e4a45');
-  const c = '#56654f', hi = '#6a7b62', lo = '#3a4535';
+  const yb0 = ground(gp, 0.46, SITE.stone);
+  gp = grp(gp, 0, 0, 0, yb0);
+  gp.scale.setScalar(0.8);
+  const y0 = 0;
+  const c = '#55685a', hi = '#6c8270', lo = '#3a463c';
   const W = 0.53, D = 0.38, legH = 0.22, bodyH = 0.27, yb = y0 + legH, yr = yb + bodyH;
   const B = (m: THREE.Mesh, col = c) => bronze(m, col);
   // legs: hollow bronze columns, beast mask on the outer face of the top and two string bands lower down
@@ -1471,7 +1638,7 @@ const ding: Builder = gp => {
 
 const scroll: Builder = (gp, r) => {
   // a scholar at a low desk unrolling a handscroll, with brush, inkstone and books
-  const y = figureBase(gp, '#c9b58e', '#6e5a40');
+  const y = ground(gp, 0.46, SITE.court);
   rbox(gp, P.lacquer, 0, y, 0.02, 0.5, 0.1, 0.22, 0.006);
   for (const sx of [-1, 1]) box(gp, P.lacquer, sx * 0.23, y, 0.02, 0.03, 0.1, 0.2);
   const ty = y + 0.1;
@@ -1689,7 +1856,8 @@ const yurt: Builder = gp => {
   smoke(gp, -0.08, floor + top + 0.01, -0.06, 0.03, 6, '#9a948c');
   ger(0.24, -0.2, 0.12, -0.35);
   // 勒勒车: two high wheels, a shaft pair and a felt-covered box
-  const Cr = grp(gp, -0.33, -0.18, 0.9, floor);
+  const Cr = grp(gp, -0.26, -0.23, 0.9, floor);
+  Cr.scale.setScalar(0.85);
   for (const sz of [-1, 1]) wheel(Cr, 0, 0.065, sz * 0.055, 0.065, '#5a4030', 14);
   rod(Cr, [0, 0.065, -0.07], [0, 0.065, 0.07], 0.005, '#4a3222', 5);
   box(Cr, '#6a4a32', 0.0, 0.07, 0, 0.13, 0.008, 0.08);
@@ -1900,22 +2068,24 @@ const hut: Builder = (gp, r) => {
 };
 
 // ---- ships ----------------------------------------------------------------------------------------------------
-/** Translucent patch of sea with foam at the bow and a wake astern (outside any bobbing group). */
-function seaPatch(p: THREE.Object3D, rx: number, rz: number): void {
-  const m = lathe(p, [[0, 0], [1, 0], [1, 0.008], [0, 0.01]], P.water, 0, 0, 0, 36);
-  m.scale.set(rx, 1, rz);
-  m.material = mat('#3f6f86', { transparent: 0.72, rough: 0.25 });
-  for (let i = 0; i < 12; i++) {
-    const s = i % 2 ? 1 : -1, k = Math.floor(i / 2) / 6;
-    ellip(p, '#dfeef0', s * (0.04 + k * rx * 0.5), 0.009, -rz * (0.35 + k * 0.6), 0.03 + k * 0.02, 0.003, 0.008, s * 0.35);
+/** Water ripple paint for the plinth top (subtle light/dark streaks). */
+const ripple: Paint = (x, _y, z) => shade(SITE.water, 0.93 + 0.07 * Math.sin(x * 38 + Math.sin(z * 11) * 2.2) + hash3(Math.round(x * 40), Math.round(z * 40), 5) * 0.05);
+/** The shared plinth with a water top, foam at the bow and a wake astern of a ship lying along z. Returns the water height. */
+function seaPatch(p: THREE.Object3D, rx: number, rz: number): number {
+  const h = plinth(p, SITE.water, { h: 0.03, paint: ripple });
+  const foam = '#a9b8b8';
+  for (let i = 0; i < 10; i++) {
+    const s = i % 2 ? 1 : -1, k = Math.floor(i / 2) / 5;
+    ellip(p, foam, s * (0.04 + k * rx * 0.5), h + 0.002, -rz * (0.35 + k * 0.5), 0.03 + k * 0.02, 0.003, 0.008, s * 0.35);
   }
-  for (const s of [-1, 1]) ellip(p, '#eef6f6', s * 0.05, 0.009, rz * 0.82, 0.05, 0.003, 0.01, -s * 0.6);
+  for (const s of [-1, 1]) ellip(p, foam, s * 0.05, h + 0.002, Math.min(0.38, rz * 0.82), 0.05, 0.003, 0.01, -s * 0.6);
+  return h;
 }
 
-function waves(p: THREE.Object3D, R: number): void {
-  const m = lathe(p, [[0, 0], [R, 0], [R, 0.01], [0, 0.012]], P.water, 0, 0, 0, 32);
-  m.material = mat(P.water, { rough: 0.25 });
-  for (let i = 0; i < 14; i++) { const a = hash3(i, 1, 1) * Math.PI * 2, d = R * (0.5 + hash3(i, 2, 1) * 0.45); ellip(p, '#9cc3d0', Math.cos(a) * d, 0.012, Math.sin(a) * d, 0.04, 0.003, 0.008, a); }
+function waves(p: THREE.Object3D, R: number): number {
+  const h = plinth(p, SITE.water, { R: Math.min(R, 0.46), h: 0.03, paint: ripple });
+  for (let i = 0; i < 12; i++) { const a = hash3(i, 1, 1) * Math.PI * 2, d = R * (0.5 + hash3(i, 2, 1) * 0.38); ellip(p, '#7f9ea8', Math.cos(a) * d, h + 0.002, Math.sin(a) * d, 0.04, 0.003, 0.008, a); }
+  return h;
 }
 
 /**
@@ -1944,9 +2114,9 @@ const junk: Builder = (gp, r) => {
   // "flat above like a balance beam, sharp below like a blade", raised bow with painted oculi (龙目), high square
   // transom stern with a poop house and a deep hanging rudder, three masts (raked foremast, tall main, mizzen) with
   // brown battened lug sails. Bow +z, ≈0.025 units/m. r.color only tints the masthead pennant (fleets pass route colours).
-  seaPatch(gp, 0.3, 0.47);
-  const b = anim(gp, 'bob');
-  const L = 0.84, Wm = 0.12, wl = 0.012;
+  const sea = seaPatch(gp, 0.3, 0.47);
+  const b = anim(gp, 'bob', 0, sea - 0.008);
+  const L = 0.78, Wm = 0.13, wl = 0.012;
   const zt = (t: number) => -L / 2 + t * L;
   const wAt = (t: number) => Wm * (t < 0.42 ? 0.8 + 0.2 * Math.sin((Math.PI / 2) * (t / 0.42)) : 1 - 0.7 * ((t - 0.42) / 0.58) ** 1.7);
   const sAt = (t: number) => wl + 0.058 + 0.07 * (1 - t) ** 3 + 0.075 * t ** 3.5;
@@ -2002,8 +2172,10 @@ const junk: Builder = (gp, r) => {
   cyl(b, '#5a4030', 0, sAt(0.93) + 0.006, zt(0.93), 0.012, 0.004, 6).rotation.z = Math.PI / 2;
   rod(b, [wAt(0.96) * 0.6, sAt(0.96) + 0.01, zt(0.96)], [wAt(0.99) * 0.9, wl + 0.01, zt(1) + 0.02], 0.004, '#2a201a', 4);
   // masts and sails
-  const sail = '#9c6b3e';
-  const masts: [number, number, number, number, number][] = [[0.82, 0.38, 0.17, 0.16, 0.6], [0.5, 0.56, 0.26, 0, 0.55], [0.17, 0.34, 0.15, 0, 0.5]];
+  // five masts as on the Ming treasure-ship models (Nanjing Treasure Shipyard / Zheng He museum, Commons "Zheng He
+  // Treasure Ship Model"): raked foremast, tall main amidships, tanned rust-brown battened sails squared off before the wind
+  const sail = '#8a4a34';
+  const masts: [number, number, number, number, number][] = [[0.9, 0.3, 0.12, 0.2, 1.05], [0.71, 0.44, 0.17, 0.05, 1.15], [0.5, 0.56, 0.22, 0, 1.2], [0.29, 0.42, 0.16, 0, 1.12], [0.13, 0.3, 0.12, 0, 1.0]];
   for (const [t, h, sw, rake, trim] of masts) {
     const y = sAt(t), z = zt(t);
     const top: V3 = [0, y + h, z + Math.sin(rake) * h];
@@ -2021,9 +2193,10 @@ const junk: Builder = (gp, r) => {
 
 const warship: Builder = (gp, r) => {
   // 楼船: a multi-storey war galley with oars, shields, crossbowmen and banners
-  const b = anim(gp, 'bob');
+  const sea = seaPatch(gp, 0.3, 0.42);
+  const b = anim(gp, 'bob', 0, sea - 0.026);
   const c = str(r.color, '#5b3a23');
-  const L = 0.9, W = 0.11;
+  const L = 0.8, W = 0.11;
   const rings: V3[][] = [];
   for (let i = 0; i <= 10; i++) {
     const t = i / 10, z = (t - 0.5) * L, w = W * (0.55 + 0.45 * Math.sin(Math.PI * t)), s = 0.08 + 0.04 * Math.pow(Math.abs(2 * t - 1), 2);
@@ -2034,7 +2207,7 @@ const warship: Builder = (gp, r) => {
   for (let i = 0; i < 3; i++) {
     const w = 0.2 - i * 0.04, d = 0.56 - i * 0.14;
     rbox(b, i % 2 ? '#7a2318' : '#5b3a23', 0, y, -0.02, w, 0.06, d, 0.004);
-    for (const sx of [-1, 1]) for (let k = 0; k < Math.round(d / 0.05); k++) ellip(b, k % 2 ? '#d6a840' : '#a8352a', sx * (w / 2 + 0.004), y + 0.035, -0.02 - d / 2 + 0.03 + k * 0.05, 0.003, 0.018, 0.016);
+    for (const sx of [-1, 1]) for (let k = 0; k < Math.round(d / 0.05); k++) ellip(b, k % 2 ? '#b89650' : '#94402e', sx * (w / 2 + 0.004), y + 0.035, -0.02 - d / 2 + 0.03 + k * 0.05, 0.003, 0.018, 0.016);
     y += 0.06;
     box(b, '#3f3a36', 0, y, -0.02, w + 0.03, 0.008, d + 0.03);
     y += 0.008;
@@ -2042,10 +2215,10 @@ const warship: Builder = (gp, r) => {
   hall(b, 0, y, -0.02, 0.08, 0.1, 0.05, '#3f4248', 0, '#7a2318', { rh: 0.03 });
   for (const sx of [-1, 1]) {
     const o = anim(b, 'sway', sx * 0.11, 0.05, 0, { amp: 0.35, speed: 2.4 });
-    for (let k = 0; k < 9; k++) rod(o, [0, 0, -0.3 + k * 0.07], [sx * 0.12, -0.07, -0.3 + k * 0.07 - 0.02], 0.004, P.darkwood, 3);
+    for (let k = 0; k < 8; k++) rod(o, [0, 0, -0.26 + k * 0.074], [sx * 0.12, -0.07, -0.26 + k * 0.074 - 0.02], 0.005, P.darkwood, 3);
   }
-  banner(b, 0, y + 0.05, -0.02, 0.3, str(r.flag, '#a8352a'), 0.1);
-  for (const z of [0.3, -0.3]) banner(b, 0, 0.08, z, 0.22, '#d6a840', 0.07);
+  banner(b, 0, y + 0.05, -0.02, 0.22, str(r.flag, '#94402e'), 0.075);
+  for (const z of [0.28, -0.28]) banner(b, 0, 0.08, z, 0.22, '#b89650', 0.07);
   for (let k = 0; k < 4; k++) human(b, -0.06 + (k % 2) * 0.12, 0.15, 0.12 - (k >> 1) * 0.28, { h: 0.1, pose: 'stand', top: '#7f1d1d', bottom: '#3a3128', hat: P.iron, hatStyle: 'helmet', detail: 'min' });
 };
 
@@ -2093,10 +2266,10 @@ const boat: Builder = (gp, r) => {
   // a stern-sculling oar (橹) worked by a standing boatman, a poleman with a bamboo quant (篙) at the bow and sacks of
   // tax grain (漕粮) amidships. Bow +z, ≈0.065 units/m (a 12 m boat). r.color only tints the masthead pennant, so
   // fleets (渡江 1949) keep realistic wood.
-  seaPatch(gp, 0.22, 0.44);
-  const b = anim(gp, 'bob');
+  const sea = seaPatch(gp, 0.22, 0.44);
+  const b = anim(gp, 'bob', 0, sea - 0.008, 0.06);
   const wood = '#7a5a3a', wl = 0.012;
-  const { zt, wAt, sAt } = riverHull(b, 0.78, 0.085, wl, wood);
+  const { zt, wAt, sAt } = riverHull(b, 0.66, 0.085, wl, wood);
   // telescoping mat cabin (乌篷): three arched sections, the middle one largest, open ends dark inside
   const mat_ = '#3a3028';
   for (const [t0, t1, k] of [[0.3, 0.42, 0.94], [0.41, 0.56, 1], [0.55, 0.64, 0.9]] as const) {
@@ -2122,8 +2295,8 @@ const boat: Builder = (gp, r) => {
   // stern-sculling oar (橹) on its pivot, blade trailing in the water; boatman leaning on the handle
   const zs = zt(0.03), ys = sAt(0.03);
   const o = anim(b, 'sway', 0.015, ys + 0.01, zs, { amp: 0.3, speed: 1.8 });
-  rod(o, [0, 0, 0], [0.02, wl - ys - 0.012, -0.17], 0.004, '#5a4030', 4);
-  box(o, '#5a4030', 0.022, wl - ys - 0.02, -0.18, 0.004, 0.012, 0.045);
+  rod(o, [0, 0, 0], [0.02, wl - ys - 0.012, -0.13], 0.004, '#5a4030', 4);
+  box(o, '#5a4030', 0.022, wl - ys - 0.02, -0.14, 0.004, 0.012, 0.04);
   rod(o, [0, 0, 0], [-0.005, 0.045, 0.1], 0.003, '#5a4030', 4);
   rod(o, [-0.005, 0.045, 0.1], [0.0, 0.0, 0.0], 0.001, '#c8b88a', 3);
   human(b, -0.005, sAt(0.18), zt(0.19), { h: 0.11, pose: 'stand', hands: [[0.05, 0.62, -0.28], [-0.05, 0.6, -0.26]], ry: Math.PI, top: '#3f4a5a', bottom: '#2e2a26', skin: '#a8764c', hat: '#c8a96a', hatStyle: 'conical', detail: 'lo' });
@@ -2139,17 +2312,17 @@ const fireship: Builder = (gp, r) => {
   // r.style 'humen': Lin Zexu's 1839 opium destruction at 虎门 — not a fire: opium was broken into seawater-and-salt
   // pits, then lime was thrown in to make it seethe, and at ebb tide the sluice flushed it to the sea.
   if (r.style === 'humen') { humen(gp); return; }
-  seaPatch(gp, 0.26, 0.47);
-  const b = anim(gp, 'bob');
+  const sea = seaPatch(gp, 0.26, 0.47);
+  const b = anim(gp, 'bob', 0, sea - 0.008);
   const wood = '#4e3a28', wl = 0.012;
-  const { zt, wAt, sAt } = riverHull(b, 0.74, 0.1, wl, wood, 0.06, 0.04);
+  const { zt, wAt, sAt } = riverHull(b, 0.66, 0.1, wl, wood, 0.06, 0.04);
   // 女墙: plank bulwark with oar ports along both sides, oars trailing abandoned
   for (const sx of [-1, 1]) {
     for (let k = 0; k < 7; k++) {
       const t = 0.18 + k * 0.1, w = wAt(t), s = sAt(t);
       box(b, '#6a4a30', sx * (w - 0.004), s + 0.008, zt(t), 0.006, 0.03, 0.068);
       box(b, '#1a1410', sx * (w - 0.001), s + 0.012, zt(t) + 0.03, 0.002, 0.008, 0.01);
-      if (k % 2 === 0) rod(b, [sx * w, s + 0.016, zt(t) + 0.03], [sx * (w + 0.13), wl - 0.01, zt(t) - 0.02], 0.003, '#5a4030', 3);
+      if (k % 2 === 0 && !(sx > 0 && k === 0)) rod(b, [sx * w, s + 0.016, zt(t) + 0.03], [sx * (w + 0.13), wl - 0.01, zt(t) - 0.02], 0.003, '#5a4030', 3);
     }
   }
   // the fire cargo: bundles of reeds and brushwood heaped under oiled curtains (帷幕)
@@ -2176,9 +2349,9 @@ const fireship: Builder = (gp, r) => {
   for (const [t, x, s] of [[0.3, -0.03, 0.06], [0.42, 0.03, 0.08], [0.52, -0.02, 0.09], [0.64, 0.03, 0.07], [0.74, -0.01, 0.06], [0.84, 0.02, 0.045], [0.22, 0.02, 0.045]] as const) fire(b, x, dy + 0.03, zt(t), s);
   smoke(b, 0, dy + 0.18, zt(0.55), 0.05, 8, '#3a3430');
   smoke(b, 0.03, dy + 0.14, zt(0.35), 0.035, 6, '#4a4440');
-  // 走舸 towed astern with two oarsmen pulling away
-  const zb = zt(0) - 0.16;
-  const B = grp(b, 0.04, zb, 0.15, 0);
+  // 走舸 towed on the quarter with two oarsmen pulling away
+  const zb = zt(0.06);
+  const B = grp(b, 0.16, zb, 0.2, 0);
   const sh: V3[][] = [];
   for (let i = 0; i <= 6; i++) { const t = i / 6, w = 0.032 * (0.35 + 0.65 * Math.sin(Math.PI * t)), z = (t - 0.5) * 0.2; sh.push([[-w, wl + 0.022, z], [-w * 0.8, wl - 0.008, z], [w * 0.8, wl - 0.008, z], [w, wl + 0.022, z]]); }
   skin(B, sh, '#5a4030', { caps: true, flat: true, paint: (_x, _y, _z, _nx, ny) => (ny > 0.6 ? '#7a5a3a' : null) });
@@ -2186,7 +2359,7 @@ const fireship: Builder = (gp, r) => {
     human(B, 0, wl + 0.012, z, { h: 0.075, pose: 'row', phase: ph, top: '#5a3a2a', bottom: '#2e2a26', skin: '#a8764c', hair: '#1c1714', detail: 'min', ry: Math.PI });
     for (const sx of [-1, 1]) rod(B, [sx * 0.03, wl + 0.03, z], [sx * 0.09, wl - 0.01, z - 0.03], 0.002, '#5a4030', 3);
   }
-  rod(b, [0, sAt(0.02) + 0.005, zt(0.01)], [0.04, wl + 0.03, zb + 0.1], 0.0015, '#c8b88a', 3);
+  rod(b, [0.05, sAt(0.02) + 0.005, zt(0.02)], [0.15, wl + 0.03, zb + 0.09], 0.003, '#a89a74', 3);
 };
 
 /** 虎门销烟 (June 1839): two seawater pits on the beach at Humen with sluices to the sea, labourers breaking opium balls
@@ -2243,8 +2416,8 @@ function humen(gp: THREE.Group): void {
 
 const redboat: Builder = gp => {
   // the Red Boat on South Lake (嘉兴南湖红船)
-  waves(gp, 0.46);
-  const b = anim(gp, 'bob', 0, 0.01, 0);
+  const lake = waves(gp, 0.46);
+  const b = anim(gp, 'bob', 0, lake - 0.002, 0);
   const rings: V3[][] = [];
   for (let i = 0; i <= 8; i++) {
     const t = i / 8, z = (t - 0.5) * 0.7, w = 0.11 * (0.45 + 0.55 * Math.sin(Math.PI * t)), s = 0.06 + 0.05 * Math.pow(Math.abs(2 * t - 1), 2.5);
@@ -2311,15 +2484,16 @@ const bridge: Builder = (gp, r) => {
   if (style === 'hongqiao') { hongqiao(gp); return; }
   if (style === 'lugou') { lugou(gp); return; }
   const floor = ground(gp, 0.47, '#7a8a52');
-  riverStrip(gp, -0.31, 0.31, 0.455, floor + 0.002);
-  for (const sx of [-1, 1]) box(gp, '#8a8070', sx * 0.32, floor - 0.002, 0, 0.03, 0.006, 0.64);
-  const st = '#bdb6a6', W = 0.16, S = 0.68, f = 0.13, t = 0.026, half = 0.47, base = floor;
+  riverStrip(gp, -0.28, 0.28, 0.455, floor + 0.002);
+  for (const sx of [-1, 1]) box(gp, '#8a8070', sx * 0.29, floor - 0.002, 0, 0.03, 0.006, 0.64);
+  // weathered grey limestone as in the Commons photographs of the Anji bridge
+  const st = '#a9a397', W = 0.15, S = 0.62, f = 0.12, t = 0.024, half = 0.42, base = floor;
   const R = (S * S / 4 + f * f) / (2 * f), cy = base + f - R;
   const yc = base + f + t + 0.016, k = (yc - base - 0.05) / (half * half);
   const deckY = (x: number) => yc - k * x * x;
   const ext = (x: number) => cy + Math.sqrt((R + t) ** 2 - x * x);
   const xs = S / 2 * (R + t) / R, ys = base + (R - f) / R * t;
-  const notches: [number, number][] = [[-0.275, 0.036], [-0.19, 0.025], [0.19, 0.025], [0.275, 0.036]];
+  const notches: [number, number][] = [[-0.25, 0.033], [-0.173, 0.023], [0.173, 0.023], [0.25, 0.033]];
   // spandrel walls and deck mass, the four shoulder arches cut out of it
   const out: [number, number][] = [[-half, base], [-S / 2, base], [-xs, ys]];
   let x = -xs + 0.02;
@@ -2340,21 +2514,18 @@ const bridge: Builder = (gp, r) => {
   for (const [c, rr] of notches) ringBand(gp, c, Math.max(ext(c - rr), ext(c + rr)), rr * 2, rr, 0.007, W + 0.005, shade(st, 0.94), 9);
   for (let i = 0; i < 5; i++) { const a = -0.5 + i * 0.25, px = Math.sin(a) * (R + t * 0.5); box(gp, '#3a3a3a', px, cy + Math.cos(a) * (R + t * 0.5) - 0.002, W / 2 + 0.0035, 0.008, 0.004, 0.001, 0, 0, -a); }
   // deck paving and carved balustrades; steps down to the banks
-  for (let i = 0; i < 24; i++) { const xx = -half + 0.02 + i * 0.039; box(gp, shade(st, 0.88), xx, deckY(xx), 0, 0.001, 0.0008, W - 0.02); }
-  for (const sz of [-1, 1]) balustrade(gp, -half + 0.02, half - 0.02, sz * (W / 2 - 0.004), deckY, 0.04, 0.022, '#cbc5b6', (px, py) => ellip(gp, '#cbc5b6', px, py + 0.002, sz * (W / 2 - 0.004), 0.004, 0.004, 0.004));
+  for (let i = 0; i < 22; i++) { const xx = -half + 0.02 + i * 0.038; box(gp, shade(st, 0.88), xx, deckY(xx), 0, 0.003, 0.002, W - 0.02); }
+  for (const sz of [-1, 1]) balustrade(gp, -half + 0.02, half - 0.02, sz * (W / 2 - 0.004), deckY, 0.04, 0.022, '#b3ad9f', (px, py) => ellip(gp, '#b3ad9f', px, py + 0.002, sz * (W / 2 - 0.004), 0.004, 0.004, 0.004));
   // travellers: a porter with a shoulder pole, a walker, a man leading a donkey
   const tr = (xx: number, z: number, o: Partial<HumanOpts>) => human(gp, xx, deckY(xx), z, { h: 0.05, detail: 'lo', skin: '#b08458', hair: '#1c1714', bottom: '#3a3128', ...o } as HumanOpts);
   tr(-0.1, 0.03, { pose: 'carry', top: '#5a6a7a', hatStyle: 'conical', hat: '#c8a96a', ry: Math.PI / 2 });
   tr(0.06, -0.035, { pose: 'walk', top: '#7a5a3a', ry: -Math.PI / 2 });
-  tr(0.22, 0.02, { pose: 'walk', top: '#4a4a52', hatStyle: 'knot', ry: -Math.PI / 2, phase: 0.4 });
-  const D = grp(gp, 0.3, 0.02, -Math.PI / 2, deckY(0.3));
+  tr(0.2, 0.02, { pose: 'walk', top: '#4a4a52', hatStyle: 'knot', ry: -Math.PI / 2, phase: 0.4 });
+  const D = grp(gp, 0.28, 0.02, -Math.PI / 2, deckY(0.28));
   D.scale.setScalar(0.11);
   horse(D, '#6a5a4a');
   // willows and fields on the banks
-  for (const [tx, tz] of [[-0.38, -0.2], [-0.4, 0.15], [0.38, -0.22], [0.4, 0.2], [-0.36, -0.32]] as const) {
-    rod(gp, [tx, floor, tz], [tx, floor + 0.07, tz], 0.006, '#5a4a3a', 5);
-    for (let k = 0; k < 5; k++) ellip(gp, k % 2 ? '#7a9a4a' : '#6a8a42', tx + Math.cos(k * 1.3) * 0.02, floor + 0.05 + (k % 3) * 0.02, tz + Math.sin(k * 1.3) * 0.02, 0.025, 0.04, 0.025);
-  }
+  for (const [tx, tz, ts] of [[-0.37, -0.2, 0.075], [-0.38, 0.17, 0.07], [0.36, -0.22, 0.075], [0.38, 0.18, 0.065], [-0.3, -0.31, 0.06]] as const) tree(gp, tx, floor, tz, ts, '#6a7a48');
 };
 
 /** 虹桥 of 清明上河图 (Northern Song Bianliang): a pierless woven-timber arch (编木拱) of two interlocking systems of
@@ -2834,7 +3005,7 @@ function zunyiHouse(gp: THREE.Group): void {
   // courtyard wall and gate with the plaque
   const wz = 0.3, wh = 0.07, gw = 0.09;
   for (const s of [-1, 1]) {
-    const x0 = s * (gw / 2 + 0.02), x1 = s * 0.38, len = Math.abs(x1 - x0);
+    const x0 = s * (gw / 2 + 0.02), x1 = s * 0.29, len = Math.abs(x1 - x0);
     box(gp, brick, (x0 + x1) / 2, floor, wz, len, wh, 0.016);
     box(gp, tile, (x0 + x1) / 2, floor + wh, wz, len + 0.004, 0.008, 0.026);
     box(gp, brick, s * (gw / 2 + 0.01), floor, wz, 0.022, 0.13, 0.03);
@@ -2901,11 +3072,7 @@ function shikumen(gp: THREE.Group): void {
     slab(G, [[-D / 2 - 0.02, 0], [D / 2 + 0.02, 0], [D / 2 + 0.02, 0.02], [0.05, 0.1], [0.02, 0.115], [-0.02, 0.115], [-0.05, 0.1], [-D / 2 - 0.02, 0.02]], 0.014, grey, 0, false);
   }
   // plane trees along the lane
-  for (const tx of [-0.38, 0.38]) {
-    const tz = 0.25;
-    rod(gp, [tx, floor, tz], [tx, floor + 0.16, tz], 0.008, '#8a8070', 5);
-    for (let k = 0; k < 6; k++) ellip(gp, k % 2 ? '#5a7a3a' : '#6a8a44', tx + Math.cos(k * 1.1) * 0.04, floor + 0.17 + (k % 3) * 0.02, tz + Math.sin(k * 1.1) * 0.035, 0.045, 0.03, 0.045);
-  }
+  for (const tx of [-0.34, 0.34]) tree(gp, tx, floor, 0.24, 0.07, '#5f7a40');
   // a rickshaw (黄包车) waiting with its puller, and men in 长衫 at the doors
   const R = grp(gp, 0.2, 0.26, -Math.PI / 2 + 0.3, floor);
   for (const sx of [-1, 1]) wheel(R, sx * 0.04, 0.035, 0, 0.035, '#2a2420', 12);
@@ -2973,7 +3140,7 @@ const traveller: Builder = (gp, r) => {
   let seat: number;
   if (mount === 'camel') {
     const C = grp(gp, 0, 0.0, 0);
-    camel(C, { kind: 'camel', rider: false, driver: false, color: '#b48a5a' });
+    camelFigure(C, { kind: 'camel', rider: false, driver: false, color: '#b48a5a' });
     seat = 0.55;
   } else {
     const donkey = mount === 'donkey', M = grp(gp, 0, 0, 0);
@@ -3016,7 +3183,7 @@ const traveller: Builder = (gp, r) => {
     // a laden pack camel following behind
     const B = grp(gp, 0.26, -0.62, 0);
     B.scale.setScalar(0.78);
-    camel(B, { kind: 'camel', rider: false, driver: false, color: '#b48a5a' });
+    camelFigure(B, { kind: 'camel', rider: false, driver: false, color: '#b48a5a' });
   }
 };
 

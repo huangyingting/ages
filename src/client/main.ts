@@ -390,6 +390,10 @@ class App {
       else if (this.learn.open) this.learn.toggle(false);
       return;
     }
+    if ((e.key === 'r' || e.key === 'R') && !e.altKey && !e.metaKey && !e.ctrlKey && this.player.state === 'idle') {
+      void this.atlas.home();
+      return;
+    }
     if (e.key === ' ' && !(e.target as HTMLElement).closest('button')) {
       if (this.player.state !== 'idle') this.player.toggle(); else this.timeline.setPlaying(!this.timeline.playing);
       e.preventDefault();

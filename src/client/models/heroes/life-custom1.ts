@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
   type Builder, type V3, type Paint, add, g, mat, rbox, cyl, cone, gable, lathe, rod, strut, sweep, skin, tube,
-  shade, hash3, fbm, paintFaces,
+  shade, hash3, fbm, paintFaces, plinth, tree, SITE,
 } from '../prims.ts';
 import { human, type HumanOpts, type HumanRig } from '../human.ts';
 import { horse } from '../animals.ts';
@@ -74,11 +74,15 @@ function rock(p: O, c: string, x: number, y: number, z: number, sx: number, sy: 
   return add(p, geo, mat('#ffffff', { vc: true }), x, y, z, sx, sy, sz, ry);
 }
 
-/** Round plinth: side ring + a finely ringed top (so `paint` can draw paths, fields and patches). Returns top height. */
-function ground(p: O, R: number, top: string, side = shade(top, 0.7), h = 0.03, paint?: Paint): number {
-  lathe(p, [[0, 0], [R, 0], [R * 0.98, h * 0.8], [R * 0.95, h], [0, h]], side, 0, 0, 0, 40);
+/**
+ * The shared museum plinth (uniform dark side, see prims.plinth) with a finely ringed painted top laid over it
+ * (so `paint` can draw paths, fields and patches). `_side` is ignored: every diorama uses PLINTH_SIDE. Returns top height.
+ */
+function ground(p: O, R: number, top: string, _side?: string, h = 0.035, paint?: Paint): number {
+  h = Math.max(h, 0.035);
+  plinth(p, top, { R, h });
   const rings: [number, number][] = [[0, h + 0.002]];
-  for (let i = 1; i <= 14; i++) rings.push([R * 0.95 * (i / 14), h + 0.002]);
+  for (let i = 1; i <= 14; i++) rings.push([R * 0.965 * (i / 14), h + 0.002]);
   const lg = new THREE.LatheGeometry(rings.reverse().map(([r, y]) => new THREE.Vector2(r, y)), 56);
   lg.computeVertexNormals();
   const pg = paintFaces(lg, top, paint ?? ((x, _y, z) => {
@@ -254,7 +258,7 @@ const lf_pekingman: Builder = (gp, r) => {
     const n = fbm(x * 9, 0, z * 9, 3);
     return Math.hypot(x - 0.06, z - 0.16) < 0.12 ? (n > 0.5 ? '#4e4740' : '#5c544a') : n > 0.62 ? '#86775e' : n < 0.38 ? '#706250' : null;
   });
-  const LS = '#9b978d';
+  const LS = '#a29d92';
   // a broad, low limestone cave mouth: dark interior, two buttresses and a long overhanging roof
   el(gp, '#151310', 0, 0.17, -0.3, 0.3, 0.17, 0.08);
   rock(gp, LS, -0.34, 0.17, -0.2, 0.15, 0.22, 0.16, 1);
@@ -264,7 +268,9 @@ const lf_pekingman: Builder = (gp, r) => {
   rock(gp, LS, -0.14, 0.46, -0.3, 0.2, 0.06, 0.12, 0, 1);
   rock(gp, shade(LS, 1.03), 0.16, 0.45, -0.28, 0.18, 0.05, 0.11, 2, 2);
   // sparse scrub (thorny jujube, grass) clinging to the hill above the cave
-  for (const [x, z, sc] of [[-0.22, -0.26, 1], [-0.05, -0.32, 0.8], [0.1, -0.24, 0.9], [0.27, -0.3, 0.7], [0.33, -0.18, 0.6], [-0.33, -0.15, 0.7]] as [number, number, number][]) rock(gp, '#5c6046', x, 0.48 + (x * x) * -0.4, z, 0.03 * sc, 0.018 * sc, 0.028 * sc, 3, x * 9, false);
+  // (Commons "Zhoukoudian-5.jpg": pale, fractured grey limestone crag with shrubs and small trees on its top)
+  for (const [x, z, sc] of [[-0.22, -0.3, 1], [-0.04, -0.36, 0.8], [0.12, -0.3, 0.9], [0.28, -0.3, 0.75], [0.36, -0.2, 0.6], [-0.34, -0.18, 0.7]] as [number, number, number][]) tree(gp, x, 0.45 + (x * x) * -0.5, z, 0.075 * sc, '#5f6e45', false);
+  for (const [x, z] of [[-0.12, -0.2], [0.22, -0.2], [0.42, -0.08]] as const) rock(gp, '#5c6046', x, 0.47 - x * x * 0.8 - (x > 0.4 ? 0.3 : 0), z, 0.03, 0.014, 0.026, 3, x * 9, false);
   rock(gp, shade(LS, 0.92), -0.4, 0.05, -0.02, 0.06, 0.05, 0.06, 5);
   rock(gp, shade(LS, 0.95), 0.41, 0.04, 0.04, 0.05, 0.04, 0.05, 1);
   for (const [sx, l] of [[-0.1, 0.05], [0.0, 0.035], [0.12, 0.06], [-0.2, 0.03]]) {
@@ -299,6 +305,7 @@ const lf_pekingman: Builder = (gp, r) => {
 // technique (Wikipedia "Fire drill"); hide clothing after the Upper Palaeolithic Shandingdong bone needle. A
 // stone-ringed hearth, a modest haunch roasting on a forked-stake spit, firewood and a dead tree.
 // ---------------------------------------------------------------------------------------------------------------
+// Ref (photo sheet): Commons Zhoukoudian cave views — hearth ash lenses in a grey limestone cave mouth.
 const lf_fire: Builder = gp => {
   const Y = ground(gp, 0.46, '#7d6e52', '#56493a', 0.03, (x, _y, z) => {
     const n = fbm(x * 8, 0, z * 8, 3);
@@ -419,7 +426,7 @@ function erlitouJia(p: O, x: number, y: number, z: number, s: number, ry: number
 /** Erlitou white-pottery 盉: three plump bag legs, a domed top with a mouth and an upturned tubular spout, a handle. */
 function whiteHe(p: O, x: number, y: number, z: number, s: number, ry: number): void {
   const H = grp(p, x, y, z, ry, s);
-  const C = '#d6ccb6', pt: Paint = (px, py, pz) => (hash3(Math.floor(px * 3), Math.floor(py * 3), Math.floor(pz * 3)) > 0.8 ? '#c4b89e' : null);
+  const C = '#cdbf9f', pt: Paint = (px, py, pz) => (hash3(Math.floor(px * 3), Math.floor(py * 3), Math.floor(pz * 3)) > 0.8 ? '#c4b89e' : null);
   for (let i = 0; i < 3; i++) {
     const a = (i / 3) * TAU + Math.PI / 6;
     el(H, C, Math.cos(a) * 2.6, 5.2, Math.sin(a) * 2.6, 2.7, 5.8, 2.7, 0, Math.sin(a) * 0.3, -Math.cos(a) * 0.3);
@@ -431,6 +438,7 @@ function whiteHe(p: O, x: number, y: number, z: number, s: number, ry: number): 
   tube(H, [[1.6, 18, 0], [4.2, 21, 0], [6.2, 24, 0]], 1.0, 0.75, C, { radial: 8, sub: 3 });
   tube(H, [[-4.2, 16, 0], [-6.8, 15, 0], [-7.2, 10.5, 0], [-5.2, 8.6, 0]], 0.75, 0.75, C, { radial: 6, sub: 3 }).scale.z = 1.6;
 }
+// Ref: Commons "Bronze jue, Erlitou culture" / Shang jia photos — tall blade legs, long spout, grey-green patina.
 const lf_jue: Builder = gp => {
   const Y = ground(gp, 0.46, '#8a7456', '#5e4c38', 0.03, (x, _y, z) => {
     const n = fbm(x * 10, 0, z * 10, 2);
@@ -468,6 +476,7 @@ function hut(p: O, x: number, y: number, z: number, ry: number, s = 1): void {
   gable(H, 0.03, 0.02, 0.03, '#9a8456', 0, 0.022, 0.058, 0);
   rod(H, [0, 0.096, 0], [0, 0.112, 0], 0.003, '#6e5a3c', 4);
 }
+// Ref: Commons Han/Song well-field and rice-terrace paintings — a 3×3 grid of fields round a shared well, olive crops.
 const lf_jingtian: Builder = gp => {
   const Y = ground(gp, 0.47, '#86744f', '#5c4d33', 0.03);
   const F = 0.18, P = 0.2;
@@ -529,10 +538,7 @@ const lf_jingtian: Builder = gp => {
   hut(gp, 0.08, Y, -0.41, -0.2, 0.9);
   hut(gp, 0.41, Y, -0.06, -1.4, 0.85);
   hut(gp, -0.41, Y, 0.08, 1.4, 0.8);
-  for (const [x, z] of [[-0.02, -0.42], [0.38, 0.14], [-0.37, -0.17]]) {
-    tube(gp, [[x, Y, z], [x + 0.004, Y + 0.05, z], [x - 0.004, Y + 0.09, z]], 0.005, 0.003, '#5b4a3a', { radial: 5, sub: 2 });
-    for (const [dx, dy, dz] of [[0, 0.1, 0], [0.018, 0.09, 0.01], [-0.016, 0.092, -0.01], [0.004, 0.115, 0.008]]) rock(gp, '#5a6040', x + dx, Y + dy, z + dz, 0.028, 0.02, 0.026, 2, dx * 30, false);
-  }
+  for (const [x, z, s] of [[-0.02, -0.42, 0.09], [0.38, 0.14, 0.08], [-0.37, -0.17, 0.085]]) tree(gp, x, Y, z, s, '#5d6b42');
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -571,6 +577,7 @@ function target(p: O, x: number, y: number, z: number, ry: number, s: number): v
   }
   for (const [ax, ay] of [[0.02, 0.25], [-0.05, 0.2], [0.06, 0.3]]) arrow(T, [ax + 0.01, ay + 0.004, 0.16], [ax, ay, 0.0], 1.4, '#d8d0b8');
 }
+// Ref: Commons "Earthenware architecture models, Eastern Han Dynasty" — Han tiled pavilion (射宫) proportions, ochre earth.
 const lf_archery: Builder = gp => {
   const Y = ground(gp, 0.46, '#a8986e', '#74654a', 0.03, (x, _y, z) => {
     const n = fbm(x * 10, 0, z * 10, 2);
@@ -642,6 +649,7 @@ function deerHolder(p: O, x: number, y: number, z: number, ry: number, s: number
   cyl(D, '#3c4436', 0, 11.8, -1, 3.2, 0.6, 12);
   for (let i = 0; i < 8; i++) rod(D, [(i % 4 - 1.5) * 1.2, 10, -1 + (Math.floor(i / 4) - 0.5) * 1.6], [(i % 4 - 1.5) * 1.6, 34, -1 + (Math.floor(i / 4) - 0.5) * 2.8], 0.35, '#b8a47c', 3);
 }
+// Ref: Commons "Touhu pot" (bronze, Warring States–Han) — bulbous dark-bronze pot with a long neck, arrows tossed on a mat.
 const lf_touhu: Builder = gp => {
   const Y = ground(gp, 0.46, '#7e6c50', '#56483a', 0.03, (x, _y, z) => {
     const n = fbm(x * 9, 0, z * 9, 2);
@@ -649,15 +657,16 @@ const lf_touhu: Builder = gp => {
   });
   const S = TH_S, H = 0.2;
   // the hall: plastered back wall with two timber columns
-  cb(gp, '#b0a084', 0, Y + 0.09, -0.36, 0.7, 0.18, 0.016);
-  for (const sx of [-1, 1]) cyl(gp, '#5e4430', sx * 0.25, Y, -0.34, 0.009, 0.24, 8);
-  cb(gp, '#5e4430', 0, Y + 0.24, -0.34, 0.6, 0.014, 0.02);
+  cb(gp, '#b0a084', 0, Y + 0.09, -0.33, 0.56, 0.18, 0.016);
+  cb(gp, '#6e4a32', 0, Y + 0.012, -0.325, 0.56, 0.024, 0.02);
+  for (const sx of [-1, 1]) cyl(gp, '#5e4430', sx * 0.25, Y, -0.31, 0.009, 0.22, 8);
+  cb(gp, '#5e4430', 0, Y + 0.22, -0.31, 0.56, 0.014, 0.02);
   // the great floor mat (筵) with a dark cloth border, and each player's own 席 on it
   const rug = (cx: number, cz: number, w: number, d: number, n: number, edge = '#3e3428', yo = 0) => {
     cb(gp, edge, cx, Y + 0.0015 + yo, cz, w, 0.003, d);
     for (let i = 0; i < n; i++) cb(gp, i % 2 ? '#a08c64' : '#94805a', cx, Y + 0.0025 + yo, cz - d / 2 + 0.008 + (i + 0.5) * ((d - 0.016) / n), w - 0.016, 0.003, (d - 0.016) / n);
   };
-  rug(0, 0.0, 0.8, 0.56, 32);
+  rug(0, 0.0, 0.68, 0.5, 28);
   const potX = 0, potZ = 0.19, PS = S * 1.25;
   pot(gp, potX, Y + 0.004, potZ, PS);
   const mouthY = Y + 0.004 + 43.5 * PS;
@@ -713,17 +722,20 @@ const lf_touhu: Builder = gp => {
 // (Proportions from the museum's published dimensions; the rhombus is scaled up slightly so it reads.)
 // ---------------------------------------------------------------------------------------------------------------
 const lf_sword: Builder = gp => {
-  const Y = ground(gp, 0.46, '#2b2522', '#1a1614');
-  cb(gp, '#4a443c', 0, Y + 0.002, 0.02, 0.84, 0.004, 0.4);
-  cb(gp, '#57504a', 0, Y + 0.0045, 0.02, 0.8, 0.002, 0.36);
+  // (Commons "Sword of Goujian, 2019-06-15 04.jpg": pale greenish-gold blade with a dark rhombus lattice, lying on
+  // low cradles over the slate-blue cloth of the Hubei museum case)
+  const Y = ground(gp, 0.46, SITE.stone);
+  cb(gp, '#3c4148', 0, Y + 0.002, 0.02, 0.8, 0.004, 0.4);
+  cb(gp, '#454a52', 0, Y + 0.0045, 0.02, 0.76, 0.002, 0.36);
   // stand: lacquered plinth with vermilion trim
   rbox(gp, '#141010', 0, Y + 0.004, -0.04, 0.74, 0.035, 0.18, 0.006);
   rbox(gp, '#141010', 0, Y + 0.004, 0.13, 0.74, 0.02, 0.14, 0.005);
   for (const zz of [0.049, -0.131]) cb(gp, '#8c2318', 0, Y + 0.03, zz, 0.7, 0.004, 0.003);
   // the sword: local x runs pommel → tip, blade faces +z
   const L = 0.6, S = new THREE.Group();
-  S.position.set(-0.02, Y + 0.25, -0.04);
+  S.position.set(-0.02, Y + 0.22, -0.04);
   S.rotation.set(-0.5, 0, 0.3);
+  S.scale.setScalar(0.88);
   gp.add(S);
   const B = grp(S, -0.214, 0, 0);
   const wAt = (x: number) => x < 0.38 ? 0.029 - 0.0055 * (x / 0.38) : x < 0.48 ? 0.0235 + 0.002 * ((x - 0.38) / 0.1) : 0.0255 * Math.sqrt(Math.max(0, 1 - ((x - 0.48) / (L - 0.48)) ** 2));
@@ -738,21 +750,21 @@ const lf_sword: Builder = gp => {
     rings.push(r);
   }
   const fr = (v: number) => v - Math.floor(v);
-  skin(B, rings, '#b08e52', {
+  skin(B, rings, '#a8996a', {
     flat: true, metal: 0.5, rough: 0.4,
     paint: (x, y) => {
       const w = Math.max(0.002, wAt(x)), ay = Math.abs(y);
-      if (ay > w * 0.84) return '#c4a46a';
-      if (ay < w * 0.08) return '#bc9a5c';
+      if (ay > w * 0.84) return '#bcae7e';
+      if (ay < w * 0.08) return '#b2a272';
       if (x > 0.03 && x < 0.15 && ay < w * 0.42) {
         const slot = Math.floor((x - 0.03) / 0.03), lx = (x - 0.03) - slot * 0.03;
-        if (lx > 0.004 && lx < 0.026 && ay > w * 0.1) return hash3(Math.floor(x * 300), Math.floor(y * 300), slot) > 0.5 ? '#3a3022' : '#b08e52';
+        if (lx > 0.004 && lx < 0.026 && ay > w * 0.1) return hash3(Math.floor(x * 300), Math.floor(y * 300), slot) > 0.5 ? '#3a3022' : '#a8996a';
         return null;
       }
       if (x > 0.53) return null;
       const u = x / 0.028 + 0.25, v = y / 0.012, a = fr(u + v), b = fr(u - v);
-      if (a < 0.22 || b < 0.22) return '#b08e52';
-      if (Math.abs(a - 0.61) < 0.3 && Math.abs(b - 0.61) < 0.3) return Math.abs(a - 0.61) < 0.1 && Math.abs(b - 0.61) < 0.1 ? '#5a4a30' : '#3d3426';
+      if (a < 0.22 || b < 0.22) return '#a8996a';
+      if (Math.abs(a - 0.61) < 0.3 && Math.abs(b - 0.61) < 0.3) return Math.abs(a - 0.61) < 0.1 && Math.abs(b - 0.61) < 0.1 ? '#5a5640' : '#3e3c30';
       return null;
     },
   });
@@ -819,6 +831,7 @@ function horseArcher(p: O, x: number, y: number, z: number, ry: number, s: numbe
   cb(H, '#3a2618', 0.07, seat - 0.02, -0.12, 0.03, 0.1, 0.04, 0, 0.5); // quiver
   for (let i = 0; i < 4; i++) rod(H, [0.07 + (i - 1.5) * 0.006, seat + 0.03, -0.1], [0.07 + (i - 1.5) * 0.006, seat + 0.06, -0.08], 0.003, '#e9e2cf', 3);
 }
+// Ref: Commons "Mounted archer, China, Han dynasty, c. 50 BC - 50 AD, glazed earthenware - ROM" — rider turning to shoot, short coat.
 const lf_hufu: Builder = gp => {
   const Y = ground(gp, 0.46, '#8c8a5e', '#5c5840', 0.03, (x, _y, z) => {
     const n = fbm(x * 7, 0, z * 7, 3);
@@ -916,13 +929,15 @@ function cashString(p: O, pts: V3[], R: number, c: string, rim = true): void {
 }
 const lf_coins: Builder = (gp, r) => {
   const style = str(r.style, 'banliang');
-  const Y = ground(gp, 0.46, '#4a3122', '#2e1e15');
+  // (Commons "Ban Liang (半两) cash coins - Lars Bo Christensen": thin, irregular, dark green-brown patinated cast
+  // bronze with a square hole and the two characters either side)
+  const Y = ground(gp, 0.46, SITE.paving);
   // display table with a silk cloth
-  rbox(gp, '#3a2216', 0, Y, 0, 0.74, 0.04, 0.56, 0.008);
+  rbox(gp, '#3a2216', 0, Y, 0, 0.7, 0.04, 0.52, 0.008);
   const silk = style === 'jiaozi' ? '#3a4a52' : style === 'knife' ? '#4e4436' : '#56382e';
-  cb(gp, silk, 0, Y + 0.041, 0.0, 0.7, 0.003, 0.52);
-  cb(gp, '#8a7a5a', 0, Y + 0.042, 0.0, 0.66, 0.002, 0.48);
-  cb(gp, silk, 0, Y + 0.043, 0.0, 0.64, 0.002, 0.46);
+  cb(gp, silk, 0, Y + 0.041, 0.0, 0.67, 0.003, 0.49);
+  cb(gp, '#8a7a5a', 0, Y + 0.042, 0.0, 0.64, 0.002, 0.46);
+  cb(gp, silk, 0, Y + 0.043, 0.0, 0.62, 0.002, 0.44);
   const TY = Y + 0.045;
   // a lacquered rack at the back holds the showpieces upright
   const rack = (w: number) => {
@@ -931,7 +946,7 @@ const lf_coins: Builder = (gp, r) => {
     cb(gp, '#1d1310', 0, TY + 0.3, -0.2, w, 0.018, 0.03);
     cb(gp, '#5a2a20', 0, TY + 0.028, -0.13, w - 0.02, 0.004, 0.003);
   };
-  const BRONZE = '#7e6440', GREEN = '#5e7462';
+  const BRONZE = '#6e5a3e', GREEN = '#56685a';
   if (style === 'knife') {
     rack(0.7);
     // 金错刀: a ring head (square-holed) and a long blade; gold-inlaid 一刀, cast 平五千
@@ -1044,6 +1059,7 @@ function kicker(p: O, x: number, y: number, z: number, ry: number, h: number, to
   el(p, '#3a2a1e', b[0], b[1], b[2], 0.088 * h, 0.012 * h, 0.07 * h, ry);
   return r;
 }
+// Ref: Commons "Emperor Taizu play Cuju.jpg", "Chujutu.jpg" — the stitched red leather ball kicked by men in short robes.
 const lf_cuju: Builder = gp => {
   const Y = ground(gp, 0.46, '#8a7c58', '#5e5238', 0.03, (x, _y, z) => {
     const n = fbm(x * 9, 1, z * 9, 3);
@@ -1094,6 +1110,7 @@ const lf_cuju: Builder = gp => {
 // handstand on its crossbar), 走索 (rope-walking), 跳丸 (juggling wooden balls) and somersaults, while a drummer beats
 // the 建鼓 (a barrel drum pierced by a pole, with a feather canopy 羽葆 and pennants) and robed guests kneel on mats.
 // ---------------------------------------------------------------------------------------------------------------
+// Ref: Commons "China 2006 8-70.jpg" (Jinan Wuyingshan painted-pottery acrobats) — buff clay, bare torsos, seated musicians.
 const lf_acrobats: Builder = gp => {
   const Y = ground(gp, 0.46, '#8e7c5c', '#5e5040', 0.03, (x, _y, z) => {
     const n = fbm(x * 8, 2, z * 8, 3);
@@ -1226,9 +1243,12 @@ const lf_laozi: Builder = gp => {
   for (const s of [-1, 1]) cb(gp, '#4a3626', s * 0.03, Y + 0.095, GZ + 0.066, 0.05, 0.19, 0.006, s * 0.6);
   cb(gp, '#4a3626', 0, Y + 0.2, GZ + 0.062, 0.11, 0.012, 0.012);
   hall(gp, 0, Y + WH, GZ, 0.24, 0.09, 0.08, '#4a4844', 0, '#8a7458', { col: '#4a3626', band: '#3e3024' });
+  // (cf. Chen Hongshou, "Laozi Riding an Ox", Commons: the sage in a pale robe with a white beard on a grey buffalo)
+  tree(gp, 0.37, Y, -0.1, 0.1, '#5b6a44');
+  tree(gp, -0.38, Y, -0.08, 0.08, '#5b6a44');
   // the water buffalo walking west (toward −x)
   const BS = 0.5, OX = 0.06, OZ = 0.08, ry = -Math.PI / 2 + 0.08, Ob = grp(gp, OX, Y, OZ, ry, BS);
-  const back = buffalo(Ob, '#2e3236') * BS;
+  const back = buffalo(Ob, '#4a4844') * BS;
   // Laozi sitting sideways on its back, facing the viewer, legs down the near flank
   const h = 0.22, sY = Y + back - 0.004;
   const lz = man(gp, OX + 0.005, sY - 0.27 * h, OZ, {

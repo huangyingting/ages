@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Builder, V3 } from '../prims.ts';
-import { add, box, cone, cyl, ellip as ellipHi, g, gable, lathe, mat, panel, archPath, prism, rbox, rod, shade, skin, slab, tube } from '../prims.ts';
-import { figure, figureBase, type FigureAnchors, type FigureOpts } from '../figure.ts';
+import { add, box, cone, cyl, ellip as ellipHi, g, gable, lathe, mat, panel, archPath, plinth, prism, rbox, rod, shade, SITE, skin, slab, tube } from '../prims.ts';
+import { figure, type FigureAnchors, type FigureOpts } from '../figure.ts';
 
 // ---------------------------------------------------------------- shared helpers (explorers, aviators, athletes...)
 
@@ -55,13 +55,13 @@ function flag(p: THREE.Object3D, x: number, y: number, z: number, w: number, h: 
 // design layers are slightly thicker than the cloth so they show on both sides
 const band = (f: THREE.Group, c: string, x: number, y: number, w: number, h: number) => box(f, c, x, y, 0, w, h, 0.0055);
 const NO = (f: THREE.Group, w: number, h: number) => {
-  band(f, '#ffffff', w * 0.36, 0, w * 0.16, h); band(f, '#ffffff', w / 2, h * 0.4, w, h * 0.2);
-  box(f, '#1e3a8a', w * 0.36, 0, 0, w * 0.08, h, 0.0068); box(f, '#1e3a8a', w / 2, h * 0.45, 0, w, h * 0.1, 0.0068);
+  band(f, '#e3e3e3', w * 0.36, 0, w * 0.16, h); band(f, '#e3e3e3', w / 2, h * 0.4, w, h * 0.2);
+  box(f, '#304378', w * 0.36, 0, 0, w * 0.08, h, 0.0068); box(f, '#304378', w / 2, h * 0.45, 0, w, h * 0.1, 0.0068);
 };
 const US = (f: THREE.Group, w: number, h: number) => {
-  for (let i = 0; i < 7; i += 2) band(f, '#ffffff', w / 2, h * (i + 0.5) / 7.5, w, h / 7.5);
-  box(f, '#1e3a8a', w * 0.2, h * 0.47, 0, w * 0.4, h * 0.53, 0.0068);
-  for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) box(f, '#ffffff', w * (0.06 + j * 0.095), h * (0.56 + i * 0.14), 0, w * 0.03, w * 0.03, 0.0075);
+  for (let i = 0; i < 7; i += 2) band(f, '#e3e3e3', w / 2, h * (i + 0.5) / 7.5, w, h / 7.5);
+  box(f, '#304378', w * 0.2, h * 0.47, 0, w * 0.4, h * 0.53, 0.0068);
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) box(f, '#e3e3e3', w * (0.06 + j * 0.095), h * (0.56 + i * 0.14), 0, w * 0.03, w * 0.03, 0.0075);
 };
 
 /** Snowy / grassy mound: a smooth lathe hill. */
@@ -95,8 +95,8 @@ function baochuan(p: THREE.Object3D, cx: number, cy: number, cz: number, L: numb
     paint: (x, y, _z, _nx, ny) => {
       const s = cy + sheer(Math.min(1, Math.max(0, (x - cx) / L + 0.5)));
       if (ny > 0.8) return '#8a7052';
-      if (y > s - D * 0.3) return '#7a2e22';
-      if (y > s - D * 0.38) return '#a88a4c';
+      if (y > s - D * 0.3) return '#6d372f';
+      if (y > s - D * 0.38) return '#a6894e';
       if (y < cy + D * 0.08) return '#2a211b';
       return Math.floor((y - cy) * 220) % 2 ? '#3d2c20' : '#463324';
     },
@@ -106,12 +106,12 @@ function baochuan(p: THREE.Object3D, cx: number, cy: number, cz: number, L: numb
   ellip(p, '#e3dac4', ex, ey, ez, 0.016, 0.011, 0.004);
   ellip(p, '#1a1614', ex - 0.002, ey, ez + 0.002, 0.007, 0.007, 0.004);
   // low forecastle and the two-storey stern castle (舵楼) with windows and a tiled roof
-  box(p, '#5a3a28', X(0.08), cy + sheer(0.12) - 0.004, cz, L * 0.09, 0.02, half(0.08) * 1.8);
+  box(p, '#583a2a', X(0.08), cy + sheer(0.12) - 0.004, cz, L * 0.09, 0.02, half(0.08) * 1.8);
   const xs = X(0.9), ys = cy + sheer(0.83) - 0.004;
-  box(p, '#6a3626', xs, ys, cz, L * 0.17, 0.042, half(0.9) * 1.9);
+  box(p, '#63392d', xs, ys, cz, L * 0.17, 0.042, half(0.9) * 1.9);
   for (let i = 0; i < 6; i++) box(p, '#241b15', xs - L * 0.07 + i * L * 0.028, ys + 0.016, cz + half(0.9) * 0.95 + 0.001, 0.01, 0.014, 0.003);
-  box(p, '#a88a4c', xs, ys + 0.04, cz, L * 0.175, 0.004, half(0.9) * 1.95);
-  box(p, '#6a3626', xs + L * 0.02, ys + 0.044, cz, L * 0.1, 0.028, half(0.9) * 1.4);
+  box(p, '#a6894e', xs, ys + 0.04, cz, L * 0.175, 0.004, half(0.9) * 1.95);
+  box(p, '#63392d', xs + L * 0.02, ys + 0.044, cz, L * 0.1, 0.028, half(0.9) * 1.4);
   gable(p, L * 0.13, 0.022, half(0.9) * 1.7, '#3a3430', xs + L * 0.02, ys + 0.072, cz);
   // deep stern rudder and its tiller
   box(p, '#2e231a', X(1) + 0.012, cy - D * 0.9, cz, 0.018, D * 2.2, 0.006);
@@ -124,23 +124,23 @@ function baochuan(p: THREE.Object3D, cx: number, cy: number, cz: number, L: numb
     rod(p, [mx, my, cz], [mx, my + h, cz], 0.003 + 0.003 * k, '#3a2a1d', 6);
     const leech = (f: number) => (f < 0.55 ? 0.68 + 0.1 * f / 0.55 : 0.78 - 0.14 * (f - 0.55) / 0.45) * sw;
     const luff = -0.32 * sw, topL = 0.86;
-    const sail = slab(p, [[luff, 0], [leech(0), 0], [leech(0.55), 0.55 * hs], [leech(1), hs], [luff, topL * hs]], 0.003, tint('#a8804f', (i % 2) * 0.05 - 0.02), 0, false);
+    const sail = slab(p, [[luff, 0], [leech(0), 0], [leech(0.55), 0.55 * hs], [leech(1), hs], [luff, topL * hs]], 0.003, tint('#a78050', (i % 2) * 0.05 - 0.02), 0, false);
     sail.position.set(mx, sb, sz);
     for (let j = 0; j <= 7; j++) {
       const f = j / 7;
       rod(p, [mx + luff - 0.004, sb + f * topL * hs, sz + 0.004], [mx + leech(f) + 0.006, sb + f * hs, sz + 0.004], j === 0 || j === 7 ? 0.0028 : 0.0015, '#3b2a1d', 4);
     }
-    for (const f of [0.25, 0.5, 0.75]) rod(p, [mx + leech(f) + 0.005, sb + f * hs, sz + 0.004], [mx + leech(0) + 0.025, my + 0.004, sz], 0.0007, '#2e241c', 3);
+    for (const f of [0.25, 0.5, 0.75]) rod(p, [mx + leech(f) + 0.005, sb + f * hs, sz + 0.004], [mx + leech(0) + 0.025, my + 0.004, sz], 0.003, '#2e241c', 3);
   });
   // swallow-tailed pennant on the mainmast
   const mm = X(0.41), mt = cy + sheer(0.41) + H;
-  slab(p, [[0, 0], [0.06, 0.004], [0.045, -0.008], [0.06, -0.02], [0, -0.016]], 0.002, '#8a3a2a', 0, false).position.set(mm, mt, cz);
+  slab(p, [[0, 0], [0.06, 0.004], [0.045, -0.008], [0.06, -0.02], [0, -0.016]], 0.002, '#7e4236', 0, false).position.set(mm, mt, cz);
 }
 
 /** Kneeling Bactrian camel with silk bales — used for Marco Polo. Faces +x locally. */
 function camel(p: THREE.Object3D, x: number, y: number, z: number, s: number, ry: number): void {
   // standing two-humped Bactrian camel of the Silk Road, head toward +x
-  const c = '#b48a5a', d = tint(c, -0.22), grp = new THREE.Group();
+  const c = '#b28a5c', d = tint(c, -0.22), grp = new THREE.Group();
   grp.position.set(x, y, z); grp.rotation.y = ry; grp.scale.setScalar(s); p.add(grp);
   ellip(grp, c, 0, 0.42, 0, 0.24, 0.1, 0.11);
   for (const hx of [-0.1, 0.08]) ellip(grp, d, hx, 0.52, 0, 0.075, 0.09, 0.065);
@@ -156,12 +156,12 @@ function camel(p: THREE.Object3D, x: number, y: number, z: number, s: number, ry
   for (const sz of [-1, 1]) { ellip(grp, '#1f1a17', 0.4, 0.7, sz * 0.036, 0.01); ellip(grp, c, 0.36, 0.72, sz * 0.03, 0.012, 0.02, 0.008); }
   tube(grp, [[-0.23, 0.44, 0], [-0.27, 0.32, 0]], 0.012, 0.008, d, { radial: 4, sub: 2 });
   // felt saddle cloth between the humps and felt-wrapped bales lashed on both flanks
-  box(grp, '#6e3a2c', -0.01, 0.5, 0, 0.09, 0.012, 0.25);
+  box(grp, '#693d31', -0.01, 0.5, 0, 0.09, 0.012, 0.25);
   for (const sz of [-1, 1]) {
     const b1 = cyl(grp, sz > 0 ? '#8c7a5c' : '#9a8460', 0, 0.38, sz * 0.14, 0.045, 0.14, 10); b1.rotation.z = Math.PI / 2;
     box(grp, '#4a3a2a', 0, 0.4, sz * 0.14, 0.012, 0.095, 0.095);
   }
-  rod(grp, [0.43, 0.66, 0], [0.5, 0.35, 0.12], 0.003, '#7c5a3a', 3);
+  rod(grp, [0.43, 0.66, 0], [0.5, 0.35, 0.12], 0.003, '#7b5a3b', 3);
 }
 
 /** Date palm. */
@@ -170,9 +170,9 @@ function palm(p: THREE.Object3D, x: number, y: number, z: number, h: number): vo
   for (let i = 0; i < 4; i++) ellip(p, '#6b4f35', x + h * 0.05, y + h * (0.2 + i * 0.2), z, h * 0.055, h * 0.02, h * 0.055);
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2, tx = x + h * 0.02, ty = y + h;
-    tube(p, [[tx, ty, z], [tx + Math.cos(a) * h * 0.22, ty + h * 0.08, z + Math.sin(a) * h * 0.22], [tx + Math.cos(a) * h * 0.4, ty - h * 0.08, z + Math.sin(a) * h * 0.4]], h * 0.045, h * 0.008, i % 2 ? '#4d7c2f' : '#5d8f38', { radial: 4, sub: 4, squash: 0.25 });
+    tube(p, [[tx, ty, z], [tx + Math.cos(a) * h * 0.22, ty + h * 0.08, z + Math.sin(a) * h * 0.22], [tx + Math.cos(a) * h * 0.4, ty - h * 0.08, z + Math.sin(a) * h * 0.4]], h * 0.045, h * 0.008, i % 2 ? '#4e7635' : '#5e883f', { radial: 4, sub: 4, squash: 0.25 });
   }
-  for (let i = 0; i < 3; i++) ellip(p, '#b45309', x + h * 0.02 + Math.cos(i * 2) * h * 0.05, y + h * 0.93, z + Math.sin(i * 2) * h * 0.05, h * 0.03);
+  for (let i = 0; i < 3; i++) ellip(p, '#8d5830', x + h * 0.02 + Math.cos(i * 2) * h * 0.05, y + h * 0.93, z + Math.sin(i * 2) * h * 0.05, h * 0.03);
 }
 
 /** Small husky lying / standing. Faces +x. */
@@ -180,12 +180,12 @@ function husky(p: THREE.Object3D, x: number, y: number, z: number, s: number, ry
   const grp = new THREE.Group();
   grp.position.set(x, y, z); grp.rotation.y = ry; grp.scale.setScalar(s); p.add(grp);
   ellip(grp, c, 0, 0.2, 0, 0.2, 0.09, 0.085);
-  ellip(grp, '#f1f5f9', 0.02, 0.16, 0, 0.17, 0.06, 0.07);
+  ellip(grp, '#d8e3ee', 0.02, 0.16, 0, 0.17, 0.06, 0.07);
   for (const lx of [-0.13, 0.12]) for (const sz of [-1, 1]) tube(grp, [[lx, 0.16, sz * 0.05], [lx, 0.02, sz * 0.05]], 0.03, 0.025, '#e5e7eb', { radial: 6, sub: 1 });
   ellip(grp, c, 0.22, 0.3, 0, 0.08, 0.075, 0.07);
-  ellip(grp, '#f1f5f9', 0.3, 0.27, 0, 0.06, 0.035, 0.04);
+  ellip(grp, '#d8e3ee', 0.3, 0.27, 0, 0.06, 0.035, 0.04);
   ellip(grp, '#111827', 0.355, 0.285, 0, 0.015);
-  for (const sz of [-1, 1]) { cone(grp, c, 0.2, 0.35, sz * 0.04, 0.025, 0.06, 4); ellip(grp, '#1e3a8a', 0.28, 0.32, sz * 0.035, 0.01); }
+  for (const sz of [-1, 1]) { cone(grp, c, 0.2, 0.35, sz * 0.04, 0.025, 0.06, 4); ellip(grp, '#304378', 0.28, 0.32, sz * 0.035, 0.01); }
   tube(grp, [[-0.18, 0.24, 0], [-0.26, 0.34, 0], [-0.2, 0.4, 0]], 0.035, 0.02, c, { radial: 7, sub: 4 });
 }
 
@@ -199,10 +199,10 @@ function lunarModule(p: THREE.Object3D, x: number, y: number, z: number, s: numb
     rod(grp, [cx * 0.25, 0.16, cz * 0.25], [cx * 0.4, 0.07, cz * 0.4], 0.009, '#9ca3af');
     cyl(grp, '#d1d5db', cx * 0.43, 0, cz * 0.43, 0.06, 0.02, 10);
   }
-  metal(cyl(grp, '#d4a52c', 0, 0.13, 0, 0.27, 0.22, 8), '#d6a83a', 0.55, 0.3);
+  metal(cyl(grp, '#b6984a', 0, 0.13, 0, 0.27, 0.22, 8), '#bb9d55', 0.55, 0.3);
   for (let k = 0; k < 8; k++) {
     const a = (k / 8) * Math.PI * 2 + Math.PI / 8;
-    metal(box(grp, '#b8862a', Math.cos(a) * 0.255, 0.15, Math.sin(a) * 0.255, 0.04, 0.18, 0.02, -a + Math.PI / 2), '#a87b25', 0.6, 0.25);
+    metal(box(grp, '#a07f42', Math.cos(a) * 0.255, 0.15, Math.sin(a) * 0.255, 0.04, 0.18, 0.02, -a + Math.PI / 2), '#92743b', 0.6, 0.25);
   }
   box(grp, '#111111', 0, 0.35, 0, 0.36, 0.02, 0.34);
   // ascent stage
@@ -240,16 +240,16 @@ function vostokRocket(p: THREE.Object3D, x: number, y: number, z: number, s: num
   cone(grp, W, 0, 0.705, 0, 0.022, 0.07, 10);
   rod(grp, [0, 0.77, 0], [0, 0.82, 0], 0.003, '#9ca3af', 4);
   // service tower
-  for (const sx of [-1, 1]) rod(grp, [sx * 0.11, 0.02, -0.08], [sx * 0.11, 0.58, -0.08], 0.006, '#b91c1c', 4);
-  for (let i = 0; i < 6; i++) rod(grp, [-0.11, 0.06 + i * 0.1, -0.08], [0.11, 0.06 + i * 0.1, -0.08], 0.004, '#b91c1c', 4);
-  for (let i = 0; i < 2; i++) rod(grp, [0.11, 0.3 + i * 0.2, -0.08], [0.04, 0.3 + i * 0.2, -0.02], 0.004, '#b91c1c', 4);
+  for (const sx of [-1, 1]) rod(grp, [sx * 0.11, 0.02, -0.08], [sx * 0.11, 0.58, -0.08], 0.006, '#9a3b3b', 4);
+  for (let i = 0; i < 6; i++) rod(grp, [-0.11, 0.06 + i * 0.1, -0.08], [0.11, 0.06 + i * 0.1, -0.08], 0.004, '#9a3b3b', 4);
+  for (let i = 0; i < 2; i++) rod(grp, [0.11, 0.3 + i * 0.2, -0.08], [0.04, 0.3 + i * 0.2, -0.02], 0.004, '#9a3b3b', 4);
 }
 
 /** Red Lockheed Vega 5B: round monocoque fuselage, thick high wing, NACA cowl, spatted wheels. Nose +x. */
 function vega(p: THREE.Object3D, x: number, y: number, z: number, s: number, ry: number): void {
   const grp = new THREE.Group();
   grp.position.set(x, y, z); grp.rotation.y = ry; grp.scale.setScalar(s); p.add(grp);
-  const R = '#c81e1e', GOLD = '#e8b931';
+  const R = '#a64040', GOLD = '#c1a658';
   const fus = lathe(grp, [[0, -0.5], [0.012, -0.5], [0.03, -0.38], [0.06, -0.15], [0.078, 0.05], [0.082, 0.2], [0.075, 0.33], [0.07, 0.36], [0, 0.36]], R, 0, 0, 0, 16);
   fus.rotation.z = -Math.PI / 2; fus.position.y = 0.2;
   // gold speed stripe on both flanks
@@ -310,7 +310,7 @@ function beacon(p: THREE.Object3D, x: number, y: number, z: number, s: number): 
 function sankore(p: THREE.Object3D, x: number, y: number, z: number, s: number, ry: number): void {
   const grp = new THREE.Group();
   grp.position.set(x, y, z); grp.rotation.y = ry; grp.scale.setScalar(s); p.add(grp);
-  const A = '#b77d48', T = '#6b4a2b';
+  const A = '#af7d50', T = '#674a2f';
   rbox(grp, A, -0.08, 0, 0.02, 0.4, 0.12, 0.26, 0.012);
   for (let i = 0; i < 9; i++) { cone(grp, tint(A, -0.04), -0.26 + i * 0.045, 0.12, 0.15, 0.012, 0.035, 5); cone(grp, tint(A, -0.04), -0.26 + i * 0.045, 0.12, -0.11, 0.012, 0.035, 5); }
   for (let i = 0; i < 3; i++) box(grp, '#3a2a1c', -0.2 + i * 0.1, 0.0, 0.151, 0.04, 0.06, 0.01);
@@ -332,11 +332,30 @@ function sankore(p: THREE.Object3D, x: number, y: number, z: number, s: number, 
 
 // ---------------------------------------------------------------- builders
 
+/** Shared museum plinth (walnut side, site-coloured top); its meshes are tagged so `settle` leaves them alone. */
+function base(gp: THREE.Object3D, top: string): number {
+  const n = gp.children.length, h = plinth(gp, top);
+  for (const c of gp.children.slice(n)) c.userData.plinth = true;
+  return h;
+}
+/**
+ * Scales the scene above the plinth (figure, props, scenery) by k about the plinth top: the hero, authored at the
+ * figure.ts default 0.62, ends up ≈0.53 tall, in scale with the map's building dioramas, and stays inside the rim.
+ */
+function settle(gp: THREE.Object3D, k = 0.85): void {
+  const top = 0.035, s = new THREE.Group();
+  s.position.y = top;
+  s.scale.setScalar(k);
+  for (const c of [...gp.children]) if (!c.userData.plinth) { c.position.y -= top; s.add(c); }
+  gp.add(s);
+}
+
 const BUILDERS: Record<string, Builder> = {
   /** Admiral Zheng He (Ming, 1405–33 voyages) on the Longjiang shipyard quay at Nanjing, his six-masted treasure ship
-   *  behind. Ref: Nanjing 宝船厂 replica (福船 hull, battened junk sails); Ming eunuch official in red 圆领袍 and 乌纱帽. */
+   *  behind. Ref: Nanjing 宝船厂 replica (福船 hull, battened junk sails) and the Treasure Boat Shipyard / Melaka statues
+   *  (scroll chart in hand, red 圆领袍 with 补子, 乌纱帽, jade belt). */
   pp_zhenghe: gp => {
-    const y = figureBase(gp, '#4f6c74', '#4e4034');
+    const y = base(gp, SITE.water);
     for (let i = 0; i < 12; i++) { const a = i * 2.4, r = 0.14 + (i % 5) * 0.06; ellip(gp, '#6f8c92', Math.cos(a) * r, y + 0.001, -Math.abs(Math.sin(a)) * r - 0.04, 0.028, 0.0025, 0.006, a); }
     const quay: [number, number][] = [];
     for (let i = 0; i <= 18; i++) { const a = (i / 18) * Math.PI; quay.push([Math.cos(a) * 0.445, 0.02 + Math.sin(a) * 0.425]); }
@@ -351,8 +370,8 @@ const BUILDERS: Record<string, Builder> = {
     for (const [jx, jz] of [[0.2, 0.28], [0.25, 0.32]] as const) lathe(gp, [[0.0255, 0.026], [0.0262, 0.026], [0.0245, 0.04], [0.0225, 0.04]], '#4a5e7a', jx, y + 0.03, jz, 10);
     baochuan(gp, 0.0, y + 0.006, -0.25, 0.76);
     const yf = y + 0.03, o: FigureOpts = {
-      y: yf, x: -0.12, z: 0.17, top: '#8c3328', accent: '#2a2420', outfit: 'roundrobe', wideSleeves: true, hair: '#1c1917', hat: 'wusha', hatColor: '#1c1917',
-      badge: '#a88a4c', skin: '#d6a47c', shoes: '#1f1a17',
+      y: yf, x: -0.2, z: 0.17, h: 0.56, top: '#773f35', accent: '#2a2420', outfit: 'roundrobe', wideSleeves: true, hair: '#1c1917', hat: 'wusha', hatColor: '#1c1917',
+      badge: '#a6894e', skin: '#d6a47c', shoes: '#1f1a17',
       armL: { fwd: 0.75, side: 0.15, bend: 0.8, inward: 0.4 }, armR: { fwd: 1.2, side: 0.55, bend: 0.1 },
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u;
@@ -361,20 +380,21 @@ const BUILDERS: Record<string, Builder> = {
     for (const sx of [-0.06, -0.02, 0.02, 0.06]) box(b, '#8e8a72', sx * u, 0.468 * u, 0.106 * u - Math.abs(sx) * 0.12 * u, 0.026 * u, 0.018 * u, 0.006 * u);
     // dry compass (旱罗盘) in a wooden case in the left hand
     const [lx, ly, lz] = a.handL;
-    rbox(gp, '#5a3e28', lx + 0.01, ly + 0.008, lz + 0.02, 0.06, 0.012, 0.06, 0.004);
-    metal(cyl(gp, '#8a6a3a', lx + 0.01, ly + 0.02, lz + 0.02, 0.022, 0.003, 14), '#8a6a3a', 0.5, 0.5);
+    rbox(gp, '#583e2a', lx + 0.01, ly + 0.008, lz + 0.02, 0.06, 0.012, 0.06, 0.004);
+    metal(cyl(gp, '#86693e', lx + 0.01, ly + 0.02, lz + 0.02, 0.022, 0.003, 14), '#86693e', 0.5, 0.5);
     box(gp, '#2a2420', lx + 0.01, ly + 0.0235, lz + 0.02, 0.003, 0.002, 0.034, 0.5);
     // rolled sea chart in the outstretched hand
     const [rx, ry, rz] = a.handR;
-    const sc = cyl(gp, '#d9ccaa', rx, ry - 0.045, rz + 0.01, 0.011, 0.09, 8); sc.rotation.z = 0.2;
+    const sc = cyl(gp, '#d8cbab', rx, ry - 0.045, rz + 0.01, 0.011, 0.09, 8); sc.rotation.z = 0.2;
     for (const d of [-1, 1]) ellip(gp, '#3a2a1e', rx - d * 0.009, ry + d * 0.045, rz + 0.01, 0.013, 0.005, 0.013);
   },
 
   /** Xuanzang (Tang, 629–645) on the frontier road west, carrying his bamboo book-frame (笈) with a canopy and hanging
-   *  lamp, fly-whisk and sutra in hand. Ref: 玄奘三藏像 (Tokyo National Museum) / Dunhuang 行脚僧图; Hexi 烽燧. */
+   *  lamp, fly-whisk and sutra in hand. Ref: 玄奘三藏像 (Tokyo National Museum) / Dunhuang 行脚僧图; Hexi 烽燧; the Met's
+   *  Kamakura "Portrait of Xuanzang with Attendant" for the shaven head and brown robe. */
   pp_xuanzang: gp => {
-    const y = figureBase(gp, '#cdb48a', '#7a5f42');
-    mound(gp, '#c8ab7c', -0.08, y, -0.34, 0.15, 0.045);
+    const y = base(gp, SITE.sand);
+    mound(gp, '#c4aa80', -0.08, y, -0.34, 0.15, 0.045);
     // the caravan road: packed earth with cart ruts, winding away to the back right
     const P: [number, number][] = [[-0.06, 0.45], [-0.02, 0.26], [0.04, 0.06], [0.14, -0.12], [0.24, -0.3]], wl: [number, number][] = [], wr: [number, number][] = [];
     P.forEach(([px, pz], i) => {
@@ -387,7 +407,7 @@ const BUILDERS: Record<string, Builder> = {
     rocks(gp, '#8f7b63', [[0.3, 0.22, 0.03], [0.34, 0.15, 0.02], [-0.33, 0.14, 0.025], [-0.25, 0.28, 0.018]], y);
     // camel-thorn (骆驼刺) tussocks
     for (const [tx, tz] of [[-0.36, 0.02], [0.38, 0.04], [0.2, 0.33], [-0.18, 0.36]]) for (let k = 0; k < 7; k++)
-      rod(gp, [tx, y, tz], [tx + Math.cos(k * 0.9) * 0.025, y + 0.03 + (k % 3) * 0.006, tz + Math.sin(k * 0.9) * 0.025], 0.0025, k % 2 ? '#7d8455' : '#8f8a5c', 3);
+      rod(gp, [tx, y, tz], [tx + Math.cos(k * 0.9) * 0.025, y + 0.03 + (k % 3) * 0.006, tz + Math.sin(k * 0.9) * 0.025], 0.003, k % 2 ? '#7d8455' : '#8f8a5c', 3);
     const o: FigureOpts = {
       y, x: 0.0, z: 0.1, ry: 0.25, skin: '#d4a27c', top: '#7a6046', bottom: '#5c4a38', accent: '#4a3a2a', outfit: 'tunic', hair: '#5a4a3c', hairStyle: 'bald',
       shoes: '#a8925e', socks: '#d4c8ac', stance: 'walk', lean: 0.05,
@@ -405,46 +425,47 @@ const BUILDERS: Record<string, Builder> = {
       for (const zz of [z0, z1]) rod(b, [-xw, sy * u, zz], [xw, sy * u, zz], 0.006 * u, BAM, 4);
       for (const sx of [-1, 1]) rod(b, [sx * xw, sy * u, z0], [sx * xw, sy * u, z1], 0.006 * u, BAM, 4);
     }
-    const wraps = ['#5a4030', '#c8b48a', '#6e5236', '#8a6a48'];
+    const wraps = ['#5a4030', '#c7b48b', '#6e5236', '#8a6a48'];
     for (const [r, sy] of [[0, 0.3], [2, 0.76]] as const) for (let k = 0; k < 3; k++) for (let j = 0; j < 2; j++) {
       const sc = cyl(b, wraps[(k + j + r) % 4], 0, 0, 0, 0.032 * u, xw * 1.85, 8);
       sc.rotation.z = Math.PI / 2; sc.position.set(0, (sy + 0.04 + k * 0.066) * u, z0 - 0.042 * u - j * 0.078 * u);
     }
     rbox(b, '#3a2a22', 0, 0.53 * u, (z0 + z1) / 2, xw * 1.8, 0.2 * u, (z0 - z1) * 0.9, 0.008 * u);
-    box(b, '#8a6a3a', 0, 0.62 * u, z1 + 0.012 * u, xw * 1.0, 0.025 * u, 0.006 * u);
+    box(b, '#86693e', 0, 0.62 * u, z1 + 0.012 * u, xw * 1.0, 0.025 * u, 0.006 * u);
     // the canopy (笈盖) over his head: a bamboo-mat board with a cloth fringe, and the little lamp hanging in front
     const cz0 = (z1 + 0.16 * u) / 2, cd = 0.16 * u - z1;
     const can = box(b, '#8a7a58', 0, yt, cz0, 0.3 * u, 0.01 * u, cd); can.rotation.x = -0.1;
-    for (let i = 0; i < 8; i++) box(b, i % 2 ? '#6e4a32' : '#5e3e2a', (-0.14 + i * 0.04) * u, yt - 0.045 * u, 0.16 * u - 0.002 * u, 0.036 * u, 0.045 * u, 0.006 * u);
+    for (let i = 0; i < 8; i++) box(b, i % 2 ? '#6c4a34' : '#5c3e2c', (-0.14 + i * 0.04) * u, yt - 0.045 * u, 0.16 * u - 0.002 * u, 0.036 * u, 0.045 * u, 0.006 * u);
     for (const sx of [-1, 1]) {
-      box(b, '#5e3e2a', sx * 0.16 * u, yt - 0.04 * u, cz0, 0.006 * u, 0.04 * u, cd * 0.95);
+      box(b, '#5c3e2c', sx * 0.16 * u, yt - 0.04 * u, cz0, 0.006 * u, 0.04 * u, cd * 0.95);
       rod(b, [sx * xw, yt - 0.1 * u, z0], [sx * 0.15 * u, yt, 0.14 * u], 0.005 * u, BAM, 4);
     }
     rod(b, [-0.15 * u, yt, 0.14 * u], [-0.2 * u, yt + 0.03 * u, 0.24 * u], 0.005 * u, BAM, 4);
     rod(b, [-0.2 * u, yt + 0.03 * u, 0.24 * u], [-0.2 * u, yt - 0.1 * u, 0.24 * u], 0.0015 * u, '#2e241c', 3);
     lathe(b, [[0, 0], [0.018 * u, 0.004 * u], [0.024 * u, 0.02 * u], [0.02 * u, 0.022 * u], [0, 0.01 * u]], '#5a4a32', -0.2 * u, yt - 0.125 * u, 0.24 * u, 8);
-    glow(ellip(b, '#ffd98a', -0.2 * u, yt - 0.095 * u, 0.24 * u, 0.006 * u, 0.012 * u, 0.006 * u), '#ffd98a', '#e8a040');
+    glow(ellip(b, '#e2cfa7', -0.2 * u, yt - 0.095 * u, 0.24 * u, 0.006 * u, 0.012 * u, 0.006 * u), '#e2cfa7', '#c59b63');
     // shoulder straps
     for (const sx of [-1, 1]) tube(b, [[sx * 0.07 * u, 0.62 * u, 0.09 * u], [sx * 0.09 * u, 0.79 * u, 0.06 * u], [sx * 0.1 * u, 0.83 * u, -0.02 * u], [sx * 0.11 * u, 0.78 * u, z0]], 0.01 * u, 0.01 * u, '#4a3a2a', { radial: 5, sub: 4 });
     // horsehair fly-whisk (拂子) in the right hand, sutra roll in the left
     const [rx, ry, rz] = a.handR;
-    rod(gp, [rx, ry - 0.012, rz], [rx + 0.012, ry + 0.07, rz + 0.02], 0.004, '#4a2e1e', 5);
+    rod(gp, [rx, ry - 0.012, rz], [rx + 0.012, ry + 0.07, rz + 0.02], 0.004, '#472f21', 5);
     for (let k = 0; k < 5; k++) tube(gp, [[rx + 0.012, ry + 0.07, rz + 0.02], [rx + 0.02 + k * 0.003, ry + 0.062, rz + 0.03 + (k % 2) * 0.004], [rx + 0.024 + k * 0.004, ry - 0.005 - (k % 3) * 0.006, rz + 0.034 + (k - 2) * 0.004]], 0.004, 0.002, '#e2dccb', { radial: 4, sub: 3 });
     const [lx, ly, lz] = a.handL;
-    const sl = cyl(gp, '#d8ccaa', 0, 0, 0, 0.012, 0.09, 8); sl.rotation.z = Math.PI / 2; sl.position.set(lx + 0.02, ly + 0.004, lz + 0.012);
+    const sl = cyl(gp, '#d7ccab', 0, 0, 0, 0.012, 0.09, 8); sl.rotation.z = Math.PI / 2; sl.position.set(lx + 0.02, ly + 0.004, lz + 0.012);
     box(gp, '#5a4030', lx + 0.02, ly - 0.008, lz + 0.012, 0.012, 0.025, 0.027);
   },
 
   /** Hua Tuo (Eastern Han physician, d. 208) in his herb yard: drying trays on a bamboo rack, a Han pottery stove
-   *  brewing a decoction, a bronze mortar and the 五禽戏 drawn on a silk scroll. Ref: Han 陶灶 tomb models, Mawangdui 导引图. */
+   *  brewing a decoction, a bronze mortar and the 五禽戏 drawn on a silk scroll. Ref: Han 陶灶 tomb models, Mawangdui 导引图;
+   *  the Wellcome "Famous medical figures" woodcut of 良医华佗 (light robe with dark collar, topknot, long beard). */
   pp_huatuo: gp => {
-    const y = figureBase(gp, '#aea07c', '#6b5640');
+    const y = base(gp, SITE.earth);
     for (let i = 0; i < 5; i++) ellip(gp, tint('#9c9070', (i % 2) * 0.06), 0.02 + Math.sin(i) * 0.03, y + 0.003, 0.42 - i * 0.075, 0.04, 0.006, 0.03, i);
     // bamboo drying rack with three round sieve trays of sliced roots, bark and leaves; tied bundles below
     const RX = -0.14, RZ = -0.3, BAM = '#9a8150';
     for (const sx of [-0.2, 0.2]) for (const sz of [-0.06, 0.06]) rod(gp, [RX + sx, y, RZ + sz], [RX + sx, y + 0.13, RZ + sz], 0.005, BAM, 4);
     for (const yy of [0.06, 0.13]) for (const sz of [-0.06, 0.06]) rod(gp, [RX - 0.21, y + yy, RZ + sz], [RX + 0.21, y + yy, RZ + sz], 0.004, BAM, 4);
-    const herbs = [['#8a6a44', '#a07c4e'], ['#5e6a44', '#6e7a50'], ['#6e4a32', '#9a7048']];
+    const herbs = [['#8a6a44', '#a07c4e'], ['#5e6a44', '#6e7a50'], ['#6c4a34', '#997049']];
     herbs.forEach(([c1, c2], i) => {
       const t = new THREE.Group(); t.position.set(RX - 0.13 + i * 0.13, y + 0.135, RZ); t.rotation.x = 0.28; gp.add(t);
       lathe(t, [[0, 0], [0.062, 0], [0.066, 0.012], [0.06, 0.012], [0, 0.004]], '#b09868', 0, 0, 0, 16);
@@ -459,7 +480,7 @@ const BUILDERS: Record<string, Builder> = {
     rbox(gp, '#857868', SX, y, SZ, 0.11, 0.07, 0.15, 0.01, -0.5);
     const door = new THREE.Group(); door.position.set(SX, y, SZ); door.rotation.y = -0.5; gp.add(door);
     box(door, '#241c18', 0, 0.008, 0.076, 0.04, 0.03, 0.004);
-    glow(box(door, '#8a3a1a', 0, 0.01, 0.075, 0.03, 0.012, 0.004), '#8a3a1a', '#7a2a10');
+    glow(box(door, '#76432e', 0, 0.01, 0.075, 0.03, 0.012, 0.004), '#76432e', '#643526');
     cyl(door, '#857868', 0, 0.07, -0.06, 0.012, 0.09, 8);
     lathe(door, [[0, 0], [0.03, 0.005], [0.042, 0.025], [0.034, 0.045], [0.03, 0.05], [0, 0.05]], '#3e3630', 0, 0.06, 0.02, 14);
     lathe(door, [[0, 0], [0.034, 0], [0.02, 0.012], [0.006, 0.016], [0, 0.016]], '#4a4038', 0, 0.11, 0.02, 12);
@@ -472,19 +493,19 @@ const BUILDERS: Record<string, Builder> = {
     box(gp, '#3e2a1e', ax, y + 0.05, az, 0.17, 0.012, 0.09, 0.4);
     for (const sx of [-1, 1]) box(gp, '#3e2a1e', ax + Math.cos(0.4) * sx * 0.07, y, az - Math.sin(0.4) * sx * 0.07, 0.012, 0.05, 0.08, 0.4);
     const sk = new THREE.Group(); sk.position.set(ax, y + 0.062, az); sk.rotation.y = 0.4; gp.add(sk);
-    box(sk, '#d4c6a2', -0.025, 0, 0, 0.09, 0.002, 0.06);
+    box(sk, '#d3c6a3', -0.025, 0, 0, 0.09, 0.002, 0.06);
     for (let i = 0; i < 5; i++) for (let j = 0; j < 2; j++) {
       const fx = -0.06 + i * 0.018, fz = -0.014 + j * 0.028;
-      rod(sk, [fx, 0.003, fz - 0.008], [fx, 0.003, fz + 0.004], 0.0015, '#5a4030', 3);
-      rod(sk, [fx - 0.005, 0.003, fz - 0.002], [fx + 0.005, 0.003, fz - 0.004 + j * 0.004], 0.0012, '#5a4030', 3);
+      rod(sk, [fx, 0.003, fz - 0.008], [fx, 0.003, fz + 0.004], 0.003, '#5a4030', 3);
+      rod(sk, [fx - 0.005, 0.003, fz - 0.002], [fx + 0.005, 0.003, fz - 0.004 + j * 0.004], 0.003, '#5a4030', 3);
       ellip(sk, '#5a4030', fx, 0.003, fz + 0.007, 0.003, 0.0015, 0.003);
     }
-    for (let i = 0; i < 5; i++) box(sk, tint('#b89a62', (i % 2) * 0.06), 0.045 + i * 0.008, 0, 0.0, 0.007, 0.004, 0.06);
+    for (let i = 0; i < 5; i++) box(sk, tint('#b69964', (i % 2) * 0.06), 0.045 + i * 0.008, 0, 0.0, 0.007, 0.004, 0.06);
     lathe(sk, [[0, 0], [0.012, 0], [0.02, 0.014], [0.018, 0.016], [0, 0.006]], '#3a2420', 0.05, 0.004, 0.035, 12);
     // mugwort and other medicinal plants by the yard edge
     for (const [px, pz] of [[-0.37, -0.06], [-0.34, 0.02], [0.38, 0.08]]) for (let k = 0; k < 4; k++) {
       const tx = px + Math.cos(k * 1.6) * 0.018, tz = pz + Math.sin(k * 1.6) * 0.018, hh = 0.07 + (k % 2) * 0.02;
-      rod(gp, [tx, y, tz], [tx, y + hh, tz], 0.002, '#5a6a40', 3);
+      rod(gp, [tx, y, tz], [tx, y + hh, tz], 0.003, '#5a6a40', 3);
       for (let j = 0; j < 3; j++) ellip(gp, j % 2 ? '#6a7a4c' : '#7a8658', tx + (j % 2 ? 0.008 : -0.008), y + hh * (0.45 + j * 0.2), tz, 0.011, 0.003, 0.006, k, 0, j % 2 ? -0.5 : 0.5);
     }
     const o: FigureOpts = {
@@ -497,8 +518,8 @@ const BUILDERS: Record<string, Builder> = {
     lathe(b, [[hr * 1.05, 0], [hr * 1.07, 0], [hr * 1.03, hr * 0.4], [hr * 0.9, hr * 0.64], [hr * 0.5, hr * 0.76], [0, hr * 0.8]], '#2e2a26', 0, 0.93 * u + hr * 0.28, -hr * 0.06, 16);
     ellip(b, '#2e2a26', 0, 0.93 * u + hr * 1.18, -hr * 0.1, hr * 0.4, hr * 0.38, hr * 0.4);
     // medicine gourd on the belt
-    ellip(b, '#a8844c', 0.14 * u, 0.42 * u, 0.07 * u, 0.038 * u, 0.042 * u, 0.038 * u);
-    ellip(b, '#a8844c', 0.14 * u, 0.48 * u, 0.07 * u, 0.026 * u);
+    ellip(b, '#a6834e', 0.14 * u, 0.42 * u, 0.07 * u, 0.038 * u, 0.042 * u, 0.038 * u);
+    ellip(b, '#a6834e', 0.14 * u, 0.48 * u, 0.07 * u, 0.026 * u);
     box(b, '#5a4030', 0.14 * u, 0.505 * u, 0.07 * u, 0.01 * u, 0.03 * u, 0.01 * u);
     // a freshly cut herb held up
     const [rx, ry, rz] = a.handR;
@@ -512,19 +533,20 @@ const BUILDERS: Record<string, Builder> = {
   },
 
   /** Marco Polo, Venetian merchant at the Yuan court (1275–92): 13th-c. Italian gown, mantle and coif, holding the gold
-   *  paiza (牌子) of Kublai Khan; a laden Bactrian camel and a felt ger at Shangdu. Ref: Met paiza, 13th-c. Italian dress. */
+   *  paiza (牌子) of Kublai Khan; a laden Bactrian camel and a felt ger at Shangdu. Ref: Met paiza, 13th-c. Italian dress;
+   *  Palazzo Doria-Tursi mosaic (red gown, dark cap, full beard). */
   pp_marcopolo: gp => {
-    const y = figureBase(gp, '#aaa47c', '#6e6046');
-    for (let i = 0; i < 14; i++) { const a2 = i * 2.2, r = 0.16 + (i % 4) * 0.07; ellip(gp, tint('#8e9064', (i % 3) * 0.05), Math.cos(a2) * r, y + 0.002, Math.sin(a2) * r, 0.03, 0.004, 0.02, a2); }
+    const y = base(gp, SITE.loess);
+    for (let i = 0; i < 14; i++) { const a2 = i * 2.2, r = 0.16 + (i % 4) * 0.07; ellip(gp, tint('#a09868', (i % 3) * 0.04), Math.cos(a2) * r, y + 0.002, Math.sin(a2) * r, 0.03, 0.004, 0.02, a2); }
     // Mongol felt ger with lattice band, roof ropes and a painted wooden door
     const GX = 0.24, GZ = -0.2;
     lathe(gp, [[0, 0], [0.15, 0], [0.152, 0.09], [0.14, 0.1], [0.03, 0.17], [0, 0.17]], '#d6ccb4', GX, y, GZ, 22);
     lathe(gp, [[0.026, 0.168], [0.034, 0.168], [0.034, 0.18], [0.026, 0.18]], '#6b5a46', GX, y, GZ, 12);
     for (const yy of [0.03, 0.075]) lathe(gp, [[0.151, yy], [0.155, yy], [0.155, yy + 0.006], [0.151, yy + 0.006]], '#6b5a46', GX, y, GZ, 22);
     const dg = new THREE.Group(); dg.position.set(GX, y, GZ); dg.rotation.y = -0.45; gp.add(dg);
-    box(dg, '#7a4a2e', 0, 0, 0.15, 0.05, 0.08, 0.01);
-    box(dg, '#a88a4c', 0, 0.035, 0.156, 0.03, 0.004, 0.002);
-    camel(gp, -0.15, y, -0.2, 0.5, Math.PI + 0.4);
+    box(dg, '#744c34', 0, 0, 0.15, 0.05, 0.08, 0.01);
+    box(dg, '#a6894e', 0, 0.035, 0.156, 0.03, 0.004, 0.002);
+    camel(gp, -0.2, y, -0.17, 0.7, Math.PI + 0.35);
     // trade goods: felt-wrapped bales and a bolt of silk
     for (const [bx, bz, br] of [[0.3, 0.12, 0.3], [0.33, 0.22, -0.2]] as const) {
       rbox(gp, '#8c7a5c', bx, y, bz, 0.08, 0.045, 0.06, 0.012, br);
@@ -532,8 +554,8 @@ const BUILDERS: Record<string, Builder> = {
     }
     const bolt = cyl(gp, '#6e4a52', 0, 0, 0, 0.018, 0.07, 10); bolt.rotation.set(Math.PI / 2, 0, 0.7); bolt.position.set(0.22, y + 0.018, 0.26);
     const o: FigureOpts = {
-      y, x: -0.03, z: 0.1, top: '#6e2c24', accent: '#3a2a20', bottom: '#4a2a22', outfit: 'dress', cape: '#3d4656', hair: '#5a3a22', hairStyle: 'short',
-      beard: 'short', beardColor: '#5a3a22', skin: '#e0b896', shoes: '#2a201a',
+      y, x: 0.06, z: 0.15, top: '#65332d', accent: '#3a2a20', bottom: '#492a23', outfit: 'dress', cape: '#3d4656', hair: '#553b27', hairStyle: 'short',
+      beard: 'short', beardColor: '#553b27', skin: '#e0b896', shoes: '#2a201a',
       armL: { fwd: 0.35, side: 0.25, bend: 0.5, inward: 0.1 }, armR: { fwd: 1.0, side: 0.12, bend: 0.75, inward: 0.35 },
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u, hr = a.headR;
@@ -547,97 +569,100 @@ const BUILDERS: Record<string, Builder> = {
     rod(gp, [lx - 0.01, y, lz + 0.01], [lx + 0.006, ly + 0.2, lz - 0.004], 0.006, '#5a4632', 6);
     // gold paiza: a round-topped tablet with a hanging ring, held up to show
     const [rx, ry, rz] = a.handR, pz = new THREE.Group(); pz.position.set(rx, ry + 0.045, rz + 0.015); gp.add(pz);
-    metal(box(pz, '#b8954a', 0, -0.035, 0, 0.026, 0.06, 0.004), '#b8954a', 0.7, 0.35);
-    const disc = metal(cyl(pz, '#b8954a', 0, 0, 0, 0.013, 0.004, 14), '#b8954a', 0.7, 0.35); disc.rotation.x = Math.PI / 2; disc.position.set(0, 0.025, 0);
-    ring(pz, '#8a6a3a', 0, 0.042, 0, 0.007, Math.PI / 2, 0, 0, 0.2);
-    for (let k = 0; k < 3; k++) box(pz, '#6e5226', -0.006 + k * 0.006, -0.03, 0.0025, 0.002, 0.045, 0.001);
+    metal(box(pz, '#b09252', 0, -0.035, 0, 0.026, 0.06, 0.004), '#b09252', 0.7, 0.35);
+    const disc = metal(cyl(pz, '#b09252', 0, 0, 0, 0.013, 0.004, 14), '#b09252', 0.7, 0.35); disc.rotation.x = Math.PI / 2; disc.position.set(0, 0.025, 0);
+    ring(pz, '#86693e', 0, 0.042, 0, 0.007, Math.PI / 2, 0, 0, 0.2);
+    for (let k = 0; k < 3; k++) box(pz, '#66502e', -0.006 + k * 0.006, -0.03, 0.0025, 0.002, 0.045, 0.001);
   },
 
-  /** Ibn Battuta from Tangier: turban, travelling staff and a map of his routes, a city gate and palm behind. */
+  /** Ibn Battuta from Tangier: turban, travelling staff and a map of his routes, a city gate and palm behind.
+   *  Ref: bust at the Ibn Battuta museum (wound turban, full beard, draped robe); Bab Mansour, Meknes. */
   pp_ibnbattuta: gp => {
-    const y = figureBase(gp, '#e2c690', '#8a6a45');
-    mound(gp, '#d8b77c', 0.25, y, 0.2, 0.15, 0.03);
+    const y = base(gp, SITE.sand);
+    mound(gp, '#ccb488', 0.25, y, 0.2, 0.15, 0.03);
     // Moroccan city gate (bab) with horseshoe arch and green tile band
-    const gz = -0.27, gate = '#c97b4a';
+    const gz = -0.27, gate = '#b87f5b';
     panel(gp, 0.42, 0.3, 0.07, gate, [archPath(0, 0, 0.13, 0.22, true)], -0.04, y, gz);
-    box(gp, '#2f8f7a', -0.04, y + 0.235, gz + 0.036, 0.22, 0.03, 0.004);
-    for (let i = 0; i < 9; i++) box(gp, i % 2 ? '#1d4ed8' : '#f8fafc', -0.04 - 0.088 + i * 0.022, y + 0.242, gz + 0.039, 0.01, 0.014, 0.003);
+    box(gp, '#3a8474', -0.04, y + 0.235, gz + 0.036, 0.22, 0.03, 0.004);
+    for (let i = 0; i < 9; i++) box(gp, i % 2 ? '#4360b2' : '#d8e3ee', -0.04 - 0.088 + i * 0.022, y + 0.242, gz + 0.039, 0.01, 0.014, 0.003);
     for (let i = 0; i < 8; i++) box(gp, tint(gate, 0.06), -0.04 - 0.19 + i * 0.054, y + 0.3, gz, 0.03, 0.035, 0.07);
     for (const sx of [-1, 1]) { box(gp, tint(gate, -0.05), -0.04 + sx * 0.2, y, gz, 0.07, 0.36, 0.09); for (let i = 0; i < 2; i++) box(gp, tint(gate, 0.06), -0.04 + sx * 0.2 - 0.02 + i * 0.04, y + 0.36, gz, 0.025, 0.03, 0.09); }
-    lathe(gp, [[0.07, 0], [0.075, 0], [0.075, 0.012], [0.07, 0.012]], '#e4b54a', -0.04, y + 0.15, gz + 0.04, 18).rotation.x = Math.PI / 2;
+    lathe(gp, [[0.07, 0], [0.075, 0], [0.075, 0.012], [0.07, 0.012]], '#c6a968', -0.04, y + 0.15, gz + 0.04, 18).rotation.x = Math.PI / 2;
     palm(gp, 0.3, y, -0.08, 0.36);
     // water jar and travel bags
-    lathe(gp, [[0, 0], [0.02, 0], [0.035, 0.03], [0.032, 0.06], [0.015, 0.08], [0.018, 0.09], [0, 0.09]], '#b45f3a', -0.3, y, 0.18, 12);
-    rbox(gp, '#7c4a1e', -0.24, y, 0.27, 0.07, 0.045, 0.05, 0.012);
-    box(gp, '#b91c1c', -0.24, y + 0.02, 0.296, 0.07, 0.008, 0.004);
+    lathe(gp, [[0, 0], [0.02, 0], [0.035, 0.03], [0.032, 0.06], [0.015, 0.08], [0.018, 0.09], [0, 0.09]], '#a56549', -0.3, y, 0.18, 12);
+    rbox(gp, '#6d4b2d', -0.24, y, 0.27, 0.07, 0.045, 0.05, 0.012);
+    box(gp, '#9a3b3b', -0.24, y + 0.02, 0.296, 0.07, 0.008, 0.004);
     const o: FigureOpts = {
-      y, x: -0.03, z: 0.08, top: '#efe6cf', accent: '#8a6a3e', outfit: 'robe', cape: '#7a4e2d', hair: '#2b211b', hat: 'turban', hatColor: '#f4f1e8',
+      y, x: -0.03, z: 0.08, top: '#d6ccb4', accent: '#886a40', outfit: 'robe', cape: '#734f34', hair: '#2b211b', hat: 'turban', hatColor: '#e0d9c8',
       beard: 'full', beardColor: '#2b211b', skin: '#d39c74', armL: { fwd: 1.0, side: 0.1, bend: 0.5, inward: 0.25 }, armR: { fwd: 0.3, side: 0.3, bend: 0.5 },
     };
     const a = figure(gp, o);
     const [rx, ry, rz] = a.handR;
-    rod(gp, [rx, y, rz], [rx, ry + 0.2, rz], 0.008, '#7a5230', 6);
-    ellip(gp, '#5b3a1d', rx, ry + 0.205, rz, 0.014);
+    rod(gp, [rx, y, rz], [rx, ry + 0.2, rz], 0.008, '#755235', 6);
+    ellip(gp, '#543a24', rx, ry + 0.205, rz, 0.014);
     // the map: parchment with seas, coasts and a dotted route
     const [lx, ly, lz] = a.handL;
     const m = new THREE.Group(); m.position.set(lx + 0.05, ly + 0.02, lz + 0.02); m.rotation.set(-0.35, -0.25, 0); gp.add(m);
-    box(m, '#ecdcae', 0, -0.045, 0, 0.13, 0.09, 0.004);
-    box(m, '#7fb3d5', -0.03, -0.035, 0.003, 0.05, 0.05, 0.002); box(m, '#7fb3d5', 0.04, -0.03, 0.003, 0.04, 0.04, 0.002);
-    box(m, '#9cbf6c', 0.01, -0.04, 0.0035, 0.02, 0.07, 0.002); box(m, '#9cbf6c', -0.05, -0.04, 0.0035, 0.02, 0.03, 0.002);
-    for (let i = 0; i < 7; i++) box(m, '#b91c1c', -0.055 + i * 0.018, -0.02 + Math.sin(i) * 0.012, 0.004, 0.007, 0.007, 0.002);
-    for (const sx of [-1, 1]) { const r2 = cyl(m, '#d9c08a', sx * 0.068, -0.045, 0, 0.007, 0.095, 6); r2.position.y = 0; }
+    box(m, '#e2d7b8', 0, -0.045, 0, 0.13, 0.09, 0.004);
+    box(m, '#89b1cb', -0.03, -0.035, 0.003, 0.05, 0.05, 0.002); box(m, '#89b1cb', 0.04, -0.03, 0.003, 0.04, 0.04, 0.002);
+    box(m, '#9bbc6f', 0.01, -0.04, 0.0035, 0.02, 0.07, 0.002); box(m, '#9bbc6f', -0.05, -0.04, 0.0035, 0.02, 0.03, 0.002);
+    for (let i = 0; i < 7; i++) box(m, '#9a3b3b', -0.055 + i * 0.018, -0.02 + Math.sin(i) * 0.012, 0.004, 0.007, 0.007, 0.002);
+    for (const sx of [-1, 1]) { const r2 = cyl(m, '#d0bd93', sx * 0.068, -0.045, 0, 0.007, 0.095, 6); r2.position.y = 0; }
   },
 
-  /** Mansa Musa of Mali with golden sceptre and nugget, the Sankore mosque of Timbuktu and his treasures. */
+  /** Mansa Musa of Mali with golden sceptre and nugget, the Sankore mosque of Timbuktu and his treasures.
+   *  Ref: Catalan Atlas (1375, BnF sheet 6): gold crown, fleur-de-lis sceptre, gold orb, lilac-grey robe. */
   pp_mansamusa: gp => {
-    const y = figureBase(gp, '#d9a868', '#7a4a26');
-    mound(gp, '#d09a5c', -0.25, y, -0.28, 0.16, 0.04);
+    const y = base(gp, SITE.sand);
+    mound(gp, '#c0996c', -0.25, y, -0.28, 0.16, 0.04);
     sankore(gp, 0.06, y, -0.24, 0.62, -0.2);
     // gold bars, an open chest and manuscripts of Timbuktu
-    for (let r = 0; r < 3; r++) for (let i = 0; i < 3 - r; i++) metal(rbox(gp, '#e0b23c', -0.3 + i * 0.045 + r * 0.022, y + r * 0.022, 0.16, 0.04, 0.022, 0.06, 0.004), '#e0b23c', 0.75, 0.3);
-    rbox(gp, '#7c2d12', 0.28, y, 0.14, 0.11, 0.06, 0.08, 0.008);
-    box(gp, '#7c2d12', 0.28, y + 0.06, 0.1, 0.11, 0.06, 0.012, 0, -0.5);
-    for (let k = 0; k < 6; k++) metal(ellip(gp, '#f2c94c', 0.25 + (k % 3) * 0.03, y + 0.065, 0.13 + Math.floor(k / 3) * 0.025, 0.017), '#f2c94c', 0.75, 0.3);
-    for (let k = 0; k < 4; k++) rbox(gp, ['#7c2d12', '#e8dcc0', '#14532d', '#e8dcc0'][k], -0.2, y + k * 0.018, 0.32, 0.08, 0.017, 0.06, 0.004);
+    for (let r = 0; r < 3; r++) for (let i = 0; i < 3 - r; i++) metal(rbox(gp, '#c0a45c', -0.3 + i * 0.045 + r * 0.022, y + r * 0.022, 0.16, 0.04, 0.022, 0.06, 0.004), '#c0a45c', 0.75, 0.3);
+    rbox(gp, '#673727', 0.28, y, 0.14, 0.11, 0.06, 0.08, 0.008);
+    box(gp, '#673727', 0.28, y + 0.06, 0.1, 0.11, 0.06, 0.012, 0, -0.5);
+    for (let k = 0; k < 6; k++) metal(ellip(gp, '#cdb671', 0.25 + (k % 3) * 0.03, y + 0.065, 0.13 + Math.floor(k / 3) * 0.025, 0.017), '#cdb671', 0.75, 0.3);
+    for (let k = 0; k < 4; k++) rbox(gp, ['#673727', '#e4dbc4', '#1e492f', '#e4dbc4'][k], -0.2, y + k * 0.018, 0.32, 0.08, 0.017, 0.06, 0.004);
     const o: FigureOpts = {
-      y, x: 0.0, z: 0.06, skin: '#5b3a24', top: '#f3ead6', accent: '#d4a017', bottom: '#e8dcc0', outfit: 'robe', cape: '#9a3412', hair: '#1c1917',
+      y, x: 0.0, z: 0.06, skin: '#5b3a24', top: '#8e889a', accent: '#ac8e3f', bottom: '#78727f', outfit: 'robe', cape: '#7e422e', hair: '#1c1917',
       hat: 'crown', beard: 'short', beardColor: '#1c1917', wideSleeves: true,
       armL: { fwd: 1.2, side: 0.45, bend: 0.6 }, armR: { fwd: 0.35, side: 0.25, bend: 0.5 },
     };
     const a = figure(gp, o);
-    const [rx, ry, rz] = a.handR, G = '#e0b23c';
+    const [rx, ry, rz] = a.handR, G = '#c0a45c';
     metal(rod(gp, [rx, y + 0.005, rz], [rx, ry + 0.22, rz], 0.008, G, 6), G, 0.8, 0.3);
     metal(ellip(gp, G, rx, ry + 0.235, rz, 0.02), G, 0.8, 0.3);
     for (const d of [-1, 0, 1]) metal(cone(gp, G, rx + d * 0.018, ry + 0.245 + (d ? 0 : 0.01), rz, 0.008, d ? 0.03 : 0.045, 6), G, 0.8, 0.3);
     const [lx, ly, lz] = a.handL;
-    metal(ellip(gp, '#f2c94c', lx, ly + 0.035, lz + 0.01, 0.03, 0.028, 0.028), '#f2c94c', 0.85, 0.25);
+    metal(ellip(gp, '#cdb671', lx, ly + 0.035, lz + 0.01, 0.03, 0.028, 0.028), '#cdb671', 0.85, 0.25);
   },
 
-  /** Roald Amundsen on skis in his fur anorak, Polheim tent with the Norwegian flag and a dog sled at the Pole. */
+  /** Roald Amundsen on skis in his fur anorak, Polheim tent with the Norwegian flag and a dog sled at the Pole.
+   *  Ref: "Amundsen in ice" (Netsilik-style fur parka, skis, staff) and the Polheim photographs, 14 Dec 1911. */
   pp_amundsen: gp => {
-    const y = figureBase(gp, '#eef4f8', '#8fa4b8');
-    for (let i = 0; i < 7; i++) ellip(gp, i % 2 ? '#e2eaf1' : '#f8fbfd', Math.cos(i * 2.2) * 0.33, y, Math.sin(i * 2.2) * 0.3, 0.08, 0.018, 0.035, i * 0.9);
+    const y = base(gp, SITE.snow);
+    for (let i = 0; i < 7; i++) ellip(gp, i % 2 ? '#d9e4ed' : '#d3e6f3', Math.cos(i * 2.2) * 0.33, y, Math.sin(i * 2.2) * 0.3, 0.08, 0.018, 0.035, i * 0.9);
     // Polheim tent + flag
     const tx = -0.22, tz = -0.2;
     cone(gp, '#a8a29e', tx, y, tz, 0.13, 0.25, 8);
     slab(gp, [[-0.035, 0], [0.035, 0], [0, 0.1]], 0.004, '#3f3a36', 0, false).position.set(tx + 0.0, y, tz + 0.115);
-    for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; rod(gp, [tx + Math.cos(a) * 0.04, y + 0.18, tz + Math.sin(a) * 0.04], [tx + Math.cos(a) * 0.19, y, tz + Math.sin(a) * 0.19], 0.002, '#57534e', 3); }
+    for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; rod(gp, [tx + Math.cos(a) * 0.04, y + 0.18, tz + Math.sin(a) * 0.04], [tx + Math.cos(a) * 0.19, y, tz + Math.sin(a) * 0.19], 0.003, '#57534e', 3); }
     rod(gp, [tx, y + 0.24, tz], [tx, y + 0.38, tz], 0.004, '#6b5640', 5);
-    flag(gp, tx + 0.004, y + 0.375, tz, 0.1, 0.07, '#c8102e', NO);
+    flag(gp, tx + 0.004, y + 0.375, tz, 0.1, 0.07, '#9f3949', NO);
     // sled with two huskies
     const sx0 = 0.22, sz0 = -0.16;
-    for (const d of [-1, 1]) tube(gp, [[sx0 - 0.15, y + 0.006, sz0 + d * 0.05], [sx0 + 0.12, y + 0.006, sz0 + d * 0.05], [sx0 + 0.16, y + 0.03, sz0 + d * 0.05]], 0.005, 0.005, '#7c5a3a', { radial: 5, sub: 4 });
+    for (const d of [-1, 1]) tube(gp, [[sx0 - 0.15, y + 0.006, sz0 + d * 0.05], [sx0 + 0.12, y + 0.006, sz0 + d * 0.05], [sx0 + 0.16, y + 0.03, sz0 + d * 0.05]], 0.005, 0.005, '#7b5a3b', { radial: 5, sub: 4 });
     for (let i = 0; i < 6; i++) box(gp, '#a07a4f', sx0 - 0.13 + i * 0.045, y + 0.02, sz0, 0.025, 0.006, 0.12);
     rbox(gp, '#5b4636', sx0 - 0.05, y + 0.026, sz0, 0.16, 0.06, 0.1, 0.01);
-    box(gp, '#c8b48a', sx0 - 0.05, y + 0.086, sz0, 0.17, 0.01, 0.11);
+    box(gp, '#c7b48b', sx0 - 0.05, y + 0.086, sz0, 0.17, 0.01, 0.11);
     husky(gp, 0.3, y, 0.05, 0.42, -Math.PI / 2 + 0.3, '#6b7280');
     husky(gp, 0.17, y, 0.16, 0.38, -Math.PI / 2 - 0.4, '#3f3f46');
     tube(gp, [[sx0 + 0.15, y + 0.03, sz0], [0.27, y + 0.06, 0.0]], 0.002, 0.002, '#57534e', { radial: 3, sub: 2 });
     // skis under the figure
     const fx = -0.03, fz = 0.1;
     for (const d of [-1, 1]) {
-      box(gp, '#9a6b3c', fx + d * 0.035, y, fz - 0.03, 0.024, 0.006, 0.42);
-      box(gp, '#9a6b3c', fx + d * 0.035, y + 0.006, fz + 0.19, 0.024, 0.005, 0.05, 0, -0.5);
+      box(gp, '#936b43', fx + d * 0.035, y, fz - 0.03, 0.024, 0.006, 0.42);
+      box(gp, '#936b43', fx + d * 0.035, y + 0.006, fz + 0.19, 0.024, 0.005, 0.05, 0, -0.5);
     }
     const o: FigureOpts = {
       y: y + 0.006, x: fx, z: fz, top: '#8b7355', bottom: '#5b4a3a', accent: '#6b5640', shirt: '#d8ccb8', outfit: 'coat', shoes: '#4a3b2f',
@@ -660,53 +685,54 @@ const BUILDERS: Record<string, Builder> = {
     }
   },
 
-  /** Edmund Hillary at base camp: anorak, oxygen bottles, ice axe and rope, an Everest-like peak and a tent behind. */
+  /** Edmund Hillary at base camp: anorak, oxygen bottles, ice axe and rope, an Everest-like peak and a tent behind.
+   *  Ref: 29 May 1953 photographs (windproof anorak, goggles pushed up, open-circuit oxygen set). */
   pp_hillary: gp => {
-    const y = figureBase(gp, '#eef2f6', '#7f8ea3');
+    const y = base(gp, SITE.snow);
     // Himalayan peak with snow
     const pk = lathe(gp, [[0, 0], [0.22, 0], [0.16, 0.12], [0.09, 0.27], [0.03, 0.38], [0, 0.4]], '#6b7280', 0.1, y, -0.26, 5); pk.rotation.y = 0.3;
-    const sn = lathe(gp, [[0, 0.2], [0.115, 0.2], [0.09, 0.27], [0.032, 0.38], [0, 0.405]], '#f8fafc', 0.1, y + 0.002, -0.26, 5); sn.rotation.y = 0.3; sn.scale.set(1.04, 1, 1.04);
+    const sn = lathe(gp, [[0, 0.2], [0.115, 0.2], [0.09, 0.27], [0.032, 0.38], [0, 0.405]], '#d8e3ee', 0.1, y + 0.002, -0.26, 5); sn.rotation.y = 0.3; sn.scale.set(1.04, 1, 1.04);
     const p2 = lathe(gp, [[0, 0], [0.15, 0], [0.08, 0.15], [0, 0.24]], '#78716c', -0.15, y, -0.3, 5); p2.rotation.y = 1.1;
-    const s2 = lathe(gp, [[0, 0.12], [0.1, 0.12], [0.05, 0.19], [0, 0.245]], '#f1f5f9', -0.15, y + 0.002, -0.3, 5); s2.rotation.y = 1.1; s2.scale.set(1.05, 1, 1.05);
-    for (let i = 0; i < 6; i++) ellip(gp, '#e2e8f0', Math.cos(i * 2.1) * 0.32, y, Math.sin(i * 2.1) * 0.2 + 0.1, 0.07, 0.016, 0.04, i);
+    const s2 = lathe(gp, [[0, 0.12], [0.1, 0.12], [0.05, 0.19], [0, 0.245]], '#d8e3ee', -0.15, y + 0.002, -0.3, 5); s2.rotation.y = 1.1; s2.scale.set(1.05, 1, 1.05);
+    for (let i = 0; i < 6; i++) ellip(gp, '#dae2ec', Math.cos(i * 2.1) * 0.32, y, Math.sin(i * 2.1) * 0.2 + 0.1, 0.07, 0.016, 0.04, i);
     // orange ridge tent and supplies
     const tent = new THREE.Group(); tent.position.set(-0.28, y, -0.02); tent.rotation.y = 0.6; gp.add(tent);
-    prism(tent, [[-0.07, -0.1], [0.07, -0.1], [0.07, 0.1], [-0.07, 0.1]], 0, 0.005, '#c2410c');
-    const t1 = slab(tent, [[-0.08, 0], [0.08, 0], [0, 0.11]], 0.2, '#ea580c', 0, false); void t1;
-    box(tent, '#7c2d12', 0, 0, 0.101, 0.04, 0.07, 0.004);
-    for (let i = 0; i < 3; i++) metal(cyl(gp, '#f97316', 0.3 + (i % 2) * 0.02, y, 0.05 + i * 0.045, 0.018, 0.08, 10), '#f97316', 0.4, 0.4).rotation.z = i ? Math.PI / 2 : 0;
-    rbox(gp, '#8b6b3a', 0.3, y, 0.22, 0.09, 0.06, 0.07, 0.006);
-    ring(gp, '#d97706', 0.2, y + 0.012, 0.3, 0.045, Math.PI / 2, 0, 0, 0.16);
+    prism(tent, [[-0.07, -0.1], [0.07, -0.1], [0.07, 0.1], [-0.07, 0.1]], 0, 0.005, '#995235');
+    const t1 = slab(tent, [[-0.08, 0], [0.08, 0], [0, 0.11]], 0.2, '#b7683f', 0, false); void t1;
+    box(tent, '#673727', 0, 0, 0.101, 0.04, 0.07, 0.004);
+    for (let i = 0; i < 3; i++) metal(cyl(gp, '#c37d4c', 0.3 + (i % 2) * 0.02, y, 0.05 + i * 0.045, 0.018, 0.08, 10), '#c37d4c', 0.4, 0.4).rotation.z = i ? Math.PI / 2 : 0;
+    rbox(gp, '#866a3f', 0.3, y, 0.22, 0.09, 0.06, 0.07, 0.006);
+    ring(gp, '#a77338', 0.2, y + 0.012, 0.3, 0.045, Math.PI / 2, 0, 0, 0.16);
     const o: FigureOpts = {
-      y, x: 0.0, z: 0.1, top: '#356fb3', accent: '#1e3a5f', bottom: '#5b5048', shoes: '#2b211b', outfit: 'tunic', hair: '#4a3426', hairStyle: 'short',
+      y, x: 0.0, z: 0.1, top: '#4670a2', accent: '#263b57', bottom: '#5b5048', shoes: '#2b211b', outfit: 'tunic', hair: '#4a3426', hairStyle: 'short',
       armL: { fwd: 0.6, side: 0.2, bend: 0.4, inward: 0.15 }, armR: { fwd: 0.3, side: 0.3, bend: 0.4 },
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u, hr = a.headR, hy = 0.9 * u;
     // woolly hat + goggles pushed up
-    ellip(b, '#b91c1c', 0, hy + 0.45 * hr, -0.06 * hr, 1.1 * hr, 0.8 * hr, 1.1 * hr);
-    lathe(b, [[1.08 * hr, 0], [1.14 * hr, 0], [1.14 * hr, 0.25 * hr], [1.06 * hr, 0.25 * hr]], '#f8fafc', 0, hy + 0.25 * hr, -0.04 * hr, 16);
-    ellip(b, '#f8fafc', 0, hy + 1.3 * hr, -0.1 * hr, 0.3 * hr);
-    for (const sx of [-1, 1]) { ellip(b, '#1f2937', sx * 0.36 * hr, hy + 0.72 * hr, 0.92 * hr, 0.26 * hr, 0.2 * hr, 0.1 * hr); ellip(b, '#7dd3fc', sx * 0.36 * hr, hy + 0.72 * hr, 0.98 * hr, 0.17 * hr, 0.12 * hr, 0.06 * hr); }
+    ellip(b, '#9a3b3b', 0, hy + 0.45 * hr, -0.06 * hr, 1.1 * hr, 0.8 * hr, 1.1 * hr);
+    lathe(b, [[1.08 * hr, 0], [1.14 * hr, 0], [1.14 * hr, 0.25 * hr], [1.06 * hr, 0.25 * hr]], '#d8e3ee', 0, hy + 0.25 * hr, -0.04 * hr, 16);
+    ellip(b, '#d8e3ee', 0, hy + 1.3 * hr, -0.1 * hr, 0.3 * hr);
+    for (const sx of [-1, 1]) { ellip(b, '#1f2937', sx * 0.36 * hr, hy + 0.72 * hr, 0.92 * hr, 0.26 * hr, 0.2 * hr, 0.1 * hr); ellip(b, '#9bc8de', sx * 0.36 * hr, hy + 0.72 * hr, 0.98 * hr, 0.17 * hr, 0.12 * hr, 0.06 * hr); }
     // oxygen set on his back with a hose
     rbox(b, '#6b5640', 0, 0.48 * u, -0.13 * u, 0.24 * u, 0.3 * u, 0.06 * u, 0.012);
-    for (const sx of [-1, 1]) { metal(cyl(b, '#f97316', sx * 0.055 * u, 0.44 * u, -0.17 * u, 0.045 * u, 0.36 * u, 12), '#f97316', 0.45, 0.4); ellip(b, '#9ca3af', sx * 0.055 * u, 0.81 * u, -0.17 * u, 0.025 * u); }
+    for (const sx of [-1, 1]) { metal(cyl(b, '#c37d4c', sx * 0.055 * u, 0.44 * u, -0.17 * u, 0.045 * u, 0.36 * u, 12), '#c37d4c', 0.45, 0.4); ellip(b, '#9ca3af', sx * 0.055 * u, 0.81 * u, -0.17 * u, 0.025 * u); }
     tube(b, [[0.05 * u, 0.8 * u, -0.16 * u], [0.15 * u, 0.72 * u, 0.02 * u], [0.08 * u, 0.6 * u, 0.1 * u]], 0.01 * u, 0.01 * u, '#1f2937', { radial: 5, sub: 4 });
     // ice axe planted beside him
     const [rx, ry, rz] = a.handR;
-    rod(gp, [rx + 0.02, y, rz + 0.02], [rx, ry + 0.04, rz], 0.006, '#8b5a2b', 6);
+    rod(gp, [rx + 0.02, y, rz + 0.02], [rx, ry + 0.04, rz], 0.006, '#7f5a37', 6);
     metal(box(gp, '#9ca3af', rx, ry + 0.035, rz, 0.012, 0.012, 0.09, 0.2), '#a1a1aa');
     metal(cone(gp, '#a1a1aa', rx + 0.02, y, rz + 0.02, 0.006, 0.02, 5), '#a1a1aa');
     // rope coil over the left shoulder
-    ring(gp, '#d97706', a.handL[0] + 0.01, a.handL[1] + 0.02, a.handL[2] + 0.01, 0.045, 0.2, 0, 0.3, 0.16);
-    ring(b, '#d97706', -0.02 * u, 0.62 * u, 0.0, 0.17 * u, 0.15, 0, -0.8, 0.12);
+    ring(gp, '#a77338', a.handL[0] + 0.01, a.handL[1] + 0.02, a.handL[2] + 0.01, 0.045, 0.2, 0, 0.3, 0.16);
+    ring(b, '#a77338', -0.02 * u, 0.62 * u, 0.0, 0.17 * u, 0.15, 0, -0.8, 0.12);
   },
 
   /** Tenzing Norgay on the summit, ice axe raised with four flags, prayer flags fluttering behind. */
   pp_tenzing: gp => {
-    const y = figureBase(gp, '#e9eff5', '#7f8ea3');
+    const y = base(gp, SITE.snow);
     const top = 0.11;
     const prof: [number, number][] = [[0.43, 0], [0.4, 0.025], [0.3, 0.06], [0.2, 0.085], [0.1, 0.104], [0, top]];
-    lathe(gp, prof, '#f8fafc', 0, y, 0, 18);
+    lathe(gp, prof, '#d8e3ee', 0, y, 0, 18);
     const hAt = (x: number, z: number) => {
       const r = Math.hypot(x, z);
       for (let i = 1; i < prof.length; i++) if (r >= prof[i][0]) { const t = (r - prof[i][0]) / (prof[i - 1][0] - prof[i][0]); return y + prof[i][1] + (prof[i - 1][1] - prof[i][1]) * t; }
@@ -716,66 +742,66 @@ const BUILDERS: Record<string, Builder> = {
     for (const [rx0, rz0, rh, rr, rot] of [[-0.3, -0.12, 0.13, 0.07, 0.3], [-0.22, -0.26, 0.09, 0.055, 1.1], [0.3, -0.02, 0.1, 0.06, 0.7], [0.24, 0.24, 0.06, 0.045, 0.2]] as const) {
       const yb = hAt(rx0, rz0) - 0.01;
       cone(gp, '#4b4f57', rx0, yb, rz0, rr, rh, 5, rot);
-      cone(gp, '#f1f5f9', rx0, yb + rh * 0.55, rz0, rr * 0.5, rh * 0.47, 5, rot);
+      cone(gp, '#d8e3ee', rx0, yb + rh * 0.55, rz0, rr * 0.5, rh * 0.47, 5, rot);
     }
     // bootprints climbing to the top, a spent oxygen bottle and a coil of rope
     for (let i = 0; i < 7; i++) {
       const t = i / 7, px = 0.06 - t * 0.02 + (i % 2 ? 0.025 : -0.025), pz = 0.38 - t * 0.3;
       ellip(gp, '#cbd5e1', px, hAt(px, pz) + 0.001, pz, 0.012, 0.003, 0.02);
     }
-    const ob = cyl(gp, '#f97316', -0.18, 0, 0.22, 0.02, 0.1, 10); ob.rotation.set(0, 0.5, Math.PI / 2); ob.position.y = hAt(-0.18, 0.22) + 0.015;
-    ring(gp, '#ca8a04', 0.2, hAt(0.2, 0.12) + 0.006, 0.12, 0.035, Math.PI / 2, 0, 0, 0.18);
+    const ob = cyl(gp, '#c37d4c', -0.18, 0, 0.22, 0.02, 0.1, 10); ob.rotation.set(0, 0.5, Math.PI / 2); ob.position.y = hAt(-0.18, 0.22) + 0.015;
+    ring(gp, '#9b7933', 0.2, hAt(0.2, 0.12) + 0.006, 0.12, 0.035, Math.PI / 2, 0, 0, 0.18);
     // prayer flags strung from a pole to a rock cairn
     const A: V3 = [-0.36, y + 0.34, -0.12], B: V3 = [0.36, y + 0.12, -0.2];
     rod(gp, [A[0], y, A[2]], [A[0], A[1] + 0.02, A[2]], 0.005, '#6b5640', 5);
     rocks(gp, '#6b7280', [[0.36, -0.2, 0.04], [0.33, -0.17, 0.03]], y);
-    const PF = ['#1d4ed8', '#f8fafc', '#dc2626', '#16a34a', '#facc15'];
+    const PF = ['#4360b2', '#d8e3ee', '#b94949', '#338652', '#c3ab4c'];
     const N = 14;
     for (let i = 0; i <= N; i++) {
       const t = i / N, sag = Math.sin(Math.PI * t) * 0.08;
       const px = A[0] + (B[0] - A[0]) * t, py = A[1] + (B[1] - A[1]) * t - sag, pz = A[2] + (B[2] - A[2]) * t;
-      if (i < N) { const t2 = (i + 1) / N; rod(gp, [px, py, pz], [A[0] + (B[0] - A[0]) * t2, A[1] + (B[1] - A[1]) * t2 - Math.sin(Math.PI * t2) * 0.08, A[2] + (B[2] - A[2]) * t2], 0.0015, '#57534e', 3); }
+      if (i < N) { const t2 = (i + 1) / N; rod(gp, [px, py, pz], [A[0] + (B[0] - A[0]) * t2, A[1] + (B[1] - A[1]) * t2 - Math.sin(Math.PI * t2) * 0.08, A[2] + (B[2] - A[2]) * t2], 0.003, '#57534e', 3); }
       if (i > 0 && i < N) box(gp, PF[i % 5], px, py - 0.04, pz, 0.032, 0.036, 0.003, Math.atan2(B[2] - A[2], B[0] - A[0]) * -1, 0, Math.sin(i) * 0.15);
     }
     const o: FigureOpts = {
-      y: y + top - 0.004, x: 0.0, z: 0.0, h: 0.58, top: '#d9541e', accent: '#7c2d12', bottom: '#3f3f46', shoes: '#1f2937', outfit: 'tunic', hair: '#1c1917',
+      y: y + top - 0.004, x: 0.0, z: 0.0, h: 0.58, top: '#b36444', accent: '#673727', bottom: '#3f3f46', shoes: '#1f2937', outfit: 'tunic', hair: '#1c1917',
       skin: '#c98d62', armL: { fwd: 0.4, side: 0.3, bend: 0.5 }, armR: { fwd: 2.75, side: 0.25, bend: -0.05, inward: -0.1 },
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u, hr = a.headR, hy = 0.9 * u;
     // quilted down suit bands
-    for (const by of [0.58, 0.66]) { const q = lathe(b, [[0.122 * u, by * u], [0.127 * u, by * u], [0.127 * u, (by + 0.012) * u], [0.122 * u, (by + 0.012) * u]], '#b8441a', 0, 0, 0, 18); q.scale.z = 0.72; }
+    for (const by of [0.58, 0.66]) { const q = lathe(b, [[0.122 * u, by * u], [0.127 * u, by * u], [0.127 * u, (by + 0.012) * u], [0.122 * u, (by + 0.012) * u]], '#98533a', 0, 0, 0, 18); q.scale.z = 0.72; }
     // knitted Sherpa cap with ear flaps, goggles, oxygen mask hanging at the chest
     ellip(b, '#efe7d6', 0, hy + 0.42 * hr, -0.06 * hr, 1.1 * hr, 0.82 * hr, 1.1 * hr);
-    lathe(b, [[1.07 * hr, 0], [1.13 * hr, 0], [1.13 * hr, 0.18 * hr], [1.07 * hr, 0.18 * hr]], '#b91c1c', 0, hy + 0.32 * hr, -0.04 * hr, 16);
+    lathe(b, [[1.07 * hr, 0], [1.13 * hr, 0], [1.13 * hr, 0.18 * hr], [1.07 * hr, 0.18 * hr]], '#9a3b3b', 0, hy + 0.32 * hr, -0.04 * hr, 16);
     for (const sx of [-1, 1]) {
       ellip(b, '#efe7d6', sx * 1.0 * hr, hy - 0.25 * hr, -0.05 * hr, 0.22 * hr, 0.45 * hr, 0.35 * hr);
-      ellip(b, '#1f2937', sx * 0.36 * hr, hy + 0.74 * hr, 0.92 * hr, 0.26 * hr, 0.2 * hr, 0.1 * hr); ellip(b, '#a5f3fc', sx * 0.36 * hr, hy + 0.74 * hr, 0.98 * hr, 0.17 * hr, 0.12 * hr, 0.06 * hr);
+      ellip(b, '#1f2937', sx * 0.36 * hr, hy + 0.74 * hr, 0.92 * hr, 0.26 * hr, 0.2 * hr, 0.1 * hr); ellip(b, '#b9e3e8', sx * 0.36 * hr, hy + 0.74 * hr, 0.98 * hr, 0.17 * hr, 0.12 * hr, 0.06 * hr);
     }
     ellip(b, '#374151', 0.02 * u, 0.67 * u, 0.1 * u, 0.04 * u, 0.035 * u, 0.03 * u);
     tube(b, [[0.03 * u, 0.65 * u, 0.1 * u], [0.12 * u, 0.6 * u, 0.04 * u], [0.1 * u, 0.7 * u, -0.12 * u]], 0.009 * u, 0.009 * u, '#1f2937', { radial: 5, sub: 4 });
-    for (const sx of [-1, 1]) metal(cyl(b, '#f97316', sx * 0.05 * u, 0.45 * u, -0.14 * u, 0.042 * u, 0.32 * u, 12), '#f97316', 0.45, 0.4);
+    for (const sx of [-1, 1]) metal(cyl(b, '#c37d4c', sx * 0.05 * u, 0.45 * u, -0.14 * u, 0.042 * u, 0.32 * u, 12), '#c37d4c', 0.45, 0.4);
     // raised ice axe with UN, British, Nepalese and Indian flags
     const [rx, ry, rz] = a.handR;
-    rod(gp, [rx, ry - 0.05, rz], [rx, ry + 0.24, rz], 0.006, '#8b5a2b', 6);
+    rod(gp, [rx, ry - 0.05, rz], [rx, ry + 0.24, rz], 0.006, '#7f5a37', 6);
     metal(box(gp, '#a1a1aa', rx, ry + 0.235, rz, 0.012, 0.012, 0.09), '#a1a1aa');
     const fw = 0.075, fh = 0.042;
-    flag(gp, rx + 0.004, ry + 0.225, rz, fw, fh, '#60a5fa', (f, w, h) => { ring(f, '#f8fafc', w / 2, h / 2, 0, h * 0.28, 0, 0, 0, 0.16); });
-    flag(gp, rx + 0.004, ry + 0.175, rz, fw, fh, '#1e3a8a', (f, w, h) => {
-      band(f, '#f8fafc', w / 2, h * 0.36, w, h * 0.28); band(f, '#f8fafc', w / 2, 0, w * 0.2, h);
-      box(f, '#c8102e', w / 2, h * 0.42, 0, w, h * 0.16, 0.007); box(f, '#c8102e', w / 2, 0, 0, w * 0.1, h, 0.007);
+    flag(gp, rx + 0.004, ry + 0.225, rz, fw, fh, '#84a9d6', (f, w, h) => { ring(f, '#d8e3ee', w / 2, h / 2, 0, h * 0.28, 0, 0, 0, 0.16); });
+    flag(gp, rx + 0.004, ry + 0.175, rz, fw, fh, '#304378', (f, w, h) => {
+      band(f, '#d8e3ee', w / 2, h * 0.36, w, h * 0.28); band(f, '#d8e3ee', w / 2, 0, w * 0.2, h);
+      box(f, '#9f3949', w / 2, h * 0.42, 0, w, h * 0.16, 0.007); box(f, '#9f3949', w / 2, 0, 0, w * 0.1, h, 0.007);
     });
-    const np = slab(gp, [[0, 0], [0.05, 0.016], [0.02, 0.02], [0.05, 0.04], [0, 0.05]], 0.005, '#dc143c', 0, false);
+    const np = slab(gp, [[0, 0], [0.05, 0.016], [0.02, 0.02], [0.05, 0.04], [0, 0.05]], 0.005, '#b04056', 0, false);
     np.position.set(rx + 0.004, ry + 0.075, rz);
-    ellip(gp, '#f8fafc', rx + 0.014, ry + 0.11, rz, 0.005, 0.005, 0.004); ellip(gp, '#f8fafc', rx + 0.014, ry + 0.088, rz, 0.006, 0.006, 0.004);
-    flag(gp, rx + 0.004, ry + 0.07, rz, fw, fh, '#f8fafc', (f, w, h) => {
-      band(f, '#ff9933', w / 2, h * 0.667, w, h * 0.333); band(f, '#138808', w / 2, 0, w, h * 0.333);
-      ring(f, '#000080', w / 2, h / 2, 0, h * 0.12, 0, 0, 0, 0.2);
+    ellip(gp, '#d8e3ee', rx + 0.014, ry + 0.11, rz, 0.005, 0.005, 0.004); ellip(gp, '#d8e3ee', rx + 0.014, ry + 0.088, rz, 0.006, 0.006, 0.004);
+    flag(gp, rx + 0.004, ry + 0.07, rz, fw, fh, '#d8e3ee', (f, w, h) => {
+      band(f, '#cd9965', w / 2, h * 0.667, w, h * 0.333); band(f, '#2b6b25', w / 2, 0, w, h * 0.333);
+      ring(f, '#1f1f61', w / 2, h / 2, 0, h * 0.12, 0, 0, 0, 0.2);
     });
   },
 
   /** Neil Armstrong on the Moon: gold visor, life-support pack, the Eagle lander, flag and bootprints. */
   pp_armstrong: gp => {
-    const y = figureBase(gp, '#a3a29d', '#55554f');
+    const y = base(gp, SITE.stone);
     for (const [cx, cz, r] of [[0.28, 0.2, 0.07], [-0.3, 0.2, 0.05], [0.05, -0.36, 0.045]] as const) {
       lathe(gp, [[r * 0.7, 0], [r, 0.012], [r * 1.35, 0]], '#b4b3ae', cx, y, cz, 16);
       ellip(gp, '#8b8a85', cx, y, cz, r * 0.8, 0.003, r * 0.8);
@@ -790,35 +816,35 @@ const BUILDERS: Record<string, Builder> = {
     const fx = 0.27, fz = -0.14;
     rod(gp, [fx, y, fz], [fx, y + 0.44, fz], 0.004, '#e5e7eb', 5);
     rod(gp, [fx, y + 0.43, fz], [fx + 0.16, y + 0.43, fz], 0.003, '#e5e7eb', 4);
-    flag(gp, fx + 0.002, y + 0.428, fz, 0.16, 0.1, '#b22234', US);
+    flag(gp, fx + 0.002, y + 0.428, fz, 0.16, 0.1, '#983c48', US);
     const o: FigureOpts = {
-      y, x: 0.0, z: 0.1, top: '#f1f1ef', bottom: '#ebebe8', accent: '#cbd5e1', shoes: '#d4d4d8', outfit: 'tunic', hairStyle: 'bald', hair: '#d6b08a',
+      y, x: 0.0, z: 0.1, top: '#e5e5e1', bottom: '#e5e5e1', accent: '#cbd5e1', shoes: '#d4d4d8', outfit: 'tunic', hairStyle: 'bald', hair: '#ceb092',
       armL: { fwd: 0.35, side: 0.4, bend: 0.5 }, armR: { fwd: 0.9, side: 0.35, bend: 0.4 },
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u, hr = a.headR, hy = 0.9 * u;
-    ellipHi(b, '#f4f4f2', 0, hy + 0.08 * hr, -0.04 * hr, 1.42 * hr, 1.4 * hr, 1.42 * hr);
-    metal(ellipHi(b, '#d4a017', 0, hy - 0.02 * hr, 0.3 * hr, 1.18 * hr, 1.0 * hr, 1.18 * hr), '#d9a520', 0.85, 0.18);
-    ellip(b, '#f4f4f2', 0, hy + 0.95 * hr, 0.25 * hr, 1.0 * hr, 0.35 * hr, 1.1 * hr);
+    ellipHi(b, '#e5e5e1', 0, hy + 0.08 * hr, -0.04 * hr, 1.42 * hr, 1.4 * hr, 1.42 * hr);
+    metal(ellipHi(b, '#ac8e3f', 0, hy - 0.02 * hr, 0.3 * hr, 1.18 * hr, 1.0 * hr, 1.18 * hr), '#b49545', 0.85, 0.18);
+    ellip(b, '#e5e5e1', 0, hy + 0.95 * hr, 0.25 * hr, 1.0 * hr, 0.35 * hr, 1.1 * hr);
     cyl(b, '#9ca3af', 0, 0.74 * u, 0, 0.1 * u, 0.04 * u, 16);
     // life-support backpack, chest control box, hoses, gloves, shoulder flag
-    rbox(b, '#f4f4f2', 0, 0.48 * u, -0.17 * u, 0.25 * u, 0.36 * u, 0.13 * u, 0.02);
+    rbox(b, '#e5e5e1', 0, 0.48 * u, -0.17 * u, 0.25 * u, 0.36 * u, 0.13 * u, 0.02);
     rbox(b, '#e5e7eb', 0, 0.85 * u, -0.17 * u, 0.22 * u, 0.06 * u, 0.12 * u, 0.012);
     rbox(b, '#a1a1aa', 0, 0.56 * u, 0.08 * u, 0.13 * u, 0.08 * u, 0.05 * u, 0.008);
-    for (const [kx, kc] of [[-0.035, '#dc2626'], [0, '#1f2937'], [0.035, '#2563eb']] as const) cyl(b, kc, kx * u, 0.64 * u, 0.1 * u, 0.008 * u, 0.012 * u, 8);
-    for (const [sx, hc] of [[-1, '#2563eb'], [1, '#dc2626']] as const) tube(b, [[sx * 0.04 * u, 0.58 * u, 0.1 * u], [sx * 0.09 * u, 0.52 * u, 0.1 * u], [sx * 0.08 * u, 0.48 * u, 0.08 * u]], 0.01 * u, 0.01 * u, hc, { radial: 5, sub: 3 });
+    for (const [kx, kc] of [[-0.035, '#b94949'], [0, '#1f2937'], [0.035, '#5073c0']] as const) cyl(b, kc, kx * u, 0.64 * u, 0.1 * u, 0.008 * u, 0.012 * u, 8);
+    for (const [sx, hc] of [[-1, '#5073c0'], [1, '#b94949']] as const) tube(b, [[sx * 0.04 * u, 0.58 * u, 0.1 * u], [sx * 0.09 * u, 0.52 * u, 0.1 * u], [sx * 0.08 * u, 0.48 * u, 0.08 * u]], 0.01 * u, 0.01 * u, hc, { radial: 5, sub: 3 });
     for (const h of [a.handL, a.handR]) ellip(gp, '#64748b', h[0], h[1], h[2], 0.025, 0.03, 0.025);
-    const pf = flag(b, -0.17 * u, 0.73 * u, 0.02 * u, 0.05 * u, 0.032 * u, '#b22234', US, -Math.PI / 2 + 0.2); pf.position.x = -0.165 * u;
+    const pf = flag(b, -0.17 * u, 0.73 * u, 0.02 * u, 0.05 * u, 0.032 * u, '#983c48', US, -Math.PI / 2 + 0.2); pf.position.x = -0.165 * u;
   },
 
   /** Yuri Gagarin waving in his orange SK-1 suit and white CCCP helmet, the Vostok rocket on its pad behind. */
   pp_gagarin: gp => {
-    const y = figureBase(gp, '#a7b47f', '#5b5f4a');
+    const y = base(gp, SITE.meadow);
     lathe(gp, [[0.18, 0], [0.18, 0.006], [0, 0.006]], '#b9bcbf', 0.22, y, -0.2, 20);
-    for (let i = 0; i < 8; i++) box(gp, i % 2 ? '#facc15' : '#1f2937', 0.22 + Math.cos(i * 0.785) * 0.165, y + 0.006, -0.2 + Math.sin(i * 0.785) * 0.165, 0.03, 0.002, 0.012, -i * 0.785);
+    for (let i = 0; i < 8; i++) box(gp, i % 2 ? '#c3ab4c' : '#1f2937', 0.22 + Math.cos(i * 0.785) * 0.165, y + 0.006, -0.2 + Math.sin(i * 0.785) * 0.165, 0.03, 0.002, 0.012, -i * 0.785);
     vostokRocket(gp, 0.22, y + 0.006, -0.2, 0.74);
-    for (const [tx, tz] of [[-0.3, 0.2], [-0.22, 0.3], [0.3, 0.18], [-0.36, -0.05], [0.12, 0.34]]) for (let k = 0; k < 4; k++) cone(gp, k % 2 ? '#6b8e3a' : '#7f9f45', tx + Math.cos(k * 1.7) * 0.012, y, tz + Math.sin(k * 1.7) * 0.012, 0.007, 0.035 + (k % 3) * 0.01, 4);
+    for (const [tx, tz] of [[-0.3, 0.2], [-0.22, 0.3], [0.3, 0.18], [-0.36, -0.05], [0.12, 0.34]]) for (let k = 0; k < 4; k++) cone(gp, k % 2 ? '#6a893f' : '#7e9b49', tx + Math.cos(k * 1.7) * 0.012, y, tz + Math.sin(k * 1.7) * 0.012, 0.007, 0.035 + (k % 3) * 0.01, 4);
     const o: FigureOpts = {
-      y, x: -0.12, z: 0.12, top: '#ea6a1f', bottom: '#e36414', accent: '#9a3412', shoes: '#3f2a1c', outfit: 'tunic', hair: '#3b2a20', skin: '#ebbd98',
+      y, x: -0.12, z: 0.12, top: '#be754b', bottom: '#b66e41', accent: '#7e422e', shoes: '#3e2a1d', outfit: 'tunic', hair: '#3b2a20', skin: '#ebbd98',
       armL: { fwd: 0.6, side: 0.15, bend: 0.5, inward: 0.15 }, armR: { fwd: 1.25, side: 0.6, bend: 1.55, inward: -0.25 },
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u, hr = a.headR, hy = 0.9 * u;
@@ -828,7 +854,7 @@ const BUILDERS: Record<string, Builder> = {
       const s = new THREE.SphereGeometry(1, 22, 14, 0, Math.PI * 2, 0, Math.PI - open);
       s.rotateX(-(Math.PI / 2 - 0.25));
       return s;
-    }), mat('#f6f6f4', { flat: false }), C[0], C[1], C[2], R, R, R);
+    }), mat('#e6e6e0', { flat: false }), C[0], C[1], C[2], R, R, R);
     void shell;
     const ax = new THREE.Vector3(0, -Math.sin(0.25), Math.cos(0.25));
     const rc = ax.clone().multiplyScalar(R * Math.cos(open));
@@ -836,10 +862,10 @@ const BUILDERS: Record<string, Builder> = {
     const el = 0.82, az = [-0.3, -0.1, 0.1, 0.3];
     'CCCP'.split('').forEach((ch, i) => {
       const d = new THREE.Vector3(Math.sin(az[i]) * Math.cos(el), Math.sin(el), Math.cos(az[i]) * Math.cos(el)).multiplyScalar(R * 1.005);
-      letters(b, ch, '#d61f1f', C[0] + d.x, C[1] + d.y, C[2] + d.z, 0.045 * hr, az[i], -el, 0.03 * hr);
+      letters(b, ch, '#b24343', C[0] + d.x, C[1] + d.y, C[2] + d.z, 0.045 * hr, az[i], -el, 0.03 * hr);
     });
     cyl(b, '#d4d4d8', 0, 0.74 * u, 0, 0.1 * u, 0.035 * u, 16);
-    for (const h of [a.handL, a.handR]) ellip(gp, '#f5f5f4', h[0], h[1], h[2], 0.022, 0.026, 0.022);
+    for (const h of [a.handL, a.handR]) ellip(gp, '#e4e4e2', h[0], h[1], h[2], 0.022, 0.026, 0.022);
     // the little ventilation case cosmonauts carried to the bus
     const [lx, ly, lz] = a.handL;
     rbox(gp, '#a5b4c4', lx, ly - 0.07, lz, 0.07, 0.06, 0.035, 0.008);
@@ -848,26 +874,26 @@ const BUILDERS: Record<string, Builder> = {
 
   /** Amelia Earhart, hands on hips in leather flying gear, in front of her red Lockheed Vega. */
   pp_earhart: gp => {
-    const y = figureBase(gp, '#8fbf62', '#5b4636');
-    const rw = box(gp, '#c9b48a', 0.08, y, -0.08, 0.14, 0.002, 0.8); rw.rotation.y = -0.55 + Math.PI / 2;
+    const y = base(gp, SITE.grass);
+    const rw = box(gp, '#c8b48b', 0.08, y, -0.08, 0.14, 0.002, 0.8); rw.rotation.y = -0.55 + Math.PI / 2;
     vega(gp, 0.12, y, -0.1, 0.56, -0.55);
     // windsock
     rod(gp, [-0.33, y, -0.16], [-0.33, y + 0.22, -0.16], 0.004, '#e5e7eb', 5);
-    for (let i = 0; i < 4; i++) { const c = cyl(gp, i % 2 ? '#f8fafc' : '#f97316', -0.33 + 0.018 + i * 0.03, y + 0.2, 0.16, 0.022 - i * 0.003, 0.03, 10); c.rotation.z = Math.PI / 2; c.position.y = y + 0.2 - i * 0.006; c.position.z = -0.16; }
-    for (let i = 0; i < 6; i++) ellip(gp, '#a3cc75', Math.cos(i * 2.3) * 0.3, y, 0.2 + Math.sin(i * 2.3) * 0.12, 0.03, 0.012, 0.02);
+    for (let i = 0; i < 4; i++) { const c = cyl(gp, i % 2 ? '#d8e3ee' : '#c37d4c', -0.33 + 0.018 + i * 0.03, y + 0.2, 0.16, 0.022 - i * 0.003, 0.03, 10); c.rotation.z = Math.PI / 2; c.position.y = y + 0.2 - i * 0.006; c.position.z = -0.16; }
+    for (let i = 0; i < 6; i++) for (let k = 0; k < 4; k++) cone(gp, k % 2 ? '#6a893f' : '#7e9b49', Math.cos(i * 2.3) * 0.3 + Math.cos(k * 1.7) * 0.012, y, 0.2 + Math.sin(i * 2.3) * 0.12 + Math.sin(k * 1.7) * 0.012, 0.007, 0.03 + (k % 3) * 0.01, 4);
     const o: FigureOpts = {
-      y, x: -0.2, z: 0.16, ry: 0.25, top: '#6b4226', bottom: '#c8b28a', accent: '#3b2416', shirt: '#e8dcc6', shoes: '#3b2416', outfit: 'coat', hair: '#9a7048', hairStyle: 'curly',
+      y, x: -0.2, z: 0.16, ry: 0.25, top: '#64432d', bottom: '#c7b28b', accent: '#382519', shirt: '#e6dbc8', shoes: '#382519', outfit: 'coat', hair: '#997049', hairStyle: 'curly',
       armL: { fwd: -0.15, side: 0.65, bend: 1.4, inward: 0.85 }, armR: { fwd: -0.15, side: 0.65, bend: 1.4, inward: 0.85 },
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u, hr = a.headR, hy = 0.9 * u;
     // leather flying cap with ear flaps and goggles on the forehead
-    ellip(b, '#5a3a22', 0, hy + 0.32 * hr, -0.1 * hr, 1.1 * hr, 0.92 * hr, 1.08 * hr);
+    ellip(b, '#553b27', 0, hy + 0.32 * hr, -0.1 * hr, 1.1 * hr, 0.92 * hr, 1.08 * hr);
     for (const sx of [-1, 1]) {
-      ellip(b, '#5a3a22', sx * 0.98 * hr, hy - 0.2 * hr, -0.05 * hr, 0.22 * hr, 0.55 * hr, 0.42 * hr);
-      ring(b, '#b08d57', sx * 0.38 * hr, hy + 0.78 * hr, 0.86 * hr, 0.22 * hr, -0.35, 0, 0, 0.22);
-      ellip(b, '#7dd3fc', sx * 0.38 * hr, hy + 0.78 * hr, 0.86 * hr, 0.2 * hr, 0.2 * hr, 0.06 * hr, 0, -0.35);
+      ellip(b, '#553b27', sx * 0.98 * hr, hy - 0.2 * hr, -0.05 * hr, 0.22 * hr, 0.55 * hr, 0.42 * hr);
+      ring(b, '#af8d58', sx * 0.38 * hr, hy + 0.78 * hr, 0.86 * hr, 0.22 * hr, -0.35, 0, 0, 0.22);
+      ellip(b, '#9bc8de', sx * 0.38 * hr, hy + 0.78 * hr, 0.86 * hr, 0.2 * hr, 0.2 * hr, 0.06 * hr, 0, -0.35);
     }
-    box(b, '#3b2416', 0, hy + 0.72 * hr, 0.9 * hr, 0.3 * hr, 0.08 * hr, 0.06 * hr);
+    box(b, '#382519', 0, hy + 0.72 * hr, 0.9 * hr, 0.3 * hr, 0.08 * hr, 0.06 * hr);
     // silk scarf
     ellip(b, '#f3e9d2', 0, 0.76 * u, 0.04 * u, 0.08 * u, 0.03 * u, 0.06 * u);
     tube(b, [[0.03 * u, 0.75 * u, 0.08 * u], [0.06 * u, 0.68 * u, 0.1 * u], [0.05 * u, 0.6 * u, 0.1 * u]], 0.022 * u, 0.012 * u, '#f3e9d2', { radial: 6, sub: 3, squash: 0.4 });
@@ -876,7 +902,7 @@ const BUILDERS: Record<string, Builder> = {
 
   /** Florence Nightingale, the Lady with the Lamp, on a ward with a sleeping soldier and her rose diagram. */
   pp_nightingale: gp => {
-    const y = figureBase(gp, '#a9845a', '#5b4636');
+    const y = base(gp, SITE.earth);
     for (let i = -4; i <= 4; i++) { const z = i * 0.09, w = 2 * Math.sqrt(Math.max(0, 0.445 * 0.445 - z * z)); box(gp, '#7a5a3a', 0, y, z, w, 0.0015, 0.004); }
     // iron bed with a sleeping soldier
     const bx = -0.2, bz = -0.24;
@@ -885,26 +911,26 @@ const BUILDERS: Record<string, Builder> = {
       rod(gp, [bx + ex, y + eh, bz - 0.08], [bx + ex, y + eh, bz + 0.08], 0.005, '#374151', 5);
       for (let k = -1; k <= 1; k++) rod(gp, [bx + ex, y + 0.06, bz + k * 0.04], [bx + ex, y + eh, bz + k * 0.04], 0.003, '#4b5563', 4);
     }
-    rbox(gp, '#f5f5f4', bx, y + 0.05, bz, 0.34, 0.035, 0.16, 0.01);
+    rbox(gp, '#e4e4e2', bx, y + 0.05, bz, 0.34, 0.035, 0.16, 0.01);
     rbox(gp, '#8394ad', bx + 0.04, y + 0.075, bz, 0.25, 0.022, 0.165, 0.01);
-    box(gp, '#f8fafc', bx + 0.04 - 0.11, y + 0.093, bz, 0.03, 0.004, 0.166);
-    ellip(gp, '#ffffff', bx - 0.13, y + 0.1, bz, 0.035, 0.018, 0.055);
-    ellip(gp, '#e9b993', bx - 0.12, y + 0.12, bz, 0.03, 0.028, 0.03);
-    ellip(gp, '#5b3a1d', bx - 0.135, y + 0.13, bz, 0.024, 0.022, 0.03);
-    box(gp, '#f8fafc', bx - 0.12, y + 0.135, bz, 0.05, 0.012, 0.062);
+    box(gp, '#d8e3ee', bx + 0.04 - 0.11, y + 0.093, bz, 0.03, 0.004, 0.166);
+    ellip(gp, '#e3e3e3', bx - 0.13, y + 0.1, bz, 0.035, 0.018, 0.055);
+    ellip(gp, '#dabba2', bx - 0.12, y + 0.12, bz, 0.03, 0.028, 0.03);
+    ellip(gp, '#543a24', bx - 0.135, y + 0.13, bz, 0.024, 0.022, 0.03);
+    box(gp, '#d8e3ee', bx - 0.12, y + 0.135, bz, 0.05, 0.012, 0.062);
     // bedside table with water jug, medicine bottle and a book
     const tx = 0.14, tz = -0.27;
-    box(gp, '#6b4a2f', tx, y + 0.1, tz, 0.11, 0.012, 0.09);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(gp, '#5b3a22', tx + sx * 0.045, y, tz + sz * 0.035, 0.01, 0.1, 0.01);
+    box(gp, '#694a31', tx, y + 0.1, tz, 0.11, 0.012, 0.09);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(gp, '#563b27', tx + sx * 0.045, y, tz + sz * 0.035, 0.01, 0.1, 0.01);
     lathe(gp, [[0, 0], [0.018, 0], [0.022, 0.03], [0.012, 0.05], [0.016, 0.055], [0, 0.055]], '#e7e5e4', tx - 0.02, y + 0.112, tz, 10);
-    cyl(gp, '#1e3a8a', tx + 0.025, y + 0.112, tz - 0.01, 0.01, 0.035, 8);
-    rbox(gp, '#7f1d1d', tx + 0.02, y + 0.112, tz + 0.025, 0.05, 0.012, 0.035, 0.003);
+    cyl(gp, '#304378', tx + 0.025, y + 0.112, tz - 0.01, 0.01, 0.035, 8);
+    rbox(gp, '#6f2d2d', tx + 0.02, y + 0.112, tz + 0.025, 0.05, 0.012, 0.035, 0.003);
     // easel with her famous "rose" (polar area) diagram
     const ex = 0.33, ez = -0.14, E = new THREE.Group(); E.position.set(ex, y, ez); E.rotation.y = -0.6; gp.add(E);
-    for (const sx of [-1, 1]) rod(E, [sx * 0.05, 0, 0.02], [sx * 0.03, 0.28, 0], 0.004, '#6b4a2f', 4);
-    rod(E, [0, 0, -0.06], [0, 0.26, 0], 0.004, '#6b4a2f', 4);
+    for (const sx of [-1, 1]) rod(E, [sx * 0.05, 0, 0.02], [sx * 0.03, 0.28, 0], 0.004, '#694a31', 4);
+    rod(E, [0, 0, -0.06], [0, 0.26, 0], 0.004, '#694a31', 4);
     box(E, '#f5ecd6', 0, 0.1, 0.008, 0.13, 0.15, 0.006);
-    const cols = ['#60a5fa', '#f87171', '#9ca3af'];
+    const cols = ['#84a9d6', '#d99090', '#9ca3af'];
     for (let i = 0; i < 12; i++) {
       const r = 0.025 + ((i * 7) % 5) * 0.008 + (i < 6 ? 0.012 : 0);
       const w = add(E, g('pc-wedge', () => new THREE.CylinderGeometry(1, 1, 1, 3, 1, false, 0, Math.PI / 6)), mat(cols[i % 3]), 0, 0.175, 0.013, r, 0.003, r, 0, Math.PI / 2, (i * Math.PI) / 6);
@@ -916,60 +942,60 @@ const BUILDERS: Record<string, Builder> = {
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u, hr = a.headR, hy = 0.9 * u;
     // white apron, lace collar and cap
-    box(b, '#f8f6f0', 0, 0.05 * u, 0.13 * u, 0.17 * u, 0.42 * u, 0.006 * u, 0, -0.135);
-    box(b, '#f8f6f0', 0, 0.49 * u, 0.087 * u, 0.11 * u, 0.16 * u, 0.006 * u);
-    for (const sx of [-1, 1]) rod(b, [sx * 0.05 * u, 0.645 * u, 0.088 * u], [sx * 0.07 * u, 0.75 * u, 0.02 * u], 0.006 * u, '#f8f6f0', 4);
-    for (let i = 0; i < 9; i++) { const t = (i / 8) * Math.PI; ellip(b, '#fbfaf6', Math.cos(t) * 0.085 * u, 0.765 * u - Math.sin(t) * 0.01 * u, 0.035 * u + Math.sin(t) * 0.05 * u, 0.03 * u, 0.008 * u, 0.025 * u); }
-    ellip(b, '#fbfaf6', 0, hy + 0.35 * hr, -0.35 * hr, 1.0 * hr, 0.85 * hr, 0.8 * hr);
-    for (let i = 0; i < 11; i++) { const t = (i / 10) * Math.PI; ellip(b, '#ffffff', Math.cos(t) * 1.02 * hr, hy + 0.15 * hr + Math.sin(t) * 0.75 * hr, 0.3 * hr, 0.18 * hr, 0.14 * hr, 0.12 * hr); }
+    box(b, '#ede8d9', 0, 0.05 * u, 0.13 * u, 0.17 * u, 0.42 * u, 0.006 * u, 0, -0.135);
+    box(b, '#ede8d9', 0, 0.49 * u, 0.087 * u, 0.11 * u, 0.16 * u, 0.006 * u);
+    for (const sx of [-1, 1]) rod(b, [sx * 0.05 * u, 0.645 * u, 0.088 * u], [sx * 0.07 * u, 0.75 * u, 0.02 * u], 0.006 * u, '#ede8d9', 4);
+    for (let i = 0; i < 9; i++) { const t = (i / 8) * Math.PI; ellip(b, '#eee9d8', Math.cos(t) * 0.085 * u, 0.765 * u - Math.sin(t) * 0.01 * u, 0.035 * u + Math.sin(t) * 0.05 * u, 0.03 * u, 0.008 * u, 0.025 * u); }
+    ellip(b, '#eee9d8', 0, hy + 0.35 * hr, -0.35 * hr, 1.0 * hr, 0.85 * hr, 0.8 * hr);
+    for (let i = 0; i < 11; i++) { const t = (i / 10) * Math.PI; ellip(b, '#e3e3e3', Math.cos(t) * 1.02 * hr, hy + 0.15 * hr + Math.sin(t) * 0.75 * hr, 0.3 * hr, 0.18 * hr, 0.14 * hr, 0.12 * hr); }
     // the lamp: a glowing Turkish lantern hanging from her hand
     const [rx, ry, rz] = a.handR, ly = ry - 0.1;
-    ring(gp, '#b08d57', rx, ry - 0.008, rz, 0.02, 0, Math.PI / 2, 0, 0.12);
-    metal(cyl(gp, '#b08d57', rx, ly + 0.07, rz, 0.02, 0.012, 10), '#b08d57');
-    metal(cone(gp, '#b08d57', rx, ly + 0.082, rz, 0.02, 0.016, 10), '#b08d57');
-    glow(cyl(gp, '#fff1c2', rx, ly, rz, 0.024, 0.07, 12), '#fff1c2', '#ffb347');
-    for (let k = 1; k < 4; k++) lathe(gp, [[0.0245, ly + k * 0.0175], [0.026, ly + k * 0.0175], [0.026, ly + k * 0.0175 + 0.003], [0.0245, ly + k * 0.0175 + 0.003]], '#c8a05a', rx, 0, rz, 12);
-    metal(cyl(gp, '#b08d57', rx, ly - 0.01, rz, 0.02, 0.012, 10), '#b08d57');
-    add(gp, g('pc-halo', () => new THREE.SphereGeometry(1, 16, 12)), mat('#ffd98a', { transparent: 0.18, emissive: '#ffb347' }), rx, ly + 0.035, rz, 0.075, 0.075, 0.075);
+    ring(gp, '#af8d58', rx, ry - 0.008, rz, 0.02, 0, Math.PI / 2, 0, 0.12);
+    metal(cyl(gp, '#af8d58', rx, ly + 0.07, rz, 0.02, 0.012, 10), '#af8d58');
+    metal(cone(gp, '#af8d58', rx, ly + 0.082, rz, 0.02, 0.016, 10), '#af8d58');
+    glow(cyl(gp, '#fff1c2', rx, ly, rz, 0.024, 0.07, 12), '#fff1c2', '#d2ab74');
+    for (let k = 1; k < 4; k++) lathe(gp, [[0.0245, ly + k * 0.0175], [0.026, ly + k * 0.0175], [0.026, ly + k * 0.0175 + 0.003], [0.0245, ly + k * 0.0175 + 0.003]], '#bc9d66', rx, 0, rz, 12);
+    metal(cyl(gp, '#af8d58', rx, ly - 0.01, rz, 0.02, 0.012, 10), '#af8d58');
+    add(gp, g('pc-halo', () => new THREE.SphereGeometry(1, 16, 12)), mat('#e2cfa7', { transparent: 0.18, emissive: '#d2ab74' }), rx, ly + 0.035, rz, 0.075, 0.075, 0.075);
     // a small notebook in the other hand
     const [lx, lyy, lz] = a.handL;
-    rbox(gp, '#7f1d1d', lx + 0.01, lyy - 0.03, lz + 0.01, 0.04, 0.055, 0.012, 0.003);
+    rbox(gp, '#6f2d2d', lx + 0.01, lyy - 0.03, lz + 0.01, 0.04, 0.055, 0.012, 0.003);
   },
 
   /** Pelé in the yellow number 10, kicking the ball in front of a goal, the Jules Rimet trophy beside him. */
   pp_pele: gp => {
-    const y = figureBase(gp, '#4f9d3a', '#2f4a25');
-    for (let i = -4; i <= 4; i += 2) { const z = i * 0.09, w = 2 * Math.sqrt(Math.max(0, 0.44 * 0.44 - (Math.abs(z) + 0.045) ** 2)); box(gp, '#5fb048', 0, y, z, w, 0.0012, 0.09); }
+    const y = base(gp, SITE.grass);
+    for (let i = -4; i <= 4; i += 2) { const z = i * 0.09, w = 2 * Math.sqrt(Math.max(0, 0.44 * 0.44 - (Math.abs(z) + 0.045) ** 2)); box(gp, '#63aa4e', 0, y, z, w, 0.0012, 0.09); }
     const gx = 0.2, gz0 = -0.27, gz1 = -0.38, gh = 0.17, NET = '#e5e7eb';
-    box(gp, '#f8fafc', 0, y + 0.0015, gz0, 0.76, 0.001, 0.008);
-    for (const sx of [-1, 1]) { box(gp, '#f8fafc', sx * 0.14, y + 0.0015, gz0 + 0.07, 0.008, 0.001, 0.14); }
-    box(gp, '#f8fafc', 0, y + 0.0015, gz0 + 0.14, 0.288, 0.001, 0.008);
-    for (const sx of [-1, 1]) cyl(gp, '#f8fafc', sx * gx, y, gz0, 0.008, gh, 8);
-    rod(gp, [-gx, y + gh, gz0], [gx, y + gh, gz0], 0.008, '#f8fafc', 8);
+    box(gp, '#d8e3ee', 0, y + 0.0015, gz0, 0.76, 0.001, 0.008);
+    for (const sx of [-1, 1]) { box(gp, '#d8e3ee', sx * 0.14, y + 0.0015, gz0 + 0.07, 0.008, 0.001, 0.14); }
+    box(gp, '#d8e3ee', 0, y + 0.0015, gz0 + 0.14, 0.288, 0.001, 0.008);
+    for (const sx of [-1, 1]) cyl(gp, '#d8e3ee', sx * gx, y, gz0, 0.008, gh, 8);
+    rod(gp, [-gx, y + gh, gz0], [gx, y + gh, gz0], 0.008, '#d8e3ee', 8);
     for (const sx of [-1, 1]) { rod(gp, [sx * gx, y + gh, gz0], [sx * gx, y + gh * 0.6, gz1], 0.003, NET, 4); rod(gp, [sx * gx, y + gh * 0.6, gz1], [sx * gx, y, gz1], 0.003, NET, 4); }
-    for (let i = 0; i <= 8; i++) { const x = -gx + (i / 8) * gx * 2; rod(gp, [x, y + gh, gz0], [x, y + gh * 0.6, gz1], 0.0018, NET, 3); rod(gp, [x, y + gh * 0.6, gz1], [x, y, gz1], 0.0018, NET, 3); }
-    for (let j = 1; j < 4; j++) rod(gp, [-gx, y + (gh * 0.6 * j) / 4, gz1], [gx, y + (gh * 0.6 * j) / 4, gz1], 0.0018, NET, 3);
-    for (const sx of [-1, 1]) for (let j = 1; j < 3; j++) rod(gp, [sx * gx, y + (gh * j) / 3, gz0], [sx * gx, y + (gh * 0.6 * j) / 3, gz1], 0.0018, NET, 3);
+    for (let i = 0; i <= 8; i++) { const x = -gx + (i / 8) * gx * 2; rod(gp, [x, y + gh, gz0], [x, y + gh * 0.6, gz1], 0.003, NET, 3); rod(gp, [x, y + gh * 0.6, gz1], [x, y, gz1], 0.003, NET, 3); }
+    for (let j = 1; j < 4; j++) rod(gp, [-gx, y + (gh * 0.6 * j) / 4, gz1], [gx, y + (gh * 0.6 * j) / 4, gz1], 0.003, NET, 3);
+    for (const sx of [-1, 1]) for (let j = 1; j < 3; j++) rod(gp, [sx * gx, y + (gh * j) / 3, gz0], [sx * gx, y + (gh * 0.6 * j) / 3, gz1], 0.003, NET, 3);
     // Jules Rimet trophy on a little plinth
-    const jx = -0.3, jz = 0.15, G = '#e0b23c';
-    rbox(gp, '#1e3a8a', jx, y, jz, 0.07, 0.04, 0.07, 0.006);
+    const jx = -0.3, jz = 0.15, G = '#c0a45c';
+    rbox(gp, '#304378', jx, y, jz, 0.07, 0.04, 0.07, 0.006);
     metal(lathe(gp, [[0, 0], [0.03, 0], [0.026, 0.01], [0.012, 0.03], [0.02, 0.06], [0.04, 0.08], [0.042, 0.09], [0, 0.085]], G, jx, y + 0.04, jz, 8), G, 0.8, 0.3);
     metal(ellip(gp, G, jx, y + 0.075, jz + 0.01, 0.012, 0.03, 0.012), G, 0.8, 0.3);
     for (const sx of [-1, 1]) metal(slab(gp, [[0, 0], [sx * 0.03, 0.02], [sx * 0.025, 0.05], [0, 0.02]], 0.004, G, 0, false), G, 0.8, 0.3).position.set(jx, y + 0.075, jz + 0.012);
     const o: FigureOpts = {
-      y, x: 0.0, z: 0.0, skin: '#6b4630', top: '#facc15', accent: '#15803d', outfit: 'tunic', hair: '#111111', hairStyle: 'short',
+      y, x: 0.0, z: 0.0, skin: '#6b4630', top: '#c3ab4c', accent: '#2a6b42', outfit: 'tunic', hair: '#111111', hairStyle: 'short',
       armL: { fwd: 0.35, side: 0.75, bend: 0.4 }, armR: { fwd: -0.45, side: 0.55, bend: 0.5 }, lean: -0.05,
-      stance: 'kick', sleeve: 0.45, shorts: true, bottom: '#1d4ed8', socks: '#f8fafc', shoes: '#111111',
+      stance: 'kick', sleeve: 0.45, shorts: true, bottom: '#4360b2', socks: '#d8e3ee', shoes: '#111111',
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u;
     // collar & cuffs, crest, number 10 on the back
-    ellip(b, '#16a34a', 0, 0.77 * u, 0.02 * u, 0.075 * u, 0.018 * u, 0.06 * u);
-    ellip(b, '#1d4ed8', -0.055 * u, 0.67 * u, 0.088 * u, 0.02 * u, 0.024 * u, 0.008 * u);
-    letters(b, '10', '#1e40af', 0, 0.62 * u, -0.093 * u, 0.017 * u, Math.PI, 0, 0.008 * u);
-    letters(b, '10', '#1e40af', 0.05 * u, 0.69 * u, 0.087 * u, 0.006 * u, 0, 0, 0.006 * u);
+    ellip(b, '#338652', 0, 0.77 * u, 0.02 * u, 0.075 * u, 0.018 * u, 0.06 * u);
+    ellip(b, '#4360b2', -0.055 * u, 0.67 * u, 0.088 * u, 0.02 * u, 0.024 * u, 0.008 * u);
+    letters(b, '10', '#394f94', 0, 0.62 * u, -0.093 * u, 0.017 * u, Math.PI, 0, 0.008 * u);
+    letters(b, '10', '#394f94', 0.05 * u, 0.69 * u, 0.087 * u, 0.006 * u, 0, 0, 0.006 * u);
     // the ball at his kicking foot
     const bxp = a.group.position.x + 0.078 * u, bzp = a.group.position.z + 0.37 * u, br = 0.04;
-    ellip(gp, '#f8fafc', bxp, y + br, bzp, br);
+    ellip(gp, '#d8e3ee', bxp, y + br, bzp, br);
     for (let i = 0; i < 10; i++) {
       const t = i * 2.4, ph = Math.acos(1 - (2 * (i + 0.5)) / 10);
       ellip(gp, '#111111', bxp + Math.sin(ph) * Math.cos(t) * br * 0.96, y + br + Math.cos(ph) * br * 0.96, bzp + Math.sin(ph) * Math.sin(t) * br * 0.96, br * 0.28, br * 0.28, br * 0.28);
@@ -978,64 +1004,64 @@ const BUILDERS: Record<string, Builder> = {
 
   /** Jesse Owens sprinting down the track in 1936 with bib 733, his four gold medals and an oak sapling behind. */
   pp_owens: gp => {
-    const y = figureBase(gp, '#b4533a', '#5b3a2a');
-    for (const z of [-0.35, -0.21, -0.07, 0.07, 0.21, 0.35]) { const l = 2 * Math.sqrt(Math.max(0, 0.44 * 0.44 - z * z)); box(gp, '#f8fafc', 0, y, z, l, 0.0015, 0.006); }
-    box(gp, '#f8fafc', 0.3, y, 0, 0.02, 0.0016, 0.6);
+    const y = base(gp, SITE.earth);
+    for (const z of [-0.35, -0.21, -0.07, 0.07, 0.21, 0.35]) { const l = 2 * Math.sqrt(Math.max(0, 0.44 * 0.44 - z * z)); box(gp, '#d8e3ee', 0, y, z, l, 0.0015, 0.006); }
+    box(gp, '#d8e3ee', 0.3, y, 0, 0.02, 0.0016, 0.6);
     // medal rack with four gold medals
     const mx = 0.12, mz = -0.3;
     for (const sx of [-1, 1]) rod(gp, [mx + sx * 0.1, y, mz], [mx + sx * 0.1, y + 0.2, mz], 0.006, '#e5e7eb', 5);
     rod(gp, [mx - 0.1, y + 0.2, mz], [mx + 0.1, y + 0.2, mz], 0.005, '#e5e7eb', 5);
     for (let i = 0; i < 4; i++) {
       const x = mx - 0.066 + i * 0.044;
-      for (const sx of [-1, 1]) box(gp, '#1d4ed8', x + sx * 0.008, y + 0.13, mz + 0.005, 0.008, 0.07, 0.003, 0, 0, -sx * 0.2);
-      metal(cyl(gp, '#e0b23c', x, y + 0.11, mz + 0.008, 0.018, 0.005, 14), '#e0b23c', 0.8, 0.3).rotation.x = Math.PI / 2;
+      for (const sx of [-1, 1]) box(gp, '#4360b2', x + sx * 0.008, y + 0.13, mz + 0.005, 0.008, 0.07, 0.003, 0, 0, -sx * 0.2);
+      metal(cyl(gp, '#c0a45c', x, y + 0.11, mz + 0.008, 0.018, 0.005, 14), '#c0a45c', 0.8, 0.3).rotation.x = Math.PI / 2;
     }
     // potted oak sapling (each winner in 1936 received one)
     const ox = -0.3, oz = -0.18;
-    lathe(gp, [[0, 0], [0.04, 0], [0.05, 0.06], [0.053, 0.065], [0, 0.065]], '#a0522d', ox, y, oz, 12);
-    tube(gp, [[ox, y + 0.06, oz], [ox + 0.005, y + 0.15, oz], [ox - 0.01, y + 0.22, oz]], 0.007, 0.004, '#6b4a2f', { radial: 5, sub: 3 });
-    for (let k = 0; k < 9; k++) ellip(gp, k % 2 ? '#3f7d2c' : '#4f9a37', ox + Math.cos(k * 2.3) * 0.045, y + 0.17 + (k % 3) * 0.03, oz + Math.sin(k * 2.3) * 0.04, 0.035, 0.025, 0.03);
+    lathe(gp, [[0, 0], [0.04, 0], [0.05, 0.06], [0.053, 0.065], [0, 0.065]], '#90583d', ox, y, oz, 12);
+    tube(gp, [[ox, y + 0.06, oz], [ox + 0.005, y + 0.15, oz], [ox - 0.01, y + 0.22, oz]], 0.007, 0.004, '#694a31', { radial: 5, sub: 3 });
+    for (let k = 0; k < 9; k++) ellip(gp, k % 2 ? '#437534' : '#549041', ox + Math.cos(k * 2.3) * 0.045, y + 0.17 + (k % 3) * 0.03, oz + Math.sin(k * 2.3) * 0.04, 0.035, 0.025, 0.03);
     const o: FigureOpts = {
-      y, x: -0.04, z: 0.07, ry: 1.15, skin: '#5d3b26', top: '#f8fafc', accent: '#1e3a8a', outfit: 'tunic', hair: '#111111', hairStyle: 'short', lean: 0.14,
+      y, x: -0.04, z: 0.07, ry: 1.15, skin: '#5d3b26', top: '#d8e3ee', accent: '#304378', outfit: 'tunic', hair: '#111111', hairStyle: 'short', lean: 0.14,
       armL: { fwd: -0.7, side: 0.15, bend: 1.3 }, armR: { fwd: 0.95, side: 0.12, bend: 1.2 },
-      stance: 'run', sleeve: 0, shorts: true, bottom: '#f1f5f9', shoes: '#1f2937',
+      stance: 'run', sleeve: 0, shorts: true, bottom: '#d8e3ee', shoes: '#1f2937',
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u;
     // race bib 733 and US shield
     box(b, '#f1ead8', 0, 0.56 * u, 0.087 * u, 0.13 * u, 0.09 * u, 0.006 * u);
     letters(b, '733', '#111111', 0, 0.595 * u, 0.091 * u, 0.0085 * u, 0, 0, 0.004 * u);
-    box(b, '#1e3a8a', 0, 0.68 * u, 0.088 * u, 0.04 * u, 0.018 * u, 0.006 * u);
-    for (let i = 0; i < 3; i++) box(b, i % 2 ? '#f8fafc' : '#b91c1c', (-0.012 + i * 0.012) * u, 0.65 * u, 0.088 * u, 0.012 * u, 0.03 * u, 0.006 * u);
+    box(b, '#304378', 0, 0.68 * u, 0.088 * u, 0.04 * u, 0.018 * u, 0.006 * u);
+    for (let i = 0; i < 3; i++) box(b, i % 2 ? '#d8e3ee' : '#9a3b3b', (-0.012 + i * 0.012) * u, 0.65 * u, 0.088 * u, 0.012 * u, 0.03 * u, 0.006 * u);
   },
 
   /** Wangari Maathai planting trees: seedling in her hands, rows of saplings, an acacia and Mount Kenya behind. */
   pp_maathai: gp => {
-    const y = figureBase(gp, '#7aa64a', '#5b4636');
+    const y = base(gp, SITE.meadow);
     // Mount Kenya
     const mk = lathe(gp, [[0.2, 0], [0.13, 0.1], [0.06, 0.24], [0.02, 0.32], [0, 0.33]], '#6b7280', 0.33, y, -0.16, 6); mk.rotation.y = 0.4;
-    const ms = lathe(gp, [[0, 0.2], [0.075, 0.2], [0.035, 0.28], [0, 0.335]], '#f8fafc', 0.33, y + 0.002, -0.16, 6); ms.rotation.y = 0.4; ms.scale.set(1.05, 1, 1.05);
+    const ms = lathe(gp, [[0, 0.2], [0.075, 0.2], [0.035, 0.28], [0, 0.335]], '#d8e3ee', 0.33, y + 0.002, -0.16, 6); ms.rotation.y = 0.4; ms.scale.set(1.05, 1, 1.05);
     cone(gp, '#57534e', 0.39, y + 0.15, -0.15, 0.02, 0.14, 5);
     // umbrella acacia
     tube(gp, [[-0.26, y, -0.2], [-0.25, y + 0.18, -0.2], [-0.2, y + 0.3, -0.18]], 0.018, 0.01, '#5b4030', { radial: 6, sub: 4 });
     tube(gp, [[-0.25, y + 0.18, -0.2], [-0.32, y + 0.28, -0.22]], 0.01, 0.007, '#5b4030', { radial: 5, sub: 2 });
-    ellip(gp, '#4f7a2f', -0.25, y + 0.33, -0.2, 0.17, 0.035, 0.13);
-    ellip(gp, '#5f8f39', -0.24, y + 0.36, -0.19, 0.12, 0.025, 0.09);
+    ellip(gp, '#507435', -0.25, y + 0.33, -0.2, 0.17, 0.035, 0.13);
+    ellip(gp, '#60893f', -0.24, y + 0.36, -0.19, 0.12, 0.025, 0.09);
     // rows of seedlings in fresh soil
     for (let r = 0; r < 2; r++) for (let i = 0; i < 4; i++) {
       const sx = -0.34 + i * 0.075 + r * 0.03, sz = 0.12 + r * 0.12;
-      ellip(gp, '#6b4a2f', sx, y, sz, 0.03, 0.012, 0.025);
+      ellip(gp, '#694a31', sx, y, sz, 0.03, 0.012, 0.025);
       rod(gp, [sx, y, sz], [sx, y + 0.05 + (i % 2) * 0.01, sz], 0.003, '#5b4030', 3);
-      for (let k = 0; k < 3; k++) ellip(gp, k % 2 ? '#65a30d' : '#4d7c0f', sx + Math.cos(k * 2.1) * 0.012, y + 0.045 + k * 0.008, sz + Math.sin(k * 2.1) * 0.012, 0.014, 0.006, 0.01, k * 2.1);
+      for (let k = 0; k < 3; k++) ellip(gp, k % 2 ? '#5f822e' : '#4a6526', sx + Math.cos(k * 2.1) * 0.012, y + 0.045 + k * 0.008, sz + Math.sin(k * 2.1) * 0.012, 0.014, 0.006, 0.01, k * 2.1);
     }
     // watering can and spade
     const wx = 0.3, wz = 0.18;
-    metal(cyl(gp, '#15803d', wx, y, wz, 0.035, 0.06, 12), '#15803d', 0.4, 0.4);
-    rod(gp, [wx + 0.025, y + 0.02, wz], [wx + 0.08, y + 0.07, wz], 0.006, '#15803d', 5);
-    ring(gp, '#15803d', wx - 0.01, y + 0.07, wz, 0.025, 0, 0, Math.PI / 2, 0.15);
-    rod(gp, [0.22, y + 0.02, 0.3], [0.2, y + 0.2, 0.28], 0.006, '#8b5a2b', 5);
+    metal(cyl(gp, '#2a6b42', wx, y, wz, 0.035, 0.06, 12), '#2a6b42', 0.4, 0.4);
+    rod(gp, [wx + 0.025, y + 0.02, wz], [wx + 0.08, y + 0.07, wz], 0.006, '#2a6b42', 5);
+    ring(gp, '#2a6b42', wx - 0.01, y + 0.07, wz, 0.025, 0, 0, Math.PI / 2, 0.15);
+    rod(gp, [0.22, y + 0.02, 0.3], [0.2, y + 0.2, 0.28], 0.006, '#7f5a37', 5);
     metal(box(gp, '#9ca3af', 0.222, y - 0.02, 0.3, 0.04, 0.05, 0.006), '#9ca3af');
     const o: FigureOpts = {
-      y, x: 0.02, z: 0.04, skin: '#4a2e1f', top: '#d9480f', accent: '#facc15', outfit: 'dress', hair: '#1c1917', hat: 'turban', hatColor: '#f59e0b',
+      y, x: 0.02, z: 0.04, skin: '#4a2e1f', top: '#ac5c3c', accent: '#c3ab4c', outfit: 'dress', hair: '#1c1917', hat: 'turban', hatColor: '#bf9041',
       armL: { fwd: 0.9, side: 0.1, bend: 0.5, inward: 0.5 }, armR: { fwd: 0.9, side: 0.1, bend: 0.5, inward: 0.5 },
     };
     const a = figure(gp, o), b = bodyOf(a), u = a.u, hr = a.headR, hy = 0.9 * u;
@@ -1044,18 +1070,18 @@ const BUILDERS: Record<string, Builder> = {
     const rAt = (h: number) => { for (let i = 1; i < prof.length; i++) if (h <= prof[i][0]) { const t = (h - prof[i - 1][0]) / (prof[i][0] - prof[i - 1][0]); return prof[i - 1][1] + (prof[i][1] - prof[i - 1][1]) * t; } return 0.124; };
     for (let r = 0; r < 4; r++) for (let i = -2; i <= 2; i++) {
       const h = 0.08 + r * 0.1, th = i * 0.32 + (r % 2) * 0.16, rr = rAt(h) * u;
-      ellip(b, r % 2 ? '#facc15' : '#14532d', Math.sin(th) * rr, h * u, Math.cos(th) * rr * 0.8, 0.017 * u, 0.017 * u, 0.008 * u, th);
+      ellip(b, r % 2 ? '#c3ab4c' : '#1e492f', Math.sin(th) * rr, h * u, Math.cos(th) * rr * 0.8, 0.017 * u, 0.017 * u, 0.008 * u, th);
     }
-    for (let i = -2; i <= 2; i++) box(b, '#facc15', i * 0.035 * u, 0.68 * u, 0.088 * u, 0.02 * u, 0.008 * u, 0.006 * u, 0, 0, 0.6 * (i % 2 ? 1 : -1));
-    ellip(b, '#d9480f', 0.3 * hr, hy + 1.35 * hr, -0.2 * hr, 0.45 * hr, 0.35 * hr, 0.4 * hr, 0, 0, -0.4);
-    ellip(b, '#facc15', -0.3 * hr, hy + 1.3 * hr, -0.25 * hr, 0.38 * hr, 0.3 * hr, 0.36 * hr, 0, 0, 0.4);
+    for (let i = -2; i <= 2; i++) box(b, '#c3ab4c', i * 0.035 * u, 0.68 * u, 0.088 * u, 0.02 * u, 0.008 * u, 0.006 * u, 0, 0, 0.6 * (i % 2 ? 1 : -1));
+    ellip(b, '#ac5c3c', 0.3 * hr, hy + 1.35 * hr, -0.2 * hr, 0.45 * hr, 0.35 * hr, 0.4 * hr, 0, 0, -0.4);
+    ellip(b, '#c3ab4c', -0.3 * hr, hy + 1.3 * hr, -0.25 * hr, 0.38 * hr, 0.3 * hr, 0.36 * hr, 0, 0, 0.4);
     // seedling pot between her hands
     const [lx, ly, lz] = a.handL, [rx, , rz] = a.handR;
     const px = (lx + rx) / 2, pz = (lz + rz) / 2 + 0.015;
-    lathe(gp, [[0, 0], [0.026, 0], [0.034, 0.04], [0.036, 0.045], [0, 0.045]], '#b45f3a', px, ly - 0.03, pz, 12);
+    lathe(gp, [[0, 0], [0.026, 0], [0.034, 0.04], [0.036, 0.045], [0, 0.045]], '#a56549', px, ly - 0.03, pz, 12);
     ellip(gp, '#5b4030', px, ly + 0.013, pz, 0.03, 0.006, 0.03);
-    rod(gp, [px, ly + 0.01, pz], [px, ly + 0.09, pz], 0.0035, '#3f6212', 4);
-    for (let k = 0; k < 5; k++) ellip(gp, k % 2 ? '#65a30d' : '#4d7c0f', px + Math.cos(k * 1.26) * 0.02, ly + 0.05 + k * 0.009, pz + Math.sin(k * 1.26) * 0.02, 0.02, 0.007, 0.012, -k * 1.26);
+    rod(gp, [px, ly + 0.01, pz], [px, ly + 0.09, pz], 0.0035, '#3d5321', 4);
+    for (let k = 0; k < 5; k++) ellip(gp, k % 2 ? '#5f822e' : '#4a6526', px + Math.cos(k * 1.26) * 0.02, ly + 0.05 + k * 0.009, pz + Math.sin(k * 1.26) * 0.02, 0.02, 0.007, 0.012, -k * 1.26);
   },
 };
 
@@ -1079,5 +1105,5 @@ function slim(gp: THREE.Group, bias = 1): void {
 const BIAS: Record<string, number> = { pp_amundsen: 1.25 };
 
 export const H_PEOPLE_C: Record<string, Builder> = Object.fromEntries(
-  Object.entries(BUILDERS).map(([k, f]) => [k, ((gp, r) => { f(gp, r); slim(gp, BIAS[k]); }) as Builder]),
+  Object.entries(BUILDERS).map(([k, f]) => [k, ((gp, r) => { f(gp, r); settle(gp); slim(gp, BIAS[k]); }) as Builder]),
 );

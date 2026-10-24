@@ -243,6 +243,7 @@ h2, h3 { font-weight: 700; }
 .maptip .ic[hidden] { display: none; }
 .maptip .ic { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #fff; background: var(--k); flex: none; }
 .maptip .ic svg { width: 15px; height: 15px; }
+.maptip.k-polity .ic { width: 12px; height: 12px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45); }
 .maptip b { font-size: 13.5px; font-weight: 650; letter-spacing: 0.04em; }
 .maptip small { font-size: 11.5px; color: rgba(248, 242, 230, 0.62); }
 .maptip .ic[hidden] ~ b { margin-left: 6px; }
@@ -714,6 +715,9 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 .tl-curve polyline { fill: none; stroke: var(--ink-2); stroke-width: 1.2; opacity: 0.7; stroke-linejoin: round; }
 .tl-play { width: 42px !important; height: 42px !important; border-radius: 0 !important; flex: none; color: #fff !important; background: var(--zhu) !important; box-shadow: 0 3px 10px rgba(200, 55, 45, 0.35); }
 .tl-play:hover { background: var(--zhu-hi) !important; }
+.tl-speed { width: 34px; height: 42px; margin-left: 4px; border: 1px solid var(--rule); background: transparent; color: var(--ink-2); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
+.tl-speed:hover { border-color: var(--edge); color: var(--zhu); }
+.tl.folded .tl-speed { display: none; }
 .tl-txt { min-width: 0; }
 .tl-yr { display: flex; align-items: center; gap: 0; margin-left: -6px; }
 .tl-yr .ib { width: 24px; height: 28px; border-radius: 0; color: var(--ink-3); flex: none; }
@@ -833,6 +837,7 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
   .tl { gap: 0 8px; padding: 6px 4px 0 8px; }
   .tl-read { height: 64px; padding-right: 8px; }
   .tl-play { width: 34px !important; height: 34px !important; }
+  .tl-speed { height: 34px; width: 30px; }
   .hero { top: calc(var(--gap) * 2 + var(--bar-h)); padding: 2px 20px 8px 2px; }
   .hero .tl-yr .ib { height: 30px; }
   .hero .tl-year { font-size: 26px; }

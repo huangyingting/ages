@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { formatArea, polityArea } from '../../shared/data/areas.ts';
 import { EVENTS } from '../../shared/data/events.ts';
 import { tr, type Lang } from '../../shared/data/i18n.ts';
 import { RIVER_LABELS, WORKS, type Person, type RiverLabel } from '../../shared/data/jiangshan.ts';
@@ -50,7 +51,9 @@ interface Mark extends MapTarget {
   layout?: LayoutItem;
 }
 
-type Hover = { target: MapTarget } | { area: AdminUnit; at: THREE.Vector3 };
+/** A territory under the pointer: polity id (+ per-snapshot name), its colour, tooltip lines. */
+interface PolityHit { key: string; color: string; title: string; sub: string }
+type Hover = { target: MapTarget } | { area: AdminUnit; at: THREE.Vector3 } | { polity: PolityHit; at: THREE.Vector3 };
 
 export interface Layers {
   territory: boolean; places: boolean; events: boolean; models: boolean;
@@ -374,8 +377,9 @@ export class Atlas {
   private setHover(h: Hover | null): void {
     const old = this.hover;
     const same = (a: Hover | null, b: Hover | null) => a && b && 'target' in a && 'target' in b ? a.target === b.target : a === b;
-    if (old && h && 'area' in old && 'area' in h) old.at.copy(h.at);
-    if (same(old, h) || (old && h && 'area' in old && 'area' in h && old.area === h.area)) return;
+    if (old && h && 'at' in old && 'at' in h) old.at.copy(h.at);
+    if (same(old, h) || (old && h && 'area' in old && 'area' in h && old.area === h.area)
+      || (old && h && 'polity' in old && 'polity' in h && old.polity.key === h.polity.key)) return;
     if (old && 'target' in old) {
       if (old.target.g) (old.target.g.userData as SpawnState).boost = 1;
       for (const l of [old.target.label, old.target.nameLabel]) {
@@ -395,15 +399,19 @@ export class Atlas {
       }
       ({ title, sub } = h.target.info());
       icon = h.target.icon;
-    } else {
+    } else if ('area' in h) {
       icon = 'area';
       title = tr(h.area.name, this.lang);
       sub = h.area.category.zh ? tr(h.area.category, this.lang) : '';
+    } else {
+      icon = 'polity';
+      ({ title, sub } = h.polity);
     }
     this.tip.className = `maptip k-${icon}`;
     const [ic, b, small] = this.tip.children as unknown as HTMLElement[];
-    ic.innerHTML = icon === 'area' ? '' : glyph(icon);
+    ic.innerHTML = icon === 'area' || icon === 'polity' ? '' : glyph(icon);
     ic.hidden = icon === 'area';
+    ic.style.background = 'polity' in h ? h.polity.color : '';
     b.textContent = title;
     small.textContent = sub;
     small.hidden = !sub;
@@ -484,10 +492,14 @@ export class Atlas {
         if (!this.overCanvas) return;
         const m = this.pickMark(last.x, last.y);
         if (m) return this.setHover({ target: m });
-        // over open land with the admin layer on: the same tooltip names the area under the pointer
-        const ll = this.layers.admin && !this.storyMode ? this.view.pick(last.x, last.y) : null;
-        const area = ll ? this.adminAt(ll[0], ll[1]) : null;
-        this.setHover(area && ll ? { area, at: this.geo.pos(ll[0], ll[1], 0) } : null);
+        // over open land: the same tooltip names the administrative area (admin layer) or the polity under the pointer
+        const ll = !this.storyMode && !this.pickHandler && (this.layers.admin || this.layers.territory) ? this.view.pick(last.x, last.y) : null;
+        if (!ll) return this.setHover(null);
+        const at = this.geo.pos(ll[0], ll[1], 0);
+        const area = this.layers.admin ? this.adminAt(ll[0], ll[1]) : null;
+        if (area) return this.setHover({ area, at });
+        const polity = this.layers.territory ? this.polityAt(ll[0], ll[1]) : null;
+        this.setHover(polity ? { polity, at } : null);
       });
     });
     canvas.addEventListener('pointerleave', () => {
@@ -503,6 +515,25 @@ export class Atlas {
       if ((!best || a.level > best.level) && inside(a.rings, lon, lat)) best = a;
     }
     return best;
+  }
+
+  /** The polity painted on top at lon/lat in the current snapshot: name, role · area for the hover tooltip. */
+  polityAt(lon: number, lat: number): PolityHit | null {
+    const snap = this.snapshot;
+    if (!snap) return null;
+    for (let i = snap.regions.length - 1; i >= 0; i--) {
+      const r = snap.regions[i];
+      const hit = r.evenodd ? inside(r.rings, lon, lat) : r.rings.some(ring => inside([ring], lon, lat));
+      if (!hit) continue;
+      const p = POLITY.get(r.polity);
+      if (!p) return null;
+      const role = r.role ?? p.role;
+      const roleKey = ({ main: 'roleMain', rival: 'roleRival', occupied: 'roleRival', protectorate: 'roleProt', neighbor: 'roleNeighbor' } as const)[role];
+      const k = role === 'neighbor' ? 0 : polityArea(snap.id, p.id);
+      const sub = [ui(roleKey), k ? formatArea(k, this.lang) : ''].filter(Boolean).join(' · ');
+      return { key: snap.id + p.id + (r.name ? r.name.en : ''), color: r.color ?? p.color, title: tr(r.name ?? p.name, this.lang), sub };
+    }
+    return null;
   }
 
   private nearestPin(cx: number, cy: number): MapTarget | null {

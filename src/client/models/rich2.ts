@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   type Builder, type V3, type Paint, add, g, mat, box, tbox, cyl, cone, rbox, rod, skin, slab, lathe, prism, gable, tube, sweep, shade, mix,
-  hash3, fbm, paintFaces, panel,
+  hash3, fbm, paintFaces, panel, plinth, tree, SITE,
 } from './prims.ts';
 import { human, type HumanOpts } from './human.ts';
 import { grp, minipine } from './timber.ts';
@@ -28,10 +28,18 @@ const P = {
   stone: '#bdb4a2', tile: '#4a4f57', vermilion: '#a8352a', thatch: '#b39a5e', bone: '#e6dcc2', lacquer: '#6e1c14', concrete: '#c9c4b8',
 };
 
-function ground(p: THREE.Object3D, R: number, top: string, side = shade(top, 0.7), h = 0.03): number {
-  lathe(p, [[0, 0], [R, 0], [R * 0.98, h * 0.8], [R * 0.95, h], [0, h]], side, 0, 0, 0, 40);
-  lathe(p, [[0, h], [R * 0.95, h], [0, h + 0.002]], top, 0, 0, 0, 40);
-  return h;
+const SITES = Object.values(SITE);
+const rgb = (c: string) => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
+/** The SITE tone nearest to `c` (old per-model ground colours snap to the shared site palette). */
+function siteTone(c: string): string {
+  const a = rgb(c);
+  let best: string = SITE.earth, bd = Infinity;
+  for (const s of SITES) { const b = rgb(s), d = (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2; if (d < bd) { bd = d; best = s; } }
+  return best;
+}
+/** The shared museum plinth (prims `plinth`: dark walnut side, SITE top). Returns the top height. */
+function ground(p: THREE.Object3D, R: number, top: string, _side?: string, h = 0.03, paint?: Paint): number {
+  return plinth(p, siteTone(top), { R: Math.min(R, 0.46), h, paint });
 }
 const FCONE = () => g('r2:fcone', () => new THREE.ConeGeometry(0.5, 1, 8).translate(0, 0.5, 0));
 const ICO = () => g('r2:ico', () => new THREE.IcosahedronGeometry(1, 0));
@@ -132,10 +140,9 @@ function pprism(p: THREE.Object3D, plan: [number, number][], y: number, h: numbe
   eg.computeVertexNormals();
   return add(p, paintFaces(eg, c, paint), mat('#ffffff', { vc: true, flat: true }), 0, y, 0, 1, 1, 1);
 }
-/** Broadleaf tree with a craggy (noise) crown instead of a smooth ball. */
-function leafTree(p: THREE.Object3D, x: number, y: number, z: number, s: number, c: string, seed = 0): void {
-  rod(p, [x, y, z], [x + s * 0.05, y + s * 0.55, z], s * 0.06, '#5a4636', 5);
-  lump(p, x + s * 0.04, y + s * 0.42, z, s * 0.42, s * 0.5, s * 0.42, c, { seed, detail: 1, rough: 0.28, paint: (px, py, pz) => shade(c, 0.8 + fbm(px * 3 + seed, py * 3, pz * 3, 2) * 0.45) });
+/** Broadleaf tree: the shared natural tree (prims `tree`), sized like the old crown. */
+function leafTree(p: THREE.Object3D, x: number, y: number, z: number, s: number, c: string, _seed = 0): void {
+  tree(p, x, y, z, s * 0.6, c);
 }
 function shrub(p: THREE.Object3D, x: number, y: number, z: number, s: number, c: string, seed = 0): void {
   lump(p, x, y, z, s, s * 0.6, s, c, { seed, detail: 1, rough: 0.3, paint: (px, py, pz) => shade(c, 0.78 + fbm(px * 4 + seed, py * 4, pz * 4, 2) * 0.45) });
@@ -310,8 +317,8 @@ const stilt: Builder = gp => {
   ellip(canoe, '#2e1f14', 0, 0.02, 0, 0.12, 0.003, 0.016);
   const f = person(canoe, -0.02, 0.01, 0, { h: 0.09, pose: 'kneel', top: '#7a6a44', bottom: '#5a4a34', sleeve: 0.4, ry: Math.PI / 2 });
   rod(canoe, [f.handR[0], f.handR[1], f.handR[2]], [f.handR[0] + 0.04, -0.01, f.handR[2] + 0.04], 0.003, '#6e4f30', 4);
-  leafTree(gp, -0.37, h0, -0.2, 0.3, '#56693a', 3);
-  leafTree(gp, 0.37, h0, -0.22, 0.26, '#5d6e3c', 4);
+  leafTree(gp, -0.3, h0, -0.16, 0.28, '#56693a', 3);
+  leafTree(gp, 0.33, h0, -0.2, 0.25, '#5d6e3c', 4);
   // a domestic pig (Hemudu pottery pigs show the type) rooting under the house
   const pig = grp(gp, -0.12, -0.02, 0.4, h0);
   ellip(pig, '#3a302a', 0, 0.022, 0, 0.032, 0.016, 0.014);
@@ -545,8 +552,8 @@ const weir: Builder = gp => {
   prism(gp, [[0.0, -0.13], [0.07, -0.13], [0.072, 0.04], [0.003, 0.04]], top + 0.022, 0.003, '#6f8a4a');
   prism(gp, [[0.005, 0.135], [0.07, 0.135], [0.07, 0.205], [0.005, 0.205]], top + 0.022, 0.003, '#6f8a4a');
   box(gp, '#8a7d62', 0.037, top - 0.002, 0.09, 0.075, 0.008, 0.08);
-  for (let k = 0; k < 7; k++) ellip(gp, '#eef6f7', -0.006 - (k % 2) * 0.012, top + 0.003, 0.058 + k * 0.011, 0.016, 0.004, 0.006, 0.2);
-  for (let k = 0; k < 4; k++) ellip(gp, '#eef6f7', 0.035 + (k - 1.5) * 0.012, top + 0.002, -0.262 - (k % 2) * 0.01, 0.01, 0.003, 0.02, (k - 1.5) * 0.4);
+  for (let k = 0; k < 7; k++) ellip(gp, '#b9c6c4', -0.006 - (k % 2) * 0.012, top + 0.003, 0.058 + k * 0.011, 0.016, 0.004, 0.006, 0.2);
+  for (let k = 0; k < 4; k++) ellip(gp, '#b9c6c4', 0.035 + (k - 1.5) * 0.012, top + 0.002, -0.262 - (k % 2) * 0.01, 0.01, 0.003, 0.02, (k - 1.5) * 0.4);
   // bamboo gabions 竹笼 (woven cylinders packed with river stones) lining both banks of the levee
   const gab = (x: number, z: number) => {
     const c = cyl(gp, '#c7a660', x, 0, z, 0.0105, 0.05, 8);
@@ -567,14 +574,14 @@ const weir: Builder = gp => {
   // ---- mountains: Yulei hill on the east bank, cut through at Baopingkou; the Lidui rock left standing to the west
   const green = '#5a6e40', rock = '#8a8270';
   const cliff: Paint = (x, y, z) => shade(rock, (0.8 + hash3(Math.floor(x * 70), Math.floor(y * 90), Math.floor(z * 70)) * 0.25) * (Math.floor(y * 160) % 3 ? 1 : 0.9));
-  for (const [x, z, sx, sy, sz, sd] of [[-0.41, -0.12, 0.08, 0.11, 0.2, 1], [-0.3, -0.37, 0.12, 0.09, 0.08, 3], [0.37, -0.22, 0.1, 0.12, 0.17, 2], [0.25, -0.39, 0.09, 0.08, 0.06, 4]] as const)
+  for (const [x, z, sx, sy, sz, sd] of [[-0.35, -0.1, 0.07, 0.11, 0.16, 1], [-0.22, -0.28, 0.09, 0.09, 0.06, 3], [0.33, -0.19, 0.08, 0.12, 0.14, 2], [0.21, -0.34, 0.08, 0.08, 0.06, 4]] as const)
     lump(gp, x, h0, z, sx, sy, sz, green, { seed: sd, rough: 0.3, paint: rockPaint(rock, green, sd) });
   pprism(gp, clipR([[0.198, 0.2], [0.3, 0.12], [0.42, 0.14], [0.42, 0.44], [0.198, 0.44]], 0.44), h0, 0.07, rock, cliff);
-  lump(gp, 0.33, h0 + 0.05, 0.28, 0.12, 0.07, 0.14, green, { seed: 5, rough: 0.25, paint: rockPaint(rock, green, 5) });
+  lump(gp, 0.28, h0 + 0.05, 0.24, 0.08, 0.07, 0.09, green, { seed: 5, rough: 0.25, paint: rockPaint(rock, green, 5) });
   pprism(gp, clipR([[0.02, 0.3], [0.104, 0.275], [0.104, 0.44], [0.04, 0.44], [-0.01, 0.38]], 0.44), h0, 0.06, rock, cliff);
   lump(gp, 0.055, h0 + 0.05, 0.36, 0.055, 0.05, 0.06, green, { seed: 8, rough: 0.2, detail: 2, paint: rockPaint(rock, green, 8) });
-  for (let k = 0; k < 5; k++) ellip(gp, '#dfe8e4', 0.15 + (k % 2 - 0.5) * 0.03, top + 0.001, 0.3 + k * 0.03, 0.012, 0.003, 0.01);
-  for (const [x, z] of [[-0.42, 0.05], [0.4, 0.04], [-0.3, -0.36], [0.33, 0.3], [0.28, 0.24], [0.06, 0.37]]) minipine(gp, x, x > 0.2 && z > 0.2 ? h0 + 0.1 : x < 0.1 && x > 0 ? h0 + 0.08 : h0, z, 0.05, '#3f5a32');
+  for (let k = 0; k < 5; k++) ellip(gp, '#b9c6c4', 0.15 + (k % 2 - 0.5) * 0.03, top + 0.001, 0.3 + k * 0.03, 0.012, 0.003, 0.01);
+  for (const [x, z] of [[-0.42, 0.05], [0.4, 0.04], [-0.27, -0.31], [0.33, 0.3], [0.28, 0.24], [0.06, 0.37]]) minipine(gp, x, x > 0.2 && z > 0.2 ? h0 + 0.1 : x < 0.1 && x > 0 ? h0 + 0.08 : h0, z, 0.05, '#3f5a32');
   // people at true scale are specks: gabion builders carrying cobble baskets and Li Bing at the Fish Mouth
   for (const [x, z, ph] of [[0.02, -0.06, 0.1], [0.05, 0.0, 0.6], [0.03, 0.15, 0.3]] as const) {
     const w = person(gp, x, top + 0.024, z, { h: 0.034, pose: 'carry', phase: ph, top: '#6a6450', bottom: '#3a3128', hat: '#b49a64', hatStyle: 'conical', ry: Math.PI, detail: 'lo' });
@@ -607,6 +614,9 @@ function steam(gp: THREE.Group, body: string): void {
   // Qing-era wooden clerestory coaches; Zhan Tianyou in Qing official dress beside a semaphore. Gauge 1435 mm = 0.06.
   // Ref: en/zh Wikipedia "Beijing–Zhangjiakou railway"/"京张铁路"; 1909 同生照相馆《京张路工撮影》 photographs.
   const h0 = ground(gp, 0.46, '#8f8a5a', '#5a4a34');
+  // the scene is laid out on a 0.46 disc; shrink it so the cowcatcher and track ends stay on the plinth top
+  gp = grp(gp, 0, 0, 0, h0 * 0.08);
+  gp.scale.setScalar(0.92);
   lump(gp, 0, h0, -0.33, 0.33, 0.15, 0.1, '#6f7a44', { seed: 4, rough: 0.25, paint: rockPaint('#8a826e', '#6f7a44', 4) });
   // a stretch of the Great Wall along the ridge
   for (let i = 0; i < 9; i++) {
@@ -946,7 +956,7 @@ function sovietPlant(gp: THREE.Group): void {
   const h0 = ground(gp, 0.46, '#85826f', '#5d564a');
   const brick = '#8a4c3c', conc = '#a8a294', roof = '#5d5f5f';
   prism(gp, clipR([[-0.46, 0.22], [0.46, 0.22], [0.46, 0.33], [-0.46, 0.33]], 0.44), h0, 0.002, '#4e4e4b');
-  for (let i = 0; i < 8; i++) box(gp, '#c9c4b0', -0.36 + i * 0.1, h0 + 0.002, 0.275, 0.04, 0.0008, 0.003);
+  for (let i = 0; i < 7; i++) box(gp, '#b8b3a2', -0.3 + i * 0.1, h0 + 0.002, 0.275, 0.04, 0.002, 0.004);
   // ---- main assembly hall (long, left/back) and press shop (right)
   const hall2 = (x: number, z: number, w: number, d: number, h: number) => {
     fbox(gp, x, h0, z, w, h, d, 0.006, brick, facade(brick, h, { fl: h, sp: 0.02, ww: 0.8, wh: 0.5, y0: 0, trim: conc, brick: [0.005, 0.013], roof }));
@@ -1103,7 +1113,7 @@ const cz1 = (gp: THREE.Group, launch: boolean) => {
   // cable mast, low concrete bunker (blockhouse) and a trolley rail
   rod(gp, [0.34, h0, -0.24], [0.34, h0 + 0.55, -0.24], 0.004, '#8a8a84', 5);
   box(gp, '#9c968a', -0.3, h0, 0.25, 0.14, 0.05, 0.09);
-  box(gp, '#8a8578', -0.3, h0 + 0.05, 0.25, 0.15, 0.008, 0.1);
+  box(gp, '#8a8578', -0.27, h0 + 0.05, 0.22, 0.15, 0.008, 0.1);
   box(gp, '#3a3a38', -0.3, h0, 0.2955, 0.022, 0.03, 0.002);
   for (const s of [-1, 1]) box(gp, '#3a3a38', -0.3 + s * 0.045, h0 + 0.03, 0.2955, 0.02, 0.008, 0.002);
   for (const s of [-1, 1]) box(gp, '#5a5a58', 0.27 + s * 0.012, h0, 0.05, 0.004, 0.003, 0.38);
@@ -1287,7 +1297,7 @@ const stadium: Builder = gp => {
     const ring: [number, number][] = Array.from({ length: 48 }, (_, i) => { const t = (i / 48) * Math.PI * 2; return [A * k * Math.cos(t), B * k * Math.sin(t)]; });
     prism(gp, clipR(ring, 0.44), h0, 0.0015, k > 1.15 ? '#b8b3a6' : '#d2cdc0');
   }
-  for (const [x, z] of [[-0.42, 0.14], [-0.43, 0.06], [0.42, 0.12], [0.43, 0.04], [-0.38, -0.24], [0.38, -0.25], [-0.2, -0.39], [-0.12, -0.41], [0.18, -0.4], [0.1, -0.42]] as const) leafTree(gp, x, h0, z, 0.07, '#5d7040', Math.round(x * 50));
+  for (const [x, z] of [[-0.42, 0.14], [-0.43, 0.06], [0.42, 0.12], [0.43, 0.04], [-0.38, -0.24], [0.38, -0.25], [-0.2, -0.39], [-0.12, -0.41], [0.18, -0.4], [0.1, -0.42]] as const) leafTree(gp, x * 0.9, h0, z * 0.9, 0.07, '#5d7040', Math.round(x * 50));
 };
 
 /** Glass tower facade: floor bands and mullions, lit lobby, roof plant. Local coords from pbox. */
@@ -1472,16 +1482,16 @@ const dam: Builder = gp => {
   const CR = 0.12, WL = 0.112, TW = 0.022, zd = -0.07, x0 = -0.42, x1 = 0.25;
   const rock = (k: number) => rockPaint('#8a8676', '#566a40', k);
   // gorge mountains (upstream, partly drowned by the reservoir) and the right-bank shoulder
-  lump(gp, -0.3, h0, -0.33, 0.17, 0.24, 0.11, '#5f6e44', { seed: 1, rough: 0.25, paint: rock(1) });
-  lump(gp, 0.05, h0, -0.44, 0.24, 0.2, 0.06, '#5f6e44', { seed: 5, rough: 0.25, paint: rock(5) });
-  lump(gp, 0.33, h0, -0.3, 0.13, 0.22, 0.12, '#5f6e44', { seed: 2, rough: 0.25, paint: rock(2) });
+  lump(gp, -0.23, h0, -0.24, 0.13, 0.24, 0.09, '#5f6e44', { seed: 1, rough: 0.25, paint: rock(1) });
+  lump(gp, 0.04, h0, -0.36, 0.22, 0.2, 0.06, '#5f6e44', { seed: 5, rough: 0.25, paint: rock(5) });
+  lump(gp, 0.26, h0, -0.23, 0.11, 0.22, 0.09, '#5f6e44', { seed: 2, rough: 0.25, paint: rock(2) });
   // banks below the dam (raised above the tailwater) and the right-bank abutment
   const bank = (pl: [number, number][], h: number, c: string) => prism(gp, clipR(pl, 0.455), h0, h, c);
   bank([[-0.46, zd - 0.008], [x0 + 0.004, zd - 0.008], [x0 + 0.004, zd + 0.06], [-0.46, zd + 0.06]], CR + 0.005, '#7f7a6a');
   bank([[-0.46, zd + 0.06], [-0.36, zd + 0.06], [-0.28, 0.22], [-0.16, 0.46], [-0.46, 0.46]], TW + 0.008, '#66704a');
   bank([[0.08, 0.46], [0.16, 0.36], [0.3, 0.3], [0.38, 0.2], [0.46, 0.2], [0.46, 0.46]], TW + 0.008, '#66704a');
-  lump(gp, -0.38, h0 + TW + 0.008, 0.16, 0.06, 0.08, 0.12, '#5f6e44', { seed: 4, rough: 0.25, paint: rock(4) });
-  lump(gp, 0.33, h0 + TW + 0.008, 0.36, 0.08, 0.05, 0.06, '#5f6e44', { seed: 6, rough: 0.25, paint: rock(6) });
+  lump(gp, -0.33, h0 + TW + 0.008, 0.15, 0.05, 0.08, 0.1, '#5f6e44', { seed: 4, rough: 0.25, paint: rock(4) });
+  lump(gp, 0.26, h0 + TW + 0.008, 0.3, 0.06, 0.05, 0.05, '#5f6e44', { seed: 6, rough: 0.25, paint: rock(6) });
   // reservoir (175 m pool) behind the dam
   water(gp, clipR([[-0.46, zd - 0.008], [0.46, zd - 0.008], [0.46, -0.46], [-0.46, -0.46]], 0.455), h0, '#3e6670', WL);
   // downstream Yangtze and the lock's lower approach channel

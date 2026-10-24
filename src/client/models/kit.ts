@@ -43,6 +43,54 @@ function bakeAnimated(root: THREE.Group): void {
   }
 }
 
+/**
+ * One colour grade for every model (the "museum miniature" look, docs/design/map-design.md §7): saturation is
+ * eased, greens lean toward olive / sage, near-whites become warm plaster, and the darkest tones lift a little so
+ * nothing reads as candy plastic or pure black. Runs on baked vertex colours (in sRGB), so it costs nothing at draw.
+ */
+const hsl = { h: 0, s: 0, l: 0 };
+const tmp = new THREE.Color();
+const WARM = new THREE.Color().setRGB(1.015, 1, 0.97);
+export function gradeColor(c: THREE.Color): THREE.Color {
+  c.getHSL(hsl, THREE.SRGBColorSpace);
+  let { h, s, l } = hsl;
+  s *= 0.84;
+  const deg = h * 360;
+  if (deg > 70 && deg < 170) {
+    const g = 1 - Math.abs(deg - 115) / 55;
+    h = (deg - (deg - 82) * 0.45 * g) / 360;
+    s *= 1 - 0.28 * g;
+    l *= 1 - 0.06 * g;
+  } else if (deg >= 170 && deg < 215) s *= 0.85;
+  if (l > 0.78) l = 0.78 + (l - 0.78) * 0.62;
+  l = 0.035 + l * 0.965;
+  c.setHSL(h, s, l, THREE.SRGBColorSpace);
+  // warm, very slight: aged pigment rather than fresh paint
+  return c.multiply(WARM);
+}
+
+function gradeModel(root: THREE.Object3D): void {
+  const seen = new Set<THREE.BufferAttribute>();
+  root.traverse(o => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const m = mesh.material as THREE.MeshStandardMaterial;
+    if (!m || Array.isArray(m) || (m.emissive && m.emissive.getHex() !== 0)) return;
+    const col = mesh.geometry.getAttribute('color') as THREE.BufferAttribute | undefined;
+    if (col && m.vertexColors) {
+      if (seen.has(col)) return;
+      seen.add(col);
+      for (let i = 0; i < col.count; i++) {
+        gradeColor(tmp.fromBufferAttribute(col, i));
+        col.setXYZ(i, tmp.r, tmp.g, tmp.b);
+      }
+    } else if (!m.userData.graded) {
+      m.userData.graded = true;
+      gradeColor(m.color);
+    }
+  });
+}
+
 /** Loads whatever `buildFresh(recipe)` needs (the recipe's lazy hero pack, if any). */
 export const whenModelReady = (recipe: ModelRecipe): Promise<void> => whenHeroReady(recipe.hero);
 
@@ -62,6 +110,7 @@ export function buildFresh(recipe: ModelRecipe): THREE.Group {
   } else (BUILDERS[recipe.kind] as LiteBuilder ?? FALLBACK)(inner, recipe);
   bakeAnimated(root);
   bakeStaticMeshes(root);
+  gradeModel(root);
   root.updateMatrixWorld(true);
   const box3 = new THREE.Box3().setFromObject(root);
   root.userData.height = box3.max.y;

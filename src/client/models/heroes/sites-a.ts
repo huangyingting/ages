@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   type Builder, type V3, type Paint, add, g, mat, box, cyl, cone, ellip, rod, strut, lathe, skin, slab, sweep, tube, tbox, gable,
-  paintFaces, shade, mix, hash3, fbm,
+  paintFaces, shade, mix, hash3, fbm, tree, PLINTH_SIDE,
 } from '../prims.ts';
 import { grp } from '../timber.ts';
 import { human, type HumanOpts, type HumanRig } from '../human.ts';
@@ -43,9 +43,9 @@ type HF = (x: number, z: number) => number;
  * Round plinth whose top is a polar heightfield painted per face (ridges, banks, paddies, paving). `hf` is the height
  * above the plinth top `y0`; it fades out towards the rim. Returns the surface height function.
  */
-function land(p: THREE.Object3D, R: number, y0: number, hf: HF, paint: Paint, side: string, nr = 24, ns = 84): HF {
-  lathe(p, [[0, 0], [R, 0], [R * 0.99, y0 * 0.75], [R * 0.975, y0], [R * 0.97, y0 - 0.004], [0, y0 - 0.004]], side, 0, 0, 0, 56);
-  const Rt = R * 0.975;
+function land(p: THREE.Object3D, R: number, y0: number, hf: HF, paint: Paint, _side: string, nr = 24, ns = 84): HF {
+  lathe(p, [[0, 0], [R * 0.97, 0], [R, y0 * 0.18], [R, y0 * 0.7], [R * 0.985, y0 * 0.92], [R * 0.965, y0], [R * 0.95, y0 - 0.004], [0, y0 - 0.004]], PLINTH_SIDE, 0, 0, 0, 56);
+  const Rt = R * 0.965;
   const Y = (x: number, z: number) => y0 + hf(x, z) * (1 - sstep(0.86, 1, Math.hypot(x, z) / Rt));
   const pos: number[] = [0, Y(0, 0), 0];
   for (let i = 1; i <= nr; i++) for (let j = 0; j < ns; j++) {
@@ -192,13 +192,9 @@ function reeds(p: THREE.Object3D, x: number, y: number, z: number, s: number, se
   }
 }
 
-/** Tree with a rounded canopy (blob clusters) on a short trunk. */
-function broadTree(p: THREE.Object3D, x: number, y: number, z: number, s: number, c: string, seed: number, trunk = '#5a4636'): void {
-  tube(p, [[x, y, z], [x + s * 0.05, y + s * 0.45, z], [x + s * 0.02, y + s * 0.75, z]], s * 0.07, s * 0.045, trunk, { radial: 6, sub: 2 });
-  for (let i = 0; i < 9; i++) {
-    const a = hash3(seed, i, 7) * TAU, r = s * 0.28 * Math.sqrt(hash3(seed, i, 8));
-    el(p, shade(c, 0.9 + hash3(seed, i, 6) * 0.22), x + Math.cos(a) * r, y + s * (0.78 + hash3(seed, i, 9) * 0.32), z + Math.sin(a) * r, s * 0.2, s * 0.16, s * 0.2, a);
-  }
+/** Broadleaf tree — the shared atlas tree (seed kept for call compatibility). */
+function broadTree(p: THREE.Object3D, x: number, y: number, z: number, s: number, c: string, _seed: number, _trunk = '#5a4636'): void {
+  tree(p, x, y, z, s * 0.55, c);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -1052,15 +1048,7 @@ export const SITES_A: Record<string, Builder> = {
       cone(gp, LS, x, ly + 0.066, z, 0.024, 0.016, 6);
       el(gp, LS, x, ly + 0.086, z, 0.005, 0.007, 0.005);
     }
-    const pine = (x: number, z: number, s: number, seed: number) => {
-      const y = Y(x, z) - 0.002, lean = (hash3(seed, 1, 1) - 0.5) * 0.4;
-      const pts: V3[] = [[x, y, z], [x + lean * s * 0.3, y + s * 0.4, z], [x + lean * s * 0.7, y + s * 0.8, z + 0.01], [x + lean * s, y + s * 1.05, z]];
-      tube(gp, pts, s * 0.05, s * 0.025, '#4a3a2e', { radial: 6, sub: 2 });
-      for (let i = 0; i < 6; i++) {
-        const t = 0.45 + (i / 5) * 0.6, a = hash3(seed, i, 3) * TAU, r = s * (0.32 - i * 0.04);
-        el(gp, shade('#3c4a32', 0.9 + hash3(seed, i, 4) * 0.2), x + lean * s * t + Math.cos(a) * r * 0.5, y + s * t, z + Math.sin(a) * r * 0.5, r, s * 0.06, r * 0.8, a);
-      }
-    };
+    const pine = (x: number, z: number, s: number, _seed: number) => tree(gp, x, Y(x, z) - 0.002, z, s * 0.62, '#3c4a32', true);
     for (const [x, z, s, sd] of [[-0.33, 0.24, 0.17, 1], [0.34, 0.2, 0.16, 2], [-0.32, -0.3, 0.2, 3], [0.33, -0.3, 0.19, 4], [0.22, 0.36, 0.13, 5], [-0.2, 0.37, 0.12, 6]]) pine(x, z, s, sd);
     const MH = 0.03;
     const monk = (x: number, z: number, r: number, i: number, o: Partial<HumanOpts> = {}) => {

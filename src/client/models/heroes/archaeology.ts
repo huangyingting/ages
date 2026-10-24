@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Builder, MatOpts, Paint, V3 } from '../prims.ts';
-import { g, add, mat, box, cyl, rbox, rod, sweep, skin, slab, lathe, gable, tree, paintFaces, shade, mix, fbm, vnoise, hash3, BOX } from '../prims.ts';
+import { g, add, mat, box, cyl, rbox, rod, sweep, skin, slab, lathe, gable, tree, paintFaces, shade, mix, fbm, vnoise, hash3, BOX, PLINTH_SIDE } from '../prims.ts';
 import { sstep, ridged } from '../nature.ts';
 import { human, type HumanOpts, type HumanPose } from '../human.ts';
 
@@ -61,8 +61,8 @@ const strata = (pal: string[], k = 70) => (x: number, y: number, z: number) => {
 
 /**
  * Terraced dig ground on a square grid clipped to a disc: every cell belongs to the last level that contains it,
- * and vertical faces are cut wherever neighbouring levels differ (pit sides, steps) and round the outer rim —
- * all painted with `wall` so the soil layers line up. Returns the surface height function.
+ * and vertical faces are cut wherever neighbouring levels differ (pit sides, steps), painted with `wall` so the soil
+ * layers line up; the outer rim is the shared walnut plinth side (PLINTH_SIDE). Returns the surface height function.
  */
 function ground(p: THREE.Object3D, levels: Lvl[], wall: (x: number, y: number, z: number) => string, N = 60, R = 0.5, maxBands = 12): H2 {
   const cs = (2 * R) / N, vx = (i: number) => -R + i * cs;
@@ -86,11 +86,11 @@ function ground(p: THREE.Object3D, levels: Lvl[], wall: (x: number, y: number, z
     return h;
   };
   const corner: [number, number][] = [[0, 0], [1, 0], [1, 1], [0, 1]];
-  const face = (A: [number, number], B: [number, number], tA: number, tB: number, bA: number, bB: number, want: V3, band = 0.0075) => {
+  const face = (A: [number, number], B: [number, number], tA: number, tB: number, bA: number, bB: number, want: V3, band = 0.0075, col = wall) => {
     const k = Math.min(maxBands, Math.max(1, Math.ceil(Math.max(tA - bA, tB - bB) / band)));
     for (let s = 0; s < k; s++) {
       const a0 = tA - ((tA - bA) * s) / k, a1 = tA - ((tA - bA) * (s + 1)) / k, b0 = tB - ((tB - bB) * s) / k, b1 = tB - ((tB - bB) * (s + 1)) / k;
-      m.quad([A[0], a0, A[1]], [B[0], b0, B[1]], [B[0], b1, B[1]], [A[0], a1, A[1]], wall((A[0] + B[0]) / 2, (a0 + a1 + b0 + b1) / 4, (A[1] + B[1]) / 2), want);
+      m.quad([A[0], a0, A[1]], [B[0], b0, B[1]], [B[0], b1, B[1]], [A[0], a1, A[1]], col((A[0] + B[0]) / 2, (a0 + a1 + b0 + b1) / 4, (A[1] + B[1]) / 2), want);
     }
   };
   for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
@@ -107,7 +107,7 @@ function ground(p: THREE.Object3D, levels: Lvl[], wall: (x: number, y: number, z
       const A = c[a], B = c[b];
       if (!incl(ni, nj)) {
         const mx = (A[0] + B[0]) / 2, mz = (A[1] + B[1]) / 2;
-        face(A, B, v[a][1], v[b][1], 0, 0, [mx, 0, mz], 0.014);
+        face(A, B, v[a][1], v[b][1], 0, 0, [mx, 0, mz], 1, () => PLINTH_SIDE);
         continue;
       }
       const L2 = lv[ni * N + nj];
@@ -125,9 +125,9 @@ function ground(p: THREE.Object3D, levels: Lvl[], wall: (x: number, y: number, z
 }
 
 /** String grid over a trench (x0..x1, z0..z1) at height y, with stakes along the rim. */
-function strings(p: THREE.Object3D, x0: number, x1: number, z0: number, z1: number, y: number, step: number, c = '#f4f1e6'): void {
-  for (let x = x0 + step; x < x1 - step * 0.4; x += step) { box(p, c, x, y, (z0 + z1) / 2, 0.0014, 0.0014, z1 - z0); box(p, '#c2410c', x, y - 0.012, z0 - 0.004, 0.0035, 0.016, 0.0035); box(p, '#c2410c', x, y - 0.012, z1 + 0.004, 0.0035, 0.016, 0.0035); }
-  for (let z = z0 + step; z < z1 - step * 0.4; z += step) { box(p, c, (x0 + x1) / 2, y, z, x1 - x0, 0.0014, 0.0014); box(p, '#c2410c', x0 - 0.004, y - 0.012, z, 0.0035, 0.016, 0.0035); box(p, '#c2410c', x1 + 0.004, y - 0.012, z, 0.0035, 0.016, 0.0035); }
+function strings(p: THREE.Object3D, x0: number, x1: number, z0: number, z1: number, y: number, step: number, c = '#e2ddd0'): void {
+  for (let x = x0 + step; x < x1 - step * 0.4; x += step) { box(p, c, x, y, (z0 + z1) / 2, 0.0026, 0.0026, z1 - z0); box(p, '#a0603e', x, y - 0.012, z0 - 0.004, 0.0035, 0.016, 0.0035); box(p, '#a0603e', x, y - 0.012, z1 + 0.004, 0.0035, 0.016, 0.0035); }
+  for (let z = z0 + step; z < z1 - step * 0.4; z += step) { box(p, c, (x0 + x1) / 2, y, z, x1 - x0, 0.0026, 0.0026); box(p, '#a0603e', x0 - 0.004, y - 0.012, z, 0.0035, 0.016, 0.0035); box(p, '#a0603e', x1 + 0.004, y - 0.012, z, 0.0035, 0.016, 0.0035); }
 }
 
 const SKIN = ['#c68b5e', '#8d5a3b', '#e0b48a', '#6b4630'];
@@ -179,10 +179,10 @@ function tent(p: THREE.Object3D, x: number, y: number, z: number, ry: number, w:
   gable(q, w, h * 0.32, d, c, 0, h, 0);
   box(q, shade(c, 0.9), 0, h - 0.012, -d * 0.48, w, 0.012, 0.002);
 }
-function bucket(p: THREE.Object3D, x: number, y: number, z: number, c = '#2563eb', s = 1): void {
+function bucket(p: THREE.Object3D, x: number, y: number, z: number, c = '#4a6280', s = 1): void {
   lathe(p, [[0.0001, 0], [0.0062 * s, 0], [0.0082 * s, 0.013 * s], [0.0074 * s, 0.013 * s], [0.0001, 0.003 * s]], c, x, y, z, 10);
 }
-function wheelbarrow(p: THREE.Object3D, x: number, y: number, z: number, ry: number, c = '#16a34a', load?: string): void {
+function wheelbarrow(p: THREE.Object3D, x: number, y: number, z: number, ry: number, c = '#5a7a50', load?: string): void {
   const q = grp(p, x, y, z, ry);
   add(q, CYLX(), mat('#1f2937'), 0, 0.009, 0.03, 0.018, 0.005, 0.018, 0, 0, Math.PI / 2);
   const t = add(q, g('ar:tray', () => trayGeo()), mat(c), 0, 0.013, 0.004, 1, 1, 1);
@@ -242,7 +242,7 @@ function finds(p: THREE.Object3D, x: number, y: number, z: number, ry: number, c
 }
 /** Red–white survey pole. */
 function rangePole(p: THREE.Object3D, x: number, y: number, z: number, h = 0.07): void {
-  for (let i = 0; i < 5; i++) cyl(p, i % 2 ? '#f5f5f4' : '#dc2626', x, y + (i * h) / 5, z, 0.0014, h / 5, 5);
+  for (let i = 0; i < 5; i++) cyl(p, i % 2 ? '#e4e0d6' : '#9c4a3c', x, y + (i * h) / 5, z, 0.0026, h / 5, 5);
 }
 
 // =========================================================================================================
@@ -360,9 +360,9 @@ const tutankhamun: Builder = gp => {
   }, 56);
   // Safety rope round the opened chamber
   for (const [x, z] of [[-0.21, -0.13], [0.21, -0.13], [-0.21, 0.13], [0.21, 0.13]] as const) cyl(gp, '#7c5a3a', x, gy(x, z), z, 0.003, 0.03, 5);
-  rod(gp, [-0.21, gy(-0.21, -0.13) + 0.026, -0.13], [0.21, gy(0.21, -0.13) + 0.026, -0.13], 0.0012, '#f4f1e6', 4);
-  rod(gp, [-0.21, 0.111, -0.13], [-0.21, 0.111, 0.13], 0.0012, '#f4f1e6', 4);
-  rod(gp, [0.21, 0.111, -0.13], [0.21, 0.111, 0.13], 0.0012, '#f4f1e6', 4);
+  rod(gp, [-0.21, gy(-0.21, -0.13) + 0.026, -0.13], [0.21, gy(0.21, -0.13) + 0.026, -0.13], 0.0012, '#e2ddd0', 4);
+  rod(gp, [-0.21, 0.111, -0.13], [-0.21, 0.111, 0.13], 0.0012, '#e2ddd0', 4);
+  rod(gp, [0.21, 0.111, -0.13], [0.21, 0.111, 0.13], 0.0012, '#e2ddd0', 4);
   // Quartzite sarcophagus (open) with the golden coffin, granite lid leaning on the wall
   const sx0 = 0.03, sz0 = 0.055;
   rbox(gp, '#b98f5f', sx0, floorY, sz0, 0.25, 0.012, 0.1, 0.003);
@@ -557,13 +557,9 @@ function digger(p: THREE.Object3D, x: number, y: number, z: number, ry: number, 
   const hp = pose === 'bend' ? 'crouch' : pose;
   human(p, x, y, z, { h: 0.06, ry, pose: hp, top, bottom: '#4a4740', hair: '#1c1814', skin: '#c48e64', shoes: '#2a2420', detail: 'lo', ...o });
 }
-/** Broadleaf tree with an irregular, layered crown (camphor / bamboo-grove greens), not a lollipop. */
+/** Broadleaf tree — the shared atlas tree so every diorama reads alike. */
 function broadleaf(p: THREE.Object3D, x: number, y: number, z: number, s: number, c = '#46603a'): void {
-  rod(p, [x, y, z], [x + s * 0.06, y + s * 0.7, z], s * 0.07, '#4e4034', 5);
-  for (let k = 0; k < 5; k++) {
-    const a = k * 2.4 + x * 7, r = k ? s * 0.32 : 0;
-    blob(p, shade(c, 0.9 + 0.1 * (k % 3)), x + Math.cos(a) * r, y + s * (0.75 + 0.18 * (k % 2) + (k ? 0 : 0.2)), z + Math.sin(a) * r, s * 0.38, s * 0.24, s * 0.36, a, 0, 0, 7, { flat: true });
-  }
+  tree(p, x, y, z, s * 0.9, c);
 }
 
 const BRONZE = '#5f6a52';
@@ -753,14 +749,14 @@ const gobeklitepe: Builder = gp => {
   }
   person(gp, -0.02, fl, 0.1, Math.PI + 0.2, 'kneel', '#f59e0b', 1);
   person(gp, 0.13, fl, 0.0, -1.4, 'bend', '#60a5fa', 0);
-  bucket(gp, 0.11, fl, 0.05, '#2563eb');
+  bucket(gp, 0.11, fl, 0.05, '#4a6280');
   person(gp, 0.25, 0.07, -0.12, -0.6, 'kneel', '#e5e7eb', 2);
   person(gp, -0.33, 0.07, -0.08, 0.8, 'bend', '#84cc16', 3);
   sieve(gp, -0.24, gy(-0.24, -0.25), -0.25, 0.4);
-  person(gp, 0.0, gy(0, 0.27) + 0.027, 0.27, Math.PI, 'point', '#ef4444', 0, '#f5f5f4', '#1f2937');
+  person(gp, 0.0, gy(0, 0.27) + 0.027, 0.27, Math.PI, 'point', '#ef4444', 0, '#e4e0d6', '#1f2937');
   person(gp, -0.14, gy(-0.14, 0.24) + 0.027, 0.24 - 0.01, Math.PI - 0.6, 'stand', '#3b82f6', 2, null, '#1f2937');
   wheelbarrow(gp, 0.36, gy(0.36, 0.12), 0.12, -0.6, '#f97316', '#b8956a');
-  tent(gp, -0.35, gy(-0.35, 0.18), 0.18, 0.6, 0.11, 0.08, 0.06, '#f5f5f4');
+  tent(gp, -0.35, gy(-0.35, 0.18), 0.18, 0.6, 0.11, 0.08, 0.06, '#e4e0d6');
   const tx = 0.33, tz = -0.32, ty = gy(tx, tz);
   rod(gp, [tx, ty, tz], [tx + 0.01, ty + 0.07, tz], 0.008, '#6b4c35', 5);
   blob(gp, '#5f8f3a', tx + 0.01, ty + 0.1, tz, 0.06, 0.045, 0.06, 0, 0, 0, 9);
@@ -809,7 +805,7 @@ const nazca: Builder = gp => {
   for (const [dx, dz] of [[-0.025, 0], [0.025, 0], [0, -0.025], [0, 0.025]] as const) box(gp, '#d1d5db', mx + dx, my + MH + 0.004, mz + dz, dz ? 0.05 : 0.002, 0.014, dz ? 0.002 : 0.05);
   for (let i = 0; i < 6; i++) { const y0 = my + (MH * i) / 6, s = i % 2 ? 1 : -1; rod(gp, [mx + 0.034 * s, y0, mz + 0.034], [mx - 0.034 * s, y0 + MH / 6, mz + 0.034], 0.002, '#6b7280', 4); }
   person(gp, mx - 0.01, my + MH + 0.004, mz, -2.3, 'point', '#ef4444', 0, null, '#1f2937', 0.8);
-  person(gp, mx + 0.012, my + MH + 0.004, mz - 0.006, -2.6, 'stand', '#22c55e', 2, '#f5f5f4', '#1f2937', 0.8);
+  person(gp, mx + 0.012, my + MH + 0.004, mz - 0.006, -2.6, 'stand', '#22c55e', 2, '#e4e0d6', '#1f2937', 0.8);
   // Maria Reiche, the "lady of the lines", sweeping the hummingbird's tail clean
   const [rx, rz] = tr([0.18, 0.84]);
   person(gp, rx, gy(rx, rz), rz, -0.4, 'bend', '#e5e7eb', 2, '#f8fafc', '#93785a');
@@ -819,12 +815,12 @@ const nazca: Builder = gp => {
   const pl = grp(gp, -0.16, 0.36, 0.08, 0.6);
   pl.rotation.z = 0.25;
   sweep(pl, [{ p: [-0.08, 0.004, 0], w: 0.004, h: 0.006 }, { p: [-0.03, 0.002, 0], w: 0.012, h: 0.014 }, { p: [0.03, 0, 0], w: 0.014, h: 0.015 }, { p: [0.065, -0.002, 0], w: 0.009, h: 0.01 }], '#f8fafc', {
-    radial: 10, sub: 3, caps: true, paint: (x, y) => (y > 0.006 && x > 0.01 && x < 0.05 ? '#1e3a5f' : Math.abs(y + 0.001) < 0.0025 ? '#dc2626' : null),
+    radial: 10, sub: 3, caps: true, paint: (x, y) => (y > 0.006 && x > 0.01 && x < 0.05 ? '#1e3a5f' : Math.abs(y + 0.001) < 0.0025 ? '#9c4a3c' : null),
   });
   box(pl, '#f1f5f9', 0.02, 0.012, 0, 0.026, 0.0025, 0.2);
-  for (const sz of [-1, 1]) box(pl, '#dc2626', 0.02, 0.0126, sz * 0.095, 0.026, 0.0025, 0.012);
+  for (const sz of [-1, 1]) box(pl, '#9c4a3c', 0.02, 0.0126, sz * 0.095, 0.026, 0.0025, 0.012);
   box(pl, '#f1f5f9', -0.075, 0.006, 0, 0.014, 0.002, 0.06);
-  slab(pl, [[-0.085, 0.004], [-0.065, 0.006], [-0.07, 0.03], [-0.085, 0.032]], 0.002, '#dc2626', 0, false);
+  slab(pl, [[-0.085, 0.004], [-0.065, 0.006], [-0.07, 0.03], [-0.085, 0.032]], 0.002, '#9c4a3c', 0, false);
   box(pl, '#374151', 0.068, -0.012, 0, 0.002, 0.024, 0.003);
   for (const sz of [-1, 1]) rod(pl, [0.03, -0.012, 0], [0.032, -0.024, sz * 0.012], 0.0015, '#6b7280', 4);
   // Desert huarango trees and a parked tour van
@@ -912,8 +908,8 @@ const mawangdui: Builder = gp => {
   const sh = (h: number) => [[-0.125, 0.47, 0.015], [0.07, h, 0.07]] as [V3, V3];
   digger(gp, -0.004, gy(0, 0.2), 0.18, 0, 'walk', '#3d4f6a', { ...STRAW, hands: sh(0.9), bottom: '#3a3e44' });
   digger(gp, 0.004, gy(0, 0.3), 0.29, 0, 'walk', '#3d4f6a', { ...STRAW, hands: sh(0.9), bottom: '#3a3e44', phase: 0.5 });
-  rod(gp, [0, gy(0, 0.2) + 0.051, 0.18], [0, gy(0, 0.3) + 0.051, 0.29], 0.0012, '#8b7a55', 4);
-  for (const k of [0, 1]) rod(gp, [0, (gy(0, 0.2) + gy(0, 0.3)) / 2 + 0.05, 0.225 + k * 0.02], [0, (gy(0, 0.2) + gy(0, 0.3)) / 2 + 0.03, 0.229 + k * 0.012], 0.0005, '#6a5a40', 3);
+  rod(gp, [0, gy(0, 0.2) + 0.051, 0.18], [0, gy(0, 0.3) + 0.051, 0.29], 0.0024, '#8b7a55', 4);
+  for (const k of [0, 1]) rod(gp, [0, (gy(0, 0.2) + gy(0, 0.3)) / 2 + 0.05, 0.225 + k * 0.02], [0, (gy(0, 0.2) + gy(0, 0.3)) / 2 + 0.03, 0.229 + k * 0.012], 0.0016, '#6a5a40', 3);
   box(gp, '#8a6e4e', 0, (gy(0, 0.2) + gy(0, 0.3)) / 2 + 0.018, 0.235, 0.018, 0.012, 0.022);
   digger(gp, -0.1, fy + CH, cz + CD, Math.PI, 'kneel', '#d8d2c2', { ...STRAW, bottom: '#3a3e44' });
   digger(gp, 0.17, 0.055, -0.05, -1.6, 'bend', '#5b6455', STRAW);
@@ -981,14 +977,14 @@ const mohenjodaro: Builder = gp => {
   box(seal, '#8a7a5a', 0.0, 0.024, 0.01, 0.015, 0.012, 0.003);
   // Archaeologists and visitors
   person(gp, -0.06, top - 0.045, bz + 0.01, 0.4, 'kneel', '#f59e0b', 1);
-  person(gp, 0.15, top, bz - 0.12, -0.6, 'point', '#e5e7eb', 2, '#f5f5f4', '#4b5563');
+  person(gp, 0.15, top, bz - 0.12, -0.6, 'point', '#e5e7eb', 2, '#e4e0d6', '#4b5563');
   person(gp, 0.2, gy(0.2, 0.0), 0.0, 0.2, 'stand', '#22c55e', 0, null, '#1f2937');
   person(gp, -0.1, gy(-0.1, 0.36), 0.36, 2.6, 'bend', '#ef4444', 3);
   sieve(gp, -0.18, gy(-0.18, 0.37), 0.37, 0.2);
-  tent(gp, 0.36, gy(0.36, 0.06), 0.06, -0.4, 0.1, 0.08, 0.06, '#f5f5f4');
+  tent(gp, 0.36, gy(0.36, 0.06), 0.06, -0.4, 0.1, 0.08, 0.06, '#e4e0d6');
   finds(gp, 0.36, gy(0.36, 0.06) + 0.004, 0.06, -0.4, [BR, '#e6dcc4', '#2a2a2a']);
-  wheelbarrow(gp, -0.42, gy(-0.42, 0.12), 0.12, 0.6, '#2563eb', '#cfa77a');
-  for (const [x, z] of [[0.42, -0.2], [0.38, 0.28], [-0.44, -0.04]] as const) tree(gp, x, gy(x, z), z, 0.05, '#7a9a3a');
+  wheelbarrow(gp, -0.42, gy(-0.42, 0.12), 0.12, 0.6, '#4a6280', '#cfa77a');
+  for (const [x, z] of [[0.42, -0.2], [0.38, 0.28], [-0.44, -0.04]] as const) tree(gp, x, gy(x, z), z, 0.05, '#66804a');
 };
 
 // =========================================================================================================
@@ -1054,7 +1050,7 @@ const lucy: Builder = gp => {
   person(gp, 0.08, TY, 0.16, Math.PI - 0.2, 'kneel', '#7c9a5a', 0, '#d6c7a0', '#6b5a45');
   person(gp, 0.21, gy(0.21, 0.08), 0.08, -1.7, 'point', '#f5f0e6', 1, '#e8dcb5', '#4b5563');
   finds(gp, -0.28, gy(-0.28, 0.16), 0.16, 0.3, [B1, B2, '#e2d0ad']);
-  bucket(gp, -0.23, gy(-0.23, 0.2), 0.2, '#dc2626');
+  bucket(gp, -0.23, gy(-0.23, 0.2), 0.2, '#9c4a3c');
   sieve(gp, 0.23, gy(0.23, -0.04), -0.04, 0.3);
   tent(gp, -0.26, gy(-0.26, 0.28), 0.28, 0.4, 0.12, 0.1, 0.065, '#e7c26a');
   // Cassette player blasting "Lucy in the Sky with Diamonds"
@@ -1201,7 +1197,7 @@ const pakal: Builder = gp => {
   }
   person(gp, mx + 0.09, my, mz + 0.05, -2.0, 'point', '#f5f0e6', 1, '#e8dcb5', '#4b5563');
   person(gp, 0.12, gy(0.12, 0.3), 0.3, Math.PI - 0.3, 'stand', '#ef4444', 0, null, '#1f2937');
-  person(gp, 0.06, gy(0.06, 0.34), 0.34, Math.PI + 0.2, 'stand', '#3b82f6', 2, '#f5f5f4', '#1f2937');
+  person(gp, 0.06, gy(0.06, 0.34), 0.34, Math.PI + 0.2, 'stand', '#3b82f6', 2, '#e4e0d6', '#1f2937');
   // Rainforest round the back and sides
   for (let i = 0; i < 26; i++) {
     const a = -Math.PI * 1.1 + hash3(i, 1, 5) * Math.PI * 1.2 - 0.1, r = 0.36 + hash3(i, 2, 5) * 0.11, x = Math.cos(a) * r, z = Math.sin(a) * r * 0.95;
@@ -1309,11 +1305,11 @@ const vasa: Builder = gp => {
     blob(gp, '#2a3a44', x + Math.sin(ry) * 0.008, y + 0.06, z + Math.cos(ry) * 0.008, 0.004, 0.004, 0.002, ry, 0, 0, 6);
   };
   diver(-0.12, WY + 0.026, 0.15, -0.6);
-  person(gp, -0.06, WY + 0.026, 0.155, -0.4, 'point', '#f97316', 2, '#f5f5f4', '#1f2937');
+  person(gp, -0.06, WY + 0.026, 0.155, -0.4, 'point', '#f97316', 2, '#e4e0d6', '#1f2937');
   rod(gp, [-0.11, WY + 0.03, 0.16], [-0.2, WY, 0.26], 0.0014, '#e8b830', 4);
   blob(gp, '#c8913f', -0.2, WY + 0.002, 0.26, 0.009, 0.009, 0.009, 0, 0, 0, 10, { metal: 0.7, rough: 0.3 });
   for (let i = 0; i < 5; i++) blob(gp, '#e8f4fa', -0.215 + hash3(i, 1, 9) * 0.03, WY + 0.001, 0.25 + hash3(i, 2, 9) * 0.03, 0.004, 0.0015, 0.004, 0, 0, 0, 6);
-  person(gp, 0.08, WY + 0.04, -0.17, 0.3, 'stand', '#1e40af', 1, '#f5f5f4', '#1f2937');
+  person(gp, 0.08, WY + 0.04, -0.17, 0.3, 'stand', '#1e40af', 1, '#e4e0d6', '#1f2937');
   // Tug pushing alongside, a rowing boat with onlookers
   const tug = grp(gp, 0.25, WY, 0.22, 2.5);
   skin(tug, [-0.06, -0.03, 0.02, 0.05, 0.065].map((x, i) => { const w = [0.018, 0.024, 0.024, 0.016, 0.002][i]; return [[x, 0.022, w], [x, -0.004, w * 0.7], [x, -0.004, -w * 0.7], [x, 0.022, -w]] as V3[]; }), '#222222', { caps: true, flat: true, paint: (_x, py) => (py < 0.004 ? '#9b2a1e' : null) });
@@ -1335,7 +1331,7 @@ const vasa: Builder = gp => {
     gable(gp, w, 0.035, 0.064, '#5a3a2e', x, 0.095 + h, z);
     for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) box(gp, '#2a3340', x - 0.025 + c * 0.025, 0.11 + r * 0.03, z + 0.031, 0.01, 0.014, 0.002);
   }
-  for (let i = 0; i < 6; i++) person(gp, -0.22 + i * 0.075, 0.095, -0.35 + hash3(i, 2, 2) * 0.012, hash3(i, 3, 2) - 0.5, i % 3 ? 'stand' : 'point', ['#ef4444', '#3b82f6', '#f5f5f4', '#22c55e', '#a855f7', '#f59e0b'][i], i, i % 2 ? null : '#1f2937', '#1f2937');
+  for (let i = 0; i < 6; i++) person(gp, -0.22 + i * 0.075, 0.095, -0.35 + hash3(i, 2, 2) * 0.012, hash3(i, 3, 2) - 0.5, i % 3 ? 'stand' : 'point', ['#ef4444', '#3b82f6', '#e4e0d6', '#22c55e', '#a855f7', '#f59e0b'][i], i, i % 2 ? null : '#1f2937', '#1f2937');
   const fx = 0.36, fz = -0.33;
   rod(gp, [fx, 0.095, fz], [fx, 0.21, fz], 0.0016, '#e5e7eb', 4);
   box(gp, '#1e5aa8', fx + 0.022, 0.18, fz, 0.044, 0.028, 0.002);
@@ -1414,9 +1410,9 @@ const skarabrae: Builder = gp => {
   person(gp, -0.31, gy(-0.31, 0.2), 0.2, -0.9, 'stand', '#facc15', 2, null, '#1f2937');
   person(gp, 0.12, gy(0.12, 0.1), 0.1, -2.4, 'stand', '#3b82f6', 1, '#1f2937', '#374151');
   box(gp, '#1f2937', 0.12, gy(0.12, 0.1) + 0.035, 0.094, 0.01, 0.014, 0.006);
-  person(gp, 0.02, FL + 0.012, -0.08, Math.PI, 'kneel', '#16a34a', 3, '#e8dcb5', '#4b5563');
+  person(gp, 0.02, FL + 0.012, -0.08, Math.PI, 'kneel', '#5a7a50', 3, '#e8dcb5', '#4b5563');
   person(gp, -0.2, gy(-0.2, -0.28), -0.28, 0.6, 'point', '#f5f0e6', 2, '#e8dcb5', '#4b5563');
-  bucket(gp, -0.17, gy(-0.17, -0.27), -0.27, '#dc2626');
+  bucket(gp, -0.17, gy(-0.17, -0.27), -0.27, '#9c4a3c');
   const shx = 0.05, shz = -0.4, shy = gy(shx, shz);
   bricks(gp, '#9c968a', shx, shy - 0.004, shz, 0.16, 0.06, 0.05, 0, 4, 8);
   gable(gp, 0.16, 0.035, 0.054, '#5f6670', shx, shy + 0.056, shz);
@@ -1467,9 +1463,9 @@ const troy: Builder = gp => {
   person(gp, -0.02, gy(-0.02, 0.24), 0.24, -0.4, 'carry', '#3b82f6', 0);
   box(gp, '#a8835a', -0.02, gy(-0.02, 0.24) + 0.07, 0.24, 0.016, 0.012, 0.016);
   sieve(gp, 0.035, gy(0.035, 0.2), 0.2, 0.4);
-  bucket(gp, -0.04, gy(-0.04, 0.03), 0.03, '#16a34a');
-  wheelbarrow(gp, 0.04, gy(0.04, 0.32), 0.32, -0.3, '#dc2626', '#b9a27a');
-  tent(gp, 0.17, gy(0.17, -0.1), -0.1, -0.3, 0.11, 0.09, 0.06, '#f5f5f4');
+  bucket(gp, -0.04, gy(-0.04, 0.03), 0.03, '#5a7a50');
+  wheelbarrow(gp, 0.04, gy(0.04, 0.32), 0.32, -0.3, '#9c4a3c', '#b9a27a');
+  tent(gp, 0.17, gy(0.17, -0.1), -0.1, -0.3, 0.11, 0.09, 0.06, '#e4e0d6');
   finds(gp, 0.17, gy(0.17, -0.1) + 0.003, -0.1, -0.3, ['#a0623a', '#d9cfba', '#3a2a24']);
   person(gp, 0.12, gy(0.12, -0.03), -0.03, -0.9, 'point', '#f5f0e6', 2, '#e8dcb5', '#4b5563');
   ladder(gp, [TW - 0.012, B0 + 0.03, -0.05], [TW + 0.012, gy(TW + 0.02, -0.05) + 0.004, -0.05], 0.014);
@@ -1503,7 +1499,7 @@ const troy: Builder = gp => {
   // Visitors round the horse, olive and pine trees
   person(gp, -0.12, gy(-0.12, 0.33), 0.33, -2.6, 'point', '#22c55e', 0, null, '#1f2937');
   person(gp, -0.16, gy(-0.16, 0.38), 0.38, -2.4, 'stand', '#a855f7', 2, null, '#1f2937', 0.8);
-  person(gp, -0.38, gy(-0.38, 0.06), 0.06, 0.5, 'stand', '#f59e0b', 1, '#f5f5f4', '#1f2937');
+  person(gp, -0.38, gy(-0.38, 0.06), 0.06, 0.5, 'stand', '#f59e0b', 1, '#e4e0d6', '#1f2937');
   for (const [x, z, s, pine] of [[-0.4, -0.14, 0.07, true], [-0.3, -0.32, 0.075, true], [0.36, -0.22, 0.06, false], [0.42, 0.08, 0.055, false], [-0.42, 0.2, 0.06, false], [0.2, 0.4, 0.05, false]] as const) tree(gp, x, gy(x, z) - 0.004, z, s, pine ? '#3f6b35' : '#8a9a5a', pine);
 };
 

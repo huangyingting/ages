@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { type V3, box, cyl, cone, rod, skin, lathe, shade } from './prims.ts';
+import { type V3, box, cyl, rod, skin, lathe, shade, tree } from './prims.ts';
 
 // East-Asian timber kit shared by the Ages builders (adapted from pocket-planet's heroes/china.ts).
 // Front faces +z, base at y=0.
@@ -13,10 +13,9 @@ export function grp(p: THREE.Object3D, x: number, z: number, ry = 0, y = 0): THR
   return gr;
 }
 /** Small conifer (two stacked cones on a stub trunk). */
+/** Courtyard conifer: a Chinese pine with layered canopy pads (shares prims `tree`, so every model's pines match). */
 export function minipine(p: THREE.Object3D, x: number, y: number, z: number, s: number, c = '#2f5a32'): void {
-  cyl(p, '#5b4030', x, y - s * 0.05, z, s * 0.07, s * 0.3, 5);
-  cone(p, c, x, y + s * 0.15, z, s * 0.42, s * 0.55, 6);
-  cone(p, shade(c, 1.14), x, y + s * 0.45, z, s * 0.3, s * 0.5, 6);
+  tree(p, x, y - s * 0.05, z, s * 0.9, c, true);
 }
 // ---- East-Asian timber kit ------------------------------------------------------------------------------
 export interface PRoof { n: number; R0: number; R1: number; h: number; lift?: number; k?: number; rot?: number; sub?: number; tile: string; rib?: string; under?: string; sx?: number; sz?: number }

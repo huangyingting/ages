@@ -400,15 +400,58 @@ export function strut(p: THREE.Object3D, a: V3, b: V3, ra: number, rb: number, c
 export const rod = (p: THREE.Object3D, a: V3, b: V3, r: number, c: string, seg = 6) =>
   strut(p, a, b, r, r, c, seg);
 
-/** Architectural miniature tree (deciduous canopy or conifer pine). */
+/** Site palette for plinth tops (museum-miniature style, docs/design/map-design.md §7): muted, natural, never candy. */
+export const SITE = {
+  loess: '#b39a74', earth: '#8f7556', paving: '#a8a397', stone: '#9b968a', grass: '#7f8a5c', meadow: '#8d955f',
+  sand: '#c9b58c', water: '#4f7385', snow: '#e6e4dc', rice: '#8c9a5e', court: '#c2b49a',
+} as const;
+/** The one plinth side colour every model shares (dark walnut-brown, like a museum diorama base). */
+export const PLINTH_SIDE = '#4e3d30';
+
+/**
+ * The shared map-model base: a low bevelled disc (radius R, height h) with a uniform dark side and a site-coloured
+ * top (`top` from SITE, optionally painted per vertex). Returns the top height. Every map diorama stands on this.
+ */
+export function plinth(p: THREE.Object3D, top: string = SITE.earth, o: { R?: number; h?: number; paint?: Paint; seg?: number } = {}): number {
+  const R = o.R ?? 0.46, h = o.h ?? 0.035, seg = o.seg ?? 56;
+  lathe(p, [[0, 0], [R * 0.97, 0], [R, h * 0.18], [R, h * 0.7], [R * 0.985, h * 0.92], [R * 0.965, h], [0, h]], PLINTH_SIDE, 0, 0, 0, seg);
+  if (o.paint) {
+    const geo = new THREE.RingGeometry(0.0005, R * 0.965, seg, 10);
+    geo.rotateX(-Math.PI / 2);
+    add(p, paintFaces(geo, top, o.paint), mat('#ffffff', { vc: true, rough: 0.92 }), 0, h + 0.0015, 0, 1, 1, 1);
+  } else lathe(p, [[0, h], [R * 0.965, h], [0, h + 0.0015]], top, 0, 0, 0, seg);
+  return h;
+}
+
+const ICO = () => g('ico1', () => new THREE.IcosahedronGeometry(0.5, 1));
+
+/**
+ * Natural miniature tree (one style for every model). Deciduous: a crooked trunk under a clump of 3–4 irregular
+ * leaf masses, darker below. Pine: a Chinese pine (油松) — leaning trunk with flat, layered canopy pads, as in
+ * temple courtyards and landscape painting, not a western cone fir. Shape and tone vary per position.
+ */
 export function tree(p: THREE.Object3D, x: number, y: number, z: number, s = 0.06, c = '#4d8a54', pine = false): void {
-  cyl(p, '#6b4c35', x, y, z, s * 0.16, s * 0.5, 5);
+  const h = (k: number) => hash3(Math.round(x * 997), Math.round(z * 991), k);
+  const lean = (h(1) - 0.5) * 0.5, dir = h(2) * Math.PI * 2;
+  const lx = Math.cos(dir) * lean * s, lz = Math.sin(dir) * lean * s;
+  const leaf = mix(c, '#55613a', 0.35);
+  const tone = (k: number) => shade(leaf, 0.86 + h(k) * 0.26);
   if (pine) {
-    cone(p, c, x, y + s * 0.32, z, s * 0.56, s * 0.95, 6);
-    cone(p, shade(c, 1.12), x, y + s * 0.72, z, s * 0.42, s * 0.75, 6);
-  } else {
-    ball(p, c, x, y + s * 0.78, z, s * 0.95, s * 0.85, s * 0.95);
-    ball(p, shade(c, 1.1), x + s * 0.2, y + s * 1.05, z + s * 0.12, s * 0.55);
+    strut(p, [x, y - s * 0.02, z], [x + lx, y + s * 0.95, z + lz], s * 0.09, s * 0.05, '#5a4434', 5);
+    const pads = 3 + Math.floor(h(3) * 2);
+    for (let i = 0; i < pads; i++) {
+      const t = (i + 0.5) / pads, a = dir + i * 2.2 + h(10 + i);
+      const r = s * (0.52 - t * 0.26), off = s * (0.18 + 0.12 * (1 - t));
+      add(p, ICO(), mat(shade(mix(c, '#2f4a33', 0.5), 0.85 + t * 0.25)), x + lx * t + Math.cos(a) * off, y + s * (0.42 + t * 0.62), z + lz * t + Math.sin(a) * off, r * 1.8, s * 0.34, r * 1.6, a);
+    }
+    return;
+  }
+  strut(p, [x, y - s * 0.02, z], [x + lx * 0.6, y + s * 0.62, z + lz * 0.6], s * 0.1, s * 0.06, '#5e4a38', 5);
+  const cx = x + lx * 0.6, cz = z + lz * 0.6, cy = y + s * 0.88;
+  add(p, ICO(), mat(shade(tone(4), 0.82)), cx, cy - s * 0.08, cz, s * 1.15, s * 0.7, s * 1.1, h(5) * 3);
+  for (let i = 0; i < 3; i++) {
+    const a = dir + i * 2.1 + h(6 + i), d = s * (0.22 + h(9 + i) * 0.12), r = s * (0.55 + h(12 + i) * 0.2);
+    add(p, ICO(), mat(tone(15 + i)), cx + Math.cos(a) * d, cy + s * (0.12 + h(18 + i) * 0.18), cz + Math.sin(a) * d, r * 1.1, r * 0.9, r * 1.05, a);
   }
 }
 

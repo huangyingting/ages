@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { type Builder, type V3, type Paint, add, mat, box, cyl, cone, ball, lathe, rod, strut, skin, slab, gable, tbox, panel, archPath, shade, mix, hash3, fbm, paintFaces } from '../prims.ts';
+import { type Builder, type V3, type Paint, add, mat, box, cyl, cone, ball, lathe, rod, strut, skin, slab, gable, tbox, panel, archPath, shade, mix, hash3, fbm, paintFaces, plinth, tree } from '../prims.ts';
 import { grp } from '../timber.ts';
 import { human, type HumanOpts, type HumanRig } from '../human.ts';
 
@@ -19,13 +19,14 @@ const C = {
 
 // ---- shared kit ------------------------------------------------------------------------------------------------
 
-/** Round ground disc (lathe rim + painted top); returns the top height. */
-function ground(p: THREE.Object3D, top: string, side: string, paint?: Paint, R = 0.45, h = 0.024): number {
-  lathe(p, [[R * 0.97, 0], [R, 0.004], [R, h - 0.004], [R * 0.985, h], [0, h]], side, 0, 0, 0, 72);
-  const geo = new THREE.RingGeometry(0.002, R * 0.975, 120, 30);
+/** The shared museum plinth (dark walnut side) with a finely painted site top; returns the top height. */
+function ground(p: THREE.Object3D, top: string, _side: string, paint?: Paint, R = 0.46, h = 0.035): number {
+  plinth(p, top, { R, h });
+  if (!paint) return h + 0.0015;
+  const geo = new THREE.RingGeometry(0.002, R * 0.965, 120, 30);
   geo.rotateX(-Math.PI / 2);
-  add(p, paintFaces(geo, top, paint), mat('#ffffff', { vc: true }), 0, h + 0.0006, 0, 1, 1, 1);
-  return h + 0.0006;
+  add(p, paintFaces(geo, top, paint), mat('#ffffff', { vc: true, rough: 0.92 }), 0, h + 0.0018, 0, 1, 1, 1);
+  return h + 0.0018;
 }
 
 /** Subdivided box with per-face paint (paint receives box-local coordinates, y from 0 at the bottom). */
@@ -476,8 +477,7 @@ const st_shanhaiguan: Builder = gp => {
   box(gp, '#a49f92', 0, y0, 0.122, 0.034, 0.0035, 0.046);
   for (const sx of [-1, 1]) box(gp, '#8f8a7e', sx * 0.016, y0 + 0.0035, 0.122, 0.003, 0.004, 0.046);
   for (const [x, z] of [[0.13, 0.2], [0.2, 0.15], [0.28, 0.24], [-0.09, 0.2], [0.36, 0.1], [0.12, 0.34]] as [number, number][]) {
-    cyl(gp, '#5a4a38', x, y0, z, 0.0025, 0.022, 5);
-    ball(gp, '#6f7d4e', x, y0 + 0.03, z, 0.034, 0.028, 0.034);
+    tree(gp, x, y0, z, 0.055, '#6f7d4e');
   }
   // stone base course and wall stairs (马道) on the inside
   box(gp, '#9e9a8e', 0.1, y0, ZW + 0.046, 0.6, 0.008, 0.012);
@@ -660,7 +660,7 @@ const st_canton: Builder = gp => {
   // square: railings, a few trees, quay steps
   for (let i = 0; i < 26; i++) box(gp, '#d8d2c2', -0.33 + i * 0.0264, y0, 0.085, 0.002, 0.008, 0.002);
   box(gp, '#d8d2c2', 0, y0 + 0.007, 0.085, 0.66, 0.0018, 0.0018);
-  for (const x of [-0.29, -0.03, 0.21]) { cyl(gp, '#5a4a38', x, y0, 0.06, 0.0025, 0.02, 5); ball(gp, '#5f7448', x, y0 + 0.028, 0.06, 0.034, 0.026, 0.03); }
+  for (const x of [-0.29, -0.03, 0.21]) tree(gp, x, y0, 0.06, 0.052, '#5f7448');
   for (const x of [-0.12, 0.08]) for (let k = 0; k < 3; k++) box(gp, '#b2aa98', x, y0 - 0.002 - k * 0.002, 0.098 + k * 0.006, 0.04, 0.003, 0.007);
   // traders on the square: Western merchants (dark coats, top hats), Chinese hong merchants and porters with tea chests
   const west = (x: number, z: number, ry: number, pose: HumanOpts['pose'] = 'stand') => human(gp, x, y0, z, { h: 0.023, ry, pose, top: '#2e3440', bottom: '#d8d2c0', hat: '#1f1f22', hatStyle: 'brim', hair: '#7a5a3a', detail: 'lo' });
@@ -711,9 +711,7 @@ const st_yuanmingyuan: Builder = (gp, r) => {
   const M = '#e2ddd0', M2 = '#cfc9ba', MG = '#b9b3a4', BZ = '#5c4a32', WT = '#d6eaee', WS = '#86a9b2';
   // pines and the terrace of 远瀛观 behind
   for (const [x, z, s] of [[-0.3, -0.27, 1], [0.31, -0.26, 1.1], [-0.4, 0.05, 0.9], [0.4, 0.06, 0.9], [-0.37, 0.2, 0.8], [0.36, 0.22, 0.8], [-0.2, -0.36, 0.9], [0.2, -0.36, 0.9]] as V3[]) {
-    cyl(gp, '#5a4634', x, y0, z, 0.004 * s, 0.03 * s, 5);
-    cone(gp, '#3f5a3c', x, y0 + 0.02 * s, z, 0.03 * s, 0.07 * s, 7);
-    cone(gp, '#46623f', x, y0 + 0.05 * s, z, 0.022 * s, 0.05 * s, 7);
+    tree(gp, x, y0, z, 0.085 * s, '#46623f', true);
   }
   box(gp, M2, 0, y0, -0.33, 0.24, 0.05, 0.08);
   for (let i = 0; i < 8; i++) cyl(gp, M, -0.1 + i * 0.0286, y0 + 0.05, -0.292, 0.004, 0.05, 8);
@@ -927,8 +925,7 @@ const st_wuchang: Builder = gp => {
   flag(gp, 0, TY + 0.108, TZ, 0.085, 0.072, 0.048, FL.xh, 0.25, 30, 20, '#3a3532', 0.0014);
   // trees and the front gate posts
   for (const [x, z] of [[-0.22, 0.2], [0.22, 0.2], [-0.33, 0.12], [0.33, 0.12], [-0.13, 0.33], [0.13, 0.33]] as [number, number][]) {
-    cyl(gp, '#4f3f30', x, y0, z, 0.0035, 0.025, 5);
-    ball(gp, '#55693f', x, y0 + 0.035, z, 0.045, 0.034, 0.042);
+    tree(gp, x, y0, z, 0.068, '#55693f');
   }
   for (const sx of [-1, 1]) { box(gp, BASE, sx * 0.07, y0, 0.37, 0.016, 0.04, 0.016); ball(gp, TR, sx * 0.07, y0 + 0.044, 0.37, 0.01); }
   // New Army insurgents: dark grey-blue uniforms, peaked caps, white armbands, rifles; the Qing cannon in front
@@ -1096,10 +1093,7 @@ const st_shenzhen79: Builder = gp => {
     box(q, '#6e5a44', 0.012, 0.011, -0.03, 0.008, 0.0015, 0.04);
   }
   // the banyan (大榕树) by the shore, banana clumps, lychee trees
-  const tree = (x: number, z: number, s: number, c: string) => {
-    cyl(gp, '#5a4a3a', x, y0, z, 0.003 * s, 0.022 * s, 5);
-    ball(gp, c, x, y0 + 0.03 * s, z, 0.04 * s, 0.03 * s, 0.04 * s);
-  };
+  const lychee = (x: number, z: number, s: number, c: string) => tree(gp, x, y0, z, 0.06 * s, c);
   cyl(gp, '#5e5040', -0.07, y0, 0.03, 0.006, 0.032, 7);
   for (const [dx, dy, dz, s] of [[0, 0.05, 0, 0.07], [-0.03, 0.04, 0.01, 0.05], [0.032, 0.042, -0.006, 0.052], [0.008, 0.042, 0.03, 0.045], [-0.01, 0.045, -0.03, 0.05]]) ball(gp, dx ? '#4f6a3a' : '#48613a', -0.07 + dx, y0 + dy, 0.03 + dz, s, s * 0.62, s);
   for (const [dx, dz] of [[-0.03, 0.012], [0.028, -0.01], [0.022, 0.02]]) rod(gp, [-0.07 + dx, y0 + 0.034, 0.03 + dz], [-0.07 + dx * 1.1, y0, 0.03 + dz * 1.1], 0.0009, '#6a5a48', 3);
@@ -1108,7 +1102,7 @@ const st_shenzhen79: Builder = gp => {
     for (let k = 0; k < 6; k++) box(gp, k % 2 ? '#6f8a3c' : '#7c9645', x, y0 + 0.014, z, 0.006, 0.02, 0.0008, (k / 6) * TAU, 0, 0.95);
   };
   for (const [x, z] of [[-0.33, -0.02], [-0.2, -0.09], [0.0, -0.07], [-0.12, 0.06], [0.05, 0.04], [-0.26, 0.05]] as [number, number][]) banana(x, z);
-  for (const [x, z] of [[-0.3, -0.19], [-0.17, -0.2], [0.07, -0.13], [-0.38, -0.08], [0.2, 0.07]] as [number, number][]) tree(x, z, 1, '#556b3d');
+  for (const [x, z] of [[-0.3, -0.19], [-0.17, -0.2], [0.07, -0.13], [-0.38, -0.08], [0.2, 0.07]] as [number, number][]) lychee(x, z, 1, '#556b3d');
   // nets drying on bamboo poles
   for (const [x, z, ry] of [[0.02, 0.08, 0.1], [-0.33, 0.085, -0.2]]) {
     const q = grp(gp, x, z, ry, y0);

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   type Builder, type V3, type Paint, add, g, mat, box, cyl, cone, ball, ellip, rod, lathe, prism, skin, slab, gable,
-  paintFaces, shade, mix, hash3, fbm, CYL, CONE, SPH, BOX,
+  paintFaces, shade, mix, hash3, fbm, tree, SITE, PLINTH_SIDE, CYL, CONE, SPH, BOX,
 } from '../prims.ts';
 import { grp, minipine, proof, storey } from '../timber.ts';
 import { human } from '../human.ts';
@@ -67,8 +67,8 @@ class Soup {
 }
 
 type HF = (x: number, z: number) => number;
-/** Polar heightfield disc (absolute heights) with a vertical skirt down to y=0. */
-function land(p: THREE.Object3D, R: number, hf: HF, paint: (x: number, y: number, z: number, slope: number) => string, side: (y: number) => string, nr = 22, ns = 72): void {
+/** Polar heightfield disc (absolute heights) with the shared dark plinth skirt (PLINTH_SIDE) down to y=0. */
+function land(p: THREE.Object3D, R: number, hf: HF, paint: (x: number, y: number, z: number, slope: number) => string, nr = 22, ns = 72): void {
   const s = new Soup();
   const P = (i: number, j: number): V3 => { const r = (R * i) / nr, a = (j / ns) * TAU, x = Math.sin(a) * r, z = Math.cos(a) * r; return [x, hf(x, z), z]; };
   for (let i = 0; i < nr; i++) for (let j = 0; j < ns; j++) {
@@ -81,14 +81,14 @@ function land(p: THREE.Object3D, R: number, hf: HF, paint: (x: number, y: number
   }
   for (let j = 0; j < ns; j++) {
     const a = P(nr, j), b = P(nr, j + 1);
-    s.quad(a, b, [b[0], 0, b[2]], [a[0], 0, a[2]], side((a[1] + b[1]) / 2), [a[0], 0, a[2]]);
+    s.quad(a, b, [b[0], 0, b[2]], [a[0], 0, a[2]], PLINTH_SIDE, [a[0], 0, a[2]]);
   }
   s.build(p);
 }
 /** Flat water sheet over the polar cells that pass `test`, with a rim skirt where it meets the disc edge. */
 function waterSurf(p: THREE.Object3D, R: number, y: number, test: (x: number, z: number) => boolean, c: string, nr = 22, ns = 72): void {
   const s = new Soup();
-  const rp = (x: number, z: number) => { const n = fbm(x * 16, 0, z * 16); return hash3(Math.floor(x * 70), 0, Math.floor(z * 70)) > 0.975 ? mix(c, '#d6f0ff', 0.14) : shade(c, 0.95 + n * 0.1); };
+  const rp = (x: number, z: number) => { const n = fbm(x * 16, 0, z * 16); return hash3(Math.floor(x * 70), 0, Math.floor(z * 70)) > 0.975 ? mix(c, '#d6f0ff', 0.06) : shade(c, 0.95 + n * 0.1); };
   const P = (i: number, j: number): V3 => { const r = (R * i) / nr, a = (j / ns) * TAU; return [Math.sin(a) * r, y, Math.cos(a) * r]; };
   for (let i = 0; i < nr; i++) for (let j = 0; j < ns; j++) {
     const a = P(i, j), b = P(i, j + 1), c2 = P(i + 1, j + 1), d = P(i + 1, j);
@@ -352,19 +352,10 @@ function sparrow(p: THREE.Object3D, x: number, y: number, z: number, s: number):
   t.position.set(x, y + s * 0.36, z - s * 0.12);
   t.rotation.x = -2.3;
 }
-/** Deciduous tree with an irregular clumped crown (no lollipops), height ≈ s. */
-function broadleaf(p: THREE.Object3D, x: number, y: number, z: number, s: number, c = '#58693a', seed = 0): void {
-  rod(p, [x, y, z], [x + (hash3(seed, 1, 2) - 0.5) * s * 0.08, y + s * 0.5, z], s * 0.035, '#4f4234', 5);
-  for (let i = 0; i < 5; i++) {
-    const a = i * 2.4 + seed, rr = i ? s * 0.17 : 0, k = 0.8 + hash3(seed, i, 7) * 0.4;
-    add(p, ICO(), mat(shade(c, 0.88 + hash3(i, seed, 3) * 0.24), { flat: true }), x + Math.sin(a) * rr, y + s * (i ? 0.58 : 0.74), z + Math.cos(a) * rr, s * 0.2 * k, s * 0.17 * k, s * 0.2 * k, a);
-  }
-}
-/** Columnar cypress / juniper (柏), the tree of temples and tombs, height ≈ s. */
-function cypress(p: THREE.Object3D, x: number, y: number, z: number, s: number, c = '#3c4f34'): void {
-  cyl(p, '#4a3c2e', x, y, z, s * 0.04, s * 0.14, 5);
-  lathe(p, ([[0, 0.1], [0.12, 0.16], [0.15, 0.36], [0.13, 0.6], [0.08, 0.84], [0, 1]] as [number, number][]).map(([r, v]) => [r * s, v * s] as [number, number]), c, x, y, z, 7);
-}
+/** Deciduous tree (shared natural clump), overall height ≈ s. */
+const broadleaf = (p: THREE.Object3D, x: number, y: number, z: number, s: number, c = '#5f6b40', _seed = 0) => tree(p, x, y, z, s * 0.66, c);
+/** Temple / tomb cypress (柏) as the shared layered conifer, height ≈ s. */
+const cypress = (p: THREE.Object3D, x: number, y: number, z: number, s: number, c = '#46573a') => tree(p, x, y, z, s * 0.9, c, true);
 /** Balustrade along a straight line (posts + top rail). */
 function rail(p: THREE.Object3D, x0: number, z0: number, x1: number, z1: number, y: number, h: number, c: string, n: number): void {
   for (let i = 0; i <= n; i++) { const t = i / n; box(p, c, x0 + (x1 - x0) * t, y, z0 + (z1 - z0) * t, h * 0.3, h, h * 0.3); }
@@ -388,8 +379,8 @@ function lf_banpo(gp: THREE.Group): void {
     const r = Math.hypot(x, z), n = fbm(x * 14, 2, z * 14);
     if (y < 0.022 || sl > 0.3) return mix('#6e5236', '#5a4a30', n);
     if (r < 0.3) return mix('#a88a5e', '#94784e', n + (hash3(Math.floor(x * 90), 1, Math.floor(z * 90)) - 0.5) * 0.4);
-    return mix('#8f8a4c', '#a48a56', n);
-  }, () => '#6b5038');
+    return mix(SITE.meadow, SITE.loess, n * 0.7);
+  });
   waterSurf(gp, R, 0.019, (x, z) => { const r = Math.hypot(x, z); return r > dIn + 0.004 && r < dOut - 0.004; }, '#6f6a48');
   // log bridge over the ditch
   for (const sx of [-1, 1]) rod(gp, [sx * 0.012, 0.043, dIn - 0.02], [sx * 0.012, 0.043, dOut + 0.02], 0.0045, '#6a4a30', 5);
@@ -464,7 +455,7 @@ function lf_banpo(gp: THREE.Group): void {
 
 function lf_hangtu(gp: THREE.Group): void {
   const R = 0.46, Y = 0.03, earth = '#a08660', wood = '#5a4030', straw = '#857654', wattle = '#9a8566', floor = '#b39d78';
-  land(gp, R, (x, z) => Y + (fbm(x * 7, 4, z * 7) - 0.5) * 0.008, (x, _y, z) => mix('#7f8448', '#958a58', fbm(x * 12, 3, z * 12)), () => '#6b5038');
+  land(gp, R, (x, z) => Y + (fbm(x * 7, 4, z * 7) - 0.5) * 0.008, (x, _y, z) => mix(SITE.grass, SITE.meadow, fbm(x * 12, 3, z * 12)));
   const ram = rammedP(earth);
   // the ~108 × 100 m terrace, its north-east corner stepped in (the excavated plan's notch)
   const hx = 0.27, hz = 0.25, zc = 0, nx0 = 0.12, nz0 = -0.13;
@@ -551,7 +542,7 @@ function lf_hangtu(gp: THREE.Group): void {
 const reliefP = (c: string): Paint => (x, y, z, _nx, ny) => (ny > 0.7 ? c : shade(c, 0.8 + fbm(x * 0.9, y * 0.9, z * 0.9) * 0.45));
 function hanQue(gp: THREE.Group, x: number, z: number, Y: number, dir: number): void {
   const x0 = x;
-  const st = '#8e6a58', dk = shade(st, 0.8), lt = shade(st, 1.08), ash = ashlarP(st), rel = reliefP(st);
+  const st = '#86604a', dk = shade(st, 0.8), lt = shade(st, 1.08), ash = ashlarP(st), rel = reliefP(st);
   const beams = (y: number, w: number, d: number, n: number, x = x0) => {
     for (let i = 0; i < n; i++) for (const sz of [-1, 1]) box(gp, dk, x - w / 2 + ((i + 0.5) * w) / n, y, z + sz * (d / 2 + 0.003), 0.0045, 0.0045, 0.008);
     for (let i = 0; i < 3; i++) for (const sx of [-1, 1]) box(gp, dk, x + sx * (w / 2 + 0.003), y, z - d / 2 + ((i + 0.5) * d) / 3, 0.008, 0.0045, 0.0045);
@@ -618,7 +609,7 @@ function lf_que(gp: THREE.Group): void {
   land(gp, R, (x, z) => {
     const d = Math.hypot(x, (z - mz) * 1.15) / mR;
     return Y + (fbm(x * 6, 1, z * 6) - 0.5) * 0.006 * sstep(0.08, 0.14, Math.abs(x)) + (d < 1 ? mH * (0.5 + 0.5 * Math.cos(Math.PI * d)) ** 0.8 : 0);
-  }, (x, y, z) => (y > Y + 0.01 ? mix('#6f7d44', '#87804c', fbm(x * 18, 3, z * 18)) : Math.abs(x) < 0.07 && z > -0.16 ? mix('#a08a66', '#8e7a5c', fbm(x * 30, 0, z * 30)) : mix('#7d8a4a', '#94884f', fbm(x * 10, 2, z * 10))), () => '#6b5038', 26, 80);
+  }, (x, y, z) => (y > Y + 0.01 ? mix(shade(SITE.grass, 0.92), '#86825a', fbm(x * 18, 3, z * 18)) : Math.abs(x) < 0.07 && z > -0.16 ? mix('#928a74', '#857d68', fbm(x * 30, 0, z * 30)) : mix(SITE.grass, SITE.meadow, fbm(x * 10, 2, z * 10))), 26, 80);
   // spirit road (神道)
   pbox(gp, '#9a9284', 0, Y - 0.002, 0.15, 0.09, 0.004, 0.6, (x, _y, z, _nx, ny) => (ny > 0.5 ? shade('#9a9284', 0.9 + hash3(Math.floor(x), 0, Math.floor(z)) * 0.2) : null), 0.016, 0.004);
   for (const dir of [-1, 1]) hanQue(gp, dir * 0.13, 0.17, Y, dir);
@@ -635,8 +626,8 @@ function lf_que(gp: THREE.Group): void {
   // visitors: an official's carriage and mourners in Han robes; cypresses along the road
   carriage(gp, 0.01, 0.32, 0, 0.75, Y);
   human(gp, -0.035, Y, 0.05, { h: 0.06, pose: 'walk', phase: 0.2, top: '#2e2a30', bottom: '#2e2a30', hair: HAIR, hatStyle: 'cap', dress: 'ankle', ry: Math.PI, detail: 'lo' });
-  human(gp, -0.01, Y, 0.09, { h: 0.058, pose: 'walk', phase: 0.7, top: '#e2ddd0', bottom: '#cfc8b8', hair: HAIR, hatStyle: 'knot', dress: 'ankle', ry: Math.PI, detail: 'lo' });
-  human(gp, 0.02, Y, -0.12, { h: 0.058, pose: 'pray', top: '#e2ddd0', bottom: '#cfc8b8', hair: HAIR, hatStyle: 'cap', dress: 'ankle', ry: Math.PI, detail: 'lo' });
+  human(gp, -0.01, Y, 0.09, { h: 0.058, pose: 'walk', phase: 0.7, top: '#d6d0c2', bottom: '#c4bdad', hair: HAIR, hatStyle: 'knot', dress: 'ankle', ry: Math.PI, detail: 'lo' });
+  human(gp, 0.02, Y, -0.12, { h: 0.058, pose: 'pray', top: '#d6d0c2', bottom: '#c4bdad', hair: HAIR, hatStyle: 'cap', dress: 'ankle', ry: Math.PI, detail: 'lo' });
   for (const sx of [-1, 1]) for (const z of [-0.16, -0.06, 0.04]) cypress(gp, sx * 0.16, Y, z + (sx > 0 ? 0.02 : 0), 0.11);
   for (const [x, z] of [[-0.37, 0.12], [0.36, 0.15], [-0.33, 0.27], [0.32, 0.29], [0.38, -0.12], [-0.38, -0.1]] as [number, number][]) broadleaf(gp, x, Y, z, 0.13, '#5a6a3a', x * 50 + z);
 }
@@ -649,10 +640,10 @@ function lf_que(gp: THREE.Group): void {
 
 function lf_mingtang(gp: THREE.Group): void {
   const R = 0.46, Y = 0.03, m0 = 0.355, m1 = 0.425;
-  const tile = '#55524e', white = '#e8e1d0', col = '#8a3424', earth = '#b08c5c', st = '#a8a196';
+  const tile = '#55585a', white = '#d8d1c0', col = '#8a3424', earth = '#b08c5c', st = '#a8a196';
   land(gp, R, (x, z) => { const r = Math.hypot(x, z); return Y - 0.024 * sstep(m0 - 0.006, m0 + 0.006, r) * (1 - sstep(m1 - 0.006, m1 + 0.006, r)); },
-    (x, y, z) => (y < Y - 0.004 ? '#5a5040' : mix('#7d8a4a', '#8f8a50', fbm(x * 10, 3, z * 10))), () => '#6b5038', 26, 80);
-  waterSurf(gp, R, Y - 0.012, (x, z) => { const r = Math.hypot(x, z); return r > m0 && r < m1; }, '#5d7f78', 26, 80);
+    (x, y, z) => (y < Y - 0.004 ? '#5a5040' : mix(SITE.grass, SITE.meadow, fbm(x * 10, 3, z * 10))), 26, 80);
+  waterSurf(gp, R, Y - 0.012, (x, z) => { const r = Math.hypot(x, z); return r > m0 && r < m1; }, '#58715f', 26, 80);
   for (const r of [m0, m1]) lathe(gp, [[r - 0.004, Y - 0.014], [r + 0.004, Y - 0.014], [r + 0.004, Y + 0.002], [r - 0.004, Y + 0.002], [r - 0.004, Y - 0.014]], st, 0, 0, 0, 64);
   for (let i = 0; i < 4; i++) {
     const gb = grp(gp, 0, 0, (i * Math.PI) / 2);
@@ -661,7 +652,7 @@ function lf_mingtang(gp: THREE.Group): void {
   }
   // square court: paving, enclosure wall, four gatehouses, corner halls
   const H = 0.235;
-  pbox(gp, '#b8ad98', 0, Y - 0.002, 0, H * 2, 0.004, H * 2, (x, _y, z, _nx, ny) => (ny > 0.5 ? shade('#b8ad98', 0.92 + hash3(Math.floor(x), 2, Math.floor(z)) * 0.14) : null), 0.02, 0.004);
+  pbox(gp, '#a89e8a', 0, Y - 0.002, 0, H * 2, 0.004, H * 2, (x, _y, z, _nx, ny) => (ny > 0.5 ? shade('#a89e8a', 0.92 + hash3(Math.floor(x), 2, Math.floor(z)) * 0.14) : null), 0.02, 0.004);
   for (let i = 0; i < 4; i++) {
     const gw = grp(gp, 0, 0, (i * Math.PI) / 2);
     for (const sx of [-1, 1]) {
@@ -739,7 +730,7 @@ function flag(p: THREE.Object3D, x: number, y: number, z: number, h: number, c: 
 }
 function lf_tongque(gp: THREE.Group): void {
   const R = 0.46, Y = 0.03, brick = '#a88a64', wood = '#5a3a26', col = '#8e2f22', white = '#e6dfcf', tile = '#4f4c4a';
-  land(gp, R, (x, z) => Y + (fbm(x * 6, 5, z * 6) - 0.5) * 0.006, (x, _y, z) => (Math.abs(x) < 0.1 && z > 0 ? mix('#a08a66', '#94805e', fbm(x * 30, 0, z * 30)) : mix('#8a8a50', '#a08a5a', fbm(x * 10, 7, z * 10))), () => '#6b5038');
+  land(gp, R, (x, z) => Y + (fbm(x * 6, 5, z * 6) - 0.5) * 0.006, (x, _y, z) => (Math.abs(x) < 0.1 && z > 0 ? mix('#a08a66', '#94805e', fbm(x * 30, 0, z * 30)) : mix(SITE.meadow, '#9a8c62', fbm(x * 10, 7, z * 10))));
   const bp = rammedP(brick), zc = -0.07, H = 0.28, T = Y + H;
   // Ye's west city wall (rammed earth with a parapet), on which the three terraces stand in a north–south line
   ptaper(gp, brick, 0, Y, zc, 0.86, 0.1, 0.84, 0.075, 0.1, bp, 0.02, 0.0065);
@@ -834,17 +825,17 @@ function lf_lingqu(gp: THREE.Group): void {
   land(gp, R, hf, (x, y, z, sl) => {
     if (y < BED + 0.006) return mix('#6a6450', '#5a5444', fbm(x * 20, 0, z * 20));
     if (sl > 0.25) return shade(stone, 0.86 + hash3(Math.floor(x * 70), Math.floor(y * 140), Math.floor(z * 70)) * 0.24);
-    return mix('#6f8f46', '#87924e', fbm(x * 11, 4, z * 11));
-  }, () => '#6b5038', 30, 100);
+    return mix(SITE.grass, SITE.meadow, fbm(x * 11, 4, z * 11));
+  }, 30, 100);
   const inCanal = (x: number, z: number) => polyDist(x, z, south) < chw + 0.012 || polyDist(x, z, north) < chw + 0.012;
-  waterSurf(gp, R, UP, (x, z) => (Math.abs(x) < rhw + 0.012 && z < weirZ(x) + 0.006) || inCanal(x, z), '#587a72', 30, 100);
-  waterSurf(gp, R, DOWN, (x, z) => Math.abs(x) < rhw + 0.012 && z > weirZ(x) - 0.006 && !inCanal(x, z), '#5d7f78', 30, 100);
+  waterSurf(gp, R, UP, (x, z) => (Math.abs(x) < rhw + 0.012 && z < weirZ(x) + 0.006) || inCanal(x, z), '#58715f', 30, 100);
+  waterSurf(gp, R, DOWN, (x, z) => Math.abs(x) < rhw + 0.012 && z > weirZ(x) - 0.006 && !inCanal(x, z), '#58715f', 30, 100);
   // 铧嘴: a long, low ashlar ploughshare (~171 × 23 m, ~2 m above water) pointing upstream just ahead of the weir apex,
   // splitting the Xiang roughly 3:7 between the south and north channels
   const plan: P2[] = [[-0.08, -0.235], [-0.07, -0.205], [-0.064, -0.15], [-0.066, -0.095], [-0.08, -0.07], [-0.094, -0.095], [-0.096, -0.15], [-0.09, -0.205]];
   prism(gp, plan, BED, UP + 0.006 - BED, stone);
   prism(gp, plan.map(([x, z]) => [-0.08 + (x + 0.08) * 0.8, -0.15 + (z + 0.15) * 0.94] as P2), UP + 0.006, 0.002, shade(stone, 1.08));
-  for (let i = 0; i < 3; i++) add(gp, ICO(), mat('#e6eeee', { transparent: 0.6 }), -0.08 + (i - 1) * 0.008, UP, -0.238 + Math.abs(i - 1) * 0.006, 0.006, 0.0012, 0.01, (i - 1) * 0.6);
+  for (let i = 0; i < 3; i++) add(gp, ICO(), mat('#c6cfcb', { transparent: 0.5 }), -0.08 + (i - 1) * 0.008, UP, -0.238 + Math.abs(i - 1) * 0.006, 0.006, 0.0012, 0.01, (i - 1) * 0.6);
   // 大天平 / 小天平: low stone weirs in a ∧; water spills over the whole crest down a 鱼鳞石 apron (stones set on edge)
   const scaleP: Paint = (x, _y, z, _nx, ny) => (ny > 0.7 ? shade(stone, 0.8 + hash3(Math.floor(x), Math.floor(z + (Math.floor(x) & 1) * 0.5), 9) * 0.3) : null);
   for (const end of [wl, wr]) {
@@ -854,11 +845,11 @@ function lf_lingqu(gp: THREE.Group): void {
     const ga = grp(gw, 0, ds * 0.022, 0, (UP + DOWN) / 2 - 0.003);
     ga.rotation.x = ds * 0.32;
     pbox(ga, stone, 0, 0, 0, L, 0.003, 0.03, scaleP, 0.0045, 0.003);
-    add(ga, BOX(), mat('#dfe9e8', { transparent: 0.45 }), 0, 0.0038, 0, L, 0.0008, 0.03);
-    add(gw, BOX(), mat('#dfe9e8', { transparent: 0.4 }), 0, UP + 0.0035, 0, L, 0.0008, 0.016);
+    add(ga, BOX(), mat('#b7c2bd', { transparent: 0.35 }), 0, 0.0038, 0, L, 0.0008, 0.03);
+    add(gw, BOX(), mat('#b7c2bd', { transparent: 0.3 }), 0, UP + 0.0035, 0, L, 0.0008, 0.016);
     for (let i = 0; i < Math.round(L / 0.012); i++) {
       const u = hash3(i, Math.round(L * 100), 5);
-      add(gw, ICO(), mat('#eef3f3', { transparent: 0.7 }), -L / 2 + (i + 0.3 + u * 0.4) * 0.012, DOWN + 0.0005, ds * (0.04 + u * 0.006), 0.006 + u * 0.003, 0.001, 0.003, u);
+      add(gw, ICO(), mat('#c6cfcb', { transparent: 0.6 }), -L / 2 + (i + 0.3 + u * 0.4) * 0.012, DOWN + 0.0005, ds * (0.04 + u * 0.006), 0.006 + u * 0.003, 0.001, 0.003, u);
     }
   }
   // stone embankment walls along the south canal (the river side), lock gate (陡门) and a canal boat
@@ -911,8 +902,8 @@ function lf_lingqu(gp: THREE.Group): void {
     for (let i = 0; i < 7; i++) {
       const a = i * 2.4 + x * 50, lean = 0.12 + hash3(i, Math.round(x * 100), 3) * 0.2, h = s * (0.75 + hash3(i, 3, Math.round(z * 100)) * 0.25);
       const tx = x + Math.sin(a) * lean * h, tz = z + Math.cos(a) * lean * h;
-      rod(gp, [x + Math.sin(a) * 0.003, BANK, z + Math.cos(a) * 0.003], [tx, BANK + h, tz], 0.0012, '#6f8a46', 3);
-      add(gp, ICO(), mat(shade('#5c7a3a', 0.9 + hash3(i, 5, 5) * 0.2), { flat: true }), (x + tx) / 2 + (tx - x) * 0.25, BANK + h * 0.8, (z + tz) / 2 + (tz - z) * 0.25, 0.012, h * 0.28, 0.012, a);
+      rod(gp, [x + Math.sin(a) * 0.003, BANK, z + Math.cos(a) * 0.003], [tx, BANK + h, tz], 0.002, '#74804c', 3);
+      add(gp, ICO(), mat(shade('#5c7042', 0.9 + hash3(i, 5, 5) * 0.2), { flat: true }), (x + tx) / 2 + (tx - x) * 0.25, BANK + h * 0.8, (z + tz) / 2 + (tz - z) * 0.25, 0.012, h * 0.28, 0.012, a);
     }
   };
   broadleaf(gp, 0.24, BANK, 0.12, 0.07, '#4f6e3a', 1);
@@ -997,7 +988,7 @@ function lf_grotto(gp: THREE.Group, r: ModelRecipe): void {
     // overhanging bedded cliff top. Neighbours: Cave 19 (east) and 21 (west) show the usual door + light-window (门+明窗).
     // Ref: Commons "Yungang Grottoes Cave 20"; 云冈石窟研究院.
     const Y = 0.034, c = '#b8987a', sc = '#b39072';
-    land(gp, R, (x, z) => Y + (fbm(x * 8, 2, z * 8) - 0.5) * 0.006, (x, _y, z) => mix('#b9a284', '#a8967a', fbm(x * 16, 1, z * 16)), () => '#7a6450');
+    land(gp, R, (x, z) => Y + (fbm(x * 8, 2, z * 8) - 0.5) * 0.006, (x, _y, z) => mix('#ad9573', '#a08a6c', fbm(x * 16, 1, z * 16)));
     const niches: Niche[] = [
       { cx: 0.01, y0: Y + 0.0, y1: Y + 0.5, hw: 0.29, D: 0.12, arch: true },
       { cx: 0.345, y0: Y - 0.005, y1: Y + 0.13, hw: 0.04, D: 0.09, arch: true, dark: true },
@@ -1053,12 +1044,12 @@ function lf_grotto(gp: THREE.Group, r: ModelRecipe): void {
   // Vairocana (卢舍那, 17.14 m, robe over both shoulders, on an octagonal lotus throne) before a huge flame mandorla; along the
   // back wall disciples Kāśyapa/Ānanda and two bodhisattvas, on the side walls, turned inward, a heavenly king and a vajra
   // guardian (力士) each. Ref: Commons "Longmen Fengxiansi"; 龙门石窟研究院.
-  const TY = 0.07, c = '#a9a79f', sc = '#b3b0a6';
+  const TY = 0.07, c = '#9a968c', sc = '#a39d90';
   land(gp, R, (x, z) => (z < 0.1 ? TY : z < 0.2 ? 0.036 : 0.008) + (fbm(x * 8, 3, z * 8) - 0.5) * 0.004,
-    (x, y, z) => (y > 0.06 ? mix('#b8b2a2', '#a8a292', hash3(Math.floor(x * 50), 0, Math.floor(z * 50))) : y > 0.03 ? mix('#9a9478', '#8a8a62', fbm(x * 20, 0, z * 20)) : '#6a6a58'), () => '#5a5448');
-  waterSurf(gp, R, 0.024, (_x, z) => z > 0.2, '#5d7f78');
-  pbox(gp, '#9e9a90', 0, 0.03, 0.1, 0.8, TY - 0.03 + 0.002, 0.012, ashlarP('#9e9a90'), 0.016, 0.008);
-  stairs(gp, 0, 0.036, TY, 0.106, 0.07, 0.05, '#aaa69c', 5, 0);
+    (x, y, z) => (y > 0.06 ? mix('#a39d90', '#979184', hash3(Math.floor(x * 50), 0, Math.floor(z * 50))) : y > 0.03 ? mix('#9a9478', '#8a8a62', fbm(x * 20, 0, z * 20)) : '#6a6a58'));
+  waterSurf(gp, R, 0.024, (_x, z) => z > 0.2, '#536f6c');
+  pbox(gp, '#8f8a80', 0, 0.03, 0.1, 0.8, TY - 0.03 + 0.002, 0.012, ashlarP('#8f8a80'), 0.016, 0.008);
+  stairs(gp, 0, 0.036, TY, 0.106, 0.07, 0.05, '#99948a', 5, 0);
   const niches: Niche[] = [{ cx: 0, y0: TY + 0.005, y1: TY + 0.52, hw: 0.36, D: 0.19 }];
   const tiny: [number, number][] = [];
   for (let i = 0; i < 10; i++) tiny.push([-0.33 + i * 0.073, TY + 0.565 + (i % 2) * 0.03]);
@@ -1098,13 +1089,13 @@ function lf_grotto(gp: THREE.Group, r: ModelRecipe): void {
 // outline; stone finial (lotus, 7 rings, jewel). Brick under weathered buff lime plaster. Ref: zh.wikipedia「嵩岳寺塔」; Commons "Pagoda of Songyue Temple".
 
 function lf_songyue(gp: THREE.Group): void {
-  const R = 0.46, Y = 0.03, n = 12, rot = Math.PI / n, plaster = '#cdb68c', eave = '#c2b290', st = '#9d978a', dark = '#2e261e';
+  const R = 0.46, Y = 0.03, n = 12, rot = Math.PI / n, plaster = '#c29a64', eave = '#aea692', st = '#9d978a', dark = '#2e261e';
   land(gp, R, (x, z) => Y + (fbm(x * 7, 6, z * 7) - 0.5) * 0.01 * sstep(0.24, 0.32, Math.hypot(x, z)),
     (x, _y, z) => {
       const r = Math.hypot(x, z);
       if (r < 0.22 || (Math.abs(x) < 0.045 && z > 0)) return shade('#9a948a', 0.9 + hash3(Math.floor(x * 70), 1, Math.floor(z * 70)) * 0.14);
-      return mix('#8c8456', '#7a7e4c', fbm(x * 10, 1, z * 10));
-    }, () => '#6b5038');
+      return mix(SITE.meadow, SITE.grass, fbm(x * 10, 1, z * 10));
+    });
   const ngon = (r: number, y: number): V3[] => Array.from({ length: n }, (_, i) => { const a = rot + (i / n) * TAU; return [Math.sin(a) * r, y, Math.cos(a) * r] as V3; });
   const L = (pts: [number, number][], c: string, y: number) => { lathe(gp, pts, c, 0, y, 0, n).rotation.y = rot; };
   /** group standing on face i (0 = +z), local +z outward at the apothem of radius r */
@@ -1156,7 +1147,7 @@ function lf_songyue(gp: THREE.Group): void {
   let y = U0 + H2;
   rings.push(ngon(r0, y));
   for (let k = 0; k < NS; k++) {
-    const t = k / NS, h = 0.031 * (1 - 0.45 * t), w0 = rw(t), re = w0 + pr(t), wn = k < NS - 1 ? rw((k + 1) / NS) : rw(1) * 0.6;
+    const t = k / NS, h = 0.035 * (1 - 0.45 * t), w0 = rw(t), re = w0 + pr(t), wn = k < NS - 1 ? rw((k + 1) / NS) : rw(1) * 0.6;
     levels.push(y);
     if (k > 0) rings.push(ngon(w0, y));
     rings.push(ngon(w0, y + h * 0.36));
@@ -1178,9 +1169,9 @@ function lf_songyue(gp: THREE.Group): void {
     paint: (_px, py, _pz, _nx, ny) => {
       const k = levelOf(py), f = (py - levels[k]) / (levels[k + 1] - levels[k]);
       if (ny < -0.5) return shade(plaster, 0.55 + f * 0.1);
-      if (ny > 0.3) return shade(eave, 0.86 + hash3(k, Math.floor(py * 900), 3) * 0.08);
+      if (ny > 0.3) return shade(mix(plaster, eave, 0.55), 0.78 + hash3(k, Math.floor(py * 900), 3) * 0.08);
       if (f < 0.37) return shade(plaster, 0.98 + hash3(k, 1, 5) * 0.05);
-      return shade(eave, 0.95 + hash3(Math.floor(py * 2000), k, 1) * 0.08);
+      return shade(mix(plaster, eave, 0.2 + hash3(Math.floor(py * 2000), k, 1) * 0.25), 0.92);
     },
   });
   // tiny windows (most of them blind) on alternate faces of each short wall
@@ -1216,14 +1207,9 @@ function lf_songyue(gp: THREE.Group): void {
 // Span 37.02 m, rise 7.23 m (≈1:5), 9 m wide, 28 parallel arch rings, two small spandrel arches on each haunch, low gently
 // cambered deck with carved stone balustrade; grey limestone over the Xiao river. Ref: Liang Sicheng 1934 survey; zh.wikipedia「赵州桥」.
 
+/** Riverside willow: the shared tree in willow sage, swaying gently. */
 function willow(p: THREE.Object3D, x: number, y: number, z: number, s: number): void {
-  cyl(p, '#5a4632', x, y, z, s * 0.045, s * 0.55, 5);
-  const sw = anim(p, 'sway', x, y + s * 0.55, z, { amp: 0.05, speed: 0.8 });
-  ellip(sw, '#7f9c4e', 0, s * 0.08, 0, s * 0.26, s * 0.15, s * 0.26);
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * TAU + 0.3, r = s * (0.15 + hash3(i, 7, Math.round(x * 100)) * 0.1), l = s * (0.3 + hash3(i, 3, Math.round(z * 100)) * 0.18);
-    add(sw, CONE(5), mat(i % 2 ? '#93b060' : '#7d9a4c'), Math.sin(a) * r, s * 0.06 - l / 2, Math.cos(a) * r, s * 0.08, l, s * 0.08, 0, Math.PI);
-  }
+  tree(anim(p, 'sway', x, y, z, { amp: 0.03, speed: 0.8 }), x * 0.01, 0, z * 0.01, s * 0.62, '#7f8c55');
 }
 function lf_zhaozhou(gp: THREE.Group): void {
   const R = 0.46, WL = 0.04, st = '#aaa69c', W = 0.12, hw = W / 2, XE = 0.45, RI = 0.435, RO = 0.463, CY = -0.26;
@@ -1232,9 +1218,9 @@ function lf_zhaozhou(gp: THREE.Group): void {
     if (y < WL + 0.004) return mix('#6a5e44', '#5c5240', fbm(x * 20, 0, z * 20));
     if (y < 0.1 || sl > 0.3) return Math.abs(z) < 0.1 ? shade(st, 0.8 + hash3(Math.floor(x * 90), Math.floor(y * 150), Math.floor(z * 90)) * 0.2) : mix('#8a7a56', '#76824a', fbm(x * 14, 2, z * 14));
     if (Math.abs(z) < 0.05 && Math.abs(x) > 0.36) return mix('#a8946c', '#9a8660', hash3(Math.floor(x * 60), 1, Math.floor(z * 60)));
-    return mix('#7a8e48', '#90944e', fbm(x * 11, 4, z * 11));
-  }, () => '#6b5038', 28, 96);
-  waterSurf(gp, R, WL, (x, z) => bankH(x, z) < WL + 0.003, '#5d7f78', 28, 96);
+    return mix(SITE.grass, SITE.meadow, fbm(x * 11, 4, z * 11));
+  }, 28, 96);
+  waterSurf(gp, R, WL, (x, z) => bankH(x, z) < WL + 0.003, '#58715f', 28, 96);
   // the arch body: front/back faces, intrados of 28 parallel arch rings, two open spandrel arches per haunch
   const deck = (x: number) => 0.215 - 0.085 * (x / 0.44) ** 2;
   const extr = (x: number) => CY + Math.sqrt(Math.max(0, RO * RO - x * x));
@@ -1358,16 +1344,25 @@ function lf_zhaozhou(gp: THREE.Group): void {
 
 const archP = (w: number, h: number): [number, number][] => [[-w, 0], [w, 0], ...Array.from({ length: 7 }, (_, k) => { const t = (k / 6) * Math.PI; return [Math.cos(t) * w, h + Math.sin(t) * w] as [number, number]; })];
 function lf_dayan(gp: THREE.Group): void {
-  const R = 0.46, Y = 0.03, brick = '#b2a385', st = '#a39b8c', tile = '#5b5e62', col = '#9a3f2a', wall = '#ece4d2', PZ = -0.075;
+  const R = 0.46, Y = 0.03, brick = '#b39876', st = '#a39b8c', tile = '#5d6266', col = '#9a3b2c', wall = '#d6cbb4', PZ = -0.075;
   land(gp, R, (x, z) => Y + (fbm(x * 7, 8, z * 7) - 0.5) * 0.008 * sstep(0.3, 0.38, Math.hypot(x, z)),
-    (x, _y, z) => (Math.hypot(x, z - 0.02) < 0.32 + (fbm(x * 9, 5, z * 9) - 0.5) * 0.04 ? shade('#b2a890', 0.94 + hash3(Math.floor(x * 40), 2, Math.floor(z * 40)) * 0.1) : mix('#7a8a4a', '#8e8a52', fbm(x * 10, 1, z * 10))), () => '#6b5038');
+    (x, _y, z) => (Math.hypot(x, z - 0.02) < 0.32 + (fbm(x * 9, 5, z * 9) - 0.5) * 0.04 ? shade(SITE.paving, 0.94 + hash3(Math.floor(x * 40), 2, Math.floor(z * 40)) * 0.08) : shade(SITE.grass, 0.93 + fbm(x * 10, 1, z * 10) * 0.14)));
   // brick podium with a south stair
   pbox(gp, brick, 0, Y, PZ, 0.42, 0.05, 0.42, brickP(brick), 0.012, 0.006);
-  box(gp, shade(brick, 1.08), 0, Y + 0.05, PZ, 0.43, 0.005, 0.43);
+  box(gp, shade(brick, 0.9), 0, Y + 0.05, PZ, 0.43, 0.005, 0.43);
   const B = Y + 0.055;
+  // low brick parapet with pierced panels and posts round the podium edge (front gap for the stair)
+  for (let f = 0; f < 4; f++) {
+    const a = (f * Math.PI) / 2, gf = grp(gp, Math.sin(a) * 0.205, PZ + Math.cos(a) * 0.205, a, B);
+    for (const [x0, x1] of (f === 0 ? [[-0.205, -0.045], [0.045, 0.205]] : [[-0.205, 0.205]])) {
+      box(gf, shade(brick, 0.86), (x0 + x1) / 2, 0, 0, x1 - x0, 0.014, 0.008);
+      box(gf, shade(brick, 0.96), (x0 + x1) / 2, 0.014, 0, x1 - x0 + 0.004, 0.004, 0.011);
+      for (let x = x0; x <= x1 + 1e-6; x += (x1 - x0) / Math.round((x1 - x0) / 0.04)) box(gf, shade(brick, 0.82), x, 0, 0, 0.009, 0.021, 0.011);
+    }
+  }
   stairs(gp, 0, Y, B, PZ + 0.215, 0.08, 0.07, shade(st, 1.05), 7, 0, st);
   // seven storeys: battered brick walls, pilaster strips, arched windows, corbelled (叠涩) eaves with a sawtooth course
-  const saw = '#6a6050';
+  const saw = '#5f5444', band = '#8f8270';
   const sawP: Paint = (x, _y, z, nx, ny) => (Math.abs(ny) > 0.7 ? shade(brick, 0.9) : ((Math.floor(Math.abs(nx) > 0.5 ? z : x) % 2) + 2) % 2 ? saw : shade(brick, 1.05));
   const bays = [9, 9, 7, 7, 5, 5, 5];
   let y = B, w = 0.25;
@@ -1394,16 +1389,16 @@ function lf_dayan(gp: THREE.Group): void {
     for (const [o, t, sw] of steps) {
       const ww = wt + o * 2 * sc;
       if (sw) pbox(gp, brick, 0, ey, PZ, ww, t * sc, ww, sawP, 0.005, t * sc);
-      else box(gp, shade(brick, 1.06), 0, ey, PZ, ww, t * sc, ww);
+      else box(gp, shade(band, 0.96 + o * 3), 0, ey, PZ, ww, t * sc, ww);
       ey += t * sc;
     }
     if (i < 6) {
-      for (let k = 1; k <= 3; k++) { const ww = wt + 0.048 * sc + (wn + 0.004 - wt - 0.048 * sc) * (k / 3.4); box(gp, shade(brick, 0.9 + k * 0.02), 0, ey, PZ, ww, 0.003 * sc, ww); ey += 0.003 * sc; }
+      for (let k = 1; k <= 3; k++) { const ww = wt + 0.048 * sc + (wn + 0.004 - wt - 0.048 * sc) * (k / 3.4); box(gp, shade(band, 0.9 + k * 0.04), 0, ey, PZ, ww, 0.003 * sc, ww); ey += 0.003 * sc; }
       y = ey;
       w = wn;
     } else {
       // low pyramidal top and a stupa-shaped finial (塔刹)
-      cone(gp, shade(brick, 0.88), 0, ey, PZ, ((wt + 0.048 * sc) / 2) * Math.SQRT2, 0.035, 4, Math.PI / 4);
+      cone(gp, shade(band, 0.92), 0, ey, PZ, ((wt + 0.048 * sc) / 2) * Math.SQRT2, 0.035, 4, Math.PI / 4);
       y = ey + 0.026;
     }
   }
@@ -1457,21 +1452,28 @@ function tangSet(p: THREE.Object3D, x: number, y: number, z: number, ry: number,
   for (const sx of [-1, 1]) box(gs, blk, sx * u(0.024), u(0.047), u(0.068), u(0.009), u(0.004), u(0.009));
 }
 function lf_foguang(gp: THREE.Group): void {
-  const R = 0.46, stone = '#a8a294', col = '#7d4a34', wood = '#7a5040', blk = '#6a4434', wall = '#e6dfcf', tile = '#5b5e62';
+  const R = 0.46, stone = '#948f85', col = '#8a4632', wood = '#6e4a32', blk = '#5e3e2e', wall = '#d4cab4', tile = '#5d6266';
   const TT = 0.19, TX = 0.31, TZ0 = -0.3, TZ1 = 0.09;
   const hf: HF = (x, z) => {
     const h = 0.035 + 0.15 * sstep(0.16, -0.1, z) + 0.07 * sstep(-0.28, -0.42, z) + (fbm(x * 8, 7, z * 8) - 0.5) * 0.02 * sstep(0.12, -0.05, z);
     return Math.abs(x) < TX + 0.01 && z > TZ0 - 0.01 && z < TZ1 + 0.01 ? Math.min(h, TT - 0.008) : h;
   };
   land(gp, R, hf, (x, y, z, sl) => {
-    if (Math.abs(x) < 0.06 && z > TZ1) return mix('#9a8a68', '#8a7a5a', hash3(Math.floor(x * 50), 1, Math.floor(z * 50)));
-    if (sl > 0.32) return shade('#8a8274', 0.85 + hash3(Math.floor(x * 70), Math.floor(y * 90), Math.floor(z * 70)) * 0.25);
-    return mix('#5f7a3c', '#7a8a48', fbm(x * 10, 2, z * 10));
-  }, () => '#6b5038', 26, 90);
+    if (Math.abs(x) < 0.06 && z > TZ1) return shade(SITE.paving, 0.9 + hash3(Math.floor(x * 50), 1, Math.floor(z * 50)) * 0.1);
+    if (sl > 0.32) return shade('#857d6e', 0.88 + hash3(Math.floor(x * 70), Math.floor(y * 90), Math.floor(z * 70)) * 0.18);
+    return shade(mix(SITE.grass, '#6f7a4c', fbm(x * 10, 2, z * 10)), 0.95 + fbm(x * 20, 4, z * 20) * 0.1);
+  }, 26, 90);
   // terrace cut into the hillside: ashlar retaining wall and the long steep stair
   pbox(gp, stone, 0, 0.02, (TZ0 + TZ1) / 2, TX * 2, TT - 0.02, TZ1 - TZ0, ashlarP(stone), 0.018, 0.01);
   box(gp, shade(stone, 1.08), 0, TT - 0.002, (TZ0 + TZ1) / 2, TX * 2 + 0.006, 0.004, TZ1 - TZ0 + 0.006);
   stairs(gp, 0, 0.035, TT, TZ1, 0.08, 0.23, shade(stone, 1.05), 16, 0, shade(stone, 0.9));
+  // pierced-brick (花墙) parapets along the terrace edge either side of the stair
+  const lattice: Paint = (px, py, _pz, _nx, ny) => (Math.abs(ny) > 0.7 ? shade(stone, 1.04) : py >= 1 && py < 4 && (Math.floor(px) % 2 === 1) !== (Math.floor(py) % 2 === 0) ? '#3a342c' : shade(stone, 0.95));
+  for (const sx of [-1, 1]) {
+    pbox(gp, stone, sx * (TX + 0.05) / 2, TT, TZ1 - 0.006, TX - 0.05, 0.03, 0.01, lattice, 0.0062, 0.006);
+    pbox(gp, stone, sx * TX, TT, (TZ0 + TZ1) / 2 + 0.03, 0.01, 0.03, TZ1 - TZ0 - 0.06, lattice, 0.0062, 0.006);
+    for (const x of [0.05, TX * 0.5, TX]) box(gp, shade(stone, 0.9), sx * x, TT, TZ1 - 0.006, 0.016, 0.036, 0.016);
+  }
   // hall plinth, 7 × 4 bays
   const HZ = -0.12, W = 0.44, D = 0.21, P = TT + 0.022, Hc = 0.068, y0 = P + Hc;
   pbox(gp, stone, 0, TT, HZ, W + 0.07, P - TT, D + 0.07, ashlarP(stone), 0.014, 0.007);
@@ -1544,6 +1546,9 @@ function lf_foguang(gp: THREE.Group): void {
     if (Math.abs(x) < 0.12 && z > 0) continue;
     minipine(gp, x, hf(x, z), z, ps, i % 2 ? '#2c5634' : '#355e3a');
   }
+  // the great old pines on the slope behind the hall, two spreading trees before the terrace
+  for (const [x, z, ps] of [[-0.2, -0.38, 0.2], [0.05, -0.41, 0.22], [0.25, -0.35, 0.18]] as [number, number, number][]) minipine(gp, x, hf(x, z), z, ps, '#2f5636');
+  for (const sx of [-1, 1]) broadleaf(gp, sx * 0.21, hf(sx * 0.21, 0.19), 0.19, 0.16, sx < 0 ? '#4f6a3c' : '#56703e');
 }
 
 

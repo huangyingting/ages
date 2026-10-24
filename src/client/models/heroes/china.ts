@@ -1,9 +1,10 @@
 import { human, passerby } from '../human.ts';
 import * as THREE from 'three';
 import {
-  type Builder, type V3, add, g, mat, box, cyl, cone, rod, strut, ellip, sweep, tube, skin, lathe, tbox, shade, fbm, hash3,
+  type Builder, type Paint, type V3, add, g, mat, box, cyl, cone, rod, strut, ellip, sweep, tube, skin, lathe, tbox, shade, fbm, hash3,
+  tree, PLINTH_SIDE,
 } from '../prims.ts';
-import { type HFn, island, sstep, ridged, strataSide, EARTH } from '../nature.ts';
+import { type HFn, type IslandOpts, island as island0, sstep, ridged } from '../nature.ts';
 
 // Hero dioramas for the China collection (cn_*). Front faces +z, base at y=0, footprint radius ≈0.5.
 
@@ -19,6 +20,20 @@ function grp(p: THREE.Object3D, x: number, z: number, ry = 0, y = 0): THREE.Grou
   p.add(gr);
   return gr;
 }
+/** Radius of the sculpted terrain disc; it sits inside the shared plinth rim (R 0.48). */
+const RIM = 0.465;
+/** Terrain heights fade to the plinth top over the outer rim, so every diorama stands on the same low base. */
+const rimFade = (h: HFn): HFn => (x, z) => h(x, z) * sstep(RIM, RIM - 0.05, Math.hypot(x, z));
+/**
+ * Sculpted terrain on the shared museum base: the shared plinth's bevelled walnut side profile (open ring — the
+ * terrain is the top, so water may sit below the rim) and a terrain disc with a plinth-coloured skirt.
+ * Heights should come from rimFade() so the rim meets the plinth top.
+ */
+function island(gp: THREE.Object3D, _R: number, h: HFn, base: string, paint: Paint, o: IslandOpts = {}): void {
+  const R = 0.48, H = 0.035;
+  lathe(gp, [[R * 0.97, 0], [R, H * 0.18], [R, H * 0.7], [R * 0.985, H * 0.92], [R * 0.965, H]], PLINTH_SIDE, 0, 0, 0, 56);
+  island0(gp, RIM, h, base, paint, { ...o, side: () => PLINTH_SIDE });
+}
 const ICO = () => g('cn:ico1', () => new THREE.IcosahedronGeometry(1, 1));
 /** Low-poly faceted blob (foliage, boulders, clouds when smooth). */
 function blob(p: THREE.Object3D, c: string, x: number, y: number, z: number, sx: number, sy = sx, sz = sx, ry = 0, smooth = false): THREE.Mesh {
@@ -29,7 +44,7 @@ function cloud(p: THREE.Object3D, x: number, y: number, z: number, s: number, se
   for (let i = 0; i < n; i++) {
     const a = hash3(seed, i, 1) * Math.PI * 2, d = (i === 0 ? 0 : 0.5 + hash3(seed, i, 2) * 0.5) * s;
     const r = s * (i === 0 ? 0.75 : 0.42 + hash3(seed, i, 3) * 0.3);
-    blob(p, i % 2 ? '#f7f9fc' : '#eef2f7', x + Math.cos(a) * d * 1.4, y + hash3(seed, i, 4) * s * 0.18, z + Math.sin(a) * d * 0.7, r, r * 0.42, r * 0.75, a, true);
+    blob(p, i % 2 ? '#dfe2e1' : '#d6dad9', x + Math.cos(a) * d * 1.4, y + hash3(seed, i, 4) * s * 0.18, z + Math.sin(a) * d * 0.7, r, r * 0.42, r * 0.75, a, true);
   }
 }
 /** Puffy sea-of-clouds layer: a bumpy smooth white sheet whose rim rolls down like a pillow; peaks poke through. */
@@ -50,7 +65,7 @@ function cloudSheet(p: THREE.Object3D, R: number, y: number, amp: number, seed: 
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setIndex(idx);
   geo.computeVertexNormals();
-  add(p, geo, mat('#e8ecee', { flat: false, rough: 0.95, transparent: 0.72 }), 0, 0, 0, 1, 1, 1);
+  add(p, geo, mat('#d8dcdb', { flat: false, rough: 0.95, transparent: 0.72 }), 0, 0, 0, 1, 1, 1);
 }
 /** Muted, everyday clothing colours for visitors (natural dyes, no saturated primaries). */
 const DRESS = ['#3d5470', '#d8cfbd', '#7a5a3c', '#5b6455', '#8e3b2e', '#2f3a48', '#a8946c', '#6d7a86'];
@@ -58,25 +73,21 @@ const DRESS = ['#3d5470', '#d8cfbd', '#7a5a3c', '#5b6455', '#8e3b2e', '#2f3a48',
 function person(p: THREE.Object3D, x: number, y: number, z: number, c: string, s = 1): void {
   passerby(p, x, y, z, 0.018 * s, 1, { top: c });
 }
-/** Small conifer (two stacked cones on a stub trunk). */
+/** Chinese pine (shared layered-pad pine from prims). */
 function minipine(p: THREE.Object3D, x: number, y: number, z: number, s: number, c = '#2f5a32'): void {
-  cyl(p, '#5b4030', x, y - s * 0.05, z, s * 0.07, s * 0.3, 5);
-  cone(p, c, x, y + s * 0.15, z, s * 0.42, s * 0.55, 6);
-  cone(p, shade(c, 1.14), x, y + s * 0.45, z, s * 0.3, s * 0.5, 6);
+  tree(p, x, y, z, s * 0.78, c, true);
 }
-/** Broadleaf tree: trunk + two faceted crowns. */
+/** Broadleaf tree (shared natural clump from prims). */
 function bush(p: THREE.Object3D, x: number, y: number, z: number, s: number, c: string): void {
-  cyl(p, '#5b4030', x, y - s * 0.1, z, s * 0.1, s * 0.6, 5);
-  blob(p, c, x, y + s * 0.65, z, s * 0.5, s * 0.42, s * 0.5, x * 9);
-  blob(p, shade(c, 1.12), x + s * 0.12, y + s * 0.85, z + s * 0.08, s * 0.3, s * 0.26, s * 0.3, z * 7);
+  tree(p, x, y, z, s * 0.85, c);
 }
 /** Calm natural water: faint sheen streaks instead of bright ripple flecks. */
-function calm(gp: THREE.Object3D, R: number, y: number, c: string, dir = 0): void {
-  const ca = Math.cos(dir), sa = Math.sin(dir);
-  island(gp, R, () => 0, c, (x, _y, z) => {
+function calm(gp: THREE.Object3D, _R: number, y: number, c: string, dir = 0): void {
+  const R = RIM - 0.004, ca = Math.cos(dir), sa = Math.sin(dir);
+  island0(gp, R, () => 0, c, (x, _y, z) => {
     const u = x * ca + z * sa, v = -x * sa + z * ca, k = Math.sin(v * 70 + Math.sin(u * 9) * 3) * Math.sin(u * 23 + v * 5);
     return k > 0.8 ? shade(c, 1.05) : c;
-  }, { rings: 18, segs: 96, base: y, side: () => shade(c, 0.7) });
+  }, { rings: 18, segs: 96, base: y, side: () => PLINTH_SIDE });
 }
 /** Railing between a and b (posts + top rail). */
 function rail(p: THREE.Object3D, a: V3, b: V3, h: number, c: string, sp = 0.02): void {
@@ -174,11 +185,11 @@ function storey(p: THREE.Object3D, x: number, y: number, z: number, n: number, R
 // Zhangjiajie — sandstone pillar forest, natural stone bridge and the Bailong cliff lift
 const cn_zhangjiajie: Builder = gp => {
   const PAL = ['#b9ad95', '#a69a83', '#c8bda5', '#958a76', '#afa18a'], MOSS = '#4c7a3a', TOP = '#3f6b33';
-  const h: HFn = (x, z) => 0.025 * fbm(x * 7, 1, z * 7, 3) + 0.02 * sstep(0.3, 0.5, Math.hypot(x, z));
+  const h: HFn = rimFade((x, z) => 0.025 * fbm(x * 7, 1, z * 7, 3) + 0.02 * sstep(0.3, 0.5, Math.hypot(x, z)));
   island(gp, 0.5, h, '#3f6b35', (x, _y, z) => {
     const f = fbm(x * 14, 2, z * 14, 2), c = hash3(Math.floor(x * 70), 1, Math.floor(z * 70));
     return f > 0.58 ? '#4e8040' : f < 0.4 ? '#30562c' : c > 0.85 ? '#5a8a44' : null;
-  }, { rings: 26, segs: 80, side: strataSide(['#7a6a55', '#6a5a46', '#857560']) });
+  }, { rings: 26, segs: 80 });
   const P: [number, number, number, number][] = [
     [0.0, -0.05, 0.06, 0.85], [-0.13, -0.12, 0.045, 0.66], [0.12, -0.14, 0.05, 0.72], [-0.24, -0.2, 0.05, 0.58], [-0.36, -0.1, 0.045, 0.56],
     [0.24, -0.26, 0.045, 0.6], [0.03, -0.26, 0.045, 0.62], [-0.1, -0.36, 0.04, 0.5], [0.12, -0.4, 0.04, 0.46], [-0.3, -0.33, 0.04, 0.44],
@@ -259,12 +270,12 @@ const cn_guilin: Builder = gp => {
   // Ref: Li River at Xingping (the ¥20 note view, Wikimedia "Li River Xingping"): steep tower karst, jade river, bamboo-fringed banks, cormorant fishers.
   const WC = '#5e8f84', WL = Y0 - 0.002, Wd = 0.095;
   calm(gp, 0.49, WL - 0.004, WC, Math.PI / 2);
-  const h: HFn = (x, z) => { const d = Math.abs(x - rivX(z)); return -0.014 + 0.026 * sstep(Wd * 0.75, Wd * 1.3, d) + 0.008 * fbm(x * 8, 3, z * 8, 2) * sstep(Wd, Wd * 2, d); };
+  const h: HFn = rimFade((x, z) => { const d = Math.abs(x - rivX(z)); return -0.014 + 0.026 * sstep(Wd * 0.75, Wd * 1.3, d) + 0.008 * fbm(x * 8, 3, z * 8, 2) * sstep(Wd, Wd * 2, d); });
   island(gp, 0.5, h, '#6a8a48', (x, y, z) => {
     if (y < WL + 0.003) return '#a59d86';
     const ci = Math.floor((x + 1) * 26), cj = Math.floor((z + 1) * 26), hh = hash3(ci, 7, cj);
     return hh > 0.75 ? '#718f4c' : hh > 0.5 ? '#6a8848' : hh < 0.1 ? '#8c8a62' : null;
-  }, { rings: 34, segs: 96, side: strataSide(EARTH) });
+  }, { rings: 34, segs: 96 });
   const hills: [number, number, number, number, number][] = [
     [-1, -0.34, 0.09, 0.5, 0.0], [-1, -0.12, 0.075, 0.38, 0.0], [-1, 0.1, 0.06, 0.25, 0.02], [-1, -0.25, 0.07, 0.3, 0.13], [-1, -0.02, 0.06, 0.22, 0.16],
     [-1, 0.28, 0.05, 0.14, 0.02], [1, -0.32, 0.08, 0.4, 0.0], [1, -0.09, 0.075, 0.56, 0.0], [1, 0.14, 0.065, 0.3, 0.0], [1, -0.22, 0.06, 0.3, 0.14],
@@ -342,12 +353,12 @@ function guestPine(p: THREE.Object3D, x: number, y: number, z: number, s: number
 const cn_huangshan: Builder = gp => {
   // Ref: Huangshan (UNESCO 547) — grey granite spires over a sea of clouds; Guest-Greeting Pine (~10 m) by Yuping Lou; Feilai Shi, a 12 m upright slab on a flat summit.
   const GR = ['#a49b92', '#8f877f', '#b6ada2', '#7f786f', '#9c948a'];
-  const h: HFn = (x, z) => 0.05 * ridged(x * 4 + 3, z * 4, 3) + 0.06 * sstep(0.45, 0.0, Math.hypot(x, z + 0.1));
+  const h: HFn = rimFade((x, z) => 0.05 * ridged(x * 4 + 3, z * 4, 3) + 0.06 * sstep(0.45, 0.0, Math.hypot(x, z + 0.1)));
   island(gp, 0.5, h, '#355f33', (x, y, z, _nx, ny) => {
     if (ny < 0.6) return hash3(Math.floor(x * 80), 2, Math.floor(z * 80)) > 0.5 ? '#8a827a' : '#6f6962';
     const f = fbm(x * 12, y * 10, z * 12, 2);
     return f > 0.58 ? '#447a3c' : f < 0.4 ? '#2b5129' : null;
-  }, { rings: 26, segs: 80, side: strataSide(['#7a736b', '#6a645d', '#857e75']) });
+  }, { rings: 26, segs: 80 });
   const S: [number, number, number, number][] = [
     [0.0, -0.1, 0.09, 0.78], [-0.17, -0.16, 0.075, 0.62], [0.18, -0.2, 0.07, 0.58], [-0.31, -0.02, 0.06, 0.44], [0.31, -0.04, 0.06, 0.46],
     [-0.07, -0.32, 0.065, 0.52], [0.1, -0.35, 0.06, 0.44], [-0.28, -0.28, 0.055, 0.4], [0.32, -0.27, 0.05, 0.36], [-0.12, 0.06, 0.045, 0.3], [0.14, 0.0, 0.05, 0.36],
@@ -436,17 +447,17 @@ const cn_westlake: Builder = gp => {
   const cdist = (x: number, z: number) => { const t = Math.max(0, Math.min(1, along(x, z))); return Math.hypot(x - ax - (bx - ax) * t, z - az - (bz - az) * t); };
   const GAP = [0.7, 0.78];
   const hill = (x: number, z: number) => 0.16 * sstep(1, 0.25, Math.hypot((x - 0.06) / 0.46, (z + 0.42) / 0.24)) + 0.02 * fbm(x * 9, 4, z * 9, 2) * sstep(1, 0.5, Math.hypot((x - 0.06) / 0.46, (z + 0.42) / 0.24));
-  const h: HFn = (x, z) => {
+  const h: HFn = rimFade((x, z) => {
     const t = along(x, z), gap = t > GAP[0] && t < GAP[1] ? 1 : 0;
     const cw = gap ? -0.03 : 0.03 * sstep(0.034, 0.022, cdist(x, z));
     return Math.max(hill(x, z), cw) - 0.02;
-  };
+  });
   island(gp, 0.5, h, '#4c7442', (x, y, z) => {
     if (y < WL + 0.004) return '#a89f86';
     if (cdist(x, z) < 0.04 && hill(x, z) < 0.02) return cdist(x, z) < 0.009 ? '#bdb6a2' : '#6d8f50';
     const f = fbm(x * 16, 2, z * 16, 2);
     return f > 0.6 ? '#567f49' : f < 0.4 ? '#3c6136' : null;
-  }, { rings: 30, segs: 96, side: strataSide(EARTH) });
+  }, { rings: 30, segs: 96 });
   // Leifeng Pagoda — stone podium over the Wuyue ruins, five octagonal storeys with balconies, bronze eaves, tall spire
   const px = 0.06, pz = -0.36, py = Y0 + h(px, pz), TILE = '#3e4743', RIB = '#4f5953', BRASS = '#7d4a2c', WALL = '#9a6a42';
   lathe(gp, [[0, 0], [0.1, 0], [0.1, 0.03], [0.088, 0.03], [0.088, 0.036], [0, 0.036]], '#a8a194', px, py - 0.01, pz, 8);
@@ -474,7 +485,7 @@ const cn_westlake: Builder = gp => {
     const x = -0.36 + hash3(i, 1, 9) * 0.8, z = -0.46 + hash3(i, 2, 9) * 0.3;
     if (Math.hypot(x, z) > 0.46 || Math.hypot(x - px, (z - pz) * 1.3) < 0.13 || hill(x, z) < 0.03) continue;
     const s = 0.03 + hash3(i, 3, 9) * 0.02, c = ['#3d6136', '#4a6e40', '#34532f', '#566f45', '#44603a'][i % 5];
-    blob(gp, c, x, Y0 + h(x, z) + s * 0.5, z, s, s * 0.8, s, i);
+    bush(gp, x, Y0 + h(x, z), z, s * 1.2, c);
   }
   // Bai Causeway: willows alternating with (pale) peach, strollers, the Broken Bridge arching over the gap
   for (let i = 0; i < 16; i++) {
@@ -528,12 +539,12 @@ const cn_yellowcrane: Builder = gp => {
   // Ref: Yellow Crane Tower, 1985 rebuild on Snake Hill (Wikipedia): 5 storeys / 51.4 m, square-in-octagon cross plan, 72 red columns, 60 upturned eaves of yellow glazed tile, pyramidal top with gourd.
   const WC = '#7f8a7e', WL = Y0 - 0.004;
   calm(gp, 0.49, WL - 0.004, WC, -0.6);
-  const h: HFn = (x, z) => 0.1 * sstep(0.46, 0.14, Math.hypot(x, (z + 0.06) * 1.15)) + 0.01 * fbm(x * 8, 2, z * 8, 2) - 0.03 * sstep(0.34, 0.44, z + x * 0.25);
+  const h: HFn = rimFade((x, z) => 0.1 * sstep(0.46, 0.14, Math.hypot(x, (z + 0.06) * 1.15)) + 0.01 * fbm(x * 8, 2, z * 8, 2) - 0.03 * sstep(0.34, 0.44, z + x * 0.25));
   island(gp, 0.5, h, '#567a44', (x, y, z) => {
     if (y < WL + 0.006) return '#9e937a';
     const f = fbm(x * 14, 3, z * 14, 2);
     return f > 0.62 ? '#628450' : f < 0.38 ? '#466a3a' : null;
-  }, { rings: 28, segs: 84, side: strataSide(EARTH) });
+  }, { rings: 28, segs: 84 });
   const tx = 0, tz = -0.08, ty = Y0 + h(tx, tz) + 0.002;
   // White marble terrace with balustrade and front stairs
   box(gp, '#cfc9bb', tx, ty - 0.03, tz, 0.36, 0.034, 0.34);
@@ -586,8 +597,7 @@ const cn_yellowcrane: Builder = gp => {
     const a = hash3(i, 1, 6) * Math.PI * 2, d = 0.24 + hash3(i, 2, 6) * 0.18, x = Math.cos(a) * d, z = Math.sin(a) * d - 0.04;
     if (Math.hypot(x, z) > 0.44 || (Math.abs(x) < 0.06 && z > 0)) continue;
     const s = 0.04 + hash3(i, 3, 6) * 0.025, c = i % 4 === 0 ? '#4e6c3c' : i % 3 === 0 ? '#5d7a46' : '#3c5c34';
-    cyl(gp, '#5b4030', x, Y0 + h(x, z), z, s * 0.1, s * 0.6, 5);
-    blob(gp, c, x, Y0 + h(x, z) + s * 0.8, z, s * 0.6, s * 0.5, s * 0.6, i);
+    bush(gp, x, Y0 + h(x, z), z, s, c);
   }
   for (const [dx, c] of [[-0.03, DRESS[0]], [0.03, DRESS[1]], [0.08, DRESS[2]]] as const) person(gp, tx + dx, ty, tz + 0.15, c, 1.0);
 };
@@ -596,19 +606,20 @@ const cn_yellowcrane: Builder = gp => {
 // Mogao Caves, Dunhuang — the Nine-Storey Pavilion against a cliff honeycombed with cave doorways
 const cn_mogao: Builder = gp => {
   // Ref: Mogao Caves, Dunhuang (UNESCO 440; Dunhuang Academy): Cave 96 'Nine-Storey' facade ~45 m, eaves 1-6 single-face, 7 three-face, 8 four-face, octagonal 攒尖 top.
-  const h: HFn = (x, z) => 0.008 * fbm(x * 9, 1, z * 9, 2);
+  // Photo: Commons "Dunhuang Mogao Ku 2013.12.31 12-30-18.jpg" — red columns with cream infill under grey eaves, grey-tan conglomerate cliff.
+  const h: HFn = rimFade((x, z) => 0.008 * fbm(x * 9, 1, z * 9, 2));
   island(gp, 0.5, h, '#c9b28a', (x, _y, z) => {
     if (Math.abs(x) < 0.035 && z > -0.02) return '#b9a684';
     return fbm(x * 12, 2, z * 12, 2) > 0.62 ? '#bfa780' : null;
-  }, { rings: 20, segs: 72, side: strataSide(['#b8946a', '#a8845c', '#c4a074']) });
+  }, { rings: 20, segs: 72 });
   // Cliff: a tall strata wall filling the back of the diorama
   const CH = 0.36, zf = (x: number, y: number) => -0.11 + 0.012 * Math.sin(x * 23 + y * 9) + 0.01 * fbm(x * 6, y * 6, 3, 2);
   const NF = 34, NB = 14, rings: V3[][] = [];
   for (let i = 0; i <= 8; i++) {
     const y = Y0 - 0.01 + (i / 8) * CH, ring: V3[] = [];
-    for (let j = 0; j <= NF; j++) { const x = -0.47 + (j / NF) * 0.94; ring.push([x, y, zf(x, y) + (i === 8 ? -0.02 : 0)]); }
-    const a0 = Math.atan2(zf(0.47, y), 0.47), a1 = Math.atan2(zf(-0.47, y), -0.47);
-    for (let j = 1; j < NB; j++) { const a = a0 + ((a1 - a0) * j) / NB; ring.push([Math.cos(a) * 0.49, y, Math.sin(a) * 0.49]); }
+    for (let j = 0; j <= NF; j++) { const x = -0.445 + (j / NF) * 0.89; ring.push([x, y, zf(x, y) + (i === 8 ? -0.02 : 0)]); }
+    const a0 = Math.atan2(zf(0.445, y), 0.445), a1 = Math.atan2(zf(-0.445, y), -0.445);
+    for (let j = 1; j < NB; j++) { const a = a0 + ((a1 - a0) * j) / NB; ring.push([Math.cos(a) * 0.458, y, Math.sin(a) * 0.458]); }
     rings.push(ring.reverse());
   }
   // Conglomerate cliff of the Daquan valley: grey-ochre gravel beds, gravel Gobi plateau on top
@@ -661,7 +672,7 @@ const cn_mogao: Builder = gp => {
     const n = Math.max(3, Math.round(w / 0.02));
     for (let i = 0; i <= n; i++) box(gp, '#6a241b', -w / 2 + (i / n) * w, y, zb + D + 0.0008, 0.0035, hgt, 0.002);
     box(gp, BEAM, 0, y + hgt - 0.006, zb + D + 0.001, w, 0.006, 0.003);
-    for (let i = 0; i < n; i++) box(gp, '#b8a27c', -w / 2 + ((i + 0.5) / n) * w, y + hgt * 0.25, zb + D + 0.0006, w / n - 0.006, hgt * 0.45, 0.002);
+    for (let i = 0; i < n; i++) box(gp, '#cdbb98', -w / 2 + ((i + 0.5) / n) * w, y + hgt * 0.12, zb + D + 0.0006, w / n - 0.007, hgt * 0.66, 0.002);
   };
   let y = Y0 + 0.004;
   box(gp, '#c4b08c', 0, y - 0.004, -0.04, 0.3, 0.012, 0.16);
@@ -673,7 +684,7 @@ const cn_mogao: Builder = gp => {
     if (i === 0) for (const dx of [-0.03, 0.03]) box(gp, '#3a2a20', dx, y, zfr + 0.002, 0.018, 0.034, 0.003);
     y += hgt;
     if (i < 6) {
-      leanTo(y + 0.008, zfr - 0.004, w + 0.024, 0.03, 0.013);
+      leanTo(y + 0.007, zfr - 0.004, w + 0.02, 0.022, 0.01);
       y += 0.008;
     } else if (i === 6) {
       // three-face eave: a hip roof whose back half disappears into the cliff
@@ -692,9 +703,7 @@ const cn_mogao: Builder = gp => {
   for (let i = 0; i < 12; i++) {
     const sd = i % 2 ? 1 : -1, x = sd * (0.2 + hash3(i, 1, 1) * 0.2), z = 0.02 + Math.floor(i / 2) * 0.07;
     if (Math.hypot(x, z) > 0.46) continue;
-    const ht = 0.09 + hash3(i, 3, 1) * 0.04;
-    cyl(gp, '#b9b3a4', x, Y0, z, 0.003, ht * 0.5, 5);
-    ellip(gp, i % 4 ? '#6f8048' : '#8a8a4a', x, Y0 + ht * 0.62, z, 0.014, ht * 0.4, 0.014);
+    tree(gp, x, Y0, z, 0.032 + hash3(i, 3, 1) * 0.014, i % 4 ? '#6f7a48' : '#8a8650');
   }
   {
     const sx0 = -0.1, sz0 = 0.22, E = '#c2ab84';
@@ -713,14 +722,14 @@ const cn_bund: Builder = gp => {
   const WC = '#6c7d74', WL = Y0 - 0.01;
   calm(gp, 0.49, WL - 0.004, WC, -0.12);
   const zc = (x: number) => 0.06 + 0.12 * x, RW = 0.085;
-  const h: HFn = (x, z) => { const d = Math.abs(z - zc(x)); return d < RW ? -0.03 : 0.0; };
+  const h: HFn = rimFade((x, z) => { const d = Math.abs(z - zc(x)); return d < RW ? -0.03 : 0.0; });
   island(gp, 0.5, h, '#6a8a56', (x, y, z) => {
     if (y < WL + 0.004) return '#76847c';
     const d = z - zc(x);
     if (d > 0) return d < RW + 0.05 ? '#c9c2b2' : d < RW + 0.08 ? '#4b5058' : '#a7a49c';
     if (d > -RW - 0.025) return '#b8b4a8';
     return fbm(x * 14, 1, z * 14, 2) > 0.58 ? '#759a5e' : null;
-  }, { rings: 30, segs: 100, side: strataSide(['#7a7468', '#6a6458', '#857f72']) });
+  }, { rings: 30, segs: 100 });
   // --- Pudong skyline
   const PK = '#9a4c60', CR = '#d9d6cf';
   {
@@ -849,20 +858,20 @@ const cn_bund: Builder = gp => {
 // ---------------------------------------------------------------------------------------------------------
 // Zhangye Danxia — rainbow-striped sandstone hills with a boardwalk up to a viewing platform
 const cn_danxia: Builder = gp => {
-  const BANDS = ['#c8553d', '#e58f55', '#f3c98a', '#d9695a', '#f1e0b8', '#b8443a', '#eaa66c', '#a9b48e', '#f2b3a1', '#d97a3f'];
+  const BANDS = ['#b8604a', '#c98a5c', '#dcc08e', '#c06a58', '#dcd0b0', '#a8503f', '#d09a6c', '#a3a688', '#d8a896', '#c07a4a'];
   const plat: [number, number] = [0.16, 0.12];
-  const h: HFn = (x, z) => {
+  const h: HFn = rimFade((x, z) => {
     const r = Math.hypot(x, z), back = sstep(0.42, -0.05, z);
     const rid = ridged(x * 3.3 + 1.3, z * 3.3 + 0.7, 2);
     const knob = 0.15 * Math.exp(-((x - plat[0]) ** 2 + (z - plat[1]) ** 2) / 0.008);
     return Math.max((0.03 + 0.36 * rid ** 1.8) * (0.2 + 0.8 * back), knob) * sstep(0.52, 0.4, r) + 0.004 * fbm(x * 20, 1, z * 20, 2);
-  };
-  island(gp, 0.5, h, '#d9695a', (x, y, z, _nx, ny) => {
+  });
+  island(gp, 0.5, h, '#c06a58', (x, y, z, _nx, ny) => {
     if (y < Y0 + 0.012 && z > 0.1) return ny > 0.9 && fbm(x * 10, 2, z * 10, 2) > 0.55 ? '#b9a27a' : '#c9a27a';
     const tilt = y + 0.05 * x - 0.03 * z + 0.004 * fbm(x * 6, y * 6, z * 6, 2);
     const c = BANDS[((Math.floor(tilt * 26) % BANDS.length) + BANDS.length) % BANDS.length];
     return ny > 0.92 ? shade(c, 1.06) : c;
-  }, { rings: 44, segs: 120, side: strataSide(['#b8443a', '#e58f55', '#c8553d', '#f3c98a']) });
+  }, { rings: 44, segs: 120 });
   // Boardwalk: plank stairs on posts climbing from the car park to the platform
   const A: [number, number] = [-0.2, 0.38], Bx = plat[0] - 0.02, Bz = plat[1] + 0.03, N = 18;
   let prev: V3 | null = null;
@@ -882,13 +891,13 @@ const cn_danxia: Builder = gp => {
   for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2; rod(gp, [plat[0] + Math.cos(a) * 0.05, py + 0.008, plat[1] + Math.sin(a) * 0.05], [plat[0] + Math.cos(a + 0.78) * 0.05, py + 0.008, plat[1] + Math.sin(a + 0.78) * 0.05], 0.0016, '#6b4426', 4); box(gp, '#6b4426', plat[0] + Math.cos(a) * 0.05, py + 0.004, plat[1] + Math.sin(a) * 0.05, 0.003, 0.012, 0.003); }
   for (let k = 0; k < 4; k++) { const a = (k / 4) * Math.PI * 2 + 0.3; cyl(gp, '#b8322a', plat[0] + Math.cos(a) * 0.026, py + 0.008, plat[1] + Math.sin(a) * 0.026, 0.003, 0.04, 5); }
   proof(gp, plat[0], py + 0.048, plat[1], { n: 6, R0: 0.048, R1: 0.004, h: 0.03, lift: 0.4, tile: '#4f6b5e' });
-  for (const [dx, dz, c] of [[-0.02, 0.02, '#dc2626'], [0.02, 0.0, '#2563eb'], [0.0, -0.025, '#f59e0b']] as const) person(gp, plat[0] + dx, py + 0.008, plat[1] + dz, c, 1.2);
-  for (const [t, c] of [[0.3, '#16a34a'], [0.6, '#a855f7']] as const) { const x = A[0] + (Bx - A[0]) * t, z = A[1] + (Bz - A[1]) * t; person(gp, x, Y0 + h(x, z) + 0.018, z, c, 1.2); }
+  for (const [dx, dz, c] of [[-0.02, 0.02, DRESS[4]], [0.02, 0.0, DRESS[0]], [0.0, -0.025, DRESS[6]]] as const) person(gp, plat[0] + dx, py + 0.008, plat[1] + dz, c, 1.2);
+  for (const [t, c] of [[0.3, DRESS[3]], [0.6, DRESS[7]]] as const) { const x = A[0] + (Bx - A[0]) * t, z = A[1] + (Bz - A[1]) * t; person(gp, x, Y0 + h(x, z) + 0.018, z, c, 1.2); }
   // Gravel road and a little sightseeing bus
   const bs = grp(gp, -0.3, 0.3, 0.6, Y0 + 0.002);
-  box(bs, '#2f8f5b', 0, 0.004, 0, 0.08, 0.03, 0.034);
-  box(bs, '#bfe3f2', 0, 0.018, 0, 0.082, 0.01, 0.03);
-  for (const [lx, lz] of [[-0.026, -0.017], [0.026, -0.017], [-0.026, 0.017], [0.026, 0.017]]) cyl(bs, '#222', lx, 0, lz, 0.007, 0.006, 8).rotation.x = Math.PI / 2;
+  box(bs, '#5a6e5c', 0, 0.004, 0, 0.08, 0.03, 0.034);
+  box(bs, '#8fa4ac', 0, 0.018, 0, 0.082, 0.01, 0.03);
+  for (const [lx, lz] of [[-0.026, -0.017], [0.026, -0.017], [-0.026, 0.017], [0.026, 0.017]]) cyl(bs, '#2a2826', lx, 0, lz, 0.007, 0.006, 8).rotation.x = Math.PI / 2;
 };
 
 // ---------------------------------------------------------------------------------------------------------
@@ -898,22 +907,22 @@ const cn_jiuzhaigou: Builder = gp => {
   const e1 = (x: number, z: number) => Math.hypot((x - 0.02) / 0.36, (z - 0.17) / 0.2);
   const e2 = (x: number, z: number) => Math.hypot((x + 0.03) / 0.3, (z + 0.16) / 0.085);
   const mtn = (x: number, z: number) => sstep(-0.22, -0.46, z) * (0.14 + 0.18 * ridged(x * 3.5 + 2, z * 3.5, 3)) + 0.2 * Math.exp(-((x + 0.12) ** 2 + (z + 0.42) ** 2) / 0.012);
-  const h: HFn = (x, z) => {
+  const h: HFn = rimFade((x, z) => {
     const step = 0.1 * sstep(0.0, -0.045, z);
     let v = 0.016 + step + 0.01 * fbm(x * 9, 2, z * 9, 2) - 0.05 * sstep(1, 0.7, e1(x, z)) - 0.045 * sstep(1, 0.65, e2(x, z)) * sstep(0.0, -0.05, z);
     v = Math.max(v, mtn(x, z) + step);
     return v;
-  };
+  });
   island(gp, 0.5, h, '#3f6e3a', (x, y, z, _nx, ny) => {
-    if (e1(x, z) < 1.02 && y < LL + 0.002) { const f = fbm(x * 11, 1, z * 11, 2); return f > 0.62 ? '#c9b45a' : f > 0.48 ? '#3fb0a6' : '#2d8f8a'; }
-    if (e2(x, z) < 1.02 && y < LU + 0.002 && z < -0.02) return fbm(x * 11, 3, z * 11, 2) > 0.55 ? '#9fb85a' : '#2f9c98';
-    if (y > 0.36) return ny > 0.5 ? '#f4f7fb' : '#c9d2dc';
+    if (e1(x, z) < 1.02 && y < LL + 0.002) { const f = fbm(x * 11, 1, z * 11, 2); return f > 0.62 ? '#b0a868' : f > 0.48 ? '#4f9a92' : '#3d8580'; }
+    if (e2(x, z) < 1.02 && y < LU + 0.002 && z < -0.02) return fbm(x * 11, 3, z * 11, 2) > 0.55 ? '#8fa060' : '#3f8e8a';
+    if (y > 0.36) return ny > 0.5 ? '#e4e4de' : '#c2c6c4';
     if (ny < 0.55) return '#7a7468';
     const f = fbm(x * 14, y * 9, z * 14, 2);
     return f > 0.6 ? '#4f8244' : f < 0.4 ? '#2b5129' : null;
-  }, { rings: 34, segs: 100, side: strataSide(EARTH) });
-  pool(gp, oval(0.02, 0.17, 0.355, 0.198, 36), LL, '#22c3cf', 0.62);
-  pool(gp, oval(-0.03, -0.16, 0.296, 0.083, 30), LU, '#27b6d6', 0.62);
+  }, { rings: 34, segs: 100 });
+  pool(gp, oval(0.02, 0.17, 0.355, 0.198, 36), LL, '#4aa3a6', 0.62);
+  pool(gp, oval(-0.03, -0.16, 0.296, 0.083, 30), LU, '#4a9eb0', 0.62);
   // Sunken logs on the lake beds
   for (let i = 0; i < 9; i++) {
     const x = -0.24 + hash3(i, 1, 2) * 0.48, z = 0.08 + hash3(i, 2, 2) * 0.18, a = hash3(i, 3, 2) * Math.PI;
@@ -922,17 +931,17 @@ const cn_jiuzhaigou: Builder = gp => {
     rod(gp, [x - Math.cos(a) * 0.04, yb, z - Math.sin(a) * 0.04], [x + Math.cos(a) * 0.04, yb + 0.004, z + Math.sin(a) * 0.04], 0.003, '#9a7a52', 5);
   }
   // Nuorilang-style waterfall: white curtains tumbling over the travertine step, with trees growing in it
-  box(gp, '#dcf2f8', -0.005, LL - 0.004, -0.014, 0.6, LU - LL + 0.012, 0.006, 0, -0.5);
+  box(gp, '#d2dcdc', -0.005, LL - 0.004, -0.014, 0.6, LU - LL + 0.012, 0.006, 0, -0.5);
   for (let i = 0; i < 30; i++) {
     const x = -0.31 + i * 0.021 + (hash3(i, 1, 7) - 0.5) * 0.006;
     if (Math.hypot(x, 0) > 0.44) continue;
     const ht = LU - LL + 0.006 - hash3(i, 4, 7) * 0.01;
-    box(gp, i % 3 ? '#f4fbff' : i % 2 ? '#d7f1f7' : '#bfe8f2', x, LL - 0.004, -0.012 + hash3(i, 2, 7) * 0.006, 0.026 + hash3(i, 3, 7) * 0.01, ht + 0.008, 0.01, 0, -0.5);
-    blob(gp, '#ffffff', x, LL + 0.004, 0.004, 0.018, 0.008, 0.014, i, true);
-    if (i % 5 === 2) { cyl(gp, '#5b4030', x, LU - 0.01, -0.03, 0.003, 0.03, 5); blob(gp, i % 2 ? '#e8a23a' : '#4f8244', x, LU + 0.03, -0.03, 0.018, 0.022, 0.018, i); }
+    box(gp, i % 3 ? '#e2e6e4' : i % 2 ? '#d2dcdc' : '#c2d2d2', x, LL - 0.004, -0.012 + hash3(i, 2, 7) * 0.006, 0.026 + hash3(i, 3, 7) * 0.01, ht + 0.008, 0.01, 0, -0.5);
+    blob(gp, '#dfe3e1', x, LL + 0.004, 0.004, 0.018, 0.008, 0.014, i, true);
+    if (i % 5 === 2) { cyl(gp, '#5b4030', x, LU - 0.01, -0.03, 0.003, 0.03, 5); blob(gp, i % 2 ? '#b8843a' : '#4f7244', x, LU + 0.03, -0.03, 0.018, 0.022, 0.018, i); }
   }
   // Autumn forest around the lakes, conifers on the slopes
-  const AC = ['#e07b2a', '#f2b33d', '#c8402e', '#5f8f3a', '#2f5e3a', '#e8c23a'];
+  const AC = ['#b8743a', '#c49a48', '#9a4a34', '#5f7a3a', '#3a5a3a', '#b8a048'];
   for (let i = 0; i < 70; i++) {
     const a = hash3(i, 1, 3) * Math.PI * 2, d = Math.sqrt(hash3(i, 2, 3)) * 0.47, x = Math.cos(a) * d, z = Math.sin(a) * d;
     if (e1(x, z) < 1.08 || (e2(x, z) < 1.1 && z < 0) || Math.abs(z + 0.02) < 0.03) continue;
@@ -940,7 +949,7 @@ const cn_jiuzhaigou: Builder = gp => {
     if (y > 0.33) continue;
     const s = 0.026 + hash3(i, 3, 3) * 0.02;
     if (z < -0.24 || hash3(i, 4, 3) > 0.6) minipine(gp, x, y, z, s * 1.5, i % 2 ? '#2f5a32' : '#3b6a3a');
-    else blob(gp, AC[i % AC.length], x, y + s * 0.8, z, s * 0.8, s, s * 0.8, i);
+    else tree(gp, x, y, z, s, AC[i % AC.length]);
   }
   // Plank boardwalk zig-zagging across the lake with visitors
   const W: [number, number][] = [[-0.36, 0.33], [-0.14, 0.24], [0.06, 0.33], [0.28, 0.24], [0.4, 0.3]];
@@ -953,7 +962,7 @@ const cn_jiuzhaigou: Builder = gp => {
     }
     for (const sd of [-1, 1]) rod(gp, [x0 + Math.sin(ry) * sd * 0.012, LL + 0.022, z0 + Math.cos(ry) * sd * 0.012], [x1 + Math.sin(ry) * sd * 0.012, LL + 0.022, z1 + Math.cos(ry) * sd * 0.012], 0.0014, '#6b4426', 4);
   }
-  for (const [x, z, c] of [[-0.25, 0.285, '#dc2626'], [-0.05, 0.285, '#2563eb'], [0.16, 0.29, '#f59e0b'], [0.2, 0.275, '#16a34a']] as const) person(gp, x, LL + 0.013, z, c, 1.2);
+  for (const [x, z, c] of [[-0.25, 0.285, DRESS[4]], [-0.05, 0.285, DRESS[0]], [0.16, 0.29, DRESS[6]], [0.2, 0.275, DRESS[3]]] as const) person(gp, x, LL + 0.013, z, c, 1.2);
 };
 
 // ---------------------------------------------------------------------------------------------------------
@@ -961,23 +970,25 @@ const cn_jiuzhaigou: Builder = gp => {
 const cn_hangingtemple: Builder = gp => {
   // Ref: Xuankong Si, Mt Heng, Shanxi (Wikipedia/Baike 悬空寺): grey-tiled timber halls in a cliff recess under an overhang, ~60 m up,
   // carried on 27 beams sunk into the rock plus slender posts; north and south three-storey towers joined by plank walkways.
+  // Photos (Commons "Xuankongsi.jpg", "Hunyuan Xuankong Si 2013.08.30"): ochre-yellow and green glazed eaves, red-brown
+  // timber, a red-washed brick podium wall at the south foot, grey-tan horizontally bedded cliff under a deep overhang.
   const WC = '#6a8a80', WL = Y0 - 0.004;
   calm(gp, 0.49, WL - 0.004, WC, 0.2);
-  const h: HFn = (x, z) => 0.012 + 0.01 * fbm(x * 9, 1, z * 9, 2) - 0.04 * sstep(0.05, 0.02, Math.abs(z - 0.32 - 0.05 * Math.sin(x * 6)));
+  const h: HFn = rimFade((x, z) => 0.012 + 0.01 * fbm(x * 9, 1, z * 9, 2) - 0.04 * sstep(0.05, 0.02, Math.abs(z - 0.32 - 0.05 * Math.sin(x * 6))));
   island(gp, 0.5, h, '#6c7350', (x, y, z) => {
     if (y < WL + 0.004) return '#a59a80';
     if (z < -0.02) return '#8f8576';
     const n = fbm(x * 13, 1, z * 13, 2);
     return n > 0.62 ? '#626f4a' : n < 0.36 ? '#7a7660' : null;
-  }, { rings: 24, segs: 84, side: strataSide(['#7a7468', '#6a6458', '#857f72']) });
+  }, { rings: 24, segs: 84 });
   // Sheer cliff face across the back
   const CH = 0.66, zf = (x: number, y: number) => -0.07 + 0.018 * Math.sin(x * 14 + y * 5) + 0.02 * fbm(x * 7, y * 4, 2, 2) - 0.03 * sstep(0.2, 0.4, y) * sstep(-0.1, -0.35, x) + 0.05 * sstep(0.44, 0.5, y) * sstep(0.42, 0.3, Math.abs(x + 0.02));
   const NF = 30, NB = 12, rings: V3[][] = [];
   for (let i = 0; i <= 10; i++) {
     const y = Y0 - 0.01 + (i / 10) * CH, ring: V3[] = [];
-    for (let j = 0; j <= NF; j++) { const x = -0.47 + (j / NF) * 0.94; ring.push([x, y + (i === 10 ? 0.04 * fbm(x * 6, 1, 1, 2) : 0), zf(x, y)]); }
-    const a0 = Math.atan2(zf(0.47, y), 0.47), a1 = Math.atan2(zf(-0.47, y), -0.47);
-    for (let j = 1; j < NB; j++) { const a = a0 + ((a1 - a0) * j) / NB; ring.push([Math.cos(a) * 0.49, y, Math.sin(a) * 0.49]); }
+    for (let j = 0; j <= NF; j++) { const x = -0.445 + (j / NF) * 0.89; ring.push([x, y + (i === 10 ? 0.04 * fbm(x * 6, 1, 1, 2) : 0), zf(x, y)]); }
+    const a0 = Math.atan2(zf(0.445, y), 0.445), a1 = Math.atan2(zf(-0.445, y), -0.445);
+    for (let j = 1; j < NB; j++) { const a = a0 + ((a1 - a0) * j) / NB; ring.push([Math.cos(a) * 0.458, y, Math.sin(a) * 0.458]); }
     rings.push(ring.reverse());
   }
   skin(gp, rings, '#9b8f80', {
@@ -991,7 +1002,7 @@ const cn_hangingtemple: Builder = gp => {
   });
   for (let i = 0; i < 9; i++) { const x = -0.4 + i * 0.1, y = Y0 + CH - 0.01; if (Math.abs(x) < 0.45) minipine(gp, x, y, zf(x, y) - 0.06, 0.04 + hash3(i, 1, 1) * 0.02); }
   // The temple: a gallery of halls on cantilevered beams and stilts
-  const RW = '#7a3a2a', YEL = '#5a5e5c', GRN = '#545856', front = (x: number, y: number) => zf(x, y) + 0.004;
+  const RW = '#7a3a2a', YEL = '#b8973e', GRN = '#4e7a5a', front = (x: number, y: number) => zf(x, y) + 0.004;
   const deck = (x0: number, x1: number, y: number, d: number) => {
     const xm = (x0 + x1) / 2, z = Math.max(front(x0, y), front(x1, y), front(xm, y)) + d / 2;
     box(gp, '#5e4630', xm, y - 0.006, z - 0.004, x1 - x0, 0.006, d + 0.008);
@@ -1025,6 +1036,12 @@ const cn_hangingtemple: Builder = gp => {
     const [a, b] = towers, n = 10;
     for (let i = 0; i <= n; i++) { const t = i / n, x = a[0] + (b[0] - a[0]) * t, y = a[1] + (b[1] - a[1]) * t + 0.03 + Math.sin(t * Math.PI) * 0.02; box(gp, '#5e4630', x, y, Math.max(front(x, y) + 0.02, a[2]), 0.05, 0.004, 0.02); }
   }
+  // Red-washed brick podium wall at the south (left) foot of the cliff, as in the photos
+  for (let k = 0; k < 5; k++) {
+    const x = -0.42 + k * 0.035, z = front(x, Y0 + 0.05) + 0.012;
+    box(gp, k % 2 ? '#94503c' : '#8a4a38', x, Y0 - 0.004, z, 0.036, 0.1 - k * 0.006, 0.024);
+  }
+  box(gp, '#6d6a62', -0.35, Y0 + 0.094, front(-0.35, Y0 + 0.1) + 0.012, 0.17, 0.004, 0.028);
   // Stair to the ground and visitors
   for (let i = 0; i < 12; i++) { const y = Y0 + i * 0.02, x = -0.4 + i * 0.008; box(gp, '#8a8072', x, y, front(x, y) + 0.016, 0.03, 0.004, 0.022); }
   hall(gp, -0.38, Y0 + h(-0.38, 0.03), 0.02, 0.06, 0.04, 0.04, YEL, 0.3, RW, { col: '#5a1e12', rh: 0.02 });
@@ -1055,13 +1072,13 @@ const cn_taishan: Builder = gp => {
   const y0p = h0(...S0), y1p = h0(S1[0], S1[1] - 0.06);
   const tOf = (x: number, z: number) => Math.max(0, Math.min(1, ((x - S0[0]) * (S1[0] - S0[0]) + (z - S0[1]) * (S1[1] - S0[1])) / (L * L)));
   const pd = (x: number, z: number) => { const t = tOf(x, z); return Math.hypot(x - S0[0] - (S1[0] - S0[0]) * t, z - S0[1] - (S1[1] - S0[1]) * t); };
-  const ph = (t: number) => y0p + (y1p - y0p) * t ** 1.3;
-  const h: HFn = (x, z) => { const w = sstep(0.06, 0.025, pd(x, z)); return h0(x, z) * (1 - w) + (ph(tOf(x, z)) - 0.004) * w; };
-  island(gp, 0.5, h, '#4e6a3e', (x, y, z, _nx, ny) => {
-    if (ny < 0.6) return fbm(x * 20, y * 20, z * 20, 2) > 0.5 ? '#9a9286' : '#857d72';
+  const ph = (t: number) => y0p + (y1p - y0p) * t ** 1.9;
+  const h: HFn = rimFade((x, z) => { const w = sstep(0.06, 0.025, pd(x, z)); return h0(x, z) * (1 - w) + (ph(tOf(x, z)) - 0.004) * w; });
+  island(gp, 0.5, h, '#66704a', (x, y, z, _nx, ny) => {
+    if (ny < 0.45 || (ny < 0.6 && fbm(x * 9, y * 9, z * 9, 2) > 0.55)) return fbm(x * 20, y * 20, z * 20, 2) > 0.5 ? '#a39b8d' : '#8c8578';
     const f = fbm(x * 13, y * 8, z * 13, 2);
-    return f > 0.62 ? '#56704a' : f < 0.38 ? '#425a3a' : null;
-  }, { rings: 40, segs: 110, side: strataSide(['#857d72', '#756d63', '#958c80']) });
+    return f > 0.64 ? '#857654' : f < 0.36 ? '#525d3c' : f > 0.55 ? '#a0998a' : null;
+  }, { rings: 40, segs: 110 });
   // Stone stairway with low parapets
   const N = 64, ry = Math.atan2(-(S1[1] - S0[1]), S1[0] - S0[0]) + Math.PI / 2;
   for (let i = 0; i < N; i++) {
@@ -1102,10 +1119,10 @@ const cn_taishan: Builder = gp => {
   const bx = 0.1, bz = 0.3;
   blob(gp, '#9a9284', bx, Y0 + h(bx, bz) + 0.014, bz, 0.036, 0.03, 0.026, 0.3);
   for (let k = 0; k < 3; k++) box(gp, '#8a3a2e', bx - 0.008 + k * 0.008, Y0 + h(bx, bz) + 0.016, bz + 0.025, 0.005, 0.014, 0.0015, 0.3);
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 90; i++) {
     const x = -0.45 + hash3(i, 1, 5) * 0.9, z = -0.45 + hash3(i, 2, 5) * 0.9;
-    if (Math.hypot(x, z) > 0.46 || pd(x, z) < 0.05 || Math.hypot(x - sx, z - sz) < 0.08 || Math.hypot(x - gx, z - gz) < 0.1) continue;
-    minipine(gp, x, Y0 + h(x, z), z, 0.026 + hash3(i, 3, 5) * 0.02, i % 2 ? '#2e4630' : '#3a5236');
+    if (Math.hypot(x, z) > 0.43 || pd(x, z) < 0.05 || Math.hypot(x - sx, z - sz) < 0.08 || Math.hypot(x - gx, z - gz) < 0.1) continue;
+    minipine(gp, x, Y0 + h(x, z), z, 0.04 + hash3(i, 3, 5) * 0.025, i % 2 ? '#2e4630' : '#3a5236');
   }
   for (const [t, c] of [[0.12, DRESS[0]], [0.3, DRESS[1]], [0.33, DRESS[2]], [0.55, DRESS[5]], [0.72, DRESS[3]], [0.9, DRESS[6]]] as const) {
     const x = S0[0] + (S1[0] - S0[0]) * t, z = S0[1] + (S1[1] - S0[1]) * t;
@@ -1118,22 +1135,22 @@ const cn_taishan: Builder = gp => {
 const cn_yuanyang: Builder = gp => {
   const S = 0.026, FOREST = 0.3;
   const base = (x: number, z: number) => 0.34 * Math.exp(-((x + 0.06) ** 2 / 0.16 + (z + 0.3) ** 2 / 0.09)) + 0.12 * Math.exp(-((x - 0.3) ** 2 + (z + 0.05) ** 2) / 0.03) + 0.02 * fbm(x * 5, 1, z * 5, 2) + 0.02;
-  const h: HFn = (x, z) => {
+  const h: HFn = rimFade((x, z) => {
     const b = base(x, z);
     if (b > FOREST) return b;
     const q = b / S, k = Math.floor(q);
     return S * (k + sstep(0.72, 1, q - k));
-  };
+  });
   island(gp, 0.5, h, '#5d7a3c', (x, y, z, _nx, ny) => {
     const b = base(x, z);
     if (b > FOREST - 0.005) return fbm(x * 14, 2, z * 14, 2) > 0.5 ? '#2f5a32' : '#3b6a3a';
     const q = b / S;
     if (q - Math.floor(q) < 0.66 && ny > 0.8) {
       const k = Math.floor(q), f = fbm(x * 7 + k, 1, z * 7, 2);
-      return f > 0.62 ? '#86b35a' : (k + Math.floor(x * 6)) % 3 === 0 ? '#e0b3a0' : f < 0.4 ? '#9ec1d8' : '#b9d3e4';
+      return f > 0.62 ? '#7e9a56' : (k + Math.floor(x * 6)) % 3 === 0 ? '#b8a08e' : f < 0.4 ? '#7f98a4' : '#97aab2';
     }
     return ny > 0.7 ? '#6f8a46' : '#5a6b38';
-  }, { rings: 48, segs: 128, side: strataSide(EARTH) });
+  }, { rings: 48, segs: 128 });
   // Forest crown above the terraces
   for (let i = 0; i < 40; i++) {
     const x = -0.4 + hash3(i, 1, 8) * 0.7, z = -0.48 + hash3(i, 2, 8) * 0.34;
@@ -1150,8 +1167,8 @@ const cn_yuanyang: Builder = gp => {
   for (let i = 0; i < 8; i++) { const x = 0.2 + hash3(i, 1, 9) * 0.2, z = -0.16 + hash3(i, 2, 9) * 0.06; blob(gp, '#3f6e38', x, Y0 + base(x, z) + 0.02, z, 0.025, 0.03, 0.025, i); }
   // Farmer in a conical hat with a water buffalo on a terrace bund
   const fx = -0.05, fz = 0.3, fy = Y0 + h(fx, fz);
-  person(gp, fx, fy, fz, '#1e3a8a', 1.3);
-  cone(gp, '#e3c77a', fx, fy + 0.026, fz, 0.012, 0.008, 8);
+  person(gp, fx, fy, fz, '#34405a', 1.3);
+  cone(gp, '#c8b07a', fx, fy + 0.026, fz, 0.012, 0.008, 8);
   const bf = grp(gp, fx + 0.06, fz - 0.01, 0.4, fy);
   for (const [lx, lz] of [[-0.008, -0.014], [0.008, -0.014], [-0.008, 0.014], [0.008, 0.014]]) cyl(bf, '#3a3a3a', lx, 0, lz, 0.003, 0.016, 5);
   blob(bf, '#4a4a4a', 0, 0.022, 0, 0.014, 0.011, 0.024, 0, true);

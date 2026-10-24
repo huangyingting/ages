@@ -29,6 +29,9 @@ export class Timeline {
   private eraEl: HTMLButtonElement;
   private rulerEl: HTMLElement;
   private playBtn: HTMLButtonElement;
+  private speedBtn: HTMLButtonElement;
+  /** playback rate: 1× crosses the whole axis in ~100 s */
+  private speed = 1;
   private tip: HTMLElement;
   private bands: HTMLElement;
   private dots: HTMLElement;
@@ -50,6 +53,10 @@ export class Timeline {
 
   constructor() {
     this.playBtn = iconBtn('play', t('play'), () => this.setPlaying(!this.playing), 'tl-play');
+    this.speedBtn = h('button', { type: 'button', class: 'tl-speed', title: t('speed'), 'aria-label': t('speed'), text: '1×', onclick: () => {
+      this.speed = this.speed === 1 ? 2 : this.speed === 2 ? 0.5 : 1;
+      this.speedBtn.textContent = `${this.speed}×`;
+    } });
     this.yearEl = h('div', { class: 'tl-year', 'aria-live': 'polite' });
     this.eraEl = h('button', { type: 'button', class: 'tl-era', onclick: () => { const e = eraAt(this.year); if (e) this.onEra(e.id); } });
     this.rulerEl = h('div', { class: 'tl-ruler' });
@@ -81,7 +88,7 @@ export class Timeline {
       iconBtn('chevL', t('prevStop'), () => this.step(-1), 'tl-prev'), this.yearEl, this.input,
       iconBtn('chevron', t('nextStop'), () => this.step(1), 'tl-next'));
     this.hero = h('div', { class: 'hero' }, row, h('div', { class: 'tl-sub' }, this.eraEl, this.rulerEl), this.areaEl);
-    this.el = h('div', { class: 'tl' }, h('div', { class: 'tl-read' }, this.playBtn), this.track, this.foldBtn);
+    this.el = h('div', { class: 'tl' }, h('div', { class: 'tl-read' }, this.playBtn, this.speedBtn), this.track, this.foldBtn);
     if (load<boolean>('tlFolded', false)) this.fold(true);
     this.build();
     this.bind();
@@ -186,7 +193,7 @@ export class Timeline {
       last = now;
       if (this.playing) {
         // ~100 s for the whole axis; slower inside dense periods because the axis is non-linear
-        const tt = yearToT(this.year) + dt / 100;
+        const tt = yearToT(this.year) + (dt * this.speed) / 100;
         if (tt >= 1) { this.set(tToYear(1), true); this.setPlaying(false); } else this.set(tToYear(tt), false);
       }
       requestAnimationFrame(tick);
@@ -260,6 +267,7 @@ export class Timeline {
     this.input.setAttribute('aria-label', t('goYear'));
     for (const [c, k] of [['.tl-prev', 'prevStop'], ['.tl-next', 'nextStop']] as const) { const b = this.hero.querySelector<HTMLElement>(c)!; b.title = t(k); b.setAttribute('aria-label', t(k)); }
     this.playBtn.title = this.playBtn.ariaLabel = t(this.playing ? 'pause' : 'play');
+    this.speedBtn.title = this.speedBtn.ariaLabel = t('speed');
     this.foldBtn.title = this.foldBtn.ariaLabel = t(this.el.classList.contains('folded') ? 'unfold' : 'fold');
     this.build();
     this.select(this.selected);

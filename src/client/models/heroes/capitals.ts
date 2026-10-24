@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { type Builder, type V3, add, mat, g, box, rbox, cyl, cone, ellip, lathe, rod, skin, slab, gable, tbox, prism, shade, hash3 } from '../prims.ts';
+import { type Builder, type V3, type Paint, add, mat, g, box, rbox, cyl, cone, ellip, lathe, rod, skin, slab, gable, tbox, prism, shade, hash3, plinth, tree, SITE } from '../prims.ts';
 import { grp } from '../timber.ts';
 import { human, type HumanOpts } from '../human.ts';
 
@@ -18,11 +18,37 @@ const C = {
 
 // ---- shared kit -----------------------------------------------------------------------------------------------
 
-/** Low rectangular ground plinth every capital stands on; returns its top height. */
-function plinth(p: THREE.Object3D, w: number, d: number, top: string, side = shade(top, 0.72)): number {
-  rbox(p, side, 0, 0, 0, w, 0.014, d, 0.006);
-  box(p, top, 0, 0.014, 0, w - 0.012, 0.003, d - 0.012);
-  return 0.017;
+/** Local radius of the plinth top in the current builder's content frame (set by `site`). */
+let RL = 0.44;
+/** Pull a plan point radially inside the plinth top. */
+const clip = (x: number, z: number, m = 0.004): [number, number] => {
+  const r = Math.hypot(x, z), L = RL - m;
+  return r > L ? [(x * L) / r, (z * L) / r] : [x, z];
+};
+
+/**
+ * Every capital stands on the shared round museum base (prims `plinth`, dark walnut side, SITE-coloured top). The site
+ * is authored in a ±0.5 frame and placed in a content group scaled by k so it fits the disc; returns [group, top y].
+ */
+function site(root: THREE.Group, top: string, k: number, paint?: Paint): [THREE.Group, number] {
+  const h = plinth(root, top, { paint });
+  const p = new THREE.Group();
+  p.position.y = h + 0.0015;
+  p.scale.setScalar(k);
+  root.add(p);
+  RL = 0.444 / k;
+  return [p, 0];
+}
+
+/** A band of ground (road, river) across the disc between z0 and z1, following the plinth rim at both ends. */
+function band(p: THREE.Object3D, z0: number, z1: number, y: number, h: number, c: string, m = 0.006): void {
+  const L: [number, number][] = [], R: [number, number][] = [];
+  for (let i = 0; i <= 10; i++) {
+    const z = z0 + ((z1 - z0) * i) / 10, x = Math.sqrt(Math.max(0, (RL - m) ** 2 - z * z));
+    L.push([-x, z]);
+    R.push([x, z]);
+  }
+  prism(p, [...L, ...R.reverse()], y, h, c);
 }
 
 /** Rammed-earth (夯土) block, tapered, with the horizontal tamping layers painted as bands. */
@@ -236,15 +262,8 @@ function railRun(p: THREE.Object3D, x0: number, x1: number, y: number, z: number
   box(p, c, (x0 + x1) / 2, y + h - 0.006, z, x1 - x0, 0.005, 0.005);
 }
 
-/** Deciduous tree with a lumpy low-poly crown. */
-function tree(p: THREE.Object3D, x: number, y: number, z: number, s: number, c = '#5f7f3e'): void {
-  cyl(p, C.darkwood, x, y, z, s * 0.09, s * 0.55, 5);
-  for (let i = 0; i < 3; i++) ellip(p, i ? shade(c, 1 + (hash3(x, i, z) - 0.5) * 0.2) : c, x + (i - 1) * s * 0.18, y + s * (0.7 + (i % 2) * 0.16), z + (hash3(z, i, x) - 0.5) * s * 0.3, s * 0.32, s * 0.28, s * 0.3);
-}
-
 // ---- builders ---------------------------------------------------------------------------------------------------
 
-const GRASS = '#7c7858', GRASS_SIDE = '#5d5842', PAVE = '#a39b8a', PAVE_SIDE = '#7d7668';
 
 /**
  * 二里头一号宫殿 (c. 1700 BC; also stands for the Shang palaces of 偃师/郑州/殷墟): a ~108×100 m rammed-earth platform with
@@ -252,9 +271,9 @@ const GRASS = '#7c7858', GRASS_SIDE = '#5d5842', PAVE = '#a39b8a', PAVE_SIDE = '
  * on its own earth base at the north under a double-eaved thatched hip roof (四阿重屋). Walls are wattle-and-daub.
  * Refs: 中国社科院考古所《偃师二里头》(1999); 杨鸿勋《宫殿考古通论》 reconstruction; https://zh.wikipedia.org/wiki/二里头遗址
  */
-const cap_erlitou: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, GRASS, GRASS_SIDE);
-  const E = '#9f8762', TOP = '#ad9671', TH = '#75684f', DAUB = '#b8a684', WD = '#46372a';
+const cap_erlitou: Builder = root => {
+  const [gp, y0] = site(root, SITE.grass, 0.76);
+  const E = '#9f8762', TOP = '#ad9671', TH = '#6e5d43', DAUB = '#b8a684', WD = '#46372a';
   const X0 = -0.42, X1 = 0.42, Z0 = -0.39, Z1 = 0.39, NX = 0.25, NZ = -0.27;
   const plan: [number, number][] = [[X0, Z1], [X1, Z1], [X1, NZ], [NX, NZ], [NX, Z0], [X0, Z0]];
   const inset = (k: number) => plan.map(([x, z]) => [x * k, z * k] as [number, number]);
@@ -307,8 +326,9 @@ const cap_erlitou: Builder = gp => {
   figure(gp, -0.12, yp, 0.0, 0.028, robes[2], { ry: 0.6 });
   figure(gp, 0.07, yb, hz + 0.075, 0.028, robes[3]);
   figure(gp, 0.03, y0, 0.425, 0.028, robes[4], { pose: 'walk', ry: Math.PI, phase: 0.6 });
-  tree(gp, 0.34, y0, -0.35, 0.075, '#5f7340');
-  tree(gp, 0.4, y0, -0.31, 0.06, '#66784a');
+  tree(gp, 0.33, y0, -0.37, 0.065, '#5f7340');
+  tree(gp, 0.39, y0, -0.27, 0.05, '#66784a');
+  tree(gp, -0.47, y0, 0.12, 0.055, '#5f7340');
 };
 
 /**
@@ -317,8 +337,8 @@ const cap_erlitou: Builder = gp => {
  * with three stairs, a 过廊 to the rear rooms (后室) and full-length east/west wings. Thatched roofs, tiles only on ridges.
  * Refs: 陕西周原考古队《陕西岐山凤雏村西周建筑基址发掘简报》(文物1979.10); 傅熹年 reconstruction; https://zh.wikipedia.org/wiki/凤雏遗址
  */
-const cap_zhou: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, GRASS, GRASS_SIDE);
+const cap_zhou: Builder = root => {
+  const [gp, y0] = site(root, SITE.grass, 0.88);
   const L = '#a38b66', LT = '#b09a76', TH = '#75684f', RT = '#5c5f62', PL = '#cfc4a9', WD = '#4a3a2b', DOOR = '#2e261d';
   const s = 0.016, W = 32.5 * s, D = 45.2 * s, zc = -0.03, zs = zc + D / 2;
   const M = (m: number) => zs - m * s;
@@ -373,77 +393,96 @@ const cap_zhou: Builder = gp => {
   figure(gp, 0.07, yp, M(13), 0.03, '#6e604c', { ry: -0.8 });
   figure(gp, -0.08, yp, M(15), 0.03, '#7a6b55', { pose: 'walk', ry: Math.PI * 0.9, phase: 0.55 });
   figure(gp, 0.03, yh, hz + 0.07, 0.03, '#4a3f34');
-  tree(gp, -0.36, y0, 0.18, 0.085, '#5f7340');
-  tree(gp, 0.37, y0, -0.12, 0.09, '#66784a');
-  tree(gp, -0.37, y0, -0.3, 0.08, '#5a6e44');
+  tree(gp, -0.36, y0, 0.2, 0.07, '#5f7340');
+  tree(gp, 0.37, y0, -0.12, 0.075, '#66784a');
+  tree(gp, -0.35, y0, -0.3, 0.065, '#5a6e44');
 };
 
-/** Han-style que (阙) gate tower: plastered rammed-earth shaft with timber-framed eaves, a lower 子阙 on the outer side. */
+/**
+ * Han que (阙) after the surviving stone 高颐阙 (209, Ya'an; Commons "Gaoyi Que(Front).jpg", "Gao Yi Que3.jpg"): a plain
+ * shaft on a low base, a corbelled zone of stacked courses with 斗拱 blocks spreading outwards, a deep hip roof, and the
+ * lower 子阙 on the outer side. Palace que were plastered rammed earth with timber brackets: buff shaft, dark courses,
+ * a red-painted frieze. sx = outer side.
+ */
 function que(p: THREE.Object3D, x: number, y: number, z: number, sx: number, tile: string, s = 1): void {
-  const body0 = '#cbc2ad', band = '#3a3430', red = '#8a3a2c';
-  const qw = 0.075 * s, qd = 0.06 * s, qh = 0.2 * s;
-  earth(p, x, y, z, qw * 1.12, qd * 1.12, qw, qd, qh, body0, 1, body0);
-  box(p, red, x, y + qh, z, qw + 0.008, 0.012 * s, qd + 0.008);
-  box(p, band, x, y + qh + 0.012 * s, z, qw + 0.02, 0.012 * s, qd + 0.02);
-  roof(p, x, y + qh + 0.024 * s, z, qw + 0.06 * s, qd + 0.055 * s, 0.04 * s, { tile, k: 0.15, lift: 0.05, ridge: shade(tile, 0.7) });
-  const sx2 = x + sx * (qw / 2 + 0.024 * s), sh = qh * 0.6;
-  earth(p, sx2, y, z, 0.05 * s, qd * 0.95, 0.045 * s, qd * 0.85, sh, body0, 1, body0);
-  box(p, band, sx2, y + sh, z, 0.055 * s, 0.01 * s, qd * 0.85 + 0.012);
-  roof(p, sx2 + sx * 0.004, y + sh + 0.01 * s, z, 0.085 * s, qd + 0.04 * s, 0.028 * s, { tile, k: 0.15, lift: 0.05, ridge: shade(tile, 0.7) });
+  const SH = '#b3a68b', BAND = '#3d3530', RED = '#8a3a2c', rt: RoofO = { tile, k: 0.12, lift: 0.04, ridge: shade(tile, 0.7) };
+  const tower = (cx: number, w: number, d: number, h: number, rise: number) => {
+    box(p, shade(SH, 0.84), cx, y, z, w * 1.22, 0.012 * s, d * 1.22);
+    earth(p, cx, y + 0.012 * s, z, w * 1.06, d * 1.06, w, d, h, SH, 1, SH);
+    let yy = y + 0.012 * s + h;
+    box(p, BAND, cx, yy, z, w + 0.006 * s, 0.008 * s, d + 0.006 * s);
+    yy += 0.008 * s;
+    // two corbelled tiers, each a red frieze set with dark bracket blocks, stepping outwards under the roof
+    for (const [ow, fh] of [[0.012, 0.015], [0.034, 0.014]]) {
+      const fw = w + ow * s, fd = d + ow * s, hh = fh * s, n = Math.max(2, Math.round(fw / (0.026 * s)));
+      box(p, RED, cx, yy, z, fw, hh, fd);
+      for (let i = 0; i <= n; i++) for (const sz of [-1, 1]) box(p, BAND, cx - fw / 2 + 0.005 * s + (i * (fw - 0.01 * s)) / n, yy + 0.003 * s, z + (sz * fd) / 2, 0.008 * s, hh - 0.003 * s, 0.006 * s);
+      for (const sxx of [-1, 1]) box(p, BAND, cx + (sxx * fw) / 2, yy + 0.003 * s, z, 0.006 * s, hh - 0.003 * s, 0.008 * s);
+      yy += hh;
+      box(p, BAND, cx, yy, z, fw + 0.012 * s, 0.007 * s, fd + 0.012 * s);
+      yy += 0.007 * s;
+    }
+    roof(p, cx, yy, z, w + 0.075 * s, d + 0.07 * s, rise, rt);
+  };
+  const qw = 0.07 * s, qd = 0.052 * s, sw = 0.042 * s;
+  tower(x + sx * (qw / 2 + sw / 2 + 0.002 * s), sw, qd * 0.8, 0.075 * s, 0.022 * s);
+  tower(x, qw, qd, 0.16 * s, 0.038 * s);
 }
 
 /**
- * 西汉长安未央宫前殿 (200 BC): a rammed-earth terrace about 350 × 200 m rising northwards in three great steps on the 龙首原
- * — a gate hall and side halls on the lowest, a hall on the middle step reached by the paired 左墄右平 stairs (stepped east,
- * ramped west), and the front hall itself on the highest step: a long hall under a grey tile hip roof with straight eaves,
- * no ridge finials yet, white-plastered walls and red posts. The paired 阙 stand before the approach.
- * Refs: 中国社科院考古所《汉长安城未央宫：1980–1989年考古发掘报告》(1996); 刘庆柱、李毓芳《汉长安城》(2003).
+ * 西汉长安未央宫前殿 (200 BC): a rammed-earth terrace about 350 m north–south by 200 m east–west, rising northwards in
+ * three great steps on the 龙首原 — a gate hall and side halls on the lowest, a hall on the middle step reached by the paired
+ * 左墄右平 stairs (stepped east, ramped west), and the front hall on the highest step: a long hall wrapped by a gallery under
+ * a grey tile hip roof with straight eaves and no ridge finials yet, white-plastered walls and red posts. A pair of 阙 in the
+ * 高颐阙 form stands before the approach. Refs: 中国社科院考古所《汉长安城未央宫：1980–1989年考古发掘报告》(1996);
+ * 刘庆柱、李毓芳《汉长安城》(2003); the 未央宫国家考古遗址公园 que replicas (Commons "WeiYang Palace - 54082522066.jpg").
  */
-const cap_qinhan: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, '#8a8370', '#6a6454');
-  const tile = '#45484e', PL = '#d3cab6', TOP = '#a8957a', RED = '#8e3a2c', E = '#b09a78', SC = '#b3a283', ZB = -0.405;
-  // three steps rising north, each back-aligned
-  const T: [number, number, number][] = [[0.8, 0.27, 0.035], [0.66, 0.09, 0.04], [0.54, -0.09, 0.042]];
+const cap_qinhan: Builder = root => {
+  const [gp, y0] = site(root, SITE.loess, 1);
+  const tile = '#4a4d52', PL = '#d3cab6', TOP = '#a99372', RED = '#8e3a2c', BLK = '#3a3430', E = '#9a7f5c', SC = '#ab9878', ZB = -0.325;
+  // three steps rising north, each back-aligned; the terrace is longer north–south than wide, as excavated
+  const T: [number, number, number][] = [[0.56, 0.22, 0.035], [0.5, 0.05, 0.04], [0.44, -0.1, 0.045]];
   const tops: number[] = [];
   let y = y0;
   for (const [w, zf, h] of T) {
     const d = zf - ZB, z = (zf + ZB) / 2;
-    y = earth(gp, 0, y, z, w + 0.008, d + 0.008, w, d, h, E, 2, TOP);
-    box(gp, PL, 0, y - h, zf + 0.004 - 0.0005, w - 0.04, h * 0.7, 0.002);
+    y = earth(gp, 0, y, z, w + 0.012, d + 0.012, w, d, h, E, 3, TOP);
     tops.push(y);
   }
   // lowest step: the hall gate (殿门) and two side halls
-  const g1 = body(gp, 0, tops[0], 0.2, 0.14, 0.06, 0.04, { wall: PL, col: RED, beam: '#3a3430', sp: 0.035, cr: 0.004, door: '#2e2a28', doorN: 3 });
-  roof(gp, 0, g1, 0.2, 0.19, 0.11, 0.045, { tile, k: 0.12, lift: 0.03, ridge: shade(tile, 0.72) });
+  const g1 = body(gp, 0, tops[0], 0.155, 0.13, 0.055, 0.04, { wall: PL, col: RED, beam: BLK, sp: 0.033, cr: 0.004, door: '#2e2a28', doorN: 3 });
+  roof(gp, 0, g1, 0.155, 0.175, 0.1, 0.042, { tile, k: 0.12, lift: 0.03, ridge: shade(tile, 0.72) });
   for (const sx of [-1, 1]) {
-    const e = body(gp, sx * 0.25, tops[0], 0.17, 0.12, 0.07, 0.04, { wall: PL, col: RED, beam: '#3a3430', sp: 0.03, cr: 0.004 });
-    roof(gp, sx * 0.25, e, 0.17, 0.165, 0.12, 0.045, { tile, k: 0.12, lift: 0.03, ridge: shade(tile, 0.72) });
+    const e = body(gp, sx * 0.19, tops[0], 0.135, 0.1, 0.055, 0.038, { wall: PL, col: RED, beam: BLK, sp: 0.033, cr: 0.004 });
+    roof(gp, sx * 0.19, e, 0.135, 0.14, 0.1, 0.04, { tile, k: 0.12, lift: 0.03, ridge: shade(tile, 0.72) });
   }
   // middle step: a hall, with the east stairs (墄) and the west ramp (平) running up beside it
-  const mz = 0.0;
-  const e2 = body(gp, 0, tops[1], mz, 0.22, 0.08, 0.048, { wall: PL, col: RED, beam: '#3a3430', sp: 0.04, cr: 0.0045, door: '#2e2a28', doorN: 3 });
-  roof(gp, 0, e2, mz, 0.29, 0.15, 0.06, { tile, k: 0.12, lift: 0.03, ridge: shade(tile, 0.72) });
-  steps(gp, 0, tops[0], 0.09 + 0.05, 0.06, tops[1] - tops[0], 0.05, SC, 5);
+  const mz = -0.025;
+  const e2 = body(gp, 0, tops[1], mz, 0.2, 0.065, 0.046, { wall: PL, col: RED, beam: BLK, sp: 0.04, cr: 0.0045, door: '#2e2a28', doorN: 3 });
+  roof(gp, 0, e2, mz, 0.26, 0.12, 0.055, { tile, k: 0.12, lift: 0.03, ridge: shade(tile, 0.72) });
+  steps(gp, 0, tops[0], 0.05 + 0.045, 0.06, tops[1] - tops[0], 0.045, SC, 5);
   for (const sx of [-1, 1]) {
-    const x = sx * 0.19;
-    if (sx > 0) steps(gp, x, tops[1], -0.09 + 0.06, 0.045, tops[2] - tops[1], 0.06, SC, 6);
-    else ramp(gp, x, tops[1], -0.09 + 0.06, 0.045, tops[2] - tops[1], 0.06, SC);
+    const x = sx * 0.175;
+    if (sx > 0) steps(gp, x, tops[1], -0.1 + 0.06, 0.045, tops[2] - tops[1], 0.06, SC, 6);
+    else ramp(gp, x, tops[1], -0.1 + 0.06, 0.045, tops[2] - tops[1], 0.06, SC);
   }
   // the front hall on the top step, wrapped by a gallery
-  const hz = -0.26;
-  rbox(gp, TOP, 0, tops[2], hz, 0.46, 0.008, 0.2, 0.003);
+  const hz = -0.215;
+  rbox(gp, TOP, 0, tops[2], hz, 0.42, 0.008, 0.19, 0.003);
   const yh = tops[2] + 0.008;
-  const et = body(gp, 0, yh, hz, 0.38, 0.13, 0.08, { wall: PL, col: RED, beam: '#3a3430', bracket: '#3a3430', sp: 0.038, cr: 0.0058, door: '#2e2a28', doorN: 5 });
-  colonnade(gp, 0, yh, hz, 0.42, 0.17, 0.045, 11, 4, RED, 0.0045);
-  roof(gp, 0, yh + 0.045, hz, 0.45, 0.2, 0.016, { tile, inner: [0.38, 0.13], k: 0.06, lift: 0.03 });
-  roof(gp, 0, et, hz, 0.47, 0.22, 0.11, { tile, k: 0.15, lift: 0.05, ridge: shade(tile, 0.72) });
+  const et = body(gp, 0, yh, hz, 0.34, 0.11, 0.08, { wall: PL, col: RED, beam: BLK, bracket: BLK, sp: 0.034, cr: 0.0058, door: '#2e2a28', doorN: 5 });
+  colonnade(gp, 0, yh, hz, 0.38, 0.15, 0.045, 11, 4, RED, 0.0045);
+  roof(gp, 0, yh + 0.045, hz, 0.41, 0.18, 0.016, { tile, inner: [0.34, 0.11], k: 0.06, lift: 0.03 });
+  roof(gp, 0, et, hz, 0.43, 0.2, 0.1, { tile, k: 0.15, lift: 0.05, ridge: shade(tile, 0.72) });
   // the paired que before the approach and Han officials
-  for (const sx of [-1, 1]) que(gp, sx * 0.355, y0, 0.37, sx, tile, 0.66);
-  steps(gp, 0, y0, 0.27 + 0.05, 0.08, tops[0] - y0, 0.05, SC, 5);
-  for (const sx of [-1, 1]) figure(gp, sx * 0.07, y0, 0.37, 0.028, '#5a2a24', { armor: '#4a4540' });
-  figure(gp, -0.12, y0, 0.3, 0.028, '#2f2a2e', { hat: 'cap', pose: 'walk', ry: Math.PI, phase: 0.3 });
-  figure(gp, 0.06, tops[0], 0.13, 0.028, '#6a3a30', { hat: 'cap', pose: 'walk', ry: Math.PI * 0.9, phase: 0.6 });
-  figure(gp, -0.08, tops[1], 0.06, 0.028, '#3a3040', { hat: 'cap', ry: 0.3 });
+  for (const sx of [-1, 1]) que(gp, sx * 0.165, y0, 0.33, sx, tile, 0.62);
+  steps(gp, 0, y0, 0.22 + 0.05, 0.08, tops[0] - y0, 0.05, SC, 5);
+  for (const sx of [-1, 1]) figure(gp, sx * 0.07, y0, 0.34, 0.028, '#5a2a24', { armor: '#4a4540' });
+  figure(gp, -0.03, y0, 0.39, 0.028, '#2f2a2e', { hat: 'cap', pose: 'walk', ry: Math.PI, phase: 0.3 });
+  figure(gp, 0.06, tops[0], 0.085, 0.028, '#6a3a30', { hat: 'cap', pose: 'walk', ry: Math.PI * 0.9, phase: 0.6 });
+  figure(gp, -0.08, tops[1], 0.03, 0.028, '#3a3040', { hat: 'cap', ry: 0.3 });
+  tree(gp, -0.33, y0, 0.25, 0.06, '#66784a');
+  tree(gp, 0.36, y0, 0.2, 0.055, '#5f7340');
 };
 
 
@@ -471,9 +510,9 @@ function tangQue(p: THREE.Object3D, x: number, y: number, z: number, sx: number,
  * joined to the terrace by corridors on walls. Refs: 傅熹年《对含元殿遗址及原状的再探讨》(文物1998.4); 《唐大明宫含元殿遗址
  * 1995—1996年发掘报告》(考古学报1997.3); 杨鸿勋《大明宫》.
  */
-const cap_tang: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, PAVE, PAVE_SIDE);
-  const tile = '#4c5056', edge = '#4a6e5a', BR = '#8f897e', BRT = '#a7a194', PL = '#e2dccb', RED = '#8e3a2c', ST = '#bdb7aa';
+const cap_tang: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.82);
+  const tile = '#4c5056', edge = '#4a6e5a', BR = '#827c72', BRT = '#99938a', PL = '#e2dccb', RED = '#8e3a2c', ST = '#bdb7aa';
   // three-tier brick-faced platform (大台)
   const tier = (y: number, w: number, d: number, h: number, z: number) => {
     earth(gp, 0, y, z, w + 0.008, d + 0.008, w, d, h, BR, Math.max(1, Math.round(h / 0.012)), BRT);
@@ -550,13 +589,14 @@ function crane(p: THREE.Object3D, x: number, y: number, z: number, s: number, ry
  * strongly upswept corners and 鸱吻 on which two cranes perch, side 朵楼, corridors forward to the 阙亭.
  * Refs: 瑞鹤图 (辽宁省博物馆, https://commons.wikimedia.org/wiki/File:瑞鹤图（亮版）.jpg); 傅熹年《中国古代建筑史·宋辽金》.
  */
-const cap_song: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, PAVE, PAVE_SIDE);
-  const tile = '#5b6064', glaze = '#3d5e4f', wall = '#a39b8d', RED = '#923a2d', DOOR = '#7f2c23', PL = '#e2dccb', BK = '#4f7068', bh = 0.12;
+const cap_song: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.92);
+  const tile = '#484c50', glaze = '#3d5e4f', wall = '#948b7d', RED = '#923a2d', DOOR = '#7f2c23', PL = '#e2dccb', BK = '#4f7068', bh = 0.12;
   // 凹-shaped platform: main block and two forward wings, brick and stone courses
-  const mz = -0.17, md = 0.2;
-  earth(gp, 0, y0, mz, 0.86, md + 0.012, 0.84, md, bh, wall, 6, shade(wall, 1.06));
-  for (const sx of [-1, 1]) earth(gp, sx * 0.345, y0, mz + md / 2 + 0.15, 0.17, 0.33, 0.16, 0.32, bh, wall, 6, shade(wall, 1.06));
+  const mz = -0.12, md = 0.2;
+  const MW = 0.76, OX = 0.305, WZ = 0.105, QZ = 0.22;
+  earth(gp, 0, y0, mz, MW + 0.02, md + 0.012, MW, md, bh, wall, 6, shade(wall, 1.06));
+  for (const sx of [-1, 1]) earth(gp, sx * OX, y0, WZ, 0.16, 0.33, 0.15, 0.32, bh, wall, 6, shade(wall, 1.06));
   // three trapezoidal gateways with red, gold-studded doors
   const fz = mz + md / 2 + 0.003;
   for (const x of [-0.12, 0, 0.12]) {
@@ -566,32 +606,32 @@ const cap_song: Builder = gp => {
     for (let r = 0; r < 3; r++) box(gp, '#a88a4a', x, y0 + h * (0.18 + r * 0.2), fz + 0.0055, w * 0.8, 0.003, 0.002);
   }
   const yt = y0 + bh;
-  rail(gp, 0, yt, mz, 0.84, md, RED, 0, 0.016, [false, true, true, true]);
-  railRun(gp, -0.26, 0.26, yt, mz + md / 2 - 0.004, RED);
-  for (const sx of [-1, 1]) rail(gp, sx * 0.345, yt, mz + md / 2 + 0.15, 0.16, 0.32, RED, 0, 0.016, [true, sx < 0, false, sx > 0]);
+  rail(gp, 0, yt, mz, MW - 0.01, md - 0.01, RED, 0, 0.016, [false, true, true, true]);
+  railRun(gp, -(OX - 0.075), OX - 0.075, yt, mz + md / 2 - 0.004, RED);
+  for (const sx of [-1, 1]) rail(gp, sx * OX, yt, WZ, 0.14, 0.31, RED, 0, 0.016, [true, sx < 0, false, sx > 0]);
   // the 7-bay gate tower (门楼): red columns, white walls with red lattice doors, blue-green painted brackets
-  const et = body(gp, 0, yt, mz, 0.42, 0.13, 0.072, { wall: PL, col: RED, beam: RED, bracket: BK, sp: 0.06, cr: 0.0055, door: DOOR, doorN: 5 });
-  const top = roof(gp, 0, et, mz, 0.54, 0.25, 0.11, { tile, edge: glaze, ridge: glaze, k: 0.5, lift: 0.6, chi: glaze, chiH: 0.036 });
-  const rl = 0.54 - 0.25 + 0.008;
+  const et = body(gp, 0, yt, mz, 0.4, 0.13, 0.072, { wall: PL, col: RED, beam: RED, bracket: BK, sp: 0.06, cr: 0.0055, door: DOOR, doorN: 5 });
+  const top = roof(gp, 0, et, mz, 0.52, 0.25, 0.11, { tile, edge: glaze, ridge: glaze, k: 0.5, lift: 0.6, chi: glaze, chiH: 0.036 });
+  const rl = 0.52 - 0.25 + 0.008;
   for (const sx of [-1, 1]) crane(gp, sx * (rl / 2 + 0.002), top + 0.03, mz, 0.045, sx > 0 ? Math.PI : 0);
   // 曲尺朵楼 at both ends, corridors forward along the wings, and the 阙亭 at their front corners
   for (const sx of [-1, 1]) {
-    const ox = sx * 0.345;
+    const ox = sx * OX;
     const e2 = body(gp, ox, yt, mz, 0.11, 0.11, 0.05, { wall: PL, col: RED, bracket: BK, sp: 0.036, cr: 0.0045 });
     roof(gp, ox, e2, mz, 0.17, 0.16, 0.075, { tile, edge: glaze, ridge: glaze, k: 0.45, lift: 0.6, xie: 0.55 });
-    galleryZ(gp, ox, yt, mz + 0.07, 0.17, 0.05, 0.04, 0.026, RED, { tile, edge: glaze, k: 0.4, lift: 0.3, ridge: glaze }, PL);
-    const qz = 0.22;
+    galleryZ(gp, ox, yt, mz + 0.07, QZ - 0.05, 0.05, 0.04, 0.026, RED, { tile, edge: glaze, k: 0.4, lift: 0.3, ridge: glaze }, PL);
+    const qz = QZ;
     const e3 = body(gp, ox, yt, qz, 0.1, 0.1, 0.05, { wall: PL, col: RED, bracket: BK, sp: 0.033, cr: 0.0045 });
     const m = roof(gp, ox, e3 - 0.004, qz, 0.15, 0.15, 0.02, { tile, edge: glaze, inner: [0.07, 0.07], k: 0.4, lift: 0.6 });
     const e4 = body(gp, ox, m, qz, 0.07, 0.07, 0.035, { wall: PL, col: RED, sp: 0.035, cr: 0.0038 });
     roof(gp, ox, e4, qz, 0.13, 0.13, 0.06, { tile, edge: glaze, k: 0.45, lift: 0.6, ridge: glaze, chi: glaze, chiH: 0.018 });
   }
   // the auspicious cranes of 1112 circling over the gate
-  for (const [x, y, z, ry] of [[-0.2, 0.4, -0.22, 0.4], [0.07, 0.43, -0.26, -0.3], [0.25, 0.38, -0.16, Math.PI - 0.5]] as const) crane(gp, x, y, z, 0.04, ry, true);
+  for (const [x, y, z, ry] of [[-0.2, 0.33, -0.07, 0.4], [0.07, 0.36, -0.15, -0.3], [0.24, 0.31, -0.03, Math.PI - 0.5]] as const) crane(gp, x, y, z, 0.04, ry, true);
   // palace guards and officials on the 御街
-  for (const x of [-0.165, -0.075, 0.075, 0.165]) figure(gp, x, y0, -0.02, 0.026, '#8a3a30', { hat: 'plume', hatC: '#4f4b45', armor: '#6b6258' });
-  figure(gp, -0.04, y0, 0.2, 0.026, '#5a4762', { hat: 'cap', pose: 'walk', ry: Math.PI, phase: 0.3 });
-  figure(gp, 0.05, y0, 0.27, 0.026, '#566a50', { hat: 'cap', pose: 'walk', ry: Math.PI, phase: 0.8 });
+  for (const x of [-0.165, -0.075, 0.075, 0.165]) figure(gp, x, y0, 0.03, 0.026, '#8a3a30', { hat: 'plume', hatC: '#4f4b45', armor: '#6b6258' });
+  figure(gp, -0.04, y0, 0.22, 0.026, '#5a4762', { hat: 'cap', pose: 'walk', ry: Math.PI, phase: 0.3 });
+  figure(gp, 0.05, y0, 0.31, 0.026, '#566a50', { hat: 'cap', pose: 'walk', ry: Math.PI, phase: 0.8 });
 };
 
 /** Mongol ger / ordo tent: white felt walls and dome bound with dark bands, a gilt crown and a red door. */
@@ -614,8 +654,8 @@ function ger(p: THREE.Object3D, x: number, y: number, z: number, r: number, ry =
  * (glazed tile on eaves and ridges over grey tile). A white felt ordo (斡耳朵) stands beside it.
  * Refs: 辍耕录 卷21; 朱偰《元大都宫殿图考》(1936); 傅熹年《元大都大内宫殿的复原研究》.
  */
-const cap_yuan: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, PAVE, PAVE_SIDE);
+const cap_yuan: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 1);
   const tile = '#585c61', glaze = '#3b6763', m = '#d9d4c6', ms = shade(m, 0.93), RED = '#8a2f25', WALL = '#9a4636', RAIL = '#9a3a2c', GOLD = '#b8954a', BK = '#4c6b66';
   // 工-shaped two-tier terrace: front block, waist under the corridor, rear block
   const tierI = (y: number, h: number, c: string, k: number) => {
@@ -652,17 +692,23 @@ const cap_yuan: Builder = gp => {
     roof(gp, sx * 0.14, e3, bz + 0.005, 0.1, 0.095, 0.04, { tile, edge: glaze, k: 0.35, lift: 0.3, ridge: glaze });
   }
   // the khan's ordo tent and Mongol guards in fur-brimmed hats
-  ger(gp, -0.34, y0, 0.3, 0.06, 0.4);
-  for (const x of [-0.13, -0.075, 0.075, 0.13]) figure(gp, x, y0, 0.405, 0.026, '#5f5242', { hat: 'fur', hatC: '#4a3a2c', armor: '#5e5850' });
-  figure(gp, -0.26, y0, 0.36, 0.026, '#6b4a3a', { hat: 'fur', hatC: '#4a3a2c', pose: 'walk', ry: -1.2, phase: 0.4 });
+  ger(gp, -0.31, y0, -0.06, 0.06, 0.3);
+  for (const x of [-0.13, -0.075, 0.075, 0.13]) figure(gp, x, y0, 0.39, 0.026, '#5f5242', { hat: 'fur', hatC: '#4a3a2c', armor: '#5e5850' });
+  figure(gp, -0.3, y0, 0.08, 0.026, '#6b4a3a', { hat: 'fur', hatC: '#4a3a2c', pose: 'walk', ry: -1.2, phase: 0.4 });
 };
 
 // ---- per-capital kit ----------------------------------------------------------------------------------------------
 
 /** Flat ribbon (river, moat, bank) of width w along a centre line, clipped to the plinth top. */
 function ribbon(p: THREE.Object3D, pts: [number, number][], w: number, y: number, h: number, c: string): void {
-  const L: [number, number][] = [], R: [number, number][] = [];
-  const cl = (x: number, z: number): [number, number] => [clamp(x, -0.443, 0.443), clamp(z, -0.423, 0.423)];
+  const L: [number, number][] = [], R: [number, number][] = [], dense: [number, number][] = [];
+  pts.forEach(([x, z], i) => {
+    if (!i) return void dense.push([x, z]);
+    const [px, pz] = pts[i - 1], n = Math.max(1, Math.ceil(Math.hypot(x - px, z - pz) / 0.025));
+    for (let k = 1; k <= n; k++) dense.push([px + ((x - px) * k) / n, pz + ((z - pz) * k) / n]);
+  });
+  pts = dense;
+  const cl = (x: number, z: number): [number, number] => clip(x, z);
   pts.forEach(([x, z], i) => {
     const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], l = Math.hypot(b[0] - a[0], b[1] - a[1]);
     const nx = -(b[1] - a[1]) / l, nz = (b[0] - a[0]) / l;
@@ -679,7 +725,8 @@ function hill(p: THREE.Object3D, x: number, y: number, z: number, rx: number, rz
     const t = i / K, r = Math.cos((t * Math.PI) / 2) ** 0.7, yy = y + h * Math.sin((t * Math.PI) / 2) ** 1.4, row: V3[] = [];
     for (let j = 0; j < N; j++) {
       const a = (j / N) * Math.PI * 2, n = 1 + (hash3(x + j, i, z) - 0.5) * 0.08;
-      row.push([clamp(x + Math.cos(a) * rx * r * n, -0.443, 0.443), yy + (i && (hash3(j, x, i) - 0.5) * h * 0.05), clamp(z + Math.sin(a) * rz * r * n, -0.423, 0.423)]);
+      const [px, pz] = clip(x + Math.cos(a) * rx * r * n, z + Math.sin(a) * rz * r * n);
+      row.push([px, yy + (i && (hash3(j, x, i) - 0.5) * h * 0.05), pz]);
     }
     ring.push(row);
   }
@@ -694,10 +741,11 @@ function hill(p: THREE.Object3D, x: number, y: number, z: number, rx: number, rz
 
 /** Thatched Shang hall on its own low rammed-earth base; ry turns the front (+z) to face the court. */
 function shangHall(p: THREE.Object3D, x: number, y: number, z: number, w: number, d: number, ry = 0): void {
-  const g0 = grp(p, x, z, ry, y), E = '#9f8762', TH = '#75684f', WD = '#46372a';
+  const g0 = grp(p, x, z, ry, y), E = '#9f8762', TH = '#655440', WD = '#6b3a2c';
   earth(g0, 0, 0, 0, w + 0.032, d + 0.03, w + 0.026, d + 0.024, 0.014, E, 1, '#ad9671');
-  const et = body(g0, 0, 0.014, 0, w, d, 0.032, { wall: '#b8a684', col: WD, beam: WD, sp: 0.03, cr: 0.0035, door: '#2b2219', doorN: Math.max(1, Math.round(w / 0.1)) });
-  roof(g0, 0, et, 0, w + 0.036, d + 0.04, Math.min(0.048, d * 0.55 + 0.014), { tile: TH, thatch: true, k: 0.06, ridge: shade(TH, 0.78), under: '#5b4e38', fascia: shade(TH, 0.8), th: 0.009 });
+  // per the 乙二十 reconstruction: lime-washed daub walls, red-brown posts along a veranda, a deep steep thatch
+  const et = body(g0, 0, 0.014, 0, w, d, 0.038, { wall: '#d0c6ac', col: WD, beam: WD, sp: 0.03, cr: 0.004, door: '#3a2a20', doorN: Math.max(1, Math.round(w / 0.1)) });
+  roof(g0, 0, et, 0, w + 0.03, d + 0.032, Math.min(0.056, d * 0.7 + 0.016), { tile: TH, thatch: true, k: 0.05, ridge: shade(TH, 0.76), under: '#4f4232', fascia: shade(TH, 0.78), th: 0.013 });
   steps(g0, 0, 0, d / 2 + 0.03, 0.03, 0.014, 0.016, E, 2);
 }
 
@@ -708,8 +756,8 @@ function shangHall(p: THREE.Object3D, x: number, y: number, z: number, w: number
  * oracle bones were stored. Walls of wattle and daub, thatched 四阿 roofs, posts on stone footings.
  * Refs: 石璋如《小屯·殷墟建筑遗存》(1959); 中国社科院考古所《殷墟的发现与研究》(2001); 殷墟宫殿宗庙遗址 reconstruction.
  */
-const cap_yinxu: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, '#7f7a58', GRASS_SIDE);
+const cap_yinxu: Builder = root => {
+  const [gp, y0] = site(root, SITE.meadow, 0.88);
   const E = '#9f8762', BANK = '#8a7a5c', WATER = '#5f7268', BONE = '#d2c6a8', PIT = '#4a3d2e';
   // 洹河: an arc round the back and the east side
   const arc: [number, number][] = [];
@@ -725,7 +773,7 @@ const cap_yinxu: Builder = gp => {
   shangHall(gp, 0.2, y0, 0.07, 0.18, 0.05, -Math.PI / 2);
   shangHall(gp, -0.04, y0, 0.22, 0.1, 0.04);
   // 丙 group: square altar platforms and rows of sacrificial pits (a few with remains)
-  for (const [x, z] of [[-0.38, 0.27], [-0.31, 0.34], [-0.39, 0.38]] as [number, number][]) earth(gp, x, y0, z, 0.05, 0.05, 0.044, 0.044, 0.014, E, 1, '#ad9671');
+  for (const [x, z] of [[-0.36, 0.18], [-0.3, 0.25], [-0.37, 0.28]] as [number, number][]) earth(gp, x, y0, z, 0.05, 0.05, 0.044, 0.044, 0.014, E, 1, '#ad9671');
   for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) {
     const x = -0.25 + j * 0.03, z = 0.29 + i * 0.033;
     box(gp, PIT, x, y0, z, 0.016, 0.0012, 0.026);
@@ -745,7 +793,7 @@ const cap_yinxu: Builder = gp => {
   figure(gp, 0.04, y0, 0.0, 0.028, '#5d5040', { pose: 'walk', ry: -2.4, phase: 0.3 });
   figure(gp, -0.15, y0, 0.33, 0.028, '#74674f', { ry: 2.6 });
   figure(gp, 0.06, y0, 0.35, 0.028, '#685a46', { pose: 'walk', ry: Math.PI, phase: 0.7 });
-  tree(gp, 0.33, y0, 0.38, 0.07, '#5f7340');
+  tree(gp, 0.29, y0, 0.23, 0.06, '#5f7340');
   tree(gp, -0.4, y0, 0.0, 0.065, '#66784a');
 };
 
@@ -773,15 +821,24 @@ function chariotTrace(p: THREE.Object3D, x: number, y: number, z: number, s: num
  * heading south with 70 horses laid on their sides, the six-horse chariot of the Son of Heaven (天子驾六) in the middle.
  * Refs: 洛阳市文物工作队《洛阳东周王城》; 《洛阳王城广场东周墓》(2009); 洛阳周王城天子驾六博物馆.
  */
-const cap_luoyi: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, '#8a7f63', '#685f4a');
+const cap_luoyi: Builder = root => {
+  const [gp, y0] = site(root, SITE.loess, 0.78);
   const L = '#a38b66', LT = '#b09a76', G = '#958563', SOIL = '#7d6447', BONE = '#c2b28c', tile = '#55585c', PL = '#d6ccb6', RED = '#7e3428', BLK = '#2d2a27';
   // ground level raised round the open pit
-  const hg = 0.02, yg = y0 + hg, X0 = 0.07, X1 = 0.31, Z0 = -0.2, Z1 = 0.37, XE = 0.444, ZE = 0.424;
-  box(gp, G, (-XE + X0) / 2, y0, 0, X0 + XE, hg, 2 * ZE);
-  box(gp, G, (X1 + XE) / 2, y0, 0, XE - X1, hg, 2 * ZE);
-  box(gp, G, (X0 + X1) / 2, y0, (-ZE + Z0) / 2, X1 - X0, hg, Z0 + ZE);
-  box(gp, G, (X0 + X1) / 2, y0, (Z1 + ZE) / 2, X1 - X0, hg, ZE - Z1);
+  const hg = 0.02, yg = y0 + hg, X0 = 0.07, X1 = 0.31, Z0 = -0.2, Z1 = 0.37;
+  // one ring-shaped slab with the pit cut out, so no seams show on the ground
+  const outer = new THREE.Shape(), r0 = RL - 0.003;
+  for (let i = 0; i <= 96; i++) {
+    const a = (i / 96) * Math.PI * 2, x = Math.cos(a) * r0, y = Math.sin(a) * r0;
+    if (i) outer.lineTo(x, y); else outer.moveTo(x, y);
+  }
+  outer.holes.push(new THREE.Path([[X0, -Z0], [X0, -Z1], [X1, -Z1], [X1, -Z0]].map(([x, y]) => new THREE.Vector2(x, y))));
+  const ring = g(`luoyi-ground:${r0.toFixed(4)}`, () => {
+    const eg = new THREE.ExtrudeGeometry(outer, { depth: hg, bevelEnabled: false, curveSegments: 6 });
+    eg.rotateX(-Math.PI / 2);
+    return eg;
+  });
+  add(gp, ring, mat(G, { flat: true }), 0, y0, 0, 1, 1, 1);
   box(gp, SOIL, (X0 + X1) / 2, y0, (Z0 + Z1) / 2, X1 - X0, 0.001, Z1 - Z0);
   // ZK5: two files of chariots with paired / four-horse teams, the six-horse team in the middle
   const yb = y0 + 0.001, rows: [number, number, number][] = [];
@@ -794,17 +851,17 @@ const cap_luoyi: Builder = gp => {
   for (let k = 0; k < 6; k++) boneHorse(gp, 0.19 + (k - 2.5) * 0.017 - 0.005, yb, 0.135, 1, '#cbbb95');
   for (const [x, z] of [[0.1, -0.17], [0.28, 0.33], [0.24, -0.08]] as [number, number][]) ellip(gp, BONE, x, yb + 0.002, z, 0.006, 0.002, 0.0035, 0.5);
   // rammed-earth city wall along the north and west, a gap for the road
-  earth(gp, 0.06, yg, -0.385, 0.76, 0.07, 0.74, 0.05, 0.065, L, 5, LT);
-  earth(gp, -0.39, yg, -0.385, 0.08, 0.07, 0.06, 0.05, 0.065, L, 5, LT);
-  earth(gp, -0.4, yg, 0.03, 0.07, 0.76, 0.05, 0.74, 0.065, L, 5, LT);
+  earth(gp, 0.09, yg, -0.35, 0.62, 0.07, 0.6, 0.05, 0.065, L, 5, LT);
+  earth(gp, -0.3, yg, -0.35, 0.08, 0.07, 0.06, 0.05, 0.065, L, 5, LT);
+  earth(gp, -0.37, yg, -0.01, 0.07, 0.75, 0.05, 0.73, 0.065, L, 5, LT);
   // 台榭: two-stepped earth terrace, galleries round its foot, a seven-bay hall on top
-  const hx = -0.15, hz = -0.13;
-  const t1 = earth(gp, hx, yg, hz, 0.36, 0.26, 0.35, 0.25, 0.035, L, 2, LT);
+  const hx = -0.13, hz = -0.13;
+  const t1 = earth(gp, hx, yg, hz, 0.34, 0.26, 0.33, 0.25, 0.035, L, 2, LT);
   const t2 = earth(gp, hx, t1, hz - 0.01, 0.27, 0.17, 0.26, 0.16, 0.028, L, 2, LT);
-  for (const [x, z, w, d] of [[hx, hz + 0.126, 0.34, 0.003], [hx, hz - 0.126, 0.34, 0.003], [hx - 0.176, hz, 0.003, 0.24], [hx + 0.176, hz, 0.003, 0.24]] as [number, number, number, number][]) box(gp, PL, x, yg, z, w, 0.028, d);
-  for (let i = 0; i < 4; i++) box(gp, '#3a2a20', hx - 0.12 + i * 0.08, yg, hz + 0.128, 0.018, 0.022, 0.003);
-  colonnade(gp, hx, yg, hz, 0.4, 0.3, 0.03, 10, 7, BLK, 0.0035);
-  roof(gp, hx, yg + 0.03, hz, 0.42, 0.32, 0.012, { tile, inner: [0.355, 0.255], k: 0.05 });
+  for (const [x, z, w, d] of [[hx, hz + 0.127, 0.32, 0.006], [hx, hz - 0.127, 0.32, 0.006], [hx - 0.166, hz, 0.006, 0.24], [hx + 0.166, hz, 0.006, 0.24]] as [number, number, number, number][]) box(gp, PL, x, yg, z, w, 0.028, d);
+  for (let i = 0; i < 4; i++) box(gp, '#3a2a20', hx - 0.12 + i * 0.08, yg, hz + 0.13, 0.018, 0.022, 0.003);
+  colonnade(gp, hx, yg, hz, 0.38, 0.3, 0.03, 10, 7, BLK, 0.0038);
+  roof(gp, hx, yg + 0.03, hz, 0.4, 0.32, 0.012, { tile, inner: [0.335, 0.255], k: 0.05 });
   const et = body(gp, hx, t2, hz - 0.01, 0.2, 0.09, 0.05, { wall: PL, col: RED, beam: BLK, sp: 0.2 / 7, cr: 0.0045, door: '#3a2a20', doorN: 3 });
   roof(gp, hx, et, hz - 0.01, 0.27, 0.16, 0.075, { tile, k: 0.12, lift: 0.04, ridge: shade(tile, 0.72) });
   steps(gp, hx, yg, hz + 0.155, 0.06, t1 - yg, 0.03, L, 4);
@@ -814,8 +871,8 @@ const cap_luoyi: Builder = gp => {
   figure(gp, hx + 0.05, yg, hz + 0.24, 0.028, '#5a3a30', { pose: 'walk', ry: Math.PI, phase: 0.4 });
   figure(gp, hx + 0.03, t2, hz + 0.05, 0.028, '#2f2a28');
   figure(gp, -0.06, yg, 0.3, 0.028, '#6a5a46', { pose: 'walk', ry: 1.4, phase: 0.1 });
-  tree(gp, -0.3, yg, 0.32, 0.07, '#5f7340');
-  tree(gp, 0.38, yg, -0.3, 0.07, '#66784a');
+  tree(gp, -0.25, yg, 0.33, 0.07, '#5f7340');
+  tree(gp, 0.42, yg, -0.2, 0.065, '#66784a');
 };
 
 /**
@@ -825,14 +882,14 @@ const cap_luoyi: Builder = gp => {
  * dark painted dados (the excavated chariot-procession murals), grey tile, no ridge finials. The Wei river below to the south.
  * Refs: 陶复《秦咸阳宫第一号遗址复原问题的初步探讨》(文物1976.11); 秦都咸阳考古工作站《秦都咸阳第一号宫殿建筑遗址简报》(文物1976.11).
  */
-const cap_xianyang: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, '#8f8468', '#6a6454');
+const cap_xianyang: Builder = root => {
+  const [gp, y0] = site(root, SITE.loess, 0.9);
   const tile = '#46494e', PL = '#dad1bd', RED = '#922f22', BLK = '#2a2826', E = '#a88f6c', ET = '#b39b78', DADO = '#4a3a33';
   // the Wei river along the front edge, a loess bank above it
-  box(gp, '#8d7c5c', 0, y0, 0.37, 0.888, 0.0015, 0.108);
-  box(gp, '#5d6e66', 0, y0, 0.392, 0.888, 0.003, 0.064);
+  band(gp, 0.32, 0.48, y0, 0.0015, '#8d7c5c');
+  band(gp, 0.355, 0.44, y0, 0.003, '#5d6e66', 0.03);
   // the gully between the twin platforms
-  box(gp, '#7a6a50', 0.255, y0, -0.03, 0.14, 0.0015, 0.66);
+  box(gp, '#7a6a50', 0.25, y0, -0.04, 0.13, 0.0015, 0.6);
   // main platform: lower terrace, then the core wrapped by rooms and a gallery under a skirt roof
   const cx = -0.12, cz = -0.08;
   const y1 = earth(gp, cx, y0, cz, 0.5, 0.38, 0.49, 0.37, 0.035, E, 2, ET);
@@ -858,13 +915,13 @@ const cap_xianyang: Builder = gp => {
   steps(gp, kx - 0.08, y1, kz + kd / 2 + 0.035 + 0.035, 0.04, kh, 0.035, ET, 5);
   // 飞阁: covered way on tall posts across the gully to the eastern twin (its edge only)
   const tz = -0.12, y3 = y0 + 0.07;
-  earth(gp, 0.405, y0, tz, 0.08, 0.3, 0.075, 0.29, 0.07, E, 3, ET);
-  const e5 = body(gp, 0.41, y3, tz, 0.06, 0.16, 0.04, { wall: PL, col: RED, beam: BLK, sp: 0.04, cr: 0.0035, back: true });
-  roof(gp, 0.41, e5, tz, 0.09, 0.2, 0.04, { tile, k: 0.1, ridge: shade(tile, 0.72) });
+  earth(gp, 0.38, y0, tz, 0.075, 0.26, 0.07, 0.25, 0.07, E, 3, ET);
+  const e5 = body(gp, 0.385, y3, tz, 0.055, 0.15, 0.04, { wall: PL, col: RED, beam: BLK, sp: 0.04, cr: 0.0035, back: true });
+  roof(gp, 0.385, e5, tz, 0.085, 0.19, 0.04, { tile, k: 0.1, ridge: shade(tile, 0.72) });
   for (let x = 0.2; x <= 0.33; x += 0.033) for (const sz of [-1, 1]) cyl(gp, RED, x, y0, tz + sz * 0.018, 0.0035, y3 - y0, 5);
-  box(gp, BLK, 0.255, y3 - 0.004, tz, 0.17, 0.006, 0.044);
-  box(gp, PL, 0.255, y3 + 0.002, tz, 0.17, 0.008, 0.042);
-  corridor(gp, 0.165, tz, 0.38, tz, y3 + 0.01, 0.026, 0.04, tile, RED, { rh: 0.02 });
+  box(gp, BLK, 0.25, y3 - 0.004, tz, 0.16, 0.006, 0.044);
+  box(gp, PL, 0.25, y3 + 0.002, tz, 0.16, 0.008, 0.042);
+  corridor(gp, 0.165, tz, 0.355, tz, y3 + 0.01, 0.026, 0.04, tile, RED, { rh: 0.02 });
   // Qin officials and guards in black (水德)
   figure(gp, cx + 0.04, y0, 0.24, 0.028, '#262422', { armor: '#4a4540' });
   figure(gp, cx + 0.1, y0, 0.24, 0.028, '#262422', { armor: '#4a4540' });
@@ -889,13 +946,13 @@ function armillary(p: THREE.Object3D, x: number, y: number, z: number, r: number
  * classics set up in a row at the academy gate under a shelter, scholars copying them.
  * Refs: 中国社科院考古所洛阳工作队《汉魏洛阳城南郊的灵台遗址》(考古1978.1); 《后汉书·蔡邕传》; 《洛阳伽蓝记》卷三.
  */
-const cap_luoyang: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, GRASS, GRASS_SIDE);
+const cap_luoyang: Builder = root => {
+  const [gp, y0] = site(root, SITE.grass, 0.86);
   const tile = '#4a4d52', E = '#a99272', ET = '#b7a283', PL = '#d6cdb8', RED = '#8a3a2c', ST = '#9c978c', RD = '#a59a80';
   // road between the two precincts
-  box(gp, RD, 0.115, y0, 0, 0.07, 0.0015, 0.848);
+  box(gp, RD, 0.115, y0, 0, 0.07, 0.0015, 0.96);
   // 灵台 precinct wall with a south gate
-  const lx = -0.17, lz = 0.0, hw = 0.255, wh = 0.03;
+  const lx = -0.16, lz = 0.0, hw = 0.24, wh = 0.03;
   const wall = (x: number, z: number, w: number, d: number) => earth(gp, x, y0, z, w, d, w - 0.004, d - 0.004, wh, E, 2, ET);
   wall(lx, lz - hw, 2 * hw, 0.018);
   wall(lx - hw, lz, 0.018, 2 * hw);
@@ -925,14 +982,15 @@ const cap_luoyang: Builder = gp => {
     box(gp, ST, x, y0 + 0.005, z, 0.024, 0.026, 0.005);
     for (let r = 0; r < 4; r++) box(gp, '#85817a', x, y0 + 0.009 + r * 0.0045, z + 0.0026, 0.019, 0.0018, 0.0004);
   }
-  const e = body(gp, tx, y0, -0.33, 0.2, 0.07, 0.045, { wall: PL, col: RED, beam: '#3a3430', sp: 0.04, cr: 0.0042, door: '#2e2a28', doorN: 3 });
-  roof(gp, tx, e, -0.33, 0.25, 0.12, 0.055, { tile, k: 0.12, lift: 0.03, ridge: shade(tile, 0.72) });
+  const e = body(gp, tx - 0.03, y0, -0.285, 0.16, 0.065, 0.045, { wall: PL, col: RED, beam: '#3a3430', sp: 0.04, cr: 0.0042, door: '#2e2a28', doorN: 3 });
+  roof(gp, tx - 0.03, e, -0.285, 0.2, 0.11, 0.052, { tile, k: 0.12, lift: 0.03, ridge: shade(tile, 0.72) });
   // scholars in dark robes reading and copying at the tablets, an astronomer on the terrace
   for (let i = 0; i < 6; i++) figure(gp, tx - 0.1 + (i % 3) * 0.09 + (i > 2 ? 0.03 : 0), y0, i > 2 ? 0.15 : 0.01, 0.027, ['#3a3532', '#4a3f38', '#2f2c2a', '#5a4a3c'][i % 4], { hat: 'cap', ry: Math.PI + (i - 2.5) * 0.15 });
   figure(gp, lx + 0.035, y2, lz - 0.03, 0.027, '#3a3532', { hat: 'cap', ry: -0.6 });
   figure(gp, lx, y0, lz + hw + 0.06, 0.027, '#4a3f38', { hat: 'cap', pose: 'walk', ry: Math.PI, phase: 0.4 });
   figure(gp, 0.12, y0, 0.2, 0.027, '#5a4a3c', { pose: 'walk', ry: Math.PI, phase: 0.1 });
-  tree(gp, 0.12, y0, -0.3, 0.07, '#5f7340');
+  tree(gp, 0.36, y0, 0.3, 0.065, '#5f7340');
+  tree(gp, -0.3, y0, 0.38, 0.06, '#66784a');
 };
 
 /**
@@ -942,8 +1000,8 @@ const cap_luoyang: Builder = gp => {
  * Grey tile, 鸱尾 on the ridges, red posts, white walls.
  * Refs: 中国社科院考古所洛阳汉魏城队《河南洛阳市汉魏故城太极殿遗址的发掘》(考古2016.7); 《北魏洛阳城宫城阊阖门遗址》(考古2003.7).
  */
-const cap_taiji: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, PAVE, PAVE_SIDE);
+const cap_taiji: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.88);
   const tile = '#4b4f55', PL = '#e0d8c6', RED = '#8a3a2c', BR = '#9a8c70', BRT = '#ae9f82', ST = '#b9b3a5', BK = '#7a4a32', CHI = '#3a3d42';
   // 太极殿 terrace and the 12-bay hall
   const hz = -0.2, y1 = earth(gp, 0, y0, hz, 0.54, 0.26, 0.52, 0.245, 0.05, BR, 4, BRT);
@@ -957,7 +1015,7 @@ const cap_taiji: Builder = gp => {
   for (const sx of [-1, 1]) steps(gp, sx * 0.12, y0, hz + 0.13 + 0.05, 0.05, y1 - y0, 0.05, ST, 5);
   // 东堂 / 西堂 on their own lower terraces
   for (const sx of [-1, 1]) {
-    const x = sx * 0.365, yb = earth(gp, x, y0, hz + 0.01, 0.15, 0.13, 0.145, 0.125, 0.026, BR, 2, BRT);
+    const x = sx * 0.35, yb = earth(gp, x, y0, hz + 0.01, 0.15, 0.13, 0.145, 0.125, 0.026, BR, 2, BRT);
     const e = body(gp, x, yb, hz + 0.01, 0.11, 0.07, 0.05, { wall: PL, col: RED, beam: RED, bracket: BK, sp: 0.022, cr: 0.0042, door: '#7a3026', doorN: 3 });
     roof(gp, x, e, hz + 0.01, 0.15, 0.115, 0.06, { tile, k: 0.25, lift: 0.12, ridge: shade(tile, 0.75), chi: CHI, chiH: 0.017 });
     steps(gp, x, y0, hz + 0.075 + 0.03, 0.04, 0.026, 0.03, ST, 3);
@@ -966,7 +1024,7 @@ const cap_taiji: Builder = gp => {
   const gz = 0.2, gh = 0.05;
   earth(gp, 0, y0, gz, 0.3, 0.08, 0.29, 0.075, gh, BR, 4, BRT);
   for (const x of [-0.07, 0, 0.07]) box(gp, '#2e2620', x, y0, gz + 0.038, 0.034, 0.036, 0.004);
-  for (const sx of [-1, 1]) box(gp, BR, sx * 0.3, y0, gz, 0.3, 0.035, 0.03);
+  for (const sx of [-1, 1]) box(gp, BR, sx * 0.28, y0, gz, 0.26, 0.035, 0.03);
   const eg = body(gp, 0, y0 + gh, gz, 0.22, 0.06, 0.042, { wall: PL, col: RED, beam: RED, bracket: BK, sp: 0.22 / 7, cr: 0.0045 });
   roof(gp, 0, eg, gz, 0.29, 0.12, 0.055, { tile, k: 0.25, lift: 0.12, ridge: shade(tile, 0.75), chi: CHI, chiH: 0.018 });
   for (const sx of [-1, 1]) {
@@ -1000,8 +1058,8 @@ function bixie(p: THREE.Object3D, x: number, y: number, z: number, s: number, ry
  * 秦淮河 crossed by the 朱雀航 pontoon bridge, and a pair of the Southern Dynasties stone 辟邪.
  * Refs: 南京市考古研究所《南京六朝建康城遗址考古》(2008–2015 台城城墙/城门); 贺云翱《六朝瓦当与六朝都城》(2005); 《建康实录》.
  */
-const cap_jiankang: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, GRASS, GRASS_SIDE);
+const cap_jiankang: Builder = root => {
+  const [gp, y0] = site(root, SITE.grass, 0.88);
   const tile = '#4c5056', BR = '#7d7b76', BRT = '#8d8a83', PL = '#ddd5c2', RED = '#8a3a2c', BK = '#4a4038', CHI = '#3a3d42', WATER = '#58706c';
   // 秦淮河 and the pontoon bridge of boats
   ribbon(gp, [[-0.46, 0.34], [-0.2, 0.37], [0.1, 0.36], [0.46, 0.38]], 0.09, y0, 0.0015, '#8a8468');
@@ -1035,11 +1093,11 @@ const cap_jiankang: Builder = gp => {
   roof(gp, 0, et, hz, 0.36, 0.18, 0.09, { tile, k: 0.3, lift: 0.2, ridge: shade(tile, 0.75), chi: CHI, chiH: 0.026 });
   steps(gp, 0, y0, hz + 0.085 + 0.04, 0.06, 0.03, 0.04, '#9a968c', 4);
   // 华林园: the 天渊池 with willows and a lakeside pavilion
-  const px = -0.3, pz = -0.29;
+  const px = -0.26, pz = -0.29;
   prism(gp, [[px - 0.12, pz - 0.08], [px + 0.06, pz - 0.1], [px + 0.12, pz - 0.02], [px + 0.07, pz + 0.07], [px - 0.08, pz + 0.08], [px - 0.13, pz + 0.01]], y0, 0.003, WATER, 0, true);
-  const ep = body(gp, px + 0.07, y0, pz + 0.075, 0.05, 0.05, 0.03, { wall: PL, col: RED, sp: 0.025, cr: 0.0035 });
-  roof(gp, px + 0.07, ep, pz + 0.075, 0.08, 0.08, 0.035, { tile, k: 0.3, lift: 0.3 });
-  for (const [x, z] of [[-0.42, -0.2], [-0.2, -0.38], [-0.42, -0.38], [-0.18, -0.2]] as [number, number][]) tree(gp, x, y0, z, 0.065, '#6f8048');
+  const ep = body(gp, px + 0.11, y0, pz - 0.07, 0.05, 0.05, 0.03, { wall: PL, col: RED, sp: 0.025, cr: 0.0035 });
+  roof(gp, px + 0.11, ep, pz - 0.07, 0.08, 0.08, 0.035, { tile, k: 0.3, lift: 0.3 });
+  for (const [x, z] of [[-0.4, -0.14], [-0.22, -0.4], [-0.07, -0.33]] as [number, number][]) tree(gp, x, y0, z, 0.062, '#6f8048');
   // 同泰寺 pagoda (527), square, nine storeys, wooden, beyond the north wall
   const ox = 0.3, oz = -0.3;
   rbox(gp, BRT, ox, y0, oz, 0.09, 0.014, 0.09, 0.003);
@@ -1059,12 +1117,6 @@ const cap_jiankang: Builder = gp => {
   figure(gp, 0.04, y0, 0.05, 0.027, '#3a3040', { hat: 'cap', pose: 'walk', ry: Math.PI, phase: 0.5 });
 };
 
-/** Pine: dark umbrella crowns on a crooked trunk (the 凤凰山 / 西湖 hillsides). */
-function pine(p: THREE.Object3D, x: number, y: number, z: number, s: number): void {
-  cyl(p, '#4a3a2c', x, y, z, s * 0.06, s * 0.7, 5);
-  for (let i = 0; i < 3; i++) ellip(p, shade('#4a5a3c', 0.92 + i * 0.07), x + (hash3(x, z, i) - 0.5) * s * 0.3, y + s * (0.55 + i * 0.18), z + (hash3(z, x, i) - 0.5) * s * 0.3, s * (0.34 - i * 0.07), s * 0.1, s * (0.3 - i * 0.06));
-}
-
 /**
  * 南宋临安皇城 (1138–1276) on the eastern slopes of 凤凰山 above the 钱塘江, the West Lake just to the north-west: no
  * axial court of a northern capital but halls on terraces climbing the hillside (垂拱殿, 崇政殿 in modest five-bay
@@ -1072,16 +1124,16 @@ function pine(p: THREE.Object3D, x: number, y: number, z: number, s: number): vo
  * with 鸱吻, pines and the hills all round; the 雷峰塔 (975) on the lake shore.
  * Refs: 杭州市文物考古所《南宋临安城考古》(2008); 《咸淳临安志》皇城图; 《梦粱录》卷八〈大内〉; 傅伯星《南宋皇城探秘》.
  */
-const cap_linan: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, GRASS, GRASS_SIDE);
+const cap_linan: Builder = root => {
+  const [gp, y0] = site(root, SITE.grass, 0.9);
   const tile = '#55595e', HG = '#5f6b47', HG2 = '#6d7752', ST = '#8f8a7e', STT = '#a29c8e', PL = '#e3dccb', RED = '#8e3a2c', WALL = '#9c4a3a', BK = '#4f6a62', WATER = '#5c7470';
   // 凤凰山 and its spurs behind and to the west
   hill(gp, -0.1, y0, -0.42, 0.36, 0.14, 0.15, HG);
   hill(gp, 0.25, y0, -0.43, 0.26, 0.1, 0.1, HG2);
   hill(gp, -0.44, y0, -0.16, 0.12, 0.24, 0.09, HG2);
   hill(gp, 0.44, y0, -0.2, 0.1, 0.2, 0.06, HG);
-  for (const [x, z, yy] of [[-0.32, -0.36, 0.06], [-0.22, -0.38, 0.11], [-0.03, -0.39, 0.13], [0.13, -0.385, 0.09], [0.24, -0.4, 0.08], [0.34, -0.39, 0.05], [-0.41, -0.24, 0.06], [-0.41, -0.06, 0.06], [0.42, -0.14, 0.04], [0.4, -0.3, 0.035], [-0.16, -0.33, 0.04]] as [number, number, number][])
-    pine(gp, x, y0 + yy, z, 0.065);
+  for (const [x, z, yy] of [[-0.32, -0.36, 0.06], [-0.22, -0.38, 0.11], [-0.03, -0.39, 0.13], [0.13, -0.385, 0.09], [0.24, -0.4, 0.08], [0.31, -0.35, 0.05], [-0.41, -0.24, 0.06], [-0.41, -0.06, 0.06], [0.42, -0.14, 0.04], [0.37, -0.27, 0.035], [-0.16, -0.33, 0.04]] as [number, number, number][])
+    tree(gp, x, y0 + yy - 0.004, z, 0.05, (x * 7 + z * 3) % 0.2 > 0.1 ? '#4f6140' : '#5a6a44');
   // three stone-faced terraces climbing the slope, each with its hall
   const T: [number, number, number, number, number][] = [[0.03, 0.07, 0.4, 0.15, 0.02], [-0.07, -0.11, 0.32, 0.13, 0.05], [0.07, -0.27, 0.26, 0.12, 0.085]];
   const H: [number, number, number, number][] = [[0.24, 0.08, 0.05, 0.11], [0.2, 0.07, 0.045, 0.1], [0.15, 0.065, 0.045, 0.09]];
@@ -1097,19 +1149,21 @@ const cap_linan: Builder = gp => {
   // red palace wall along the front with 和宁门 (gate base, single gate tower under a 歇山 roof)
   const wz = 0.24, wh = 0.04;
   for (const sx of [-1, 1]) {
-    box(gp, WALL, sx * 0.24, y0, wz, 0.32, wh, 0.018);
-    roof(gp, sx * 0.24, y0 + wh, wz, 0.33, 0.032, 0.012, { tile, k: 0.2, ridge: shade(tile, 0.75) });
+    box(gp, WALL, sx * 0.22, y0, wz, 0.28, wh, 0.018);
+    roof(gp, sx * 0.22, y0 + wh, wz, 0.29, 0.032, 0.012, { tile, k: 0.2, ridge: shade(tile, 0.75) });
   }
   const gy = earth(gp, 0, y0, wz, 0.16, 0.06, 0.155, 0.055, 0.055, WALL, 1, shade(WALL, 1.1));
   for (const x of [-0.04, 0.04]) slab(grp(gp, x, wz + 0.028, 0, y0), [[-0.016, 0], [0.016, 0], [0.016, 0.03], [0.009, 0.038], [-0.009, 0.038], [-0.016, 0.03]], 0.006, '#2a2420', 0, false);
   const eg = body(gp, 0, gy, wz, 0.13, 0.045, 0.038, { wall: PL, col: RED, beam: RED, bracket: BK, sp: 0.026, cr: 0.004 });
   roof(gp, 0, eg, wz, 0.19, 0.1, 0.055, { tile, k: 0.45, lift: 0.55, xie: 0.72 });
   // 御街 leading north, the 钱塘江 in the south-east and the West Lake with 雷峰塔 to the west
-  box(gp, '#a49c8a', 0, y0, 0.34, 0.06, 0.0015, 0.17);
-  prism(gp, [[0.18, 0.43], [0.443, 0.25], [0.443, 0.423], [0.18, 0.423]], y0, 0.003, WATER);
-  ellip(gp, '#4e4034', 0.36, y0 + 0.004, 0.37, 0.025, 0.004, 0.007, 0.6);
-  slab(grp(gp, 0.36, 0.37, 0.6 + Math.PI / 2, y0 + 0.006), [[-0.006, 0], [0.012, 0], [0, 0.03]], 0.002, '#cfc4a8', 0, false);
-  prism(gp, [[-0.443, 0.1], [-0.3, 0.12], [-0.25, 0.22], [-0.3, 0.36], [-0.443, 0.4]], y0, 0.003, WATER, 0, true);
+  box(gp, '#a49c8a', 0, y0, 0.335, 0.06, 0.0015, 0.16);
+  const river: [number, number][] = ([[-0.05, 0.47], [0.12, 0.385], [0.26, 0.36], [0.4, 0.24], [0.46, 0.1]] as [number, number][]).map(([x, z]) => clip(x, z, 0.02));
+  for (let i = 0; i <= 12; i++) { const t = 0.21 + (i / 12) * 1.5, r = RL - 0.02; river.push([Math.cos(t) * r, Math.sin(t) * r]); }
+  prism(gp, river, y0, 0.003, WATER);
+  ellip(gp, '#4e4034', 0.2, y0 + 0.004, 0.405, 0.025, 0.004, 0.007, 0.1);
+  slab(grp(gp, 0.2, 0.405, 0.1 + Math.PI / 2, y0 + 0.006), [[-0.006, 0], [0.012, 0], [0, 0.03]], 0.004, '#cfc4a8', 0, false);
+  prism(gp, ([[-0.5, 0.06], [-0.3, 0.12], [-0.25, 0.22], [-0.3, 0.34], [-0.42, 0.3], [-0.5, 0.2]] as [number, number][]).map(([x, z]) => clip(x, z, 0.03)), y0, 0.003, WATER, 0, true);
   const lx = -0.37, lz = 0.13;
   let ly = y0;
   for (let i = 0; i < 5; i++) {
@@ -1141,12 +1195,12 @@ function column(p: THREE.Object3D, x: number, y: number, z: number, r: number, h
  * the grey-tiled 大堂, the five-storey 子超楼 (1935) in grey render, and to the west the 煦园 pond with its stone boat 不系舟.
  * Refs: 南京中国近代史遗址博物馆 (总统府) site; 刘先觉《南京近代建筑》; 《首都计划》(1929).
  */
-const cap_nanjing_roc: Builder = gp => {
-  const y0 = plinth(gp, 0.9, 0.86, PAVE, PAVE_SIDE);
-  const CEM = '#b9b3a3', CEMD = '#a29c8d', tile = '#55595e', WATER = '#5c7470', RED = '#8a3a2c', PL = '#e0d8c6';
+const cap_nanjing_roc: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.9);
+  const CEM = '#aaa395', CEMD = '#958e81', tile = '#55595e', WATER = '#5c7470', RED = '#8a3a2c', PL = '#e0d8c6';
   // 长江路 with plane trees
-  box(gp, '#5f5d58', 0, y0, 0.36, 0.888, 0.0015, 0.1);
-  for (const x of [-0.4, -0.25, 0.25, 0.4]) tree(gp, x, y0, 0.29, 0.07, '#6c7a48');
+  band(gp, 0.31, 0.43, y0, 0.0015, '#5f5d58', 0.02);
+  for (const x of [-0.37, -0.23, 0.23, 0.37]) tree(gp, x, y0, 0.27, 0.065, '#6c7a48');
   // the gateway: 0.012 per metre
   const gz = 0.22, gw = 0.32, gd = 0.065, gh = 0.12, fz = gz + gd / 2;
   box(gp, CEM, 0, y0, gz, gw, gh, gd);
@@ -1155,25 +1209,28 @@ const cap_nanjing_roc: Builder = gp => {
   for (const [x, w, h] of arches) {
     const out: [number, number][] = [[-w / 2, 0], [w / 2, 0]];
     for (let i = 0; i <= 8; i++) { const a = (i / 8) * Math.PI; out.push([(Math.cos(a) * w) / 2, h - w / 2 + (Math.sin(a) * w) / 2]); }
-    slab(grp(gp, x, fz, 0, y0), out, 0.006, '#2b2a28', 0, false);
-    for (let i = 1; i < 8; i++) box(gp, '#1e1e1e', x - w / 2 + (i * w) / 8, y0, fz + 0.0035, 0.0018, h - w / 2, 0.0018);
-    box(gp, '#1e1e1e', x, y0 + (h - w / 2) * 0.45, fz + 0.0035, w, 0.002, 0.002);
-    box(gp, '#9a8040', x, y0 + h - w / 2, fz + 0.0035, w, 0.0025, 0.002);
+    slab(grp(gp, x, fz, 0, y0), out, 0.006, '#2e2c29', 0, false);
+    box(gp, '#9a8040', x, y0 + (h - w / 2) * 0.5, fz + 0.0035, w, 0.005, 0.003);
+    box(gp, CEMD, x, y0 + h - w / 2 - 0.003, fz + 0.002, w + 0.008, 0.006, 0.004);
   }
-  for (const x of [-0.145, -0.048, 0.048, 0.145]) for (const s of [-1, 1]) column(gp, x + s * 0.008, y0, fz + 0.005, 0.0035, 0.088, CEM);
+  for (const x of [-0.145, -0.048, 0.048, 0.145]) for (const s of [-1, 1]) column(gp, x + s * 0.009, y0, fz + 0.006, 0.0042, 0.088, CEM);
   box(gp, CEMD, 0, y0 + 0.088, gz + 0.004, gw + 0.01, 0.012, gd + 0.012);
   box(gp, CEM, 0, y0 + 0.1, gz + 0.004, gw + 0.016, 0.005, gd + 0.016);
-  box(gp, CEM, 0, y0 + 0.105, gz, 0.2, 0.02, gd * 0.8);
-  box(gp, '#3a3a36', 0, y0 + 0.108, fz - 0.005, 0.11, 0.014, 0.002);
-  for (let i = 0; i < 6; i++) box(gp, '#b99a50', -0.045 + i * 0.018, y0 + 0.111, fz - 0.0035, 0.01, 0.008, 0.001);
+  // stepped attic: low parapet across the front, raised central block with the dark name plaque and gilt characters
+  box(gp, CEM, 0, y0 + 0.105, gz, 0.28, 0.012, gd * 0.8);
+  box(gp, CEMD, 0, y0 + 0.117, gz, 0.284, 0.004, gd * 0.8 + 0.004);
+  box(gp, CEM, 0, y0 + 0.105, gz, 0.13, 0.032, gd * 0.7);
+  box(gp, CEMD, 0, y0 + 0.137, gz, 0.136, 0.005, gd * 0.7 + 0.006);
+  box(gp, CEM, 0, y0 + 0.142, gz, 0.07, 0.008, gd * 0.6);
+  for (let i = 0; i < 3; i++) box(gp, '#b3934a', -0.03 + i * 0.03, y0 + 0.114, gz + gd * 0.35, 0.018, 0.016, 0.004);
   // flagpole and the 青天白日满地红 flag
-  const fy = y0 + 0.125;
-  cyl(gp, '#d8d4c8', 0, fy, gz, 0.0018, 0.11, 5);
-  ellip(gp, '#b99a50', 0, fy + 0.111, gz, 0.0035);
-  const fl = grp(gp, 0.002, gz, 0, fy + 0.07);
-  box(fl, '#b02a24', 0.03, 0, 0, 0.06, 0.038, 0.0015);
-  box(fl, '#1f3d8a', 0.015, 0.019, 0, 0.03, 0.019, 0.002);
-  cyl(fl, '#f2efe6', 0.015, 0.0285, 0, 0.005, 0.003, 10).rotation.set(Math.PI / 2, 0, 0);
+  const fy = y0 + 0.15;
+  cyl(gp, '#d8d4c8', 0, fy, gz, 0.003, 0.1, 6);
+  ellip(gp, '#b99a50', 0, fy + 0.101, gz, 0.005);
+  const fl = grp(gp, 0.003, gz, 0, fy + 0.06);
+  box(fl, '#a8332a', 0.03, 0, 0, 0.06, 0.038, 0.003);
+  box(fl, '#2a4280', 0.015, 0.019, 0, 0.03, 0.019, 0.004);
+  cyl(fl, '#e8e4da', 0.015, 0.0285, 0, 0.005, 0.005, 10).rotation.set(Math.PI / 2, 0, 0);
   // court behind: the 大堂 (grey-tiled Qing hall of the old 督署) and the 子超楼
   box(gp, '#a59d8c', 0, y0, 0.0, 0.05, 0.0015, 0.36);
   const hz = 0.02, et = body(gp, 0, y0 + 0.012, hz, 0.2, 0.08, 0.045, { wall: PL, col: RED, beam: '#3c4a46', sp: 0.04, cr: 0.0042, door: '#5a2a22', doorN: 3 });
@@ -1186,7 +1243,7 @@ const cap_nanjing_roc: Builder = gp => {
   for (let f = 0; f < 5; f++) for (let i = 0; i < 12; i++) box(gp, '#3a3c3c', zx - zb / 2 + 0.014 + i * ((zb - 0.028) / 11), y0 + 0.012 + f * fh + 0.007, zz + zd / 2 - 0.002, 0.01, 0.014, 0.002);
   box(gp, '#8f8a80', zx, y0 + 0.012 + fh * 5, zz, zb + 0.004, 0.005, zd + 0.004);
   box(gp, '#a7a196', zx, y0 + 0.017 + fh * 5, zz, 0.06, 0.03, 0.05);
-  cyl(gp, '#d8d4c8', zx, y0 + 0.047 + fh * 5, zz, 0.0014, 0.04, 5);
+  cyl(gp, '#d8d4c8', zx, y0 + 0.047 + fh * 5, zz, 0.003, 0.04, 5);
   // 煦园: the pond and the stone boat 不系舟, a pavilion, willows
   prism(gp, [[-0.41, -0.05], [-0.25, -0.08], [-0.2, 0.0], [-0.24, 0.1], [-0.36, 0.12], [-0.42, 0.06]], y0, 0.003, WATER, 0, true);
   box(gp, '#b9b4a8', -0.31, y0, 0.02, 0.024, 0.01, 0.08);
@@ -1194,7 +1251,7 @@ const cap_nanjing_roc: Builder = gp => {
   gable(gp, 0.026, 0.012, 0.06, tile, -0.31, eb, 0.015, Math.PI / 2);
   const ep = body(gp, -0.22, y0, -0.17, 0.05, 0.05, 0.028, { wall: PL, col: RED, sp: 0.025, cr: 0.0032 });
   roof(gp, -0.22, ep, -0.17, 0.08, 0.08, 0.035, { tile, k: 0.4, lift: 0.5 });
-  for (const [x, z] of [[-0.4, -0.15], [-0.4, 0.17], [-0.18, 0.13], [0.3, 0.05], [0.38, -0.08], [-0.33, -0.33]] as [number, number][]) tree(gp, x, y0, z, 0.065, '#6c7a48');
+  for (const [x, z] of [[-0.4, -0.15], [-0.4, 0.17], [-0.18, 0.13], [0.3, 0.05], [0.38, -0.08], [-0.3, -0.3]] as [number, number][]) tree(gp, x, y0, z, 0.065, '#6c7a48');
   // sentries in peaked caps and khaki, people in 长衫
   for (const x of [-0.06, 0.06]) human(gp, x, y0, fz + 0.03, { h: 0.027, top: '#6b6a4a', bottom: '#5e5d40', skin: '#c49a76', hair: '#1d1915', hat: '#5e5d40', hatStyle: 'peaked', shoes: '#2a2420', detail: 'lo' });
   figure(gp, -0.17, y0, 0.36, 0.027, '#3a4450', { pose: 'walk', ry: Math.PI / 2, phase: 0.3 });

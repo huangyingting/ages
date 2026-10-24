@@ -51,7 +51,7 @@ The app is fully static: deploy `dist/` to any static host. Pushes to `main` pub
 | `&lang=zh\|en` | UI and content language (otherwise the saved choice or the browser language) |
 
 ## Keyboard
-`/` search · `Space` play/pause (story or timeline) · `←`/`→` previous / next event · `Esc` close or stop · on the timeline, arrow keys step through years (`Shift` × 10).
+`/` search · `Space` play/pause (story or timeline) · `←`/`→` previous / next event · `R` reset view · `Esc` close or stop · on the timeline, arrow keys step through years (`Shift` × 10).
 
 ## Tests
 ```bash

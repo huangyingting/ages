@@ -2,13 +2,13 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
   type Builder, type V3, type Paint, add, g, mat, box, rbox, cyl, cone, ellip, lathe, rod, tube, skin, sweep, slab, CYL,
-  shade, mix, hash3, fbm, SPH, paintFaces,
+  shade, mix, hash3, fbm, SPH, paintFaces, plinth, tree, PLINTH_SIDE, SITE,
 } from '../prims.ts';
 import { proof } from '../timber.ts';
 import { banner } from '../rich.ts';
 import { human, type HumanOpts, type HumanRig } from '../human.ts';
 import { horse } from '../animals.ts';
-import { island, pine } from '../nature.ts';
+import { island } from '../nature.ts';
 
 // Dioramas of Chinese customs II (pack life-custom2): the wooden ox on a plank road, the Seven Sages, the Orchid
 // Pavilion, the examination hall, Tang polo and sancai, Han Xizai's night revels, a Song entertainment quarter,
@@ -111,9 +111,18 @@ function flatGeo(m: THREE.Mesh, inv: THREE.Matrix4): THREE.BufferGeometry {
   return geo;
 }
 
-/** Round diorama base: painted, optionally displaced top (polar grid) with an earth skirt. */
-function land(gp: THREE.Object3D, top: string, paint: Paint, hf: (x: number, z: number) => number = () => 0, side = '#6b4f3a', R = 0.47): void {
-  island(gp, R, hf, top, paint, { rings: 26, segs: 80, base: Y0, side: y => (y > Y0 * 0.55 ? side : shade(side, 0.78)) });
+/**
+ * Round diorama base. Flat sites stand on the shared museum plinth (prims.plinth: uniform PLINTH_SIDE skirt) with a
+ * finely gridded painted top laid over it; sculpted sites (hf given) keep their displaced terrain but with the same
+ * PLINTH_SIDE skirt. `_side` is ignored so every diorama shares one base.
+ */
+function land(gp: THREE.Object3D, top: string, paint: Paint, hf?: (x: number, z: number) => number, _side?: string, R = 0.46): void {
+  if (!hf) {
+    plinth(gp, top, { R, h: Y0 - 0.002 });
+    island(gp, R * 0.965, () => 0, top, paint, { rings: 26, segs: 80, base: Y0, side: () => PLINTH_SIDE });
+    return;
+  }
+  island(gp, R, hf, top, paint, { rings: 26, segs: 80, base: Y0, side: y => (y > Y0 * 0.55 ? PLINTH_SIDE : shade(PLINTH_SIDE, 0.85)) });
 }
 const grassP = (c: string, k = 14): Paint => (x, _y, z) => shade(c, 0.86 + fbm(x * k, 0.3, z * k, 3) * 0.3);
 /** Running-bond bricks / paving on any axis-aligned face (uses the face normal to pick the in-plane axes). */
@@ -367,6 +376,7 @@ function woodenOx(p: THREE.Object3D, x: number, y: number, z: number, ry: number
 }
 // Ref: 《三国志·诸葛亮传》 (231–234) wooden ox on the 褒斜/祁山 plank roads (栈道: beams socketed into the cliff, posts
 // to the riverbed — cf. surviving 古栈道 holes at 明月峡); ox after the 王湔 / 刘仙洲 single-wheel barrow reconstructions.
+// Ref: Commons "Syoku sendo zu (Shu plank road view)" — beams socketed in cliff holes over a gorge, carts and porters.
 const lf_muniu: Builder = (gp) => {
   const rz = (x: number) => 0.12 + Math.sin(x * 6 + 0.5) * 0.035;
   const hf = (x: number, z: number) => {
@@ -401,7 +411,7 @@ const lf_muniu: Builder = (gp) => {
       : shade(ROCK[Math.abs(Math.floor(y * 30 + fbm(x * 6, y * 2, z * 6) * 2.4)) % ROCK.length], 0.9 + hash3(Math.floor(x * 70), Math.floor(y * 70), 2) * 0.16),
   });
   // pines on the crest and clinging to the face
-  for (const [px, py, pz, s] of [[-0.3, 0.5, -0.22, 0.12], [-0.12, 0.66, -0.25, 0.14], [0.08, 0.6, -0.24, 0.11], [0.26, 0.58, -0.22, 0.13], [0.34, 0.38, -0.18, 0.08], [-0.36, 0.33, -0.19, 0.08]] as const) pine(gp, px, py, pz, s, '#3a5040');
+  for (const [px, py, pz, s] of [[-0.3, 0.5, -0.22, 0.12], [-0.12, 0.66, -0.25, 0.14], [0.08, 0.6, -0.24, 0.11], [0.26, 0.58, -0.22, 0.13], [0.34, 0.38, -0.18, 0.08], [-0.36, 0.33, -0.19, 0.08]] as const) tree(gp, px, py - 0.02, pz, s * 0.85, '#3e5a42', true);
   // the plank road: square beams socketed into the rock, planks, outer posts down to the riverbed, a rail
   const ry = (x: number) => 0.2 + (x + 0.4) * 0.075, slope = Math.atan(0.075);
   const z0 = -0.16, z1 = 0.08;
@@ -459,6 +469,7 @@ function mat2(p: THREE.Object3D, x: number, y: number, z: number, w: number, d: 
 }
 // Ref: 南京西善桥 南朝墓 brick relief 《竹林七贤与荣启期》 (5th c., Nanjing Museum): sages barefoot on mats in loose
 // 宽袍大袖 with 巾 or bare topknots — 嵇康 at the guqin, 阮咸 with his round lute, 刘伶 at the wine, 王戎 with a ruyi.
+// Ref: Commons "Seven Sages of the Bamboo Grove 1/2, Nanjing Museum" brick relief — sages seated on mats among trees.
 const lf_qixian: Builder = (gp) => {
   land(gp, '#7d8150', (x, _y, z) => {
     const n = fbm(x * 16, 0.5, z * 16, 3);
@@ -557,6 +568,7 @@ function ribbon(p: THREE.Object3D, pts: [number, number][], w: number, y: number
 }
 // Ref: Wang Xizhi's 《兰亭集序》 (353) — "崇山峻岭，茂林修竹…引以为流觞曲水，列坐其次"; Jin wide-sleeved robes and gauze caps
 // after the Nanjing 竹林七贤 brick relief; lacquered ear-cups (耳杯). No Qing stele pavilion or goose pond (later additions).
+// Ref: Commons "LantingXu.jpg" (Feng Chengsu copy) and the Orchid Pavilion gathering — wine cups floated down a stream.
 const lf_lanting: Builder = (gp) => {
   const sx = (z: number) => 0.04 + 0.11 * Math.sin(z * 7.5 + 0.4);
   // lofty hills close in behind, cut by the brook's ravine
@@ -637,6 +649,7 @@ const lf_lanting: Builder = (gp) => {
 // open corridors (廊下席地而坐), each with an exam basket and candle (三条烛), the examiner on the terrace of a Tang hall.
 // Refs: 《唐摭言》《封氏闻见记》 on 棘围/廊下/三条烛; Tang halls after 南禅寺·佛光寺 (no Ming 号舍 cells — those are later).
 // =========================================================================================================
+// Ref: Commons "Prüfungszellen-Nanking.jpg" (Jiangnan Gongyuan) — rows of open whitewashed cells with two board shelves.
 const lf_keju: Builder = (gp) => {
   const EARTH = '#b19b78', ROOF = '#585b60', COL = '#8a3d2a', PLASTER = '#dcd4c2', STONE = '#a8a296', ROBE = '#e3dccb';
   const WX = 0.326, WZ0 = -0.3, WZ1 = 0.27, WH = 0.13, WT = 0.02;
@@ -645,7 +658,7 @@ const lf_keju: Builder = (gp) => {
     const n = fbm(x * 18, 0.4, z * 18, 3);
     if (inside(x, z)) return shade('#ad9c7e', 0.9 + n * 0.16);
     return shade(mix('#7a8058', '#8d8865', n), 0.92 + n * 0.12);
-  }, () => 0, '#6b5a44');
+  }, undefined, '#6b5a44');
   pbox(gp, STONE, 0, Y0, (-0.105 + WZ1) / 2, 0.06, 0.003, WZ1 + 0.105, bricks(STONE, 0.03, 0.02, 0.1), 0.008);
   pbox(gp, STONE, 0, Y0, WZ1 + 0.06, 0.07, 0.003, 0.12, bricks(STONE, 0.03, 0.02, 0.1), 0.008);
   // rammed-earth walls (夯土) with tamped layers, a tile coping, and brushwood of jujube thorns along the top
@@ -784,12 +797,13 @@ function knotTail(G: THREE.Object3D, mane: string): void {
   ell8(G, mane, a[0], a[1], a[2], 0.02, 0.018, 0.022);
   tube(G, [a, b], 0.011, 0.006, mane, { radial: 6, sub: 2 });
 }
+// Ref: Commons "Tang Dynasty Polo (48792911158).jpg" (Prince Zhanghuai tomb mural) — riders in futou on chestnut/white horses.
 const lf_polo: Builder = (gp) => {
   land(gp, '#c9a978', (x, _y, z) => {
     const r = Math.hypot(x, z);
     if (r > 0.43) return grassP('#7a8a52', 14)(x, 0, z, 0, 1, 0);
     return shade('#b99d74', 0.9 + fbm(x * 22, 1, z * 22, 3) * 0.2 - (hash3(Math.floor(x * 90), 1, Math.floor(z * 90)) > 0.9 ? 0.08 : 0));
-  }, () => 0, '#6b4f3a');
+  }, undefined, '#6b4f3a');
   // the low rammed-earth wall (矮墙) ringing the field, open at the front
   const fx = 0.37;
   for (let i = 0; i < 30; i++) {
@@ -913,12 +927,10 @@ function glazeAll(G: THREE.Object3D, pick: (hex: string) => Paint | null = h => 
 // 唐三彩 — after the camel carrying musicians from the 中堡村 tomb, Xi'an (Shaanxi History Museum): a roaring white-glazed
 // Bactrian with amber hair on crown, throat, humps and forearms, a striped fringed carpet on a platform, seven seated
 // musicians in futou facing outwards and a standing woman singer; beside it an amber 三花 horse (cf. 鲜于庭诲墓 pieces).
+// Ref: Commons sancai camel with musicians (Shaanxi History Museum) — cream/amber/green lead glazes on a museum plinth.
 const lf_sancai: Builder = (gp) => {
-  // dark rosewood display stand
-  const RW = '#3e2418';
-  const st = lathe(gp, [[0, 0], [0.47, 0], [0.47, 0.012], [0.455, 0.02], [0.46, 0.032], [0.45, 0.045], [0, 0.045]], RW, 0, 0, 0, 48);
-  st.material = mat(RW, { rough: 0.45, flat: false });
-  const BY = 0.045, Y = BY;
+  // shared museum plinth with a pale stone top
+  const BY = plinth(gp, SITE.paving, { R: 0.46, h: 0.0435 }) + 0.0015, Y = BY;
   // ---- the camel: local +z forward, standing square on its rectangular base ----
   const C = grp(gp, -0.15, Y, -0.04, 0.55, 0.78);
   pbox(C, '#6f7f4f', 0, 0, 0, 0.15, 0.016, 0.36, (x, _y, z) => shade('#6f7f4f', 0.9 + fbm(x * 30, 1, z * 30, 2) * 0.2), 0.012).userData.noGlaze = true;
@@ -1047,11 +1059,12 @@ function candle(p: THREE.Object3D, x: number, z: number, H: number, y = Y0): voi
 // Ref: 顾闳中《韩熙载夜宴图》(Southern Tang, 10th c.; Song copy, Palace Museum): Han Xizai in a tall black hat on a
 // 榻 couch, 状元 郎粲 in red, 李姬 on pipa, 王屋山 dancing the 六幺 in pale blue with long sleeves, tall candle stands,
 // landscape screens, early high chairs and low tables of fruit, ewer-and-warming-bowl.
+// Ref: Commons "The Night Revels of Han Xizai" (Gu Hongzhong, Song copy) — screens, couch, candle stands, pipa and dancer.
 const lf_yeyan: Builder = (gp) => {
-  land(gp, '#54412f', (x, _y, z) => {
+  land(gp, SITE.court, (x, _y, z) => {
     const k = Math.floor(z * 32 + 50), off = hash3(k, 1, 1) * 0.2;
-    return shade('#5c4632', 0.93 + hash3(k, Math.floor((x + off) * 6), 3) * 0.1 + fbm(x * 40, 1, z * 4, 2) * 0.06);
-  }, () => 0, '#4a3020');
+    return shade('#a8946f', 0.93 + hash3(k, Math.floor((x + off) * 6), 3) * 0.1 + fbm(x * 40, 1, z * 4, 2) * 0.06);
+  });
   const h = 0.15;
   // the large landscape screen across the back and a second one closing the left
   screen(gp, 0.02, -0.36, 0.42, 0.24, 0);
@@ -1127,8 +1140,9 @@ const lf_yeyan: Builder = (gp) => {
 // =========================================================================================================
 // Ref: 孟元老《东京梦华录》(1147) on Kaifeng's 瓦舍勾栏 (board-fenced theatres, 招子 playbills, storytellers, acrobats);
 // teahouse 欢门 and hanging flags after 张择端《清明上河图》; muted mineral/vegetable-dyed cloth.
+// Ref: Commons "Along the River During the Qingming Festival (detail of original)" — fenced wasi stage, crowd, teahouse flags.
 const lf_washe: Builder = (gp) => {
-  land(gp, '#b9a17a', (x, _y, z) => (Math.abs(x - 0.26) < 0.2 && z > -0.05 ? bricks('#a8a296', 0.03, 0.015, 0.1)(x, 0, z, 0, 1, 0) : shade('#b9a17a', 0.9 + fbm(x * 18, 0, z * 18, 3) * 0.2)), () => 0, '#6b5a40');
+  land(gp, '#b9a17a', (x, _y, z) => (Math.abs(x - 0.26) < 0.2 && z > -0.05 ? bricks('#a8a296', 0.03, 0.015, 0.1)(x, 0, z, 0, 1, 0) : shade('#b9a17a', 0.9 + fbm(x * 18, 0, z * 18, 3) * 0.2)), undefined, '#6b5a40');
   const WOOD = '#6a4a30', RED = '#86382a';
   // the 勾栏: a board fence enclosing the theatre, with a gate hung with playbills (招子)
   const X0 = -0.4, X1 = 0.12, Z0 = -0.36, Z1 = 0.13, FH = 0.075;
@@ -1324,12 +1338,12 @@ function celadonYard(gp: THREE.Group): void {
   for (const [bx, bz, br] of [[0.0, -0.015, 0.013], [0.012, 0.018, 0.011], [0.03, -0.01, 0.012]] as const) porcelain(T, sc(BOWL, br, br * 1.15), (bx * 100) % 2 ? CEL2 : CELADON, bx, 0.05, bz);
   porcelain(T, sc([[0, 0], [0.4, 0], [0.5, 0.05], [1, 0.12], [0.95, 0.14], [0.45, 0.07], [0, 0.06]], 0.02, 0.035), CELADON, 0.06, 0.05, 0.005);
   for (const [x, z, s] of [[-0.31, 0.12, 0.018], [-0.35, 0.18, 0.015]] as const) porcelain(gp, sc(VASE, s, s * 3), CELADON, x, Y0, z);
-  for (const [x, z] of [[0.3, -0.33], [0.36, -0.22], [0.1, -0.4]] as const) pine(gp, x, Y0 + hf(x, z), z, 0.1, '#3d5a40');
+  for (const [x, z] of [[0.3, -0.33], [0.36, -0.22], [0.1, -0.4]] as const) tree(gp, x, Y0 + hf(x, z), z, 0.1, '#3d5a40', true);
 }
 // Ref: Ming Jingdezhen — the egg-shaped (蛋形) kiln and its chimney, painters decorating blanks with cobalt (《天工开物·陶埏》),
 // porters carrying boards of blanks; wares at true size (a meiping ≈ 40 cm, a large dish ≈ 45 cm across).
 function qinghuaYard(gp: THREE.Group): void {
-  land(gp, '#9a968e', (x, _y, z) => shade('#9a968e', 0.95 + fbm(x * 12, 4, z * 12, 2) * 0.1), () => 0, '#66635d');
+  land(gp, '#9a968e', (x, _y, z) => shade('#9a968e', 0.95 + fbm(x * 12, 4, z * 12, 2) * 0.1), undefined, '#66635d');
   const BLUE = '#1f3f8f', WHITE = '#f3f5f7';
   // the egg-shaped kiln (蛋形窑) and its tall chimney, in a kiln house
   const kx = -0.05, kz = -0.24;
@@ -1414,6 +1428,7 @@ function qinghuaYard(gp: THREE.Group): void {
     b.rotation.y = x * 10;
   }
 }
+// Ref: Commons "Vase with two fish-dragon handles, Longquan kilns" / "Ming Jingdezhen Porcelain, Hongzhi Reign 03" — glaze colours.
 const lf_kiln: Builder = (gp, r) => {
   if (r.style === 'qinghua') qinghuaYard(gp); else celadonYard(gp);
   fuse(gp);
@@ -1503,7 +1518,7 @@ function dougong(p: THREE.Object3D, x: number, y: number, z: number, ry: number,
 // Ref: Yuan temple stages — 山西临汾 魏村牛王庙戏台 (1283) and the 广胜寺 明应王殿 杂剧 mural (1324): square ashlar
 // platform, four corner columns, heavy lintels, bracket sets and a hip roof open on three sides.
 function yuanStage(gp: THREE.Group): void {
-  land(gp, '#a89878', (x, _y, z) => (z > -0.02 && Math.abs(x) < 0.055 ? bricks('#9a968c', 0.03, 0.015, 0.1)(x, 0, z, 0, 1, 0) : shade('#a89878', 0.9 + fbm(x * 16, 2, z * 16, 3) * 0.2)), () => 0, '#6b5a40');
+  land(gp, '#a89878', (x, _y, z) => (z > -0.02 && Math.abs(x) < 0.055 ? bricks('#9a968c', 0.03, 0.015, 0.1)(x, 0, z, 0, 1, 0) : shade('#a89878', 0.9 + fbm(x * 16, 2, z * 16, 3) * 0.2)), undefined, '#6b5a40');
   const SX = 0, SZ = -0.17, W = 0.3, D = 0.24, PH = 0.06, T = Y0 + PH, CH = 0.2, TIM = '#5a3e2a';
   // the high ashlar platform (台基), coping stones and side steps
   pbox(gp, '#a39d92', SX, Y0, SZ, W + 0.03, PH, D + 0.03, bricks('#a39d92', 0.04, 0.018, 0.08), 0.01);
@@ -1563,7 +1578,7 @@ function yuanStage(gp: THREE.Group): void {
   smoke(gp, ix, Y0 + 0.07, iz, 0.012, '#ece8de', 4);
   spectators(gp, [0.13, 0.21], 6, -0.24, 0.24, SX, SZ, 1, true);
   spectators(gp, [0.3, 0.37], 7, -0.3, 0.3, SX, SZ, 4, false);
-  for (const [x, z] of [[-0.36, -0.02], [0.37, 0.06]] as const) pine(gp, x, Y0, z, 0.12, '#3c5240');
+  for (const [x, z] of [[-0.36, -0.02], [0.37, 0.06]] as const) tree(gp, x, Y0, z, 0.12, '#3c5240', true);
   fuse(gp);
 }
 
@@ -1681,7 +1696,7 @@ function kunquStage(gp: THREE.Group): void {
 // Ref: late-Qing Beijing tea-garden stage (茶园戏楼, cf. 正乙祠 / 湖广会馆 / 恭王府 戏楼) after the 1790 Anhui troupes:
 // lacquered posts, 旋子彩画 beams, 守旧 backdrop with 出将/入相 doors, 武场 band at the side, audience at 八仙桌.
 function jingjuStage(gp: THREE.Group): void {
-  land(gp, '#8f8a82', (x, _y, z) => shade('#8f8a82', 0.9 + hash3(Math.floor(x / 0.05), 3, Math.floor(z / 0.05)) * 0.12 + fbm(x * 20, 1, z * 20, 2) * 0.06), () => 0, '#5a5650');
+  land(gp, '#8f8a82', (x, _y, z) => shade('#8f8a82', 0.9 + hash3(Math.floor(x / 0.05), 3, Math.floor(z / 0.05)) * 0.12 + fbm(x * 20, 1, z * 20, 2) * 0.06), undefined, '#5a5650');
   const SX = 0, SZ = -0.2, W = 0.34, D = 0.2, PH = 0.05, T = Y0 + PH, CH = 0.22, RED = '#86281e', GOLD = '#b0944c';
   // red lacquered platform with gold panels, and the red stage rug (氍毹)
   pbox(gp, RED, SX, Y0, SZ, W, PH, D, (x, y, z, nx, ny) => {
@@ -1779,6 +1794,7 @@ function jingjuStage(gp: THREE.Group): void {
   fuse(gp);
 }
 
+// Ref: Commons "Theatre actors, Yuan Dynasty.jpg" (Guangshengsi mural), "Battle of Changban Peking Opera 3.jpg" — costumes.
 const lf_opera: Builder = (gp, r) => {
   if (r.style === 'kunqu') kunquStage(gp);
   else if (r.style === 'jingju') jingjuStage(gp);
@@ -1838,11 +1854,12 @@ function thatch(p: THREE.Object3D, x: number, y: number, z: number, w: number, d
 }
 // Ref: 黄道婆 (Yuan, c. 1295) brought Hainan Li cotton craft to Songjiang 乌泥泾; tools after 王祯《农书》(1313):
 // 搅车 roller gin, 弹弓 cotton bow, 脚踏三锭纺车 treadle three-spindle wheel, 斜织机 loom; a thatched rural cottage.
+// Ref: Wang Zhen《农书》 woodcuts and Commons "History of Inventions USNM 29 Spindle.png" — treadle wheel, cotton bow, loom.
 const lf_spinning: Builder = (gp) => {
   const field = (x: number, z: number) => x < -0.26 + Math.sin(z * 9) * 0.015;
   land(gp, '#b59a74', (x, _y, z) => (field(x, z)
     ? shade(Math.sin(z * 75) > 0.2 ? '#7a5a3a' : '#8a6a46', 0.9 + fbm(x * 20, 1, z * 20, 2) * 0.2)
-    : shade('#b59a74', 0.9 + fbm(x * 14, 3, z * 14, 3) * 0.2)), () => 0, '#6b5038');
+    : shade('#b59a74', 0.9 + fbm(x * 14, 3, z * 14, 3) * 0.2)), undefined, '#6b5038');
   const leaves: Blade[] = [];
   for (let i = 0; i < 3; i++) for (let j = 0; j < 7; j++) {
     const x = -0.41 + i * 0.055 + (hash3(i, j, 1) - 0.5) * 0.015, z = -0.24 + j * 0.068;
