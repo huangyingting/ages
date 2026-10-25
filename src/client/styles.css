@@ -228,7 +228,7 @@ h2, h3 { font-weight: 700; }
 /* the map tooltip for anything on the map (3D models and event badges): glyph, name, and a subtitle */
 .maptip {
   --k: #8a6a3a; position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; white-space: nowrap;
-  display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 999px;
+  display: flex; align-items: center; gap: 8px; padding: 5px 10px 5px 5px; border-radius: var(--r);
   color: #f8f2e6; background: rgba(24, 22, 20, 0.8); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass);
   border: 1px solid color-mix(in srgb, var(--k) 55%, rgba(255, 255, 255, 0.2));
   animation: tipIn 0.16s var(--ease-out);
@@ -240,9 +240,9 @@ h2, h3 { font-weight: 700; }
   border-bottom: 1px solid color-mix(in srgb, var(--k) 55%, rgba(255, 255, 255, 0.2));
 }
 .maptip .ic[hidden] { display: none; }
-.maptip .ic { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #fff; background: var(--k); flex: none; }
+.maptip .ic { display: grid; place-items: center; width: 24px; height: 24px; border-radius: var(--r-s); color: #fff; background: var(--k); flex: none; }
 .maptip .ic svg { width: 15px; height: 15px; }
-.maptip.k-polity .ic { width: 12px; height: 12px; border-radius: 3px; }
+.maptip.k-polity .ic { width: 12px; height: 12px; }
 .maptip b { font-size: var(--t-s); font-weight: 650; letter-spacing: 0.04em; }
 .maptip small { font-size: var(--t-xs); color: rgba(248, 242, 230, 0.62); }
 .maptip .ic[hidden] ~ b { margin-left: 6px; }
