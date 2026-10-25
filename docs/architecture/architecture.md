@@ -92,7 +92,7 @@ Content carries `I18n = { zh, en }`. UI strings live in `client/lib/i18n.ts`. `s
 `client/lib/wikipedia.ts` calls the MediaWiki action API (`origin=*`, `prop=extracts|pageimages|description`, `explaintext`, `variant=zh-cn`). If an item has no title in the requested language it follows interlanguage links from the other wiki. Responses are cached per session, and failures aren't cached so Retry works. All text is inserted with `textContent`.
 
 ## View insets
-The right-hand column (card, period panel, reader, drawer) covers the right edge, and on phones the card is a bottom sheet. `App.updateInset()` measures them and calls `View.setInset(left, right, bottom)`, which shifts the projection centre with `camera.setViewOffset`. Every flight and story frames its subject in the visible area, with no per-call maths. During stories the panels hide and the inset eases back to zero.
+The right-hand drawer (`ui/panel.ts`: period details, card, textbook, reader, quiz stacked as views) covers the right edge, and on phones it is a bottom sheet above the timeline. `App.updateInset()` measures them and calls `View.setInset(left, right, bottom)`, which shifts the projection centre with `camera.setViewOffset`. Every flight and story frames its subject in the visible area, with no per-call maths. During stories the drawer hides and the inset eases back to zero.
 
 ## Persistence
 Persistence uses `localStorage` with the `ages:` prefix: language, last year, chosen book, and progress (watched, learned, best quiz score). There is no backend.

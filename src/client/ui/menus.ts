@@ -10,6 +10,8 @@ export class SettingsMenu {
   readonly el: HTMLElement;
   onChange: (k: keyof Layers, on: boolean) => void = () => {};
   onSurface: (s: Surface) => void = () => {};
+  /** controls appended at the end (music, fullscreen) */
+  extra: HTMLElement | null = null;
   constructor(private layers: Layers, public surface: Surface) {
     this.el = h('div', { class: 'pop menu settings', hidden: true, role: 'dialog', 'aria-label': t('settings') });
     this.render();
@@ -25,7 +27,7 @@ export class SettingsMenu {
       c.addEventListener('change', () => this.onChange(k, c.checked));
       return h('label', { class: 'switch-card' }, h('span', { text: t(k as Key) }), c, h('i', { class: 'sw-track' }));
     }));
-    this.el.replaceChildren(h('h3', { text: t('mapStyle') }), sw, h('h3', { text: t('layers') }), layers);
+    this.el.replaceChildren(h('h3', { text: t('mapStyle') }), sw, h('h3', { text: t('layers') }), layers, ...(this.extra ? [this.extra] : []));
   }
   toggle(on = this.el.hidden): void { this.el.hidden = !on; }
 }

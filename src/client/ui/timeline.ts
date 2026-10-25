@@ -1,25 +1,25 @@
 import { EVENTS } from '../../shared/data/events.ts';
-import { AGES, ERAS } from '../../shared/data/eras.ts';
+import { ERAS } from '../../shared/data/eras.ts';
 import { tr } from '../../shared/data/i18n.ts';
 import type { HistEvent, Year } from '../../shared/data/types.ts';
 import { reignAt, regionalReignsAt } from '../../shared/data/jiangshan.ts';
 import { STOPS, stepStop } from '../../shared/lib/chronicle.ts';
-import { formatArea, realmArea } from '../../shared/data/areas.ts';
-import { SNAPSHOTS, snapshotAt } from '../../shared/data/territories.ts';
+import { realmArea } from '../../shared/data/areas.ts';
+import { SNAPSHOTS } from '../../shared/data/territories.ts';
 import { eraAt, formatYear, normYear, parseYear, rulerAt, tToYear, ticks, yearToT } from '../../shared/lib/timeline.ts';
 import { lang, t } from '../lib/i18n.ts';
-import { load, save } from '../lib/storage.ts';
 import { h, iconBtn, setIcon } from './dom.ts';
 
 /**
- * The bottom timeline: play button, age headers, coloured era bands (two lanes for overlapping regimes) over the curve of
- * the dynasty's territorial area, event ticks and a draggable thumb. Its readout — year with ‹ › stepping, era, ruler
- * and territory area — sits at the bar's left end beside the play button. The axis is piecewise-linear (see shared/lib/timeline.ts)
- * so the dense recent centuries get room while prehistory stays visible.
+ * Time, in two parts. `head` is the headline on the map's top-left corner: the dynasty (click for its card), the year
+ * in large type (click to type one) and the ruler / reign era. `el` is the bar across the foot of the map: ⏮ ▶ ⏭ with a
+ * speed switch, then the track — the dynasty's territorial area as a stepped curve, event ticks, coloured era bands
+ * (two lanes for overlapping regimes), the year axis and a draggable thumb. The axis is piecewise-linear (see
+ * shared/lib/timeline.ts) so the dense recent centuries get room while prehistory stays visible.
  */
 export class Timeline {
   readonly el: HTMLElement;
-  private areaEl: HTMLElement;
+  readonly head: HTMLElement;
   private curve: HTMLElement;
   private track: HTMLElement;
   private thumb: HTMLElement;
@@ -27,14 +27,14 @@ export class Timeline {
   private eraEl: HTMLButtonElement;
   private rulerEl: HTMLElement;
   private playBtn: HTMLButtonElement;
-  private speedBtn: HTMLButtonElement;
+  private speedSeg: HTMLElement;
+  private hint: HTMLElement;
   /** playback rate: 1× crosses the whole axis in ~100 s */
   private speed = 1;
   private tip: HTMLElement;
   private bands: HTMLElement;
   private dots: HTMLElement;
   private axis: HTMLElement;
-  private agesEl: HTMLElement;
   private phases: HTMLElement;
   private flag: HTMLElement;
   private input: HTMLInputElement;
@@ -44,21 +44,23 @@ export class Timeline {
   onEvent: (e: HistEvent) => void = () => {};
   onEra: (eraId: string) => void = () => {};
   onPlay: (on: boolean) => void = () => {};
-  /** Fires on every readout change (year, era), e.g. for the era chip in the top bar. */
+  /** Fires on every readout change (year, era), e.g. for the period stats and chronicle. */
   onRender: (y: Year) => void = () => {};
-  private foldBtn: HTMLButtonElement;
   private selected: string | null = null;
 
   constructor() {
     this.playBtn = iconBtn('play', t('play'), () => this.setPlaying(!this.playing), 'tl-play');
-    this.speedBtn = h('button', { type: 'button', class: 'tl-speed', title: t('speed'), 'aria-label': t('speed'), text: '1×', onclick: () => {
-      this.speed = this.speed === 1 ? 2 : this.speed === 2 ? 0.5 : 1;
-      this.speedBtn.textContent = `${this.speed}×`;
-    } });
+    this.speedSeg = h('div', { class: 'seg tl-speed', role: 'radiogroup', 'aria-label': t('speed') }, ...[0.5, 1, 2].map(v => h('button', {
+      type: 'button', role: 'radio', class: v === this.speed ? 'on' : '', 'aria-checked': String(v === this.speed), 'data-speed': v, text: `${v}×`,
+      onclick: () => {
+        this.speed = v;
+        for (const b of this.speedSeg.children as HTMLCollectionOf<HTMLElement>) { const on = Number(b.dataset.speed) === v; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }
+      },
+    })));
+    this.hint = h('span', { class: 'tl-hint', text: t('tlHint') });
     this.yearEl = h('div', { class: 'tl-year', 'aria-live': 'polite' });
     this.eraEl = h('button', { type: 'button', class: 'tl-era', onclick: () => { const e = eraAt(this.year); if (e) this.onEra(e.id); } });
     this.rulerEl = h('div', { class: 'tl-ruler' });
-    this.agesEl = h('div', { class: 'tl-ages' });
     this.bands = h('div', { class: 'tl-bands' });
     this.dots = h('div', { class: 'tl-dots' });
     this.axis = h('div', { class: 'tl-axis' });
@@ -67,9 +69,7 @@ export class Timeline {
     this.thumb = h('div', { class: 'tl-thumb' }, h('i'), this.flag);
     this.tip = h('div', { class: 'tl-tip' });
     this.curve = h('div', { class: 'tl-curve', 'aria-hidden': 'true' });
-    this.areaEl = h('div', { class: 'tl-area' });
-    this.track = h('div', { class: 'tl-track', role: 'slider', tabindex: 0, 'aria-label': t('era') }, this.curve, this.agesEl, this.bands, this.phases, this.dots, this.axis, this.thumb, this.tip);
-    this.foldBtn = iconBtn('down', t('fold'), () => this.fold(!this.el.classList.contains('folded')), 'tl-fold');
+    this.track = h('div', { class: 'tl-track', role: 'slider', tabindex: 0, 'aria-label': t('era') }, this.curve, this.dots, this.bands, this.phases, this.axis, this.thumb, this.tip);
     // the year itself is the go-to-year field: click to type (前221, 1415), Enter/blur to jump
     this.input = h('input', { class: 'tl-in', type: 'text', inputmode: 'numeric', 'aria-label': t('goYear'), title: t('goYear'), hidden: true });
     const done = () => { this.input.hidden = true; this.yearEl.hidden = false; };
@@ -82,22 +82,17 @@ export class Timeline {
       this.input.value = this.year < 0 ? (lang === 'zh' ? `前${-this.year}` : `${-this.year} BC`) : String(this.year);
       this.input.focus(); this.input.select();
     });
-    const row = h('div', { class: 'tl-yr' },
-      iconBtn('chevL', t('prevStop'), () => this.step(-1), 'tl-prev'), this.yearEl, this.input,
-      iconBtn('chevron', t('nextStop'), () => this.step(1), 'tl-next'));
-    const txt = h('div', { class: 'tl-txt' }, row, h('div', { class: 'tl-sub' }, this.eraEl, this.rulerEl), this.areaEl);
-    this.el = h('div', { class: 'tl' }, h('div', { class: 'tl-read' }, this.playBtn, txt, this.speedBtn), this.track, this.foldBtn);
-    if (load<boolean>('tlFolded', false)) this.fold(true);
+    this.head = h('div', { class: 'tl-head' }, this.eraEl, this.yearEl, this.input, this.rulerEl);
+    const ctl = h('div', { class: 'tl-ctl' },
+      iconBtn('prev', t('prevStop'), () => this.step(-1), 'tl-prev'), this.playBtn, iconBtn('next', t('nextStop'), () => this.step(1), 'tl-next'),
+      this.speedSeg, this.hint);
+    this.el = h('div', { class: 'tl' }, ctl, this.track);
     this.build();
     this.bind();
     new ResizeObserver(() => this.layoutAxis()).observe(this.track);
   }
 
   private build(): void {
-    this.agesEl.replaceChildren(...AGES.map(a => {
-      const l = yearToT(a.start), r = yearToT(a.end);
-      return h('div', { class: 'tl-age', style: `left:${l * 100}%;width:${(r - l) * 100}%`, text: tr(a.name, lang) });
-    }));
     this.bands.replaceChildren(...ERAS.filter(e => e.scope === 'china').map(e => {
       const l = yearToT(e.start), r = yearToT(e.end);
       const b = h('button', {
@@ -199,15 +194,6 @@ export class Timeline {
     requestAnimationFrame(tick);
   }
 
-  /** Collapses the bar to its readout (the map gets the whole screen). */
-  fold(on: boolean): void {
-    this.el.classList.toggle('folded', on);
-    setIcon(this.foldBtn, on ? 'up' : 'down');
-    this.foldBtn.title = this.foldBtn.ariaLabel = t(on ? 'unfold' : 'fold');
-    save('tlFolded', on);
-    if (!on) requestAnimationFrame(() => this.layoutAxis());
-  }
-
   /** Jumps to the next/previous chronicle entry or territorial phase. */
   step(dir: 1 | -1): void {
     this.setPlaying(false);
@@ -246,14 +232,12 @@ export class Timeline {
     const era = eraAt(y);
     this.eraEl.textContent = era ? tr(era.name, lang) : '';
     this.eraEl.style.setProperty('--c', era?.color ?? '#888');
+    this.eraEl.hidden = !era;
     // the orthodox reign era (年号) when known, else the curated ruler; rival regimes' eras in the tooltip
     const r = rulerAt(y), reign = reignAt(y);
     this.rulerEl.textContent = reign ? tr(reign.label, lang) : r ? tr(r.name, lang) : '';
     this.flag.textContent = `${formatYear(y, lang)}${reign ? ' · ' + tr(reign.label, lang).replace(/^.*· /, '') : ''}`;
     this.rulerEl.title = [this.rulerEl.textContent, ...regionalReignsAt(y).map(x => `${tr(x.regime, lang)}${lang === 'zh' ? '：' : ': '}${tr(x.reign.label, lang)}`)].filter(Boolean).join('\n');
-    const snap = snapshotAt(y), area = snap ? realmArea(snap.id) : 0;
-    this.areaEl.hidden = !area;
-    if (area) this.areaEl.replaceChildren(h('b', { text: t('territory') }), h('span', { text: formatArea(area, lang) }));
     this.track.setAttribute('aria-valuetext', `${formatYear(y, lang)} ${era ? tr(era.name, lang) : ''}`);
     for (const b of this.bands.children as HTMLCollectionOf<HTMLElement>) b.classList.toggle('cur', b.dataset.era === era?.id);
     this.onRender(y);
@@ -265,8 +249,8 @@ export class Timeline {
     this.input.setAttribute('aria-label', t('goYear'));
     for (const [c, k] of [['.tl-prev', 'prevStop'], ['.tl-next', 'nextStop']] as const) { const b = this.el.querySelector<HTMLElement>(c)!; b.title = t(k); b.setAttribute('aria-label', t(k)); }
     this.playBtn.title = this.playBtn.ariaLabel = t(this.playing ? 'pause' : 'play');
-    this.speedBtn.title = this.speedBtn.ariaLabel = t('speed');
-    this.foldBtn.title = this.foldBtn.ariaLabel = t(this.el.classList.contains('folded') ? 'unfold' : 'fold');
+    this.speedSeg.setAttribute('aria-label', t('speed'));
+    this.hint.textContent = t('tlHint');
     this.build();
     this.select(this.selected);
   }

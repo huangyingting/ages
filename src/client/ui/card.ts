@@ -65,7 +65,7 @@ export class Card {
   get open(): boolean { return !this.el.hidden; }
 
   /** Pauses the turntable while a story owns the screen. */
-  setActive(on: boolean): void { this.preview.active = on && this.open && !this.el.classList.contains('mini'); }
+  setActive(on: boolean): void { this.preview.active = on && this.open; }
 
   private set(o: { event?: HistEvent; era?: Era; place?: { p: Place; year: Year }; person?: Person; life?: LifeItem }): void {
     this.event = o.event ?? null;
@@ -102,17 +102,15 @@ export class Card {
 
   // ------------------------------------------------------------ building blocks
 
-  /** The hero strip: model, type tag with catalogue index, and prev / next / minimise / close. */
+  /** The hero strip: model, type tag with catalogue index, and prev / next / close. */
   private setHero(model: ModelRecipe | null, tag: string, color: string, idx: [number, number] | null, prev?: () => void, next?: () => void): void {
     void this.preview.show(model);
     fill(this.heroTag,
       h('span', { class: 'type-chip', style: `--k:${color}`, text: tag }),
       idx ? h('span', { class: 'cat-idx' }, String(idx[0]), h('small', { text: ` / ${idx[1]}` })) : null);
-    const mini = this.el.classList.contains('mini');
     fill(this.nav,
       prev ? iconBtn('prev', t('prev'), prev) : null,
       next ? iconBtn('next', t('next'), next) : null,
-      iconBtn(mini ? 'down' : 'minus', t('min'), () => { this.el.classList.toggle('mini'); this.setActive(true); this.render(); }, 'card-min'),
       iconBtn('close', t('close'), () => this.hooks.close(), 'card-x'));
   }
   private eyebrow(...parts: (string | Node | null | undefined)[]): HTMLElement {

@@ -25,7 +25,8 @@ import { Reader } from './ui/reader.ts';
 import { SearchBox } from './ui/searchbox.ts';
 import { Timeline } from './ui/timeline.ts';
 import { Chronicle } from './ui/chronicle.ts';
-import { Legend } from './ui/legend.ts';
+import { Period } from './ui/period.ts';
+import { Panel } from './ui/panel.ts';
 import { Music } from './ui/music.ts';
 
 const params = new URLSearchParams(location.search);
@@ -41,7 +42,8 @@ class App {
   caption = new Caption(canSpeak());
   search = new SearchBox();
   chronicle = new Chronicle();
-  legend = new Legend();
+  period = new Period();
+  panel!: Panel;
   music = new Music();
   learn: Learn;
   settings!: SettingsMenu;
@@ -51,8 +53,9 @@ class App {
   player!: StoryPlayer;
   ready = false;
   private langBtn!: HTMLButtonElement;
-  private bar!: HTMLElement;
-  private side!: HTMLElement;
+  private brand!: HTMLElement;
+  /** the period view is kept open (persisted) */
+  private pinned = load<boolean>('details', false);
 
   constructor(private root: HTMLElement, stage: HTMLElement) {
     this.atlas = new Atlas(stage, lowfx);
@@ -147,11 +150,13 @@ class App {
       if (final) { this.saveYear(y); }
     };
     tl.onEvent = e => this.openEvent(e);
-    this.chronicle.onOpen = e => { this.openEvent(e); if (matchMedia('(max-width: 720px)').matches) this.chronicle.fold(true, false); };
-    this.chronicle.onEra = id => this.openEra(id);
-    this.legend.onYear = y => { tl.setPlaying(false); tl.set(y, true); };
-    this.legend.onHold = (p, c) => this.atlas.hold(p, c);
-    this.legend.onPolity = p => { if (p) this.atlas.flyToPolity(p); };
+    this.chronicle.onOpen = e => this.openEvent(e);
+    this.period.onYear = y => { tl.setPlaying(false); tl.set(y, true); };
+    this.period.onHold = p => this.atlas.hold(p);
+    this.period.onPolity = p => this.atlas.flyToPolity(p);
+    this.period.onEra = id => this.openEra(id);
+    this.period.onDetails = () => this.details(this.panel.top !== this.period.view);
+    this.period.onClose = () => this.details(false);
     tl.onEra = id => this.openEra(id);
     tl.onPlay = on => { if (on) { this.player.stop(); this.closeCard(); } };
 
@@ -173,7 +178,7 @@ class App {
     this.caption.onSpeed = v => (this.player.speed = v);
     this.caption.onVoice = on => { this.player.narrate = on; if (!on) speechSynthesis.cancel(); };
 
-    this.learn.onOpen = e => { this.openEvent(e); if (matchMedia('(max-width: 720px)').matches) this.learn.toggle(false); };
+    this.learn.onOpen = e => this.openEvent(e);
     this.settings.onChange = (k, on) => this.atlas.setLayer(k, on);
     this.settings.onSurface = s => { this.atlas.setSurface(s); save('surface', s); };
     this.hub.onPlay = j => this.playJourney(j);
@@ -182,39 +187,49 @@ class App {
     this.quiz.onYear = y => { this.timeline.set(y, true, false); this.atlas.setYear(y); };
     this.reader.onClose = () => {};
 
-    this.chronicle.mount(this.legend.el);
-    this.timeline.onRender = y => { this.chronicle.update(y); this.legend.setYear(y); };
+    this.period.mount(this.chronicle.el);
+    this.timeline.onRender = y => { this.chronicle.update(y); this.period.setYear(y); };
 
-    // one right-hand column: a header slab (mark · search · tools) over a stack of panels — the open card, then the
-    // period panel; the reader, textbook, quiz, menus and story caption open over that stack. The timeline keeps the bottom.
+    // Level 1 — the map overlay: headline (brand · era · year · reign) top left, tools and the period's figures top
+    // right, the line key bottom left, the phase line / story caption and the timeline bottom centre.
+    // Level 2 — one right-hand drawer of stacked views (period details at the base; card, textbook, reader, quiz).
+    // Level 3 — popovers under the tools (study hall, settings) and the help dialog.
     this.langBtn = h('button', { type: 'button', class: 'ib lang', 'data-act': 'lang', onclick: () => setLang(lang === 'zh' ? 'en' : 'zh') });
     const hubBtn = iconBtn('grid', t('hub'), () => this.pop(this.hub.el.hidden ? 'hub' : null), 'b-hub');
     const setBtn = iconBtn('sliders', t('settings'), () => this.pop(this.settings.el.hidden ? 'settings' : null), 'b-settings');
     const fullBtn = iconBtn('full', t('fullscreen'), () => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen?.().catch(() => {}); }, 'b-full');
     fullBtn.hidden = !document.fullscreenEnabled;
     document.addEventListener('fullscreenchange', () => fullBtn.classList.toggle('on', !!document.fullscreenElement));
-    const tools = h('div', { class: 'tools' }, this.music.el, this.langBtn, hubBtn, setBtn, fullBtn);
-    this.bar = h('div', { class: 'side-head' },
-      h('div', { class: 'brand' }, h('span', { class: 'logo', 'aria-hidden': 'true' }), h('span', { class: 'brand-t' }, h('b', { text: 'Ages' }), h('span', { text: t('brandSub') }))),
-      this.search.el, tools);
-    this.side = h('div', { class: 'side' }, this.bar,
-      h('div', { class: 'side-body' }, this.card.el, this.chronicle.el, this.learn.el, this.reader.el, this.quiz.el, this.caption.el, this.hub.el, this.settings.el));
+    this.settings.extra = h('div', { class: 'set-extra' }, this.music.el, fullBtn);
+    this.settings.render();
+    const tools = h('div', { class: 'tools' }, this.search.el, hubBtn, setBtn, this.langBtn);
+    this.brand = h('div', { class: 'brand' }, h('span', { class: 'logo', 'aria-hidden': 'true' }), h('b', { text: 'Ages' }), h('span', { class: 'brand-k' }));
+    const hud = h('div', { class: 'hud' },
+      h('div', { class: 'hud-tl' }, this.brand, this.timeline.head),
+      h('div', { class: 'hud-tr' }, tools, this.hub.el, this.settings.el, this.period.stats),
+      h('div', { class: 'hud-bot' },
+        h('div', { class: 'hud-bl' }, this.period.key),
+        h('div', { class: 'hud-bc' }, this.period.line, this.caption.el, this.timeline.el)));
+    this.panel = new Panel([this.period.view, this.learn.el, this.card.el, this.reader.el, this.quiz.el]);
+    this.panel.onChange = open => {
+      this.root.classList.toggle('panel-on', open);
+      this.period.pressed(this.panel.top === this.period.view);
+      this.updateInset();
+    };
+    this.details(this.pinned && !matchMedia('(max-width: 720px)').matches);
     document.addEventListener('pointerdown', e => {
       const n = e.target as Node;
       if ((!this.hub.el.hidden || !this.settings.el.hidden) && !tools.contains(n) && !this.hub.el.contains(n) && !this.settings.el.contains(n)) this.pop(null);
     });
 
-    this.root.append(this.side, this.timeline.el, this.help.el);
+    this.root.append(hud, this.panel.el, this.help.el);
     this.relabel();
     onLang(l => this.onLang(l));
 
     const inset = () => this.updateInset();
-    const mo = new MutationObserver(inset);
-    mo.observe(this.root, { attributes: true, attributeFilter: ['class'] });
-    for (const el of [this.card.el, this.reader.el, this.learn.el]) mo.observe(el, { attributes: true, attributeFilter: ['hidden'] });
-    mo.observe(this.chronicle.el, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(inset).observe(this.root, { attributes: true, attributeFilter: ['class'] });
     const ro = new ResizeObserver(inset);
-    ro.observe(this.card.el); ro.observe(this.reader.el); ro.observe(this.root); ro.observe(this.chronicle.el);
+    ro.observe(this.root); ro.observe(this.panel.el); ro.observe(this.timeline.el);
 
     window.addEventListener('keydown', e => this.key(e));
     window.addEventListener('hashchange', () => {
@@ -236,6 +251,15 @@ class App {
   private saveYear(y: Year): void {
     try { localStorage.setItem('ages:year', String(y)); } catch { /* ignore */ }
     if (!this.card.event) writeLink({ year: y, lang });
+  }
+
+  /** Shows the period details (on top of the drawer) or hides them; remembered across visits. */
+  private details(on: boolean): void {
+    this.pinned = on;
+    save('details', on);
+    const v = this.period.view;
+    if (on && !v.hidden) v.hidden = true; // re-show to raise it over the other views
+    v.hidden = !on;
   }
 
   /** Opens one toolbar popover (or none). */
@@ -391,6 +415,7 @@ class App {
       else if (this.quiz.open) this.quiz.toggle(false);
       else if (this.card.open) this.closeCard();
       else if (this.learn.open) this.learn.toggle(false);
+      else if (!this.period.view.hidden) this.details(false);
       return;
     }
     if ((e.key === 'r' || e.key === 'R') && !e.altKey && !e.metaKey && !e.ctrlKey && this.player.state === 'idle') {
@@ -428,32 +453,33 @@ class App {
     this.help.render();
     this.quiz.relabel();
     this.chronicle.relabel();
-    this.legend.relabel();
+    this.period.relabel();
     this.music.relabel();
     writeLink(this.card.event ? { event: this.card.event.id, lang: l } : { year: this.timeline.year, lang: l });
   }
 
-  /** Tells the camera how much of the screen the right-hand column / bottom sheet cover so the subject stays visible. */
+  /** Tells the camera how much of the screen the drawer (right) / bottom sheet and timeline cover so the subject stays visible. */
   private updateInset(): void {
+    if (!this.panel) return;
+    const H = this.root.clientHeight;
+    const top = this.root.getBoundingClientRect().top;
+    const tl = this.timeline.el.getBoundingClientRect().top - top;
+    // the phone's bottom sheet sits right above the timeline
+    this.root.style.setProperty('--tl-b', `${Math.round(H - tl)}px`);
     if (this.root.classList.contains('story-on')) return this.atlas.view.setInset(0, 0, 0);
-    const W = this.root.clientWidth, H = this.root.clientHeight;
     if (matchMedia('(max-width: 720px)').matches) {
-      const top = this.card.open ? this.card.el.getBoundingClientRect().top : H;
-      return this.atlas.view.setInset(0, 0, Math.min(H * 0.6, H - top));
+      const sheet = this.panel.open ? tl - this.panel.el.offsetHeight : tl;
+      return this.atlas.view.setInset(0, 0, Math.min(H * 0.62, H - Math.min(sheet, tl)));
     }
-    // the column's panels cover the right edge; an empty column (period panel folded, nothing open) covers only its header
-    const covered = this.card.open || !this.reader.el.hidden || !this.learn.el.hidden || !this.chronicle.folded;
-    const right = covered ? W - (this.side.getBoundingClientRect().left - this.root.getBoundingClientRect().left) : 0;
-    this.atlas.view.setInset(0, Math.min(W * 0.45, right), 0);
+    this.atlas.view.setInset(0, this.panel.open ? this.panel.el.offsetWidth : 0, 0);
   }
 
   private relabel(): void {
     this.langBtn.textContent = t('lang');
     this.langBtn.title = t('langTitle');
     this.langBtn.setAttribute('aria-label', t('langTitle'));
-    const b = this.bar.querySelector<HTMLElement>('.brand')!;
-    b.querySelector('.brand-t span')!.textContent = t('brandSub');
-    b.title = `Ages · ${t('brandSub')}`;
+    this.brand.querySelector('.brand-k')!.textContent = `${lang === 'zh' ? '长河' : 'Changhe'} · ${t('kicker')}`;
+    this.brand.title = `Ages · ${t('brandSub')}`;
     const set = (cls: string, k: Parameters<typeof t>[0]) => { const el = this.root.querySelector<HTMLElement>(cls); if (el) { el.title = t(k); el.setAttribute('aria-label', t(k)); } };
     set('.b-hub', 'hub'); set('.b-settings', 'settings'); set('.b-full', 'fullscreen');
     document.title = lang === 'zh' ? '长河 · 3D 中国历史地图' : 'Ages · 3D Atlas of Chinese History';

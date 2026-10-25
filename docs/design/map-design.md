@@ -29,7 +29,7 @@ From the ground up (`scene/ink.ts` `INK` orders, then depth-tested models, then 
 | 4 | Map ink | route strokes, arrowheads, base rings, selection ring, battlefields | painted flat on the map: no depth test, so hills never cut them |
 | 5 | Models | capital, dynasty scenery, event models, story actors | depth-tested and stand on top of the ink |
 | 6 | Labels | polities, places, rivers, admin areas, works, pins | HTML, decluttered by priority |
-| 7 | UI | tooltip, then one right-hand column (header, card, period panel or textbook, reader, quiz) and the bottom timeline | nothing else floats over the map |
+| 7 | UI | tooltip, then the overlay text, the right-hand drawer and popovers | see § 8 Layout |
 
 ## 2. What stands on the map
 
@@ -193,3 +193,19 @@ Every new or rebuilt model:
    - **No anachronisms.** Nothing appears before its time: chef's toques, modern clothes in ancient scenes, chairs before the Song, blue-and-white before the Yuan, or later rebuilds standing in for the original.
    - **Scale inside a diorama is consistent.** People, doors, steps and trees keep their real ratios to the building; a person is about one storey high, not half of it.
    - **Ground matches the site:** loess, paving, grass, sand or water as it is there, without decorative props that were never present.
+
+## 8. Layout
+
+The interface has three levels; the map is always in view and is never covered by more than one surface.
+
+| Level | Where | Contents |
+|---|---|---|
+| 1 · Map overlay | text straight on the map over soft edge scrims, no boxes | top left: brand kicker, era (click → era card), the year in large light type (click to type a year), reign; top right: search · hub · settings · language, then the period's figures (realm area, the four largest other polities, number of coexisting polities) and the 时期详情 button; bottom left: line key and disclaimer; bottom centre: the phase title (click → 时期详情) and the timeline bar |
+| 2 · Drawer | one full-height panel on the right (400 px; 360 px under 1180 px; a bottom sheet above the timeline on phones) | stacked views: 时期详情 at the base (overview, polities, 本时期大事, 随堂检测), then the card, textbook, reader or quiz — the latest on top; closing a view reveals the one beneath |
+| 3 · Popovers | under the tool row | hub (learn, quiz, help, journeys), settings (map style, layers, music, full screen); help dialog |
+
+Trade-offs: the first screen carries only what answers "when, who, how big" — the year, dynasty, reign, realm area and
+the largest neighbours. Everything else (all polities, the chronicle, the period check, notes) waits one click away in
+the drawer, which opens closed by default and remembers being pinned. During a story the drawer and figures step aside
+and the caption takes the phase line's place. The camera's view inset follows the drawer, so the subject is never under it.
+
