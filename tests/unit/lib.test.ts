@@ -8,7 +8,7 @@ import { distKm, gradeWhere, locatePoints, makeLocateQuiz, makeQuiz, periodQuest
 import { CHRONICLE, chapterAt, currentEntry, phaseAt, previousSnap, stepStop } from '../../src/shared/lib/chronicle.ts';
 import { SNAPSHOTS } from '../../src/shared/data/territories.ts';
 import { search } from '../../src/shared/lib/search.ts';
-import { ANCHORS, eraAt, formatYear, parseYear, rulerAt, tToYear, ticks, yearToT } from '../../src/shared/lib/timeline.ts';
+import { ANCHORS, eraAt, formatYear, rulerAt, tToYear, ticks, yearToT } from '../../src/shared/lib/timeline.ts';
 
 describe('timeline', () => {
   it('maps years monotonically onto [0,1] and back', () => {
@@ -121,16 +121,6 @@ describe('chronicle & phases', () => {
     expect(next).toBeGreaterThan(1405);
     expect(stepStop(next, -1)).toBe(1405);
     expect(stepStop(-221, -1)).toBeLessThan(-221);
-  });
-
-  it('parses typed years in both languages', () => {
-    expect(parseYear('1415')).toBe(1415);
-    expect(parseYear('-221')).toBe(-221);
-    expect(parseYear('前221')).toBe(-221);
-    expect(parseYear('公元前221年')).toBe(-221);
-    expect(parseYear('221 BC')).toBe(-221);
-    expect(parseYear('221 bce')).toBe(-221);
-    expect(parseYear('abc')).toBeNull();
   });
 });
 

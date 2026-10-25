@@ -29,8 +29,9 @@ function areaParts(k: number, l: Lang): [string, string] {
  * - `stats` (map, top right): the realm's area in large type, the largest coexisting polities and the 时期详情 button;
  * - `line` (map, bottom centre): the phase title as an ambient caption;
  * - `key` (map, bottom left): the line legend and the border disclaimer;
- * - `view` (the drawer's base view, 时期详情): overview (phase stepper, span, capital, area, note), every polity with
- *   its area, the chronicle (mounted by the app) and a one-question check per phase (随堂检测).
+ * - `view` (the drawer's base view, 时期详情), by priority: the overview (span, phase stepper, title, dynasty · capital ·
+ *   area, note) and the chronicle (mounted by the app, fills the rest), then two folded sections — every polity with
+ *   its area, and a one-question check per phase (随堂检测).
  * Hovering a polity holds its highlight on the map; clicking frames it.
  */
 export class Period {
@@ -40,8 +41,12 @@ export class Period {
   readonly view: HTMLElement;
   private body: HTMLElement;
   private overview: HTMLElement;
-  private pols: HTMLElement;
-  private check: HTMLElement;
+  private pols: HTMLDetailsElement;
+  private polsSum: HTMLElement;
+  private polsBody: HTMLElement;
+  private check: HTMLDetailsElement;
+  private checkSum: HTMLElement;
+  private checkBody: HTMLElement;
   private moreBtn: HTMLButtonElement;
   private sig = '';
   private year: Year = 0;
@@ -59,8 +64,13 @@ export class Period {
     this.line = h('button', { type: 'button', class: 'amb', onclick: () => this.onDetails() });
     this.key = h('div', { class: 'map-key' });
     this.overview = h('section', { class: 'pv-sec pv-ov' });
-    this.pols = h('section', { class: 'pv-sec pv-pols' });
-    this.check = h('section', { class: 'pv-sec pv-quiz' });
+    // folded by default; the details elements persist across years, so an opened section stays open
+    this.polsSum = h('summary', { class: 'pv-h' });
+    this.polsBody = h('div', { class: 'pv-fb' });
+    this.pols = h('details', { class: 'pv-sec pv-fold pv-pols' }, this.polsSum, this.polsBody);
+    this.checkSum = h('summary', { class: 'pv-h' });
+    this.checkBody = h('div', { class: 'pv-fb' });
+    this.check = h('details', { class: 'pv-sec pv-fold pv-quiz' }, this.checkSum, this.checkBody);
     this.body = h('div', { class: 'view-body' }, this.overview, this.pols, this.check);
     this.view = h('section', { class: 'view pv', hidden: true, role: 'region' },
       h('header', { class: 'view-head' }, h('h2', { text: t('details') }), iconBtn('close', t('close'), () => this.onClose(), 'pv-x')),
@@ -68,8 +78,8 @@ export class Period {
     this.relabel();
   }
 
-  /** Docks a section (the chronicle) between the polities and the check. */
-  mount(section: HTMLElement): void { this.body.insertBefore(section, this.check); }
+  /** Docks a section (the chronicle) right after the overview. */
+  mount(section: HTMLElement): void { this.body.insertBefore(section, this.pols); }
 
   /** Marks the 时期详情 button pressed while the view is open. */
   pressed(on: boolean): void {
@@ -143,16 +153,18 @@ export class Period {
       type: 'button', role: 'tab', class: g === s ? 'on' : '', 'aria-selected': String(g === s), title: tr(g.title, L),
       'aria-label': `${t('phase', { i: i + 1, n })} ${tr(g.title, L)}`, onclick: () => this.onYear(g.year),
     }))) : null;
-    const row = (k: string, v: string | null) => (v ? [h('dt', { text: k }), h('dd', { text: v })] : []);
+    const fact = (k: string, v: Node | string | null) => (v ? h('div', {}, h('dt', { text: k }), typeof v === 'string' ? h('dd', { text: v }) : h('dd', {}, v)) : null);
     fill(this.overview,
-      h('header', { class: 'pv-h' }, h('h3', { text: t('pOverview') }), n > 1 ? h('small', { class: 'pv-idx', text: `${pad(ph.index + 1)} / ${pad(n)}` }) : null),
+      h('div', { class: 'pv-top' },
+        h('span', { class: 'pv-span', text: `${formatYear(ph.from, L, { short: true })} – ${formatYear(ph.to, L, { short: true })}` }),
+        n > 1 ? h('small', { class: 'pv-idx', text: `${pad(ph.index + 1)} / ${pad(n)}` }) : null),
       steps,
-      era ? h('button', { type: 'button', class: 'pv-era', style: `--c:${era.color}`, onclick: () => this.onEra(era.id) }, h('i'), h('span', { text: tr(era.name, L) })) : null,
-      h('p', { class: 'pv-title', text: tr(s.title, L) }),
+      // the span is shown above, so a title's own leading dates ("221–215 BCE · …") are dropped
+      h('p', { class: 'pv-title', text: tr(s.title, L).replace(/^[^·]*\d[^·]*·\s*(?=\S)/, '') }),
       h('dl', { class: 'pv-facts' },
-        ...row(t('pYear'), `${formatYear(ph.from, L, { short: true })} – ${formatYear(ph.to, L, { short: true })}`),
-        ...row(t('capitalNow'), capName ? tr(capName, L) : null),
-        ...row(t('pArea'), area ? formatArea(area, L).replace(/^约 |^≈ /, '') : null)),
+        fact(t('dynasty'), era ? h('button', { type: 'button', class: 'pv-era', style: `--c:${era.color}`, onclick: () => this.onEra(era.id) }, h('i'), h('span', { text: tr(era.short, L) })) : null),
+        fact(t('capitalNow'), capName ? tr(capName, L) : null),
+        fact(t('pArea'), area ? areaParts(area, L).join(' ').replace('million km²', 'M km²').replace('平方千米', 'km²') : null)),
       s.note ? h('p', { class: 'pv-note', text: tr(s.note, L) }) : null);
   }
 
@@ -164,9 +176,8 @@ export class Period {
       const p = POLITY.get(id);
       if (p && !have.has(id)) list.push({ id, color: p.color, role: 'neighbor', name: tr(p.name, lang), area: k });
     }
-    fill(this.pols,
-      h('header', { class: 'pv-h' }, h('h3', { text: t('pPolities') }), h('small', { text: t('pPolUnit') })),
-      h('div', { class: 'pv-grid' }, ...list.map(p => this.polBtn(p, 'pv-pol'))));
+    fill(this.polsSum, h('h3', { text: t('pPolities') }), h('small', { text: `${list.length} · ${t('pPolUnit')}` }));
+    fill(this.polsBody, h('div', { class: 'pv-grid' }, ...list.map(p => this.polBtn(p, 'pv-pol'))));
   }
 
   private polBtn(p: Pol, cls: string): HTMLButtonElement {
@@ -202,8 +213,8 @@ export class Period {
       },
     }, h('i', { text: 'ABCD'[i] }), h('span', { text: tr(o, lang) })));
     const next = SNAPSHOTS[SNAPSHOTS.indexOf(s) + 1];
-    fill(this.check,
-      h('header', { class: 'pv-h' }, h('h3', { text: t('pqTitle') }), h('small', { text: t('pqProgress', { a: all.length, n: SNAPSHOTS.length, c: right }) })),
+    fill(this.checkSum, h('h3', { text: t('pqTitle') }), h('small', { text: t('pqProgress', { a: all.length, n: SNAPSHOTS.length, c: right }) }), done ? null : h('em', { class: 'pv-new' }));
+    fill(this.checkBody,
       h('p', { class: 'pq-q', text: tr(q.prompt, lang) }),
       h('div', { class: 'pq-opts' }, ...opts),
       done ? h('p', { class: `pq-res ${pick === q.answer ? 'ok' : 'bad'}` }, h('b', { text: t(pick === q.answer ? 'pqRight' : 'pqWrong') }), h('span', { text: tr(q.why, lang) })) : null,

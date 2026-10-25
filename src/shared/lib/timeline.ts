@@ -82,11 +82,3 @@ export function ticks(width: number): Year[] {
   }
   return out;
 }
-
-/** Parses typed years: "1415", "-221", "前221", "221 BC(E)", "公元前221年". */
-export function parseYear(s: string): Year | null {
-  const m = s.trim().match(/^(公元)?(前|-|−)?\s*(\d{1,7})\s*(年)?\s*(BCE?|B\.C\.)?$/i);
-  if (!m) return null;
-  const n = Number(m[3]);
-  return m[2] || m[5] ? -n : n;
-}

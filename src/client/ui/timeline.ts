@@ -6,13 +6,13 @@ import { reignAt, regionalReignsAt } from '../../shared/data/jiangshan.ts';
 import { STOPS, stepStop } from '../../shared/lib/chronicle.ts';
 import { realmArea } from '../../shared/data/areas.ts';
 import { SNAPSHOTS } from '../../shared/data/territories.ts';
-import { eraAt, formatYear, normYear, parseYear, rulerAt, tToYear, ticks, yearToT } from '../../shared/lib/timeline.ts';
+import { eraAt, formatYear, normYear, rulerAt, tToYear, ticks, yearToT } from '../../shared/lib/timeline.ts';
 import { lang, t } from '../lib/i18n.ts';
 import { h, iconBtn, setIcon } from './dom.ts';
 
 /**
  * Time, in two parts. `head` is the headline on the map's top-left corner: the dynasty (click for its card), the year
- * in large type (click to type one) and the ruler / reign era. `el` is the bar across the foot of the map: ⏮ ▶ ⏭ with a
+ * and the ruler / reign era. `el` is the bar across the foot of the map: ⏮ ▶ ⏭ with a
  * speed switch, then the track — the dynasty's territorial area as a stepped curve, event ticks, coloured era bands
  * (two lanes for overlapping regimes), the year axis and a draggable thumb. The axis is piecewise-linear (see
  * shared/lib/timeline.ts) so the dense recent centuries get room while prehistory stays visible.
@@ -37,7 +37,6 @@ export class Timeline {
   private axis: HTMLElement;
   private phases: HTMLElement;
   private flag: HTMLElement;
-  private input: HTMLInputElement;
   year: Year = 0;
   playing = false;
   onYear: (y: Year, final: boolean) => void = () => {};
@@ -70,19 +69,7 @@ export class Timeline {
     this.tip = h('div', { class: 'tl-tip' });
     this.curve = h('div', { class: 'tl-curve', 'aria-hidden': 'true' });
     this.track = h('div', { class: 'tl-track', role: 'slider', tabindex: 0, 'aria-label': t('era') }, this.curve, this.dots, this.bands, this.phases, this.axis, this.thumb, this.tip);
-    // the year itself is the go-to-year field: click to type (前221, 1415), Enter/blur to jump
-    this.input = h('input', { class: 'tl-in', type: 'text', inputmode: 'numeric', 'aria-label': t('goYear'), title: t('goYear'), hidden: true });
-    const done = () => { this.input.hidden = true; this.yearEl.hidden = false; };
-    this.input.addEventListener('change', () => { const y = parseYear(this.input.value); if (y != null) { this.setPlaying(false); this.set(y, true); } else this.render(); });
-    this.input.addEventListener('blur', done);
-    this.input.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') this.input.blur(); e.stopPropagation(); });
-    this.yearEl.title = t('goYear');
-    this.yearEl.addEventListener('click', () => {
-      this.yearEl.hidden = true; this.input.hidden = false;
-      this.input.value = this.year < 0 ? (lang === 'zh' ? `前${-this.year}` : `${-this.year} BC`) : String(this.year);
-      this.input.focus(); this.input.select();
-    });
-    this.head = h('div', { class: 'tl-head' }, this.eraEl, this.yearEl, this.input, this.rulerEl);
+    this.head = h('div', { class: 'tl-head' }, this.eraEl, this.yearEl, this.rulerEl);
     const ctl = h('div', { class: 'tl-ctl' },
       iconBtn('prev', t('prevStop'), () => this.step(-1), 'tl-prev'), this.playBtn, iconBtn('next', t('nextStop'), () => this.step(1), 'tl-next'),
       this.speedSeg, this.hint);
@@ -144,6 +131,13 @@ export class Timeline {
   private layoutAxis(): void {
     const w = this.track.clientWidth || 600;
     this.axis.replaceChildren(...ticks(w).map(y => h('span', { style: `left:${yearToT(y) * 100}%`, text: formatYear(y, lang, { short: true }).replace('约', '').replace('c. ', '').replace(' million years ago', 'M ya') })));
+    // drop axis labels that would collide with the previous visible one
+    let right = -Infinity;
+    for (const s of this.axis.children as HTMLCollectionOf<HTMLElement>) {
+      const r = s.getBoundingClientRect();
+      s.style.visibility = !r.width || r.left >= right + 6 ? 'visible' : 'hidden';
+      if (s.style.visibility === 'visible' && r.width) right = r.right;
+    }
     // hide band labels that do not fit
     for (const b of this.bands.children as HTMLCollectionOf<HTMLElement>) {
       const s = b.firstElementChild as HTMLElement;
@@ -245,8 +239,6 @@ export class Timeline {
 
   relabel(): void {
     this.track.setAttribute('aria-label', t('era'));
-    this.yearEl.title = this.input.title = t('goYear');
-    this.input.setAttribute('aria-label', t('goYear'));
     for (const [c, k] of [['.tl-prev', 'prevStop'], ['.tl-next', 'nextStop']] as const) { const b = this.el.querySelector<HTMLElement>(c)!; b.title = t(k); b.setAttribute('aria-label', t(k)); }
     this.playBtn.title = this.playBtn.ariaLabel = t(this.playing ? 'pause' : 'play');
     this.speedSeg.setAttribute('aria-label', t('speed'));

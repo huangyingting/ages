@@ -200,12 +200,23 @@ The interface has three levels; the map is always in view and is never covered b
 
 | Level | Where | Contents |
 |---|---|---|
-| 1 · Map overlay | text straight on the map over soft edge scrims, no boxes | top left: brand kicker, era (click → era card), the year in large light type (click to type a year), reign; top right: search · hub · settings · language, then the period's figures (realm area, the four largest other polities, number of coexisting polities) and the 时期详情 button; bottom left: line key and disclaimer; bottom centre: the phase title (click → 时期详情) and the timeline bar |
-| 2 · Drawer | one full-height panel on the right (400 px; 360 px under 1180 px; a bottom sheet above the timeline on phones) | stacked views: 时期详情 at the base (overview, polities, 本时期大事, 随堂检测), then the card, textbook, reader or quiz — the latest on top; closing a view reveals the one beneath |
+| 1 · Map overlay | text straight on the map over soft edge scrims, no boxes | top left: brand kicker, era (click → era card), the year in large light type (a readout, not an input), reign; top right: search · hub · settings · language, then the period's figures (realm area, the four largest other polities, number of coexisting polities) and the 时期详情 button; bottom left: line key and disclaimer; bottom centre: the phase title (click → 时期详情) and the timeline bar |
+| 2 · Drawer | one full-height panel on the right (340 px; 320 px under 1180 px; a bottom sheet above the timeline on phones) | stacked views: 时期详情 at the base, then the card, textbook, reader or quiz — only the latest is drawn; closing a view reveals the one beneath |
 | 3 · Popovers | under the tool row | hub (learn, quiz, help, journeys), settings (map style, layers, music, full screen); help dialog |
 
 Trade-offs: the first screen carries only what answers "when, who, how big" — the year, dynasty, reign, realm area and
 the largest neighbours. Everything else (all polities, the chronicle, the period check, notes) waits one click away in
 the drawer, which opens closed by default and remembers being pinned. During a story the drawer and figures step aside
 and the caption takes the phase line's place. The camera's view inset follows the drawer, so the subject is never under it.
+
+**时期详情, by priority.** (1) Overview: the phase span in vermilion with the phase stepper, the phase title, a
+three-cell strip — dynasty (click → era card) · capital · area — and the note. (2) 本时期大事 fills the remaining height
+and scrolls within, keeping the current entry in view. (3) Two folded sections, closed by default and staying as left
+while the year changes: 并存政权 (every polity with its area) and 随堂检测 (a dot marks an unanswered question).
+
+**Surfaces.** Every surface is a flat, translucent frosted plane (`--panel` + `--glass`) with a hairline edge: drawer,
+popovers, search results, tool buttons, tooltips, tags and the timeline bar. Nothing casts a drop shadow; only focus
+and selection rings and the inset accent bar of the current list row use `box-shadow`. Text is warm charcoal
+(`--ink` `#2d2a25`, `--ink-2`, `--ink-3`), never pure black. Sizes come from one scale — see
+[typography § Interface type](typography.md#interface-type).
 
