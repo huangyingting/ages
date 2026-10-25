@@ -211,6 +211,19 @@ lesson is its own scene: the course picker closes, the lesson runs in the left c
 aside until it ends. During a story the panel and the figures step aside and the caption takes the phase line's place.
 The camera's view inset follows the panel (and its reading width), so the subject is never under it.
 
+**Screens.** The same three levels on every screen, adapted rather than replaced:
+
+| Screen | Adaptation |
+|---|---|
+| Wide (> 1180 px) | as above; reading stops short of the period's figures (top right) |
+| Laptop (≤ 1180 px) | panel 330 px; reading spans the width and the figures step aside while it is open |
+| Tablet (≤ 960 px) | the line key folds away; the foot is the phase line over the timeline row |
+| Short (landscape phone, height ≤ 560 px) | no kicker or figures; an open panel takes the full height from the top and the headline steps aside; reading runs from under the toolbar to the bottom edge; popovers use the full height |
+| Phone (≤ 720 px) | the panel is a bottom sheet above the timeline that hugs its content (up to 46 % of the height; reading 62 %), the article takes the card's place; the phase line and the transport buttons (‹ ▶ ›) share one row above the bar; popovers span the width under the toolbar |
+
+On phones and short screens the card scrolls as a whole: its 3D view collapses into a strip on scroll, keeping the card's
+step and close buttons at hand. Tooltips appear on hover or Tab focus only — never when the app moves focus itself.
+
 **时期详情** — a popover under the 时期详情 button (or the phase line), same width as the study hall and settings, running down to just above the phase line — **by priority.** (1) Overview: the phase span in vermilion with the phase stepper, the phase title, a
 three-cell strip — dynasty (click → era card) · capital · area — and the note. (2) 本时期大事 fills the remaining height
 and scrolls within, keeping the current entry in view. (3) A folded section, closed by default and staying as left

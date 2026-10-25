@@ -589,6 +589,10 @@ test.describe('Ages atlas', () => {
     expect((await page.locator('.card-main').boundingBox())!.width).toBeGreaterThanOrEqual(vp.width - 1); // sheet spans the full width
     expect(cb.y + cb.height).toBeLessThanOrEqual(tb.y + 1);
     expect(tb.y + tb.height).toBeLessThanOrEqual(vp.height);
+    // the transport buttons share the phase line's row, above the bar
+    const ctl = (await page.locator('.tl-ctl').boundingBox())!, amb = (await page.locator('.amb').boundingBox())!;
+    expect(Math.abs(ctl.y + ctl.height / 2 - (amb.y + amb.height / 2))).toBeLessThan(4);
+    expect(ctl.y + ctl.height).toBeLessThanOrEqual(tb.y + 1);
     // the selected place is framed above the bottom sheet
     const pt = await page.evaluate(() => (window as any).__atlas.screenOf(113.9, 29.83));
     await expect.poll(async () => (await page.evaluate(() => (window as any).__atlas.screenOf(113.9, 29.83))).y, { timeout: 30_000 }).toBeLessThan(cb.y);

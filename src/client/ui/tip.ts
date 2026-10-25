@@ -4,13 +4,17 @@ import { h } from './dom.ts';
  * The interface's one tooltip for controls (the map has its own `.maptip`, the timeline its `.tl-tip`).
  * Components keep setting `title`; it is lifted into `data-tip` the moment it is set or hovered, so the browser never
  * shows its own tooltip, and this flat translucent tip appears instead — after a short rest on hover, at once on
- * keyboard focus. It sits under the control (above it near the bottom edge) and stays inside the viewport.
+ * keyboard focus (not when the app moves focus itself). It sits under the control (above it near the bottom edge) and stays inside the viewport.
  */
 export function initTips(): void {
   const tip = h('div', { class: 'uitip', id: 'ui-tip', role: 'tooltip', hidden: true });
   document.body.append(tip);
   let cur: HTMLElement | null = null;
   let timer = 0;
+  // focus moved by the app (e.g. onto the story's pause button) is not a request for a tip — only Tab focus is
+  let keyboard = false;
+  document.addEventListener('keydown', e => { keyboard = e.key === 'Tab'; }, true);
+  document.addEventListener('pointerdown', () => { keyboard = false; }, true);
 
   const lift = (n: Element): void => {
     const s = n.getAttribute('title');
@@ -72,7 +76,7 @@ export function initTips(): void {
   document.addEventListener('pointerout', e => { if (cur && !cur.contains(e.relatedTarget as Node | null)) hide(); });
   document.addEventListener('focusin', e => {
     const n = owner(e.target);
-    if (n && n === e.target && n.matches(':focus-visible')) show(n, 0);
+    if (n && n === e.target && keyboard && n.matches(':focus-visible')) show(n, 0);
     else if (cur) hide();
   });
   document.addEventListener('focusout', hide);

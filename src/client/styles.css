@@ -524,14 +524,20 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
   opacity: 0; transform: translateX(-24px);
 }
 .panel-l:has(> .card.top.reading) { width: min(calc(var(--lw) + 580px), calc(100% - 48px)); }
-/* on wide screens the left slab hugs its top view, from under the headline down to at most the line key */
+/* the slab hugs its top view: on wide screens from under the headline down to at most the line key, on phones up from
+   the timeline to at most the sheet's height */
+.panel-l { display: flex; flex-direction: column; }
+.panel-l .view { position: relative; inset: auto; flex: 0 1 auto; min-height: 0; }
+.panel-l .view:not(.top) { display: none; }
+.panel-l .view.quiz { overflow: auto; }
+.panel-l .card.reading { flex: 1 1 auto; }
 @media (min-width: 721px) {
-  .panel-l { bottom: auto; max-height: calc(100% - var(--lt, 170px) - var(--lb, 120px)); display: flex; flex-direction: column; }
-  .panel-l .view { position: relative; inset: auto; flex: 0 1 auto; min-height: 0; }
-  .panel-l .view:not(.top) { display: none; }
-  .panel-l .view.quiz { overflow: auto; }
+  .panel-l { bottom: auto; max-height: calc(100% - var(--lt, 170px) - var(--lb, 120px)); }
   .panel-l:has(> .card.top.reading) { height: calc(100% - var(--lt, 170px) - var(--lb-read, var(--lb, 120px))); max-height: none; }
-  .panel-l .card.reading { flex: 1 1 auto; }
+}
+/* wide screens keep the period's figures (top right) clear of the reading slab */
+@media (min-width: 1181px) {
+  .panel-l:has(> .card.top.reading) { width: min(calc(var(--lw) + 580px), calc(100% - 420px)); }
 }
 .story-on .panel-l { transform: translateX(-24px); opacity: 0; pointer-events: none; }
 .view { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; animation: view-in .28s var(--ease-out); }
@@ -881,6 +887,7 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 .tl-dot:hover, .tl-dot.sel { opacity: 1; transform: scale(1.8); box-shadow: 0 0 0 1.5px #fff; z-index: 1; }
 .tl-axis { position: absolute; left: 0; right: 0; top: 54px; height: 12px; }
 .tl-axis span { position: absolute; transform: translateX(-50%); font-size: var(--t-2xs); color: var(--ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tl-axis span:first-child { transform: none; }
 .tl-thumb { position: absolute; top: 0; bottom: 12px; width: 2px; margin-left: -1px; background: var(--zhu); border-radius: 1px; pointer-events: none; }
 .tl-thumb i { position: absolute; top: 33px; left: -6px; width: 14px; height: 14px; background: #fff; border: 3px solid var(--zhu); border-radius: 50%; }
 .tl-flag {
@@ -954,23 +961,48 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
   .hits, .menu { position: fixed; top: 56px; left: 8px; right: 8px; width: auto; max-height: calc(100% - var(--tl-b, 120px) - 64px); }
   .hud-tr { display: none; }
   .hud-bot { left: 8px; right: 8px; bottom: 8px; gap: 6px; }
-  .amb { font-size: var(--t-s); }
-  .tl { padding: 2px 10px 0; }
-  .tl { flex-direction: column; align-items: stretch; gap: 0; }
-  .tl-ctl { height: 34px; margin-top: 0; }
+  /* the phase line and the transport buttons share one row above the track */
+  .hud-bc { gap: 2px; }
+  .amb { align-self: stretch; min-height: 34px; padding: 0 118px 0 2px; text-align: left; font-size: var(--t-s); }
+  .tl { padding: 2px 10px 0; flex-direction: column; align-items: stretch; gap: 0; }
+  .tl-ctl { position: absolute; right: 8px; bottom: calc(100% + 2px); height: 34px; margin-top: 0; }
+  .story-on .tl-ctl { display: none; }
   .tl-speed { display: none; }
   .tl-flag { display: none; }
   .panel-l {
-    top: auto; left: 0; right: 0; width: auto; bottom: var(--tl-b, 120px); height: 44vh; clip-path: none; opacity: 1;
+    top: auto; left: 0; right: 0; width: auto; bottom: var(--tl-b, 120px); max-height: 46vh; clip-path: none; opacity: 1;
     transform: translateY(calc(100% + var(--tl-b, 120px)));
   }
-  .panel-l.on:has(> .card.top.reading) { width: auto; height: 62vh; }
+  .panel-l.on:has(> .card.top.reading) { width: auto; height: 62vh; max-height: none; }
   .card-main { flex: 1 1 auto; width: auto; }
   .card.reading .card-main { display: none; }
   .story-on .panel { transform: translateY(calc(100% + var(--tl-b, 120px))); visibility: hidden; }
-  .info-hero { height: 112px; }
   .card h2 { font-size: var(--t-xl); }
   .caption { padding: 8px 6px 10px 12px; }
   .cap-t { font-size: var(--t-m); }
+}
+/* ================================================================ phones and short (landscape) screens: the card scrolls as
+   a whole and its 3D view collapses into a strip that keeps the card's buttons at hand */
+@media (max-width: 720px), (max-height: 560px) {
+  .card-main { overflow: auto; overscroll-behavior: contain; }
+  .card-body { flex: none; overflow: visible; }
+  .info-hero {
+    --hh: 112px; height: var(--hh); position: sticky; top: calc(46px - var(--hh)); z-index: 2;
+    background: linear-gradient(var(--well), var(--well)), var(--panel-solid);
+  }
+  .card-nav { top: auto; bottom: 8px; }
+}
+/* short screens (landscape phones, small windows): the headline folds away under an open panel, which then runs from the
+   top; reading runs from under the tools down over the timeline; popovers use the full height */
+@media (min-width: 721px) and (max-height: 560px) {
+  .brand-k, .hud-tr { display: none; }
+  .tl-head { margin-top: 6px; }
+  .tl-year { font-size: var(--t-2xl); }
+  .hud-tl { transition: opacity .3s; }
+  .dock-on:not(.story-on) .hud-tl, .dock-on .amb { opacity: 0; pointer-events: none; }
+  .panel-l { top: 12px; max-height: calc(100% - 12px - var(--lb, 120px)); }
+  .panel-l:has(> .card.top.reading) { top: 62px; height: auto; bottom: 8px; max-height: none; }
+  .menu { max-height: calc(100dvh - 70px); }
+  .menu.pv { height: calc(100dvh - 70px); }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition: none !important; } }

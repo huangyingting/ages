@@ -510,7 +510,9 @@ class App {
     if (!this.panel) return;
     const H = this.root.clientHeight;
     const top = this.root.getBoundingClientRect().top;
-    const tl = this.timeline.el.getBoundingClientRect().top - top;
+    // (on phones the transport buttons sit just above the track)
+    const ctl = this.timeline.el.querySelector('.tl-ctl');
+    const tl = Math.min(this.timeline.el.getBoundingClientRect().top, ctl?.getClientRects().length ? ctl.getBoundingClientRect().top : Infinity) - top;
     // the phone's bottom sheet sits right above the timeline
     this.root.style.setProperty('--tl-b', `${Math.round(H - tl)}px`);
     // the left column: under the headline, above the line key (or the timeline, where the key is folded away)
