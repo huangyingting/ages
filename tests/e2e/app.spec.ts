@@ -39,6 +39,16 @@ test.describe('Ages atlas', () => {
     await page.mouse.move(400, 400);
     await expect(page.locator('.uitip')).toBeHidden();
 
+    // 时期详情, the study hall and settings are popovers, one at a time
+    await details.click();
+    await expect(page.locator('.pv')).toBeVisible();
+    await page.locator('.b-hub').click();
+    await expect(page.locator('.hub')).toBeVisible();
+    await expect(page.locator('.pv')).toBeHidden();
+    await expect(details).toHaveAttribute('aria-expanded', 'false');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.hub')).toBeHidden();
+
     // the choice persists across reloads
     await page.goto('/?lowfx=1');
     await expect.poll(() => page.evaluate(() => (window as any).__atlas?.ready)).toBe(true);

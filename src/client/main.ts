@@ -59,8 +59,6 @@ class App {
   private hudTl!: HTMLElement;
   private hudBl!: HTMLElement;
   private brand!: HTMLElement;
-  /** the period view is kept open (persisted) */
-  private pinned = load<boolean>('details', false);
 
   constructor(private root: HTMLElement, stage: HTMLElement) {
     this.atlas = new Atlas(stage, lowfx);
@@ -104,11 +102,7 @@ class App {
       play: e => void this.playStory(e),
       open: e => this.openEvent(e),
       change: id => {
-        const on = !!id || this.lesson.open;
-        this.root.classList.toggle('lesson-on', on);
-        // the lesson scene: the period details step aside (still pinned) and come back when the lesson ends
-        if (on) this.period.view.hidden = true;
-        else if (this.pinned && !matchMedia('(max-width: 720px)').matches) this.period.view.hidden = false;
+        this.root.classList.toggle('lesson-on', !!id || this.lesson.open);
         writeLink(id ? { lesson: id, lang } : { year: this.timeline.year, lang });
       },
     });
@@ -175,8 +169,7 @@ class App {
     this.period.onHold = p => this.atlas.hold(p);
     this.period.onPolity = p => this.atlas.flyToPolity(p);
     this.period.onEra = id => this.openEra(id);
-    this.period.onDetails = () => this.details(this.panel.top('right') !== this.period.view);
-    this.period.onClose = () => this.details(false);
+    this.period.onDetails = () => this.pop(this.period.view.hidden ? 'details' : null);
     tl.onEra = id => this.openEra(id);
     tl.onPlay = on => { if (on) { this.player.stop(); this.closeCard(); } };
 
@@ -218,8 +211,8 @@ class App {
     // (search · 时期详情 | study hall · settings) with the period's figures under it, the line key bottom left, the phase
     // line / story caption and the timeline bottom centre.
     // Level 2 — two sides. Left, between the headline and the line key: what is being studied — a lesson, the quiz, the
-    // card with its 3D view. Right, a drawer under the toolbar: reference — the period details and the Wikipedia reader.
-    // Level 3 — popovers under the tools (study hall, settings) and dialogs (the course picker, help).
+    // card with its 3D view. Right, a drawer under the toolbar: the Wikipedia reader.
+    // Level 3 — popovers under the tools, one at a time (时期详情, study hall, settings), and dialogs (course picker, help).
     const hubBtn = iconBtn('grid', t('hub'), () => this.pop(this.hub.el.hidden ? 'hub' : null), 'b-hub');
     const setBtn = iconBtn('sliders', t('settings'), () => this.pop(this.settings.el.hidden ? 'settings' : null), 'b-settings');
     const fullBtn = iconBtn('full', t('fullscreen'), () => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen?.().catch(() => {}); }, 'b-full');
@@ -228,7 +221,8 @@ class App {
     this.settings.extra = h('div', { class: 'set-extra' }, this.music.el, fullBtn);
     this.settings.render();
     const tools = h('div', { class: 'tools' }, this.search.el, this.period.btn, h('i', { class: 'tools-sep', 'aria-hidden': 'true' }), hubBtn, setBtn);
-    const bar = h('div', { class: 'bar' }, tools, this.hub.el, this.settings.el);
+    const pops = [this.period.view, this.hub.el, this.settings.el];
+    const bar = h('div', { class: 'bar' }, tools, ...pops);
     this.brand = h('div', { class: 'brand' }, h('span', { class: 'logo', 'aria-hidden': 'true' }), h('b', { text: 'Ages' }), h('span', { class: 'brand-k' }));
     this.hudTl = h('div', { class: 'hud-tl' }, this.brand, this.timeline.head);
     this.hudBl = h('div', { class: 'hud-bl' }, this.period.key);
@@ -238,17 +232,16 @@ class App {
       h('div', { class: 'hud-bot' },
         this.hudBl,
         h('div', { class: 'hud-bc' }, this.period.line, this.caption.el, this.timeline.el)));
-    this.panel = new Panel([this.lesson.el, this.quiz.el, this.card.el], [this.period.view, this.reader.el]);
+    this.panel = new Panel([this.lesson.el, this.quiz.el, this.card.el], [this.reader.el]);
     this.panel.onChange = () => {
       this.root.classList.toggle('panel-on', this.panel.rightOpen);
       this.root.classList.toggle('dock-on', this.panel.leftOpen);
-      this.period.pressed(this.panel.top('right') === this.period.view);
       this.updateInset();
     };
-    this.details(this.pinned && !matchMedia('(max-width: 720px)').matches);
+    // a popover closes on a click anywhere else (the phase line toggles 时期详情 itself)
     document.addEventListener('pointerdown', e => {
       const n = e.target as Node;
-      if ((!this.hub.el.hidden || !this.settings.el.hidden) && !tools.contains(n) && !this.hub.el.contains(n) && !this.settings.el.contains(n)) this.pop(null);
+      if (pops.some(p => !p.hidden) && !tools.contains(n) && !this.period.line.contains(n) && !pops.some(p => p.contains(n))) this.pop(null);
     });
 
     this.root.append(hud, this.panel.left, this.panel.right, bar, this.learn.el, this.help.el);
@@ -283,17 +276,10 @@ class App {
     if (!this.card.event) writeLink({ year: y, lang });
   }
 
-  /** Shows the period details (on top of the drawer) or hides them; remembered across visits. */
-  private details(on: boolean): void {
-    this.pinned = on;
-    save('details', on);
-    const v = this.period.view;
-    if (on && !v.hidden) v.hidden = true; // re-show to raise it over the other views
-    v.hidden = !on;
-  }
-
-  /** Opens one toolbar popover (or none). */
-  private pop(which: 'hub' | 'settings' | null): void {
+  /** Opens one toolbar popover (or none): 时期详情, the study hall and settings are mutually exclusive. */
+  private pop(which: 'details' | 'hub' | 'settings' | null): void {
+    this.period.view.hidden = which !== 'details';
+    this.period.pressed(which === 'details');
     if (which === 'hub') this.hub.show(); else this.hub.toggle(false);
     this.settings.toggle(which === 'settings');
     this.root.querySelector('.b-hub')?.classList.toggle('on', which === 'hub');
@@ -454,7 +440,7 @@ class App {
     if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
     if (e.key === '/') { this.search.input.focus(); e.preventDefault(); return; }
     if (e.key === 'Escape') {
-      if (!this.hub.el.hidden || !this.settings.el.hidden) this.pop(null);
+      if (!this.hub.el.hidden || !this.settings.el.hidden || !this.period.view.hidden) this.pop(null);
       else if (!this.help.el.hidden) this.help.toggle(false);
       else if (this.learn.open) this.learn.toggle(false);
       else if (this.reader.open) this.reader.close();
@@ -462,7 +448,6 @@ class App {
       else if (this.quiz.open) this.quiz.toggle(false);
       else if (this.card.open) this.closeCard();
       else if (this.lesson.open) this.lesson.stop();
-      else if (!this.period.view.hidden) this.details(false);
       return;
     }
     if ((e.key === 'r' || e.key === 'R') && !e.altKey && !e.metaKey && !e.ctrlKey && this.player.state === 'idle') {

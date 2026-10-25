@@ -27,7 +27,7 @@ function areaParts(k: number, l: Lang): [string, string] {
  * - `stats` (map, top right, under the toolbar): the realm's area in large type and the largest coexisting polities;
  * - `line` (map, bottom centre): the phase title as an ambient caption;
  * - `key` (map, bottom left): the line legend and the border disclaimer;
- * - `view` (the drawer's base view, 时期详情), by priority: the overview (span, phase stepper, title, dynasty · capital ·
+ * - `view` (the 时期详情 popover under the toolbar, like the study hall and settings), by priority: the overview (span, phase stepper, title, dynasty · capital ·
  *   area, note) and the chronicle (mounted by the app, fills the rest), then a folded section: every polity with its area.
  *   (The course's 随堂检测 lives in the lesson player, ui/lesson.ts.)
  * Hovering a polity holds its highlight on the map; clicking frames it.
@@ -49,9 +49,8 @@ export class Period {
   onHold: (polity: string | null) => void = () => {};
   onPolity: (polity: string) => void = () => {};
   onEra: (id: string) => void = () => {};
-  /** the 时期详情 button and the ambient line: open / close the period view */
+  /** the 时期详情 button and the ambient line: open / close the period popover */
   onDetails: () => void = () => {};
-  onClose: () => void = () => {};
 
   constructor() {
     this.btn = iconBtn('list', t('details'), () => this.onDetails(), 'b-details');
@@ -65,16 +64,14 @@ export class Period {
     this.polsBody = h('div', { class: 'pv-fb' });
     this.pols = h('details', { class: 'pv-sec pv-fold pv-pols' }, this.polsSum, this.polsBody);
     this.body = h('div', { class: 'view-body' }, this.overview, this.pols);
-    this.view = h('section', { class: 'view pv', hidden: true, role: 'region' },
-      h('header', { class: 'view-head' }, h('h2', { text: t('details') }), iconBtn('close', t('close'), () => this.onClose(), 'pv-x')),
-      this.body);
+    this.view = h('div', { class: 'pop menu pv', hidden: true, role: 'dialog' }, this.body);
     this.relabel();
   }
 
   /** Docks a section (the chronicle) right after the overview. */
   mount(section: HTMLElement): void { this.body.insertBefore(section, this.pols); }
 
-  /** Marks the 时期详情 button pressed while the view is open. */
+  /** Marks the 时期详情 button pressed while the popover is open. */
   pressed(on: boolean): void {
     this.btn.classList.toggle('on', on);
     this.btn.setAttribute('aria-expanded', String(on));
@@ -205,9 +202,6 @@ export class Period {
 
   relabel(): void {
     this.view.setAttribute('aria-label', t('details'));
-    (this.view.querySelector('.view-head h2') as HTMLElement).textContent = t('details');
-    const x = this.view.querySelector<HTMLElement>('.pv-x')!;
-    x.title = t('close'); x.setAttribute('aria-label', t('close'));
     this.btn.title = t('details'); this.btn.setAttribute('aria-label', t('details'));
     this.key.setAttribute('aria-label', t('legend'));
     this.line.title = t('details');

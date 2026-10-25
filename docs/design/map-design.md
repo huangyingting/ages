@@ -29,7 +29,7 @@ From the ground up (`scene/ink.ts` `INK` orders, then depth-tested models, then 
 | 4 | Map ink | route strokes, arrowheads, base rings, selection ring, battlefields | painted flat on the map: no depth test, so hills never cut them |
 | 5 | Models | capital, dynasty scenery, event models, story actors | depth-tested and stand on top of the ink |
 | 6 | Labels | polities, places, rivers, admin areas, works, pins | HTML, decluttered by priority |
-| 7 | UI | tooltip, then the overlay text, the right-hand drawer and popovers | see § 8 Layout |
+| 7 | UI | tooltip, then the overlay text, the two sides and popovers | see § 8 Layout |
 
 ## 2. What stands on the map
 
@@ -202,23 +202,23 @@ The interface has three levels; the map is always in view and is never covered b
 | Level | Where | Contents |
 |---|---|---|
 | 1 · Map overlay | text straight on the map over soft edge scrims, no boxes | top left: brand kicker, era (click → era card), the year in large light type (a readout, not an input), reign; top right: one grouped toolbar plate — find (search · 时期详情) \| study hall · settings — that never moves, then under it the period's figures (realm area, the four largest other polities, number of coexisting polities), which shift left beside the drawer; bottom left: line key and disclaimer; bottom centre: the phase title (click → 时期详情) and the timeline bar |
-| 2 · Sides | left: a floating slab (360 px) from under the headline, hugging its content, never lower than the line key; right: a drawer from under the toolbar to the bottom edge (340 px; both narrower under 1180 px). On phones both are one bottom sheet above the timeline, the side opened last in front | left — what is studied: the lesson, the quiz, the card with its 3D view; right — reference: 时期详情 and the Wikipedia reader. Each side stacks its views; only the latest is drawn and closing it reveals the one beneath, so a card and its article can sit side by side |
-| 3 · Popovers & dialogs | under the toolbar; dialogs centred | study hall (tabs: 学习 — 历史课堂 with ✓ n/31, 历史小测验; 人物行迹 — the journeys), settings in numbered sections (01 地图风格, 02 图层, 03 声音与显示, 04 语言; 使用说明 at the foot); the course picker and help dialogs |
+| 2 · Sides | left: a floating slab (360 px) from under the headline, hugging its content, never lower than the line key; right: a drawer from under the toolbar to the bottom edge (340 px; both narrower under 1180 px). On phones both are one bottom sheet above the timeline, the side opened last in front | left — what is studied: the lesson, the quiz, the card with its 3D view; right — reference: the Wikipedia reader. Each side stacks its views; only the latest is drawn and closing it reveals the one beneath, so a card and its article can sit side by side |
+| 3 · Popovers & dialogs | under the toolbar, one at a time — opening one closes the others, a click elsewhere or Esc closes it; dialogs centred | 时期详情 (see below), study hall (tabs: 学习 — 历史课堂 with ✓ n/31, 历史小测验; 人物行迹 — the journeys), settings in numbered sections (01 地图风格, 02 图层, 03 声音与显示, 04 语言; 使用说明 at the foot); the course picker and help dialogs |
 
 Trade-offs: the first screen carries only what answers "when, who, how big" — the year, dynasty, reign, realm area and
-the largest neighbours. Everything else (all polities, the chronicle, notes) waits one click away in the drawer, which
-opens closed by default and remembers being pinned. A lesson is its own scene: the course picker closes, the lesson runs
-in the left column, and the period details and figures step aside until it ends. During a story both sides and the
+the largest neighbours. Everything else (all polities, the chronicle, notes) waits one click away in the 时期详情 popover. A
+lesson is its own scene: the course picker closes, the lesson runs in the left column, and the period's figures step
+aside until it ends. During a story both sides and the
 figures step aside and the caption takes the phase line's place. The camera's view inset follows both sides, so the
 subject is never under them.
 
-**时期详情, by priority.** (1) Overview: the phase span in vermilion with the phase stepper, the phase title, a
+**时期详情** — a popover under the 时期详情 button (or the phase line), same width as the study hall and settings — **by priority.** (1) Overview: the phase span in vermilion with the phase stepper, the phase title, a
 three-cell strip — dynasty (click → era card) · capital · area — and the note. (2) 本时期大事 fills the remaining height
 and scrolls within, keeping the current entry in view. (3) A folded section, closed by default and staying as left
 while the year changes: 并存政权 (every polity with its area). Checks live in the course (历史课堂, see
 [course.md](course.md)), not in the period details.
 
-**Surfaces.** The interface is borderless. Every surface — drawer, popovers, search results, tool buttons, tooltips and
+**Surfaces.** The interface is borderless. Every surface — the sides, popovers, search results, tool buttons, tooltips and
 tags — is a flat, translucent frosted plane (`--panel` + `--glass`) with no border, no hairline and no drop shadow. Inside
 the sides, sections are set apart by spacing and headings, not rules. The timeline has no surface at all: its controls,
 translucent dynasty bands and axis sit straight on the map's foot scrim.

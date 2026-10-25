@@ -92,11 +92,11 @@ Content carries `I18n = { zh, en }`. UI strings live in `client/lib/i18n.ts`. `s
 `client/lib/wikipedia.ts` calls the MediaWiki action API (`origin=*`, `prop=extracts|pageimages|description`, `explaintext`, `variant=zh-cn`). If an item has no title in the requested language it follows interlanguage links from the other wiki. Responses are cached per session, and failures aren't cached so Retry works. All text is inserted with `textContent`.
 
 ## View insets
-The two sides (`ui/panel.ts`) cover the edges: on the left a floating slab between the headline and the line key (lesson, quiz, card stacked as views), on the right the drawer (period details, reader); on phones both are one bottom sheet above the timeline. `App.updateInset()` measures them (and sets `--lt` / `--lb`, the left slab's top and bottom limits) and calls `View.setInset(left, right, bottom)`, which shifts the projection centre with `camera.setViewOffset`. Every flight and story frames its subject in the visible area, with no per-call maths. During stories both sides hide and the inset eases back to zero.
+The two sides (`ui/panel.ts`) cover the edges: on the left a floating slab between the headline and the line key (lesson, quiz, card stacked as views), on the right the drawer (the reader); on phones both are one bottom sheet above the timeline. `App.updateInset()` measures them (and sets `--lt` / `--lb`, the left slab's top and bottom limits) and calls `View.setInset(left, right, bottom)`, which shifts the projection centre with `camera.setViewOffset`. Every flight and story frames its subject in the visible area, with no per-call maths. During stories both sides hide and the inset eases back to zero.
 
 ## Persistence
 Persistence uses `localStorage` with the `ages:` prefix: language, last year, chosen book, and progress (watched, learned, best quiz score). There is no backend.
 
 ## Testing
 * **Vitest** (`tests/unit`): data integrity (ids, references, coordinates inside the stage, bilingual completeness, curriculum refs, story steps, snapshot order), timeline/search/quiz logic, and that every model kind builds.
-* **Playwright** (`tests/e2e`): boot and language, search and card, story playback and controls, timeline and deep links, Wikipedia (mocked, plus offline), quiz to full score, learn drawer, mobile layout. Tests drive the app through the UI and read `window.__atlas.state()`.
+* **Playwright** (`tests/e2e`): boot and language, search and card, story playback and controls, timeline and deep links, Wikipedia (mocked, plus offline), quiz to full score, course picker and lesson, mobile layout. Tests drive the app through the UI and read `window.__atlas.state()`.

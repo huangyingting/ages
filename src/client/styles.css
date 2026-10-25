@@ -546,7 +546,9 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .view-head .ib, .quiz header .ib, .modal-box header .ib { width: 28px; height: 28px; }
 .view-body { flex: 1; min-height: 0; overflow: auto; padding: 0 16px 12px; }
 
-/* 时期详情, by priority: overview → events (fill the rest, scroll inside) → folded polities */
+/* 时期详情 — a popover like the study hall and settings; by priority: overview → events (fill the rest, scroll inside)
+   → folded polities */
+.menu.pv { display: flex; flex-direction: column; height: min(680px, calc(100vh - 220px)); padding: 4px 0 0; overflow: hidden; }
 .pv .view-body { display: flex; flex-direction: column; }
 .pv-sec { flex: none; padding: 10px 0; }
 .pv-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
