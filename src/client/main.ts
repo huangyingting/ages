@@ -28,6 +28,7 @@ import { Chronicle } from './ui/chronicle.ts';
 import { Period } from './ui/period.ts';
 import { Panel } from './ui/panel.ts';
 import { Music } from './ui/music.ts';
+import { initTips } from './ui/tip.ts';
 
 const params = new URLSearchParams(location.search);
 const lowfx = params.has('lowfx') || (navigator.hardwareConcurrency ?? 4) <= 2;
@@ -512,6 +513,7 @@ function webgl(): boolean {
 
 const root = document.getElementById('app')!;
 setLang(readLink().lang ?? lang);
+initTips();
 if (!webgl()) {
   document.getElementById('boot')?.remove();
   root.append(h('div', { class: 'nogl', text: t('webgl') }));

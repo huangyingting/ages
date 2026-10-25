@@ -254,6 +254,16 @@ h2, h3 { font-weight: 700; }
 :root:not([data-map=ink]) .maptip::after { background: rgba(253, 251, 247, 0.84); }
 :root:not([data-map=ink]) .maptip small { color: var(--ink-3); }
 :root:not([data-map=ink]) .maptip .ic[hidden] ~ b { margin-left: 6px; }
+/* the control tooltip (ui/tip.ts) replaces every native title tip: same flat translucent slab as the map tooltip, text only */
+.uitip {
+  position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; max-width: 280px; padding: 5px 9px; border-radius: var(--r);
+  font-size: var(--t-xs); line-height: 1.5; white-space: pre-line; color: #f8f2e6; background: rgba(24, 22, 20, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.16); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass);
+  animation: uitipIn 0.14s var(--ease-out);
+}
+.uitip[hidden] { display: none; }
+@keyframes uitipIn { from { opacity: 0; } }
+:root:not([data-map=ink]) .uitip { color: var(--ink); background: rgba(253, 251, 247, 0.9); border-color: var(--rule-2); }
 .maptip small::before { background: rgba(60, 40, 20, 0.2); }
 .k-building { --k: #7d5a32; } .k-custom { --k: #2c6e5c; } .k-food { --k: #b4652a; } .k-person { --k: #b8322a; } .k-capital { --k: #b8322a; } .k-landmark { --k: #7d5a32; }
 .chip.life-chip { box-shadow: inset 3px 0 0 var(--k); padding-left: 10px; }

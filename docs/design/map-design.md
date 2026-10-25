@@ -220,3 +220,9 @@ and selection rings and the inset accent bar of the current list row use `box-sh
 (`--ink` `#2d2a25`, `--ink-2`, `--ink-3`), never pure black. Sizes come from one scale — see
 [typography § Interface type](typography.md#interface-type).
 
+**Tooltips.** The browser's own `title` tooltip never appears. There are three tooltips, all square, flat and
+translucent: `.maptip` for anything on the map, `.tl-tip` for timeline events, and `.uitip` (`ui/tip.ts`) for every
+control. Components keep writing `title`; `initTips()` lifts it into `data-tip` as soon as it is set or inserted
+(keeping it as the accessible name when it was the only one) and shows `.uitip` under the control after a short rest,
+or at once on keyboard focus.
+

@@ -23,6 +23,15 @@ test.describe('Ages atlas', () => {
     expect(s.lang).toBe('zh');
     await shot(page, 'desktop-home-zh');
 
+    // controls show the app's own tooltip, never the browser's: titles are lifted into data-tip, and it follows the language
+    const details = page.locator('.b-details');
+    await details.hover();
+    await expect(page.locator('.uitip')).toHaveText('时期详情');
+    await expect(details).not.toHaveAttribute('title', /.*/);
+    await expect(page.locator('[title]')).toHaveCount(0);
+    await page.mouse.move(400, 400);
+    await expect(page.locator('.uitip')).toBeHidden();
+
     // the choice persists across reloads
     await page.goto('/?lowfx=1');
     await expect.poll(() => page.evaluate(() => (window as any).__atlas?.ready)).toBe(true);
