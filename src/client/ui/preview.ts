@@ -7,6 +7,11 @@ import { instance } from '../models/library.ts';
  * The turntable at the top of the info panel: the subject's 3D model (landmark, figure, army …) on its own base,
  * slowly turning; drag to spin it. One small renderer, shared by every card and only running while visible.
  */
+/** Idle turntable speed (rad/s). */
+const SPIN = 0.3;
+/** Intro: the camera glides in from INTRO_FAR × the resting distance and INTRO_RISE rad higher while the model turns INTRO_YAW into place. */
+const INTRO_MS = 1600, INTRO_FAR = 2, INTRO_RISE = 0.3, INTRO_YAW = 0.8;
+
 export class Preview {
   readonly canvas: HTMLCanvasElement;
   private renderer: THREE.WebGLRenderer | null = null;
@@ -16,8 +21,11 @@ export class Preview {
   private model: THREE.Object3D | null = null;
   private key = '';
   private req = 0;
-  private spin = 0.6;
+  private spin = SPIN;
   private angle = -0.5;
+  /** Final framing (orbit distance, elevation, look-at height) and the intro start time (−1: on the next frame, Infinity: done). */
+  private pose = { d: 4, e: 0.3, y: 0.5 };
+  private introAt = Infinity;
   private last = 0;
   private dirty = true;
   active = false;
@@ -86,12 +94,21 @@ export class Preview {
     g.position.set(-(box.min.x + box.max.x) / 2 * k, -box.min.y * k, -(box.min.z + box.max.z) / 2 * k);
     this.model = g;
     this.turn.add(g);
-    const h = size.y * k;
-    this.cam.position.set(0, 0.9 + h * 0.55, 3.9 + h * 0.35);
-    this.cam.lookAt(0, h * 0.42, 0);
+    const h = size.y * k, ly = h * 0.42, cy = 0.9 + h * 0.55 - ly, cz = 3.9 + h * 0.35;
+    this.pose = { d: Math.hypot(cy, cz), e: Math.atan2(cy, cz), y: ly };
     this.angle = -0.5;
+    this.introAt = this.still || matchMedia('(prefers-reduced-motion: reduce)').matches ? Infinity : -1;
+    this.place(1);
     this.dirty = true;
     this.canvas.parentElement?.classList.remove('pv-loading');
+  }
+
+  /** Camera on its intro path: k = 0 far and a little higher, k = 1 the resting framing. */
+  private place(k: number): void {
+    const { d, e, y } = this.pose;
+    const dist = d * (INTRO_FAR + (1 - INTRO_FAR) * k), el = e + INTRO_RISE * (1 - k);
+    this.cam.position.set(0, y + dist * Math.sin(el), dist * Math.cos(el));
+    this.cam.lookAt(0, y, 0);
   }
 
   private bindDrag(): void {
@@ -103,18 +120,27 @@ export class Preview {
       x0 = e.clientX;
       this.dirty = true;
     });
-    const up = () => { x0 = -1; this.spin = 0.6; };
+    const up = () => { x0 = -1; this.spin = SPIN; };
     this.canvas.addEventListener('pointerup', up);
     this.canvas.addEventListener('pointercancel', up);
   }
 
   private frame(now: number): void {
     const dt = Math.min(0.1, (now - (this.last || now)) / 1000);
-    // cap at ~24 fps; idle (hidden card, background tab, low-end) costs nothing
-    if (!this.active || document.hidden || (!this.dirty && (this.still || now - this.last < 40))) { if (!this.active) this.last = now; return; }
+    if (this.model && this.active && this.introAt < 0) this.introAt = now;
+    const intro = this.introAt < Infinity;
+    // cap at ~24 fps outside the intro; idle (hidden card, background tab, low-end) costs nothing
+    if (!this.active || document.hidden || (!this.dirty && !intro && (this.still || now - this.last < 40))) { if (!this.active) this.last = now; return; }
     this.last = now;
     if (!this.still) this.angle += dt * this.spin;
-    this.turn.rotation.y = this.angle;
+    let yaw = 0;
+    if (intro) {
+      const t = Math.min(1, (now - this.introAt) / INTRO_MS), k = 1 - (1 - t) ** 3;
+      this.place(k);
+      yaw = -INTRO_YAW * (1 - k);
+      if (t >= 1) this.introAt = Infinity;
+    }
+    this.turn.rotation.y = this.angle + yaw;
     const r = this.renderer!;
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     if (!w || !h) return;

@@ -216,7 +216,8 @@ and scrolls within, keeping the current entry in view. (3) Two folded sections, 
 while the year changes: 并存政权 (every polity with its area) and 随堂检测 (a dot marks an unanswered question).
 
 **Surfaces.** Every surface is a flat, translucent frosted plane (`--panel` + `--glass`) with a hairline edge: drawer,
-popovers, search results, tool buttons, tooltips, tags and the timeline bar. Nothing casts a drop shadow; only focus
+popovers, search results, tool buttons, tooltips and tags. The timeline has no surface at all: its controls, translucent
+dynasty bands and axis sit straight on the map's foot scrim, without a box or border. Nothing casts a drop shadow; only focus
 and selection rings and the inset accent bar of the current list row use `box-shadow`. Text is warm charcoal
 (`--ink` `#2d2a25`, `--ink-2`, `--ink-3`), never pure black. Sizes come from one scale — see
 [typography § Interface type](typography.md#interface-type).

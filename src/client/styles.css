@@ -76,9 +76,6 @@
 :root[data-map=ink] .modal-box { background: var(--pp-cuts), rgba(20, 21, 24, 0.96); }
 :root[data-map=ink] .card-nav .ib { background: var(--panel); }
 :root[data-map=ink] .card-nav .ib:hover { background: #26282c; }
-:root[data-map=ink] .tl-band { background: color-mix(in srgb, var(--c) 42%, #1a1b1e); border-right-color: rgba(0, 0, 0, 0.5); }
-:root[data-map=ink] .tl-band:hover { background: color-mix(in srgb, var(--c) 62%, #1a1b1e); }
-:root[data-map=ink] .tl-band.cur { background: var(--c); }
 :root[data-map=ink] .tl-band span { color: #e8e2d6; }
 :root[data-map=ink] .skel i { background: linear-gradient(90deg, #1e2023 0%, #2a2c30 50%, #1e2023 100%); background-size: 200% 100%; }
 :root[data-map=ink] .tl-phases i { background: rgba(0, 0, 0, 0.45); }
@@ -107,9 +104,9 @@ h2, h3 { font-weight: 700; }
 
 /* ================================================================ slabs
    The pocket-planet slab: top-left and bottom-right corners are cut at 45°, and a vermilion hairline traces each cut.
-   Only floating things are slabs — the timeline bar, popovers, search results and dialogs; the drawer is a solid
-   edge-attached surface and overlay text has no box at all. Slabs whose children spill outside them (search results,
-   the timeline's year flag) draw the slab on ::before so nothing inside is clipped. */
+   Only floating things are slabs — popovers, search results and dialogs; the drawer is a solid edge-attached
+   surface, and overlay text and the timeline have no box at all (they sit on the foot scrim). Slabs whose children
+   spill outside them (search results) draw the slab on ::before so nothing inside is clipped. */
 .menu, .modal-box, .hits {
   --cut: 12px;
   position: relative;
@@ -121,12 +118,6 @@ h2, h3 { font-weight: 700; }
   color: var(--ink);
 }
 .modal-box { background: var(--pp-cuts), rgba(253, 251, 247, 0.96); }
-.tl { --cut: 9px; isolation: isolate; }
-.tl::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: var(--pp-cuts), var(--panel); border: 1px solid var(--rule-2); clip-path: var(--pp-clip);
-  -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass);
-}
 
 /* ================================================================ labels on the map
    One type scale for every map label (see docs/design/typography.md):
@@ -801,13 +792,13 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 .tl-track:focus-visible { box-shadow: inset 0 0 0 2px rgba(200, 55, 45, 0.4); border-radius: 0; }
 .tl-bands { position: absolute; left: 0; right: 0; top: 32px; height: 21px; }
 .tl-band {
-  position: absolute; top: 0; height: 18px; border: 0; padding: 0; background: color-mix(in srgb, var(--c) 45%, #fff);
-  border-right: 1px solid rgba(255, 255, 255, 0.9); overflow: hidden; display: grid; place-items: center; transition: background .15s;
+  position: absolute; top: 0; height: 18px; border: 0; padding: 0; background: color-mix(in srgb, var(--c) 50%, transparent);
+  border-right: 1px solid transparent; background-clip: padding-box; overflow: hidden; display: grid; place-items: center; transition: background .15s;
 }
 .tl-band span { font-size: var(--t-2xs); font-weight: 600; color: var(--ink); white-space: nowrap; }
 .tl-band.lane1 { top: 18px; height: 3px; opacity: 0.8; border-radius: 2px; }
 .tl-band.lane1 span { display: none; }
-.tl-band:hover { background: color-mix(in srgb, var(--c) 62%, #fff); }
+.tl-band:hover { background: color-mix(in srgb, var(--c) 72%, transparent); }
 .tl-band.cur { background: var(--c); }
 .tl-band.cur span { color: #fff; }
 .tl-bands .tl-band:first-child { border-radius: 0; }
