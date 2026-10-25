@@ -147,9 +147,19 @@ test.describe('Ages atlas', () => {
     const errs = watchErrors(page);
     const seen = await mockWikipedia(page);
     await openApp(page, 'e=zhenghe&lang=en');
-    await page.locator('.card [data-act=wiki]').click();
+    const wBtn = page.locator('.card [data-act=wiki]');
+    await wBtn.click();
     const reader = page.locator('.reader');
     await expect(reader).toBeVisible();
+    // it unfolds to the right of the card, inside the same side panel; there is no right-hand drawer
+    await expect(wBtn).toHaveAttribute('aria-expanded', 'true');
+    // (polled: it slides in from the left)
+    await expect.poll(async () => {
+      const main = (await page.locator('.card-main').boundingBox())!;
+      const rd = (await reader.boundingBox())!;
+      return rd.x - (main.x + main.width);
+    }).toBeGreaterThanOrEqual(-1);
+    expect(await page.locator('.panel-r').count()).toBe(0);
     await expect(reader).toContainText('is a mock article used in tests.');
     await expect(reader).toContainText('Background');
     await expect(reader).not.toContainText('Should not be shown');
@@ -160,7 +170,14 @@ test.describe('Ages atlas', () => {
     await reader.locator('.seg button', { hasText: '中文' }).click();
     await expect(reader).toContainText('是一个用于测试的条目');
     expect(seen.some(x => x.startsWith('zh:'))).toBe(true);
-    await reader.locator('header [aria-label=Close]').click();
+    // folds back into the card from its header, or from the W button
+    await reader.locator('header [aria-label="Fold away"]').click();
+    await expect(reader).toBeHidden();
+    await expect(page.locator('.card')).toBeVisible();
+    await expect(wBtn).toHaveAttribute('aria-expanded', 'false');
+    await wBtn.click();
+    await expect(reader).toBeVisible();
+    await wBtn.click();
     await expect(reader).toBeHidden();
 
     await page.unrouteAll({ behavior: 'ignoreErrors' });

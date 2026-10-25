@@ -37,7 +37,7 @@ const KIND_MODEL: Record<EventKind, ModelRecipe> = {
 /**
  * The info panel: a turntable 3D model of the subject on top, then a location line, the title, a stats grid, the main
  * actions and collapsible sections. Left-hand panel on desktop, bottom sheet on phones. Shows an event, an era, a place
- * or a person.
+ * or a person. The Wikipedia reader unfolds to its right (on phones, in its place) and folds back.
  */
 export class Card {
   readonly el: HTMLElement;
@@ -51,6 +51,12 @@ export class Card {
   place: { p: Place; year: Year } | null = null;
   person: Person | null = null;
   life: LifeItem | null = null;
+  /** The subject's article, as offered by the W button (set while rendering). */
+  wiki: { w: Wiki; title: string } | null = null;
+  /** The article the reader has open, so the W button shows it as unfolded. */
+  reading: Wiki | null = null;
+  /** After a subject is shown. */
+  onShow: () => void = () => {};
 
   constructor(private hooks: CardHooks, private progress: Progress, still = false) {
     this.preview = new Preview(still);
@@ -59,7 +65,18 @@ export class Card {
     this.nav = h('div', { class: 'card-nav' });
     this.hero = h('div', { class: 'info-hero' }, this.preview.canvas, this.heroTag, this.nav);
     this.body = h('div', { class: 'card-body' });
-    this.el = h('aside', { class: 'card', 'aria-live': 'polite', hidden: true }, this.hero, this.body);
+    this.el = h('aside', { class: 'card', hidden: true }, h('div', { class: 'card-main', 'aria-live': 'polite' }, this.hero, this.body));
+  }
+
+  /** Puts the reader beside the card. */
+  attach(reader: HTMLElement): void { this.el.append(reader); }
+
+  /** Marks the W button unfolded or not, and widens the card while reading. */
+  setReading(w: Wiki | null): void {
+    this.reading = w;
+    this.el.classList.toggle('reading', !!w);
+    const b = this.el.querySelector<HTMLElement>('.card-main [data-act=wiki]');
+    if (b && this.wiki) this.paintWiki(b, this.wiki.w);
   }
 
   get open(): boolean { return !this.el.hidden; }
@@ -77,6 +94,7 @@ export class Card {
     this.render();
     this.body.scrollTop = 0;
     this.setActive(true);
+    this.onShow();
   }
   showEvent(e: HistEvent): void { this.set({ event: e }); }
   showEra(era: Era): void { this.set({ era }); }
@@ -93,6 +111,7 @@ export class Card {
   }
 
   render(): void {
+    this.wiki = null;
     if (this.event) this.renderEvent(this.event);
     else if (this.era) this.renderEra(this.era);
     else if (this.place) this.renderPlace(this.place.p, this.place.year);
@@ -126,7 +145,16 @@ export class Card {
     return d;
   }
   private wikiBtn(w: Wiki, title: string): HTMLElement {
-    return h('button', { type: 'button', class: 'btn', 'data-act': 'wiki', onclick: () => this.hooks.read(w, title) }, h('b', { class: 'w', text: 'W' }), h('span', { text: t('read') }));
+    this.wiki ??= { w, title };
+    const b = h('button', { type: 'button', class: 'btn', 'data-act': 'wiki', onclick: () => this.hooks.read(w, title) }, h('b', { class: 'w', text: 'W' }), h('span'));
+    this.paintWiki(b, w);
+    return b;
+  }
+  private paintWiki(b: HTMLElement, w: Wiki): void {
+    const on = !!this.reading && this.reading.zh === w.zh && this.reading.en === w.en;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-expanded', String(on));
+    b.querySelector('span')!.textContent = on ? t('fold') : t('read');
   }
   private evList(evs: HistEvent[]): HTMLElement {
     return h('ul', { class: 'evlist' }, ...evs.map(e => h('li', {},

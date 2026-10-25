@@ -38,7 +38,7 @@
 
 ### ADR-009 · Camera view insets instead of per-panel layout maths
 **Decision:** Shift the projection centre (`camera.setViewOffset`) by half the width or height of whatever panel covers the screen, and ease it.
-**Consequences:** Every flight and story keeps its subject visible next to the card, reader or drawer, or above the phone bottom sheet, without touching story coordinates.
+**Consequences:** Every flight and story keeps its subject visible next to the side panel (card, reader, lesson), or above the phone bottom sheet, without touching story coordinates.
 
 ### ADR-010 · Hash deep links and localStorage, no backend
 **Decision:** The URL hash carries `e`, `y` and `lang` and is updated with `replaceState`. Progress lives in `localStorage`.

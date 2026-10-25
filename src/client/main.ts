@@ -35,7 +35,7 @@ import { initTips } from './ui/tip.ts';
 const params = new URLSearchParams(location.search);
 const lowfx = params.has('lowfx') || (navigator.hardwareConcurrency ?? 4) <= 2;
 
-/** Application shell: wires the atlas, timeline, cards, reader, story player, textbook drawer and quiz together. */
+/** Application shell: wires the atlas, timeline, side panel (lesson, quiz, card with its reader), popovers and story player together. */
 class App {
   atlas: Atlas;
   progress = new Progress();
@@ -58,6 +58,7 @@ class App {
   ready = false;
   private hudTl!: HTMLElement;
   private hudBl!: HTMLElement;
+  private hudBc!: HTMLElement;
   private brand!: HTMLElement;
 
   constructor(private root: HTMLElement, stage: HTMLElement) {
@@ -202,7 +203,15 @@ class App {
     this.hub.stat = () => { const [n, m] = this.learn.done(); return n ? `✓ ${n}/${m}` : ''; };
     this.quiz.onClose = () => this.root.classList.remove('quiz-on');
     this.quiz.onYear = y => { this.timeline.set(y, true, false); this.atlas.setYear(y); };
-    this.reader.onClose = () => {};
+    // the reader unfolds beside the card and follows it to the next subject
+    this.card.attach(this.reader.el);
+    this.reader.onToggle = () => this.card.setReading(this.reader.current);
+    this.card.onShow = () => {
+      if (!this.reader.open) return;
+      const w = this.card.wiki;
+      if (w) this.reader.show(w.w, w.title, this.reader.readLang); else this.reader.close();
+      this.card.setReading(this.reader.current);
+    };
 
     this.period.mount(this.chronicle.el);
     this.timeline.onRender = y => { this.chronicle.update(y); this.period.setYear(y); };
@@ -210,8 +219,8 @@ class App {
     // Level 1 — the map overlay: headline (brand · era · year · reign) top left, one grouped toolbar fixed top right
     // (search · 时期详情 | study hall · settings) with the period's figures under it, the line key bottom left, the phase
     // line / story caption and the timeline bottom centre.
-    // Level 2 — two sides. Left, between the headline and the line key: what is being studied — a lesson, the quiz, the
-    // card with its 3D view. Right, a drawer under the toolbar: the Wikipedia reader.
+    // Level 2 — the side panel, between the headline and the line key: what is being studied — a lesson, the quiz, the
+    // card with its 3D view, which unfolds the Wikipedia reader to its right.
     // Level 3 — popovers under the tools, one at a time (时期详情, study hall, settings), and dialogs (course picker, help).
     const hubBtn = iconBtn('grid', t('hub'), () => this.pop(this.hub.el.hidden ? 'hub' : null), 'b-hub');
     const setBtn = iconBtn('sliders', t('settings'), () => this.pop(this.settings.el.hidden ? 'settings' : null), 'b-settings');
@@ -231,11 +240,10 @@ class App {
       h('div', { class: 'hud-tr' }, this.period.stats),
       h('div', { class: 'hud-bot' },
         this.hudBl,
-        h('div', { class: 'hud-bc' }, this.period.line, this.caption.el, this.timeline.el)));
-    this.panel = new Panel([this.lesson.el, this.quiz.el, this.card.el], [this.reader.el]);
+        this.hudBc = h('div', { class: 'hud-bc' }, this.period.line, this.caption.el, this.timeline.el)));
+    this.panel = new Panel([this.lesson.el, this.quiz.el, this.card.el]);
     this.panel.onChange = () => {
-      this.root.classList.toggle('panel-on', this.panel.rightOpen);
-      this.root.classList.toggle('dock-on', this.panel.leftOpen);
+      this.root.classList.toggle('dock-on', this.panel.open);
       this.updateInset();
     };
     // a popover closes on a click anywhere else (the phase line toggles 时期详情 itself)
@@ -244,14 +252,14 @@ class App {
       if (pops.some(p => !p.hidden) && !tools.contains(n) && !this.period.line.contains(n) && !pops.some(p => p.contains(n))) this.pop(null);
     });
 
-    this.root.append(hud, this.panel.left, this.panel.right, bar, this.learn.el, this.help.el);
+    this.root.append(hud, this.panel.el, bar, this.learn.el, this.help.el);
     this.relabel();
     onLang(l => this.onLang(l));
 
     const inset = () => this.updateInset();
     new MutationObserver(inset).observe(this.root, { attributes: true, attributeFilter: ['class'] });
     const ro = new ResizeObserver(inset);
-    ro.observe(this.root); ro.observe(this.panel.left); ro.observe(this.panel.right); ro.observe(this.timeline.el); ro.observe(this.hudTl); ro.observe(this.hudBl);
+    ro.observe(this.root); ro.observe(this.panel.el); ro.observe(this.timeline.el); ro.observe(this.hudTl); ro.observe(this.hudBl); ro.observe(this.hudBc);
 
     window.addEventListener('keydown', e => this.key(e));
     window.addEventListener('hashchange', () => {
@@ -431,8 +439,11 @@ class App {
     if (this.card.event) this.atlas.select(this.card.event, false);
   }
 
+  /** The card's W button: unfolds its article beside the card, or folds it back. */
   read(w: Wiki, title: string): void {
-    this.reader.show(w, title, lang);
+    const cur = this.reader.current;
+    if (cur && cur.zh === w.zh && cur.en === w.en) this.reader.close();
+    else this.reader.show(w, title, lang);
   }
 
   private key(e: KeyboardEvent): void {
@@ -443,7 +454,7 @@ class App {
       if (!this.hub.el.hidden || !this.settings.el.hidden || !this.period.view.hidden) this.pop(null);
       else if (!this.help.el.hidden) this.help.toggle(false);
       else if (this.learn.open) this.learn.toggle(false);
-      else if (this.reader.open) this.reader.close();
+      else if (this.reader.open && this.panel.top === this.card.el) this.reader.close();
       else if (this.player.state !== 'idle') this.stopStory();
       else if (this.quiz.open) this.quiz.toggle(false);
       else if (this.card.open) this.closeCard();
@@ -488,12 +499,13 @@ class App {
     this.lesson.relabel();
     this.chronicle.relabel();
     this.period.relabel();
+    this.reader.relabel();
     this.music.relabel();
     writeLink(this.card.event ? { event: this.card.event.id, lang: l } : this.lesson.open && this.lesson.id && !this.lesson.id.startsWith('test:') ? { lesson: this.lesson.id, lang: l } : { year: this.timeline.year, lang: l });
   }
 
-  /** Fits the left column between the headline and the line key, and tells the camera how much of the screen the two
-   * sides (or the phone's bottom sheet) and the timeline cover so the subject stays visible. */
+  /** Fits the side panel between the headline and the line key, and tells the camera how much of the screen it (or the
+   * phone's bottom sheet) and the timeline cover so the subject stays visible. */
   private updateInset(): void {
     if (!this.panel) return;
     const H = this.root.clientHeight;
@@ -506,15 +518,16 @@ class App {
     const foot = Math.min(tl, this.hudBl.getClientRects().length ? this.hudBl.getBoundingClientRect().top - top : tl);
     this.root.style.setProperty('--lt', `${Math.round(head + 14)}px`);
     this.root.style.setProperty('--lb', `${Math.round(H - foot + 14)}px`);
+    // reading, the widened panel reaches over the foot's centre: stop above the phase line too
+    const line = this.hudBc.getBoundingClientRect().top - top;
+    this.root.style.setProperty('--lb-read', `${Math.round(H - Math.min(foot, line) + 14)}px`);
     if (this.root.classList.contains('story-on')) return this.atlas.view.setInset(0, 0, 0);
     if (matchMedia('(max-width: 720px)').matches) {
-      const box = this.panel.left.classList.contains('front') ? this.panel.left : this.panel.right;
-      const open = this.panel.leftOpen || this.panel.rightOpen;
-      const sheet = open ? tl - box.offsetHeight : tl;
+      const sheet = this.panel.open ? tl - this.panel.el.offsetHeight : tl;
       return this.atlas.view.setInset(0, 0, Math.min(H * 0.62, H - Math.min(sheet, tl)));
     }
-    const l = this.panel.left;
-    this.atlas.view.setInset(this.panel.leftOpen ? l.offsetLeft + l.offsetWidth : 0, this.panel.rightOpen ? this.panel.right.offsetWidth : 0, 0);
+    const l = this.panel.el;
+    this.atlas.view.setInset(this.panel.open ? l.offsetLeft + l.offsetWidth : 0, 0, 0);
   }
 
   private relabel(): void {

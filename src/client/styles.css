@@ -2,8 +2,8 @@
    The 3D map fills the window. The interface has three levels (docs/design/map-design.md § Layout):
    1. the map overlay — text set straight on the map over soft edge scrims: the headline (brand, era, year, reign) top
       left, tools and the period's figures top right, the line key bottom left, the phase line and the timeline bottom centre;
-   2. one right-hand drawer — period details at its base, the card, textbook, reader and quiz stacked over it;
-   3. popovers (study hall, settings) and the help dialog.
+   2. one side panel on the left — the lesson, quiz and card stacked; the card unfolds the Wikipedia reader to its right;
+   3. popovers under the toolbar, one at a time (时期详情, study hall, settings), and dialogs (course picker, help).
    One accent — vermilion (朱) — marks what is selected, live or primary; dynasty colours come from the data. Controls
    and popovers are pocket-planet cut-corner slabs. The ink map style switches everything to dark.
    Borderless and flat: surfaces are translucent frosted planes and controls are tinted fills — no border, no hairline,
@@ -42,9 +42,8 @@
   --pp-clip: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
   --ease-out: cubic-bezier(.2, .8, .2, 1);
   --gap: 12px;
-  --pw: 340px;
   --lw: 360px;
-  --bar-h: 66px; /* the toolbar row and its margins: the drawer and the period figures start below it */
+  --bar-h: 66px; /* the toolbar row and its margins: the period figures start below it */
   --scrim: rgba(246, 241, 231, 0.88);
   --k-prehistory: #8a6f52; --k-politics: #c08a1e; --k-war: #c8372d; --k-reform: #2f8a57; --k-culture: #2f6fb0;
   --k-science: #1c8c7c; --k-economy: #c06a24; --k-diplomacy: #7b55a8; --k-revolution: #d23f2f;
@@ -101,8 +100,7 @@ h2, h3 { font-weight: 700; }
 
 /* ================================================================ slabs
    The pocket-planet slab: top-left and bottom-right corners are cut at 45°; no border, no hairline.
-   Only floating things are slabs — popovers, search results and dialogs; the drawer is a solid edge-attached
-   surface, and overlay text and the timeline have no box at all (they sit on the foot scrim). Slabs whose children
+   Only floating things are slabs — the side panel, popovers, search results and dialogs; overlay text and the timeline have no box at all (they sit on the foot scrim). Slabs whose children
    spill outside them (search results) draw the slab on ::before so nothing inside is clipped. */
 .menu, .modal-box, .hits {
   --cut: 12px;
@@ -336,7 +334,6 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 /* ================================================================ level 1 — the map overlay
    No boxes: text sits on the map over soft scrims at the corners and along the foot. Only controls take pointer events. */
 .hud { position: absolute; inset: 0; z-index: 5; pointer-events: none; transition: right .35s var(--ease-out); }
-#app.panel-on:not(.story-on) .hud { right: var(--pw); }
 .hud::before, .hud::after { content: ''; position: absolute; pointer-events: none; transition: opacity .4s; }
 .hud::before {
   inset: 0;
@@ -369,7 +366,7 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .tl-ruler:empty { display: none; }
 
 /* the toolbar (top right): one frosted plate, grouped — find (search · 时期详情) | study hall · settings — fixed in the
-   corner over the map and the drawer; its popovers drop below it */
+   corner over the map; its popovers drop below it */
 .bar { position: absolute; top: 16px; right: 20px; z-index: 9; }
 .hud-tr { top: var(--bar-h); right: 20px; width: 340px; display: flex; flex-direction: column; align-items: flex-end; }
 .tools { --cut: 9px; position: relative; isolation: isolate; display: flex; align-items: center; gap: 2px; padding: 3px; }
@@ -427,7 +424,6 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 
 /* the foot: line key (left) and the phase line / story caption over the timeline (centre) */
 .hud-bot { left: 24px; right: 24px; bottom: 16px; display: grid; grid-template-columns: 230px minmax(0, 1fr) 230px; gap: 24px; align-items: end; }
-#app.panel-on:not(.story-on) .hud-bot { grid-template-columns: 210px minmax(0, 1fr); }
 .hud-bl { min-width: 0; padding-bottom: 4px; }
 .map-key { display: flex; flex-direction: column; gap: 6px; font-size: var(--t-xs); color: var(--ink-2); transition: opacity .4s; }
 .mk-row { display: flex; flex-wrap: wrap; gap: 5px 14px; }
@@ -513,30 +509,31 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .jn small { font-size: var(--t-xs); color: var(--ink-3); }
 
 
-/* ================================================================ level 2 — the two sides
-   Flat frosted planes, no border, no shadow. Each side stacks its views: whatever was opened last is on top and only
-   the top view is drawn, so closing it reveals the one beneath.
-   Left (what is studied: lesson, quiz, card with its 3D view): a floating slab between the headline (--lt) and the line
-   key (--lb), both measured by main.ts. Right (reference: period details, reader): a drawer under the toolbar. */
+/* ================================================================ level 2 — the side panel
+   A flat frosted plane, no border, no shadow, floating between the headline (--lt) and the line key (--lb), both
+   measured by main.ts. It stacks its views (lesson, quiz, card with its 3D view): whatever was opened last is on top
+   and only the top view is drawn, so closing it reveals the one beneath. Reading widens it: the card unfolds the
+   Wikipedia reader to its right and folds it back, as in pocket-planet. */
 .panel {
   position: absolute; z-index: 8; background: var(--panel); color: var(--ink);
   -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass);
   visibility: hidden; transition: transform .35s var(--ease-out), opacity .35s, visibility 0s .35s;
 }
 .panel.on { transform: none; opacity: 1; visibility: visible; transition: transform .35s var(--ease-out), opacity .35s; }
-.panel-r { top: var(--bar-h); right: 0; bottom: 0; width: var(--pw); transform: translateX(100%); }
 .panel-l {
   --cut: 12px; left: 24px; top: var(--lt, 170px); bottom: var(--lb, 120px); width: var(--lw); clip-path: var(--pp-clip);
   opacity: 0; transform: translateX(-24px);
 }
+.panel-l:has(> .card.top.reading) { width: min(calc(var(--lw) + 580px), calc(100% - 48px)); }
 /* on wide screens the left slab hugs its top view, from under the headline down to at most the line key */
 @media (min-width: 721px) {
   .panel-l { bottom: auto; max-height: calc(100% - var(--lt, 170px) - var(--lb, 120px)); display: flex; flex-direction: column; }
   .panel-l .view { position: relative; inset: auto; flex: 0 1 auto; min-height: 0; }
   .panel-l .view:not(.top) { display: none; }
   .panel-l .view.quiz { overflow: auto; }
+  .panel-l:has(> .card.top.reading) { height: calc(100% - var(--lt, 170px) - var(--lb-read, var(--lb, 120px))); max-height: none; }
+  .panel-l .card.reading { flex: 1 1 auto; }
 }
-.story-on .panel-r { transform: translateX(100%); }
 .story-on .panel-l { transform: translateX(-24px); opacity: 0; pointer-events: none; }
 .view { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; animation: view-in .28s var(--ease-out); }
 .panel .view:not(.top) { visibility: hidden; }
@@ -664,8 +661,11 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .ls-rev .chip { cursor: pointer; font-size: var(--t-xs); }
 .ls-rev .chip:hover { color: var(--zhu); background: var(--zhu-fill); }
 
-/* ================================================================ info card (a drawer view) */
+/* ================================================================ info card (a panel view) */
 .story-on .card { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.card { flex-direction: row; }
+.card-main { flex: none; width: var(--lw); max-width: 100%; min-height: 0; display: flex; flex-direction: column; }
+.card [data-act=wiki].on { background: var(--zhu-fill); color: var(--zhu); }
 .info-hero {
   position: relative; flex: none; height: 200px; overflow: hidden;
   background: var(--well);
@@ -741,7 +741,9 @@ details.sec > :last-child { margin-bottom: 12px; }
 i.ok { color: var(--ok); font-style: normal; margin-left: auto; }
 i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 
-/* ================================================================ reader & textbook (drawer views) */
+/* ================================================================ reader — unfolds to the right of the card */
+.card .reader { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--well); animation: rd-in .35s var(--ease-out); }
+@keyframes rd-in { from { opacity: 0; transform: translateX(-12px); } }
 .reader header { display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 16px; }
 .reader header .w { color: var(--ink); }
 .rd-title { flex: 1; font-weight: 700; font-size: var(--t-m); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -927,24 +929,20 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 .btn:focus-visible, .chip:focus-visible, .ib:focus-visible, .hub-card:focus-visible, .opt:focus-visible, .seg button:focus-visible, .tabs button:focus-visible { outline-offset: -2px; }
 
 @media (max-width: 1180px) {
-  :root { --pw: 320px; --lw: 330px; }
+  :root { --lw: 330px; }
   .tl-hint { display: none; }
-  #app.panel-on:not(.story-on) .hud-bot { grid-template-columns: minmax(0, 1fr); }
-  #app.panel-on .hud-bl { display: none; }
-  #app.panel-on .hud-stats { display: none; }
+  #app:has(.card.top.reading) .hud-tr { display: none; }
 }
 @media (max-width: 960px) {
-  .hud-bot, #app.panel-on:not(.story-on) .hud-bot { grid-template-columns: minmax(0, 1fr); }
+  .hud-bot { grid-template-columns: minmax(0, 1fr); }
   .hud-bl { display: none; }
 }
 
-/* ================================================================ phones: both sides become one bottom sheet over the timeline;
-   the side opened last is in front */
+/* ================================================================ phones: the side panel becomes a bottom sheet over the timeline;
+   reading, the article takes the card's place */
 @media (max-width: 720px) {
-  :root { --pw: 100%; }
   .hud::before { background: linear-gradient(180deg, var(--scrim) 0, transparent 150px); }
   .hud::after { height: 150px; }
-  #app.panel-on:not(.story-on) .hud { right: 0; }
   .hud-tl { top: 12px; left: 14px; max-width: 50%; }
   .brand-k { display: none; }
   .tl-head { margin-top: 12px; }
@@ -962,11 +960,13 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
   .tl-ctl { height: 34px; }
   .tl-speed { display: none; }
   .tl-flag { display: none; }
-  .panel-l, .panel-r {
+  .panel-l {
     top: auto; left: 0; right: 0; width: auto; bottom: var(--tl-b, 120px); height: 44vh; clip-path: none; opacity: 1;
     transform: translateY(calc(100% + var(--tl-b, 120px)));
   }
-  .panel.on:not(.front), .story-on .panel { transform: translateY(calc(100% + var(--tl-b, 120px))); visibility: hidden; }
+  .panel-l.on:has(> .card.top.reading) { width: auto; height: 62vh; }
+  .card.reading .card-main { display: none; }
+  .story-on .panel { transform: translateY(calc(100% + var(--tl-b, 120px))); visibility: hidden; }
   .info-hero { height: 112px; }
   .card h2 { font-size: var(--t-xl); }
   .caption { padding: 8px 6px 10px 12px; }

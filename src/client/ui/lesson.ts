@@ -27,7 +27,7 @@ export const bookShort = (b: Book): string => lang === 'zh'
   : b === 'hs1' ? 'HS' : b.replace('g', 'G').replace('a', '·1').replace('b', '·2');
 
 /**
- * The lesson player (a drawer view): a lesson's steps, each one framing the map (year, camera, the event's model, a
+ * The lesson player (a side-panel view): a lesson's steps, each one framing the map (year, camera, the event's model, a
  * polity's area), then its 随堂检测 one question at a time, then the score with the take-aways, what to review and the
  * next lesson. A unit test runs the same question loop without steps.
  */

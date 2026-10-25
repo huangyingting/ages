@@ -127,7 +127,7 @@ export class Period {
       h('p', { class: 'mk-disc', text: t('disclaimer') }));
   }
 
-  // ------------------------------------------------------------ the drawer view
+  // ------------------------------------------------------------ the 时期详情 popover
 
   private renderOverview(ph: Phase): void {
     const s = ph.snap, L = lang;

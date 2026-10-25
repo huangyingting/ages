@@ -113,6 +113,7 @@ const S = {
   people: { zh: '人物', en: 'People' },
   textbook: { zh: '课本', en: 'Textbook' },
   close: { zh: '关闭', en: 'Close' },
+  fold: { zh: '收起阅读', en: 'Fold away' },
   prev: { zh: '上一个事件', en: 'Previous event' },
   next: { zh: '下一个事件', en: 'Next event' },
   skip: { zh: '下一步', en: 'Next step' },
