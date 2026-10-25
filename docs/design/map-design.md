@@ -215,10 +215,16 @@ three-cell strip — dynasty (click → era card) · capital · area — and the
 and scrolls within, keeping the current entry in view. (3) Two folded sections, closed by default and staying as left
 while the year changes: 并存政权 (every polity with its area) and 随堂检测 (a dot marks an unanswered question).
 
-**Surfaces.** Every surface is a flat, translucent frosted plane (`--panel` + `--glass`) with a hairline edge: drawer,
-popovers, search results, tool buttons, tooltips and tags. The timeline has no surface at all: its controls, translucent
-dynasty bands and axis sit straight on the map's foot scrim, without a box or border. Nothing casts a drop shadow; only focus
-and selection rings and the inset accent bar of the current list row use `box-shadow`. Text is warm charcoal
+**Surfaces.** The interface is borderless. Every surface — drawer, popovers, search results, tool buttons, tooltips and
+tags — is a flat, translucent frosted plane (`--panel` + `--glass`) with no border, no hairline and no drop shadow. Inside
+the drawer, sections are set apart by spacing and headings, not rules. The timeline has no surface at all: its controls,
+translucent dynasty bands and axis sit straight on the map's foot scrim.
+
+**Buttons.** One shape and one set of variants everywhere: a cut-corner slab (two 45° corners) with no border. *Default*
+is a light tinted fill (`--well`, `--well-2` on hover); *primary* is vermilion with white text; *icon* buttons have no fill
+until hover (toolbar buttons over the map sit on `--panel`). State is shown by fill and colour, never by an outline:
+selected is a vermilion tint (`--zhu-fill`) with vermilion text, done is a green tint. Only keyboard focus draws an
+outline, and the current list row keeps its inset accent bar. Text is warm charcoal
 (`--ink` `#2d2a25`, `--ink-2`, `--ink-3`), never pure black. Sizes come from one scale — see
 [typography § Interface type](typography.md#interface-type).
 
