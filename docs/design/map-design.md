@@ -212,8 +212,9 @@ and the caption takes the phase line's place. The camera's view inset follows th
 
 **时期详情, by priority.** (1) Overview: the phase span in vermilion with the phase stepper, the phase title, a
 three-cell strip — dynasty (click → era card) · capital · area — and the note. (2) 本时期大事 fills the remaining height
-and scrolls within, keeping the current entry in view. (3) Two folded sections, closed by default and staying as left
-while the year changes: 并存政权 (every polity with its area) and 随堂检测 (a dot marks an unanswered question).
+and scrolls within, keeping the current entry in view. (3) A folded section, closed by default and staying as left
+while the year changes: 并存政权 (every polity with its area). Checks live in the course (历史课堂, see
+[course.md](course.md)), not in the period details.
 
 **Surfaces.** The interface is borderless. Every surface — drawer, popovers, search results, tool buttons, tooltips and
 tags — is a flat, translucent frosted plane (`--panel` + `--glass`) with no border, no hairline and no drop shadow. Inside

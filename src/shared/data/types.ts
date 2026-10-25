@@ -119,6 +119,47 @@ export type Book = 'g7a' | 'g7b' | 'g8a' | 'g8b' | 'hs1';
 export interface CurriculumRef { book: Book; unit: number }
 export interface Unit { book: Book; unit: number; title: I18n; range: [Year, Year] }
 
+/**
+ * One step of a lesson: what the card says and what the map shows. A step about an event (`ev`) takes its year,
+ * camera and model from the event, and its title and text from the event unless written here; the card offers its
+ * story (看动画) and its card (详情). Other steps set the year and frame a place (`at`) or a polity's area (`polity`).
+ */
+export interface LessonStep {
+  title?: I18n;
+  body?: I18n;
+  ev?: string;
+  year?: Year;
+  /** camera target: lon, lat and an optional distance (default 40) */
+  at?: [number, number, number?];
+  /** a polity of that year's map, framed and highlighted */
+  polity?: string;
+}
+
+/**
+ * A 随堂检测 question: a written multiple-choice question; "put these events in order" (`order`, by their years); or
+ * "find it on the map" (`where`, an event or place id, right within `tol` km, default 400). `ev` (or the order's /
+ * where's event) is what to review when it is missed.
+ */
+export type Check =
+  | { q: I18n; options: I18n[]; answer: number; why: I18n; ev?: string }
+  | { order: string[]; why?: I18n }
+  | { where: string; tol?: number; why?: I18n };
+
+/** A lesson of the course: one textbook unit, told in steps on the map, then checked. */
+export interface Lesson {
+  /** `<book>-<unit>`, e.g. g7a-3 */
+  id: string;
+  book: Book;
+  unit: number;
+  title: I18n;
+  blurb: I18n;
+  minutes: number;
+  steps: LessonStep[];
+  checks: Check[];
+  /** the take-aways (本课要点), shown with the score */
+  keys: I18n[];
+}
+
 export type EventKind = 'prehistory' | 'politics' | 'war' | 'reform' | 'culture' | 'science' | 'economy' | 'diplomacy' | 'revolution';
 
 /** Procedural 3D model recipe; `kind` selects a builder in src/client/models/kit.ts. */

@@ -480,6 +480,51 @@ test.describe('Ages atlas', () => {
     expect(errs).toEqual([]);
   });
 
+  test('history course runs a lesson through its check to a score', async ({ page }) => {
+    const errs = watchErrors(page);
+    await openApp(page, 'lang=zh');
+    await page.locator('.b-hub').click();
+    await page.locator('.b-learn').click();
+    const drawer = page.locator('.drawer');
+    await drawer.locator('.u-head').nth(2).click();
+    await drawer.locator('.u-ls[data-lesson="g7a-3"]').click();
+    const ls = page.locator('[data-testid=lesson]');
+    await expect(ls).toBeVisible();
+    await expect(page).toHaveURL(/#lesson=g7a-3/);
+    await expect(ls.locator('.ls-n')).toHaveText('1 / 8');
+    await page.keyboard.press('ArrowRight');
+    await expect(ls.locator('.ls-n')).toHaveText('2 / 8');
+    await shot(page, 'desktop-lesson');
+    while (await ls.locator('.ls-h').count()) await ls.locator('[data-act=next]').click();
+    for (let i = 0; i < 4; i++) {
+      await expect(ls.locator('.ls-q')).toBeVisible();
+      if (await ls.locator('[data-act=check]').count()) {
+        const opts = ls.locator('.ls-opts .ls-opt:not([disabled])');
+        while (await opts.count()) await opts.first().click();
+        await ls.locator('[data-act=check]').click();
+      } else if (await ls.locator('.ls-opts .ls-opt').count()) {
+        await ls.locator('.ls-opt').first().click();
+      } else {
+        await page.mouse.click(400, 400);
+      }
+      await expect(ls.locator('.ls-res')).toBeVisible();
+      await ls.locator('[data-act=next]').click();
+    }
+    await expect(ls.locator('.ls-score b')).toHaveText(/^\d\/4$/);
+    await expect(ls.locator('.ls-keys li')).toHaveCount(3);
+    await ls.locator('[data-act=back], [data-act=next-lesson]').first().click();
+    expect(errs).toEqual([]);
+  });
+
+  test('lesson deep link opens the lesson in English', async ({ page }) => {
+    await openApp(page, 'lesson=hs1-1&lang=en');
+    const ls = page.locator('[data-testid=lesson]');
+    await expect(ls).toBeVisible();
+    await expect(ls.locator('.ls-k')).toContainText('Unit 1');
+    await page.keyboard.press('Escape');
+    await expect(ls).toBeHidden();
+  });
+
   test('mobile layout keeps the map in focus @mobile', async ({ page }) => {
     const errs = watchErrors(page);
     await openApp(page, 'e=chibi&lang=zh');

@@ -114,15 +114,16 @@ export const POLITY = new Map(POLITIES.map(p => [p.id, p]));
 const ALIAS: Record<string, RegExp> = {
   qin: /^秦$/, whan: /^汉$|^汉（/, ehan: /^东汉$/, cao_wei: /^魏$|^曹操/, shu_han: /^蜀汉?$|^刘备/, sun_wu: /^吴$|^孙权/, wjin: /^晋$/, ejin: /^东晋$/,
   bsong: /^宋$/, nsong: /^南宋/, yuan: /^元$|^大蒙古国$/, russia: /沙皇俄国|俄罗斯帝国/, jp_occ: /日占|日军侵占/, roc: /^中华民国|^国民政府/,
-  tang: /^唐$/, sui: /^隋$/, ming: /^明$/, qing: /^清$/, liao: /^辽$/, jin: /^金$/, xixia: /^西夏$/, tubo: /^吐蕃$/, xiongnu: /^匈奴/,
-  beiwei: /^北魏$/, qianqin: /^前秦$/,
+  tang: /^唐$/, sui: /^隋$/, ming: /^明$/, qing: /^清$/, liao: /^辽$/, jin: /^金$|^金（/, xixia: /^西夏$/, tubo: /^吐蕃$/, xiongnu: /^匈奴/,
+  beiwei: /^北魏$/, qianqin: /^前秦/,
 };
+const IMPORTED = /^j\d+$/;
 const bare = (zh: string) => zh.replace(/[（(].*$/, '').replace(/朝$/, '').trim();
 /** Whether a region's polity counts as `wanted` (same id, alias pattern or same bare name). */
 export function polityMatches(regionPolity: string, wanted: string): boolean {
   if (regionPolity === wanted) return true;
   const a = POLITY.get(regionPolity), w = POLITY.get(wanted);
-  if (!a || !w || !a.id.startsWith('j') || w.id.startsWith('j')) return false;
+  if (!a || !w || !IMPORTED.test(a.id) || IMPORTED.test(w.id)) return false;
   const re = ALIAS[wanted];
   return re ? re.test(a.name.zh) : bare(a.name.zh) === bare(w.name.zh);
 }

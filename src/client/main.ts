@@ -2,7 +2,7 @@ import { ERAS } from '../shared/data/eras.ts';
 import { EVENT, EVENTS } from '../shared/data/events.ts';
 import type { Lang } from '../shared/data/i18n.ts';
 import { PLACE } from '../shared/data/places.ts';
-import type { Era, HistEvent, Place, Wiki, Year } from '../shared/data/types.ts';
+import type { Era, HistEvent, Lesson, Place, Wiki, Year } from '../shared/data/types.ts';
 import type { Hit } from '../shared/lib/search.ts';
 import { lang, onLang, setLang, t } from './lib/i18n.ts';
 import { readLink, writeLink } from './lib/link.ts';
@@ -14,6 +14,8 @@ import { Caption } from './ui/caption.ts';
 import { Card } from './ui/card.ts';
 import { h, iconBtn } from './ui/dom.ts';
 import { Learn } from './ui/learn.ts';
+import { LessonView } from './ui/lesson.ts';
+import { LESSON } from '../shared/data/lessons/index.ts';
 import { Help, HubMenu, SettingsMenu } from './ui/menus.ts';
 import { SURFACES, type Surface } from './scene/terrain.ts';
 import { save } from './lib/storage.ts';
@@ -51,6 +53,7 @@ class App {
   hub!: HubMenu;
   help = new Help();
   quiz!: Quiz;
+  lesson!: LessonView;
   player!: StoryPlayer;
   ready = false;
   private langBtn!: HTMLButtonElement;
@@ -95,6 +98,16 @@ class App {
       speak,
     });
     this.quiz = new Quiz(this.atlas, this.progress);
+    this.lesson = new LessonView(this.atlas, this.progress, {
+      year: y => { this.timeline.setPlaying(false); this.timeline.set(y, true, false); this.atlas.setYear(y); },
+      play: e => void this.playStory(e),
+      open: e => this.openEvent(e),
+      change: id => {
+        this.root.classList.toggle('lesson-on', !!id || this.lesson.open);
+        if (!this.lesson.open && this.learn.open) this.learn.render();
+        writeLink(id ? { lesson: id, lang } : { year: this.timeline.year, lang });
+      },
+    });
     const surf = load<Surface>('surface', 'paper');
     const surface: Surface = SURFACES.includes(params.get('map') as Surface) ? params.get('map') as Surface : SURFACES.includes(surf) ? surf : 'paper';
     this.atlas.setSurface(surface);
@@ -114,6 +127,8 @@ class App {
       const x = LIFE.find(i => i.id === link.life);
       if (x) { this.atlas.view.jump({ lon: x.lon, lat: x.lat - 0.6, dist: 14, tilt: 0.85 }); this.openLife(x); }
     }
+    const linkLesson = link.lesson ? LESSON.get(link.lesson) : undefined;
+    if (linkLesson) this.startLesson(linkLesson);
     const linkJourney = link.journey ? JOURNEYS.find(j => j.id === link.journey) : undefined;
     if (linkJourney) setTimeout(() => void this.playJourney(linkJourney), 600);
     this.ready = true;
@@ -180,6 +195,8 @@ class App {
     this.caption.onVoice = on => { this.player.narrate = on; if (!on) speechSynthesis.cancel(); };
 
     this.learn.onOpen = e => this.openEvent(e);
+    this.learn.onLesson = l => this.startLesson(l);
+    this.learn.onTest = (b, u) => { this.leaveForLesson(); this.lesson.startTest(b, u); };
     this.settings.onChange = (k, on) => this.atlas.setLayer(k, on);
     this.settings.onSurface = s => { this.atlas.setSurface(s); save('surface', s); };
     this.hub.onPlay = j => this.playJourney(j);
@@ -213,7 +230,7 @@ class App {
       h('div', { class: 'hud-bot' },
         h('div', { class: 'hud-bl' }, this.period.key),
         h('div', { class: 'hud-bc' }, this.period.line, this.caption.el, this.timeline.el)));
-    this.panel = new Panel([this.period.view, this.learn.el, this.card.el, this.reader.el, this.quiz.el]);
+    this.panel = new Panel([this.period.view, this.learn.el, this.lesson.el, this.card.el, this.reader.el, this.quiz.el]);
     this.panel.onChange = open => {
       this.root.classList.toggle('panel-on', open);
       this.period.pressed(this.panel.top === this.period.view);
@@ -242,6 +259,7 @@ class App {
       else if (l.place && l.place !== this.card.place?.p.id) { const p = PLACE.get(l.place); if (p) this.openPlace(p); }
       else if (l.person && l.person !== this.card.person?.id) { const p = PERSON.get(l.person); if (p) this.openPerson(p); }
       else if (l.life && l.life !== this.card.life?.id) { const x = LIFE.find(i => i.id === l.life); if (x) this.openLife(x); }
+      else if (l.lesson && l.lesson !== this.lesson.id) { const x = LESSON.get(l.lesson); if (x) this.startLesson(x); }
       else if (l.journey) { const j = JOURNEYS.find(x => x.id === l.journey); if (j) void this.playJourney(j); }
       else if (!l.event && !l.place && !l.person && !l.life && l.year != null) {
         this.timeline.set(l.year, true, false);
@@ -275,7 +293,20 @@ class App {
 
   private toggle(which: 'learn' | 'quiz'): void {
     if (which === 'learn') { this.learn.toggle(); if (this.learn.open && this.quiz.open) this.quiz.toggle(false); }
-    else { if (!this.quiz.open) { this.stopStory(); this.closeCard(); this.learn.toggle(false); } this.quiz.toggle(); this.root.classList.toggle('quiz-on', this.quiz.open); }
+    else { if (!this.quiz.open) { this.stopStory(); this.closeCard(); this.learn.toggle(false); this.lesson.stop(); } this.quiz.toggle(); this.root.classList.toggle('quiz-on', this.quiz.open); }
+  }
+
+  /** Opens a lesson of the course over the catalogue. */
+  startLesson(l: Lesson): void {
+    this.leaveForLesson();
+    this.lesson.start(l);
+  }
+
+  private leaveForLesson(): void {
+    this.stopStory();
+    this.closeCard();
+    if (this.quiz.open) this.toggle('quiz');
+    this.timeline.setPlaying(false);
   }
 
   openEvent(e: HistEvent, fly = true): void {
@@ -358,7 +389,9 @@ class App {
     this.timeline.select(null);
     this.chronicle.select(null);
     this.root.classList.remove('card-on');
-    writeLink({ year: this.timeline.year, lang });
+    // back to the lesson underneath, if any
+    const id = this.lesson?.open ? this.lesson.id : null;
+    writeLink(id && !id.startsWith('test:') ? { lesson: id, lang } : { year: this.timeline.year, lang });
   }
 
   async playStory(e: HistEvent): Promise<void> {
@@ -417,6 +450,7 @@ class App {
       else if (this.player.state !== 'idle') this.stopStory();
       else if (this.quiz.open) this.quiz.toggle(false);
       else if (this.card.open) this.closeCard();
+      else if (this.lesson.open) this.lesson.stop();
       else if (this.learn.open) this.learn.toggle(false);
       else if (!this.period.view.hidden) this.details(false);
       return;
@@ -433,7 +467,8 @@ class App {
     if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !e.altKey && !e.metaKey && !e.ctrlKey) {
       if ((e.target as HTMLElement).closest('.tl-track')) return;
       const dir = e.key === 'ArrowRight' ? 1 : -1;
-      if (this.card.event) {
+      if (this.lesson.open && !this.card.open && this.player.state === 'idle') this.lesson.step(dir);
+      else if (this.card.event) {
         const list = EVENTS.filter(x => x.scope === 'china');
         const i = list.indexOf(this.card.event) + dir;
         if (list[i]) this.openEvent(list[i]);
@@ -455,10 +490,11 @@ class App {
     this.hub.render();
     this.help.render();
     this.quiz.relabel();
+    this.lesson.relabel();
     this.chronicle.relabel();
     this.period.relabel();
     this.music.relabel();
-    writeLink(this.card.event ? { event: this.card.event.id, lang: l } : { year: this.timeline.year, lang: l });
+    writeLink(this.card.event ? { event: this.card.event.id, lang: l } : this.lesson.open && this.lesson.id && !this.lesson.id.startsWith('test:') ? { lesson: this.lesson.id, lang: l } : { year: this.timeline.year, lang: l });
   }
 
   /** Tells the camera how much of the screen the drawer (right) / bottom sheet and timeline cover so the subject stays visible. */

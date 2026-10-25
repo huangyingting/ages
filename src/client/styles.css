@@ -501,7 +501,7 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 
 /* ================================================================ level 2 — the drawer
    One full-height, edge-attached frosted plane on the right (flat: no border, no shadow). Its views stack: period
-   details at the base, then whatever was opened last on top (card, textbook, reader, quiz); only the top view is drawn,
+   details at the base, then whatever was opened last on top (course, lesson, card, reader, quiz); only the top view is drawn,
    so closing it reveals the one beneath. */
 .panel {
   position: absolute; top: var(--bar-h); right: 0; bottom: 0; width: var(--pw); z-index: 8; background: var(--panel); color: var(--ink);
@@ -518,7 +518,7 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .view-head .ib, .drawer header .ib, .quiz header .ib, .modal-box header .ib { width: 28px; height: 28px; }
 .view-body { flex: 1; min-height: 0; overflow: auto; padding: 0 16px 12px; }
 
-/* 时期详情, by priority: overview → events (fill the rest, scroll inside) → folded polities and check */
+/* 时期详情, by priority: overview → events (fill the rest, scroll inside) → folded polities */
 .pv .view-body { display: flex; flex-direction: column; }
 .pv-sec { flex: none; padding: 10px 0; }
 .pv-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
@@ -582,21 +582,57 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .ch-list li.sel button { background: var(--zhu); color: #fff; }
 .ch-list li.sel .ch-y, .ch-list li.sel .ch-t, .ch-list li.sel .ch-k, .ch-list li.sel i { color: #fff !important; }
 
-/* 随堂检测 */
-.pq-q { margin: 0 0 8px; font-size: var(--t-s); font-weight: 600; line-height: 1.5; color: var(--ink); }
-.pq-opts { display: grid; gap: 4px; }
-.pq-opt { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 0; background: var(--well); font-size: var(--t-xs); text-align: left; color: var(--ink-2); }
-.pq-opt i { font-style: normal; font-weight: 700; font-size: var(--t-2xs); color: var(--ink-3); }
-.pq-opt:not(:disabled):hover { background: var(--zhu-fill); color: var(--zhu); }
-.pq-opt.ok { background: color-mix(in srgb, #2e7d4f 14%, transparent); color: #1f5e3a; font-weight: 600; }
-.pq-opt.bad { background: var(--zhu-fill); color: var(--zhu); }
-.pq-opt.dim { opacity: .5; }
-.pq-res { margin: 6px 0 0; font-size: var(--t-xs); line-height: 1.6; color: var(--ink-2); }
-.pq-res b { margin-right: 6px; }
-.pq-res.ok b { color: #2e7d4f; }
-.pq-res.bad b { color: var(--zhu); }
-.pq-next { margin-top: 6px; padding: 3px 10px; border: 0; background: var(--zhu-fill); color: var(--zhu); font-size: var(--t-xs); font-weight: 600; }
-.pq-next:hover { background: var(--zhu); color: #fff; }
+/* 历史课堂 — the lesson player: kicker + title, step text, then the 随堂检测 options; sticky nav at the foot */
+.ls-head { position: relative; align-items: flex-start; }
+.ls-t { flex: 1; min-width: 0; }
+.ls-k { display: block; font-size: var(--t-2xs); font-weight: 600; color: var(--zhu); }
+.view-head .ls-t h2 { margin-top: 2px; font-size: var(--t-m); line-height: 1.35; }
+.ls-n { flex: none; margin-top: 6px; font-size: var(--t-2xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.ls-prog { position: absolute; left: 16px; right: 16px; bottom: 0; height: 2px; background: linear-gradient(90deg, var(--zhu) calc(var(--p) * 100%), var(--well-2) 0); transition: background .3s; }
+.ls-body { padding-top: 12px; }
+.ls-y { margin: 0 0 2px; font-size: var(--t-xs); font-weight: 600; color: var(--zhu); font-variant-numeric: tabular-nums; }
+.ls-h { margin: 0 0 8px; font-size: var(--t-l); font-weight: 700; line-height: 1.4; color: var(--ink); }
+.ls-p { margin: 0; font-size: var(--t-s); line-height: 1.8; color: var(--ink-2); }
+.ls-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.ls-acts .btn { height: 30px; padding: 0 12px; font-size: var(--t-xs); }
+.ls-nav { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px 12px; }
+.ls-nav .btn:only-child { margin-left: auto; }
+.ls-dots { display: flex; flex-wrap: wrap; gap: 4px; }
+.ls-dots i { width: 8px; height: 8px; background: var(--well-2); }
+.ls-dots i.cur { background: var(--ink-3); }
+.ls-dots i.ok { background: var(--ok); }
+.ls-dots i.no { background: var(--zhu); }
+.ls-q { margin: 0 0 10px; font-size: var(--t-m); font-weight: 700; line-height: 1.55; color: var(--ink); }
+.ls-hint { margin: 0 0 8px; font-size: var(--t-xs); color: var(--ink-3); }
+.ls-opts { display: grid; gap: 4px; }
+.ls-opt { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; background: var(--well); font-size: var(--t-s); line-height: 1.45; text-align: left; color: var(--ink); }
+.ls-opt i { flex: none; font-style: normal; font-weight: 700; font-size: var(--t-2xs); color: var(--ink-3); }
+.ls-opt:not(:disabled):hover { background: var(--zhu-fill); color: var(--zhu); }
+.ls-opt:disabled { cursor: default; }
+.ls-opt.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); font-weight: 600; }
+.ls-opt.ok i { color: var(--ok); }
+.ls-opt.bad { background: var(--zhu-fill); color: var(--zhu); }
+.ls-opt.dim, .ls-opts .ls-opt:disabled:not(.ok):not(.bad) { opacity: .5; }
+.ls-order { margin: 10px 0 0; padding-left: 22px; font-size: var(--t-s); line-height: 1.8; color: var(--ink); }
+.ls-order li.ok { color: var(--ok); }
+.ls-order li.bad { color: var(--zhu); }
+.ls-out:empty { display: none; }
+.ls-res { margin: 12px 0 0; padding: 8px 10px; background: var(--well); font-size: var(--t-s); line-height: 1.7; color: var(--ink-2); }
+.ls-res b { margin-right: 8px; }
+.ls-res.ok b { color: var(--ok); }
+.ls-res.bad b { color: var(--zhu); }
+.ls-km { margin: 12px 0 0; font-size: var(--t-xs); color: var(--ink-3); }
+.ls-km + .ls-res { margin-top: 4px; }
+.ls-score { display: flex; align-items: baseline; gap: 10px; padding: 4px 0 12px; }
+.ls-score b { font-size: 34px; font-weight: 700; line-height: 1; color: var(--zhu); font-variant-numeric: tabular-nums; }
+.ls-score span { font-size: var(--t-s); color: var(--ink-2); }
+.ls-sec { padding: 8px 0; }
+.ls-sec h3 { margin: 0 0 6px; font-size: var(--t-s); font-weight: 700; color: var(--ink); }
+.ls-keys { margin: 0; padding-left: 18px; font-size: var(--t-s); line-height: 1.75; color: var(--ink-2); }
+.ls-keys li + li { margin-top: 4px; }
+.ls-rev { display: flex; flex-wrap: wrap; gap: 4px; }
+.ls-rev .chip { cursor: pointer; font-size: var(--t-xs); }
+.ls-rev .chip:hover { color: var(--zhu); background: var(--zhu-fill); }
 
 /* ================================================================ info card (a drawer view) */
 .story-on .card { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
@@ -712,7 +748,19 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 .u-t { flex: 1; line-height: 1.4; font-size: var(--t-s); }
 .u-p { font-size: var(--t-2xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .u-head .bar { position: absolute; left: 40px; right: 6px; bottom: 5px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--ok) calc(var(--p) * 100%), var(--well-2) 0); }
-.u-evs { list-style: none; margin: 0 0 10px; padding: 0 0 0 30px; }
+.u-body { padding: 0 0 10px 34px; }
+.u-row { width: 100%; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; padding: 8px 10px; border: 0; background: var(--well); text-align: left; color: var(--ink); }
+.u-row:hover { background: var(--zhu-fill); }
+.u-row:hover b { color: var(--zhu); }
+.u-mk { flex: none; width: 14px; font-style: normal; font-size: var(--t-xs); color: var(--zhu); text-align: center; }
+.u-rt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.u-rt b { font-size: var(--t-s); font-weight: 700; line-height: 1.4; }
+.u-rt small { font-size: var(--t-2xs); line-height: 1.5; color: var(--ink-3); }
+.u-best { flex: none; font-size: var(--t-2xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.u-best.ok { color: var(--ok); font-weight: 600; }
+.u-ok { flex: none; font-style: normal; font-size: var(--t-xs); font-weight: 700; color: var(--ok); }
+.u-sub { margin: 10px 0 2px; font-size: var(--t-2xs); font-weight: 600; color: var(--ink-3); }
+.u-evs { list-style: none; margin: 0; padding: 0; }
 
 /* ================================================================ quiz */
 .view.quiz { display: block; overflow: auto; }
@@ -840,7 +888,7 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 /* ================================================================ narrower screens */
 /* ================================================================ small cut-corner slabs: buttons, chips, tags
    One shape for every control: 45° cuts at two corners, no border (after the component rules so it wins). */
-.btn, .chip, .type-chip, .badge, .tag, .tl-play, .ib, .hub-card, .opt, .qz-mode, .sw, .stats > div, .seg, .seg button, .tabs, .tabs button, .pq-opt {
+.btn, .chip, .type-chip, .badge, .tag, .tl-play, .ib, .hub-card, .opt, .qz-mode, .sw, .stats > div, .seg, .seg button, .tabs, .tabs button, .ls-opt, .u-row {
   --cut: 6px; border-radius: 0 !important; clip-path: var(--pp-clip);
 }
 .ib, .seg button, .tabs button { --cut: 5px; }

@@ -353,6 +353,10 @@ describe('imported jiangshan-map content', () => {
     expect(polityMatches('qin', 'qin')).toBe(true);
     const tang = POLITIES.find(p => p.id.startsWith('j') && p.name.zh === '唐');
     if (tang) expect(polityMatches(tang.id, 'qin')).toBe(false);
+    for (const [want, zh] of [['jin', '金'], ['qianqin', '前秦（苻坚一统北方）']]) {
+      const r = POLITIES.find(p => /^j\d+$/.test(p.id) && p.name.zh === zh);
+      if (r) expect(polityMatches(r.id, want), want).toBe(true);
+    }
   });
   it('names reign eras in both languages', () => {
     expect(reignAt(627)?.label).toEqual({ zh: '唐太宗 · 贞观元年', en: 'Emp. Taizong · Zhenguan 1' });

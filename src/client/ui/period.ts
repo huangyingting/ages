@@ -3,13 +3,10 @@ import { tr } from '../../shared/data/i18n.ts';
 import { WORKS } from '../../shared/data/jiangshan.ts';
 import { PLACE, mapName } from '../../shared/data/places.ts';
 import { POLITY } from '../../shared/data/polities.ts';
-import { SNAPSHOTS } from '../../shared/data/territories.ts';
 import type { Lang, Polity, Snapshot, Year } from '../../shared/data/types.ts';
 import { phaseAt, type Phase } from '../../shared/lib/chronicle.ts';
-import { periodQuestion } from '../../shared/lib/quiz.ts';
 import { eraAt, formatYear } from '../../shared/lib/timeline.ts';
 import { lang, t, type Key } from '../lib/i18n.ts';
-import { load, save } from '../lib/storage.ts';
 import { fill, h, iconBtn } from './dom.ts';
 
 const ROLE_ORDER: Polity['role'][] = ['main', 'rival', 'occupied', 'protectorate', 'neighbor'];
@@ -31,8 +28,8 @@ function areaParts(k: number, l: Lang): [string, string] {
  * - `line` (map, bottom centre): the phase title as an ambient caption;
  * - `key` (map, bottom left): the line legend and the border disclaimer;
  * - `view` (the drawer's base view, 时期详情), by priority: the overview (span, phase stepper, title, dynasty · capital ·
- *   area, note) and the chronicle (mounted by the app, fills the rest), then two folded sections — every polity with
- *   its area, and a one-question check per phase (随堂检测).
+ *   area, note) and the chronicle (mounted by the app, fills the rest), then a folded section: every polity with its area.
+ *   (The course's 随堂检测 lives in the lesson player, ui/lesson.ts.)
  * Hovering a polity holds its highlight on the map; clicking frames it.
  */
 export class Period {
@@ -45,9 +42,6 @@ export class Period {
   private pols: HTMLDetailsElement;
   private polsSum: HTMLElement;
   private polsBody: HTMLElement;
-  private check: HTMLDetailsElement;
-  private checkSum: HTMLElement;
-  private checkBody: HTMLElement;
   readonly btn: HTMLButtonElement;
   private sig = '';
   private year: Year = 0;
@@ -70,10 +64,7 @@ export class Period {
     this.polsSum = h('summary', { class: 'pv-h' });
     this.polsBody = h('div', { class: 'pv-fb' });
     this.pols = h('details', { class: 'pv-sec pv-fold pv-pols' }, this.polsSum, this.polsBody);
-    this.checkSum = h('summary', { class: 'pv-h' });
-    this.checkBody = h('div', { class: 'pv-fb' });
-    this.check = h('details', { class: 'pv-sec pv-fold pv-quiz' }, this.checkSum, this.checkBody);
-    this.body = h('div', { class: 'view-body' }, this.overview, this.pols, this.check);
+    this.body = h('div', { class: 'view-body' }, this.overview, this.pols);
     this.view = h('section', { class: 'view pv', hidden: true, role: 'region' },
       h('header', { class: 'view-head' }, h('h2', { text: t('details') }), iconBtn('close', t('close'), () => this.onClose(), 'pv-x')),
       this.body);
@@ -100,11 +91,10 @@ export class Period {
     this.renderKey(works);
     this.line.hidden = !ph;
     if (ph) this.line.textContent = tr(ph.snap.title, lang);
-    this.overview.hidden = this.pols.hidden = this.check.hidden = !ph;
+    this.overview.hidden = this.pols.hidden = !ph;
     if (!ph) return;
     this.renderOverview(ph);
     this.renderPolities(ph.snap);
-    this.renderCheck(ph.snap);
   }
 
   // ------------------------------------------------------------ map overlay
@@ -191,35 +181,6 @@ export class Period {
       b.addEventListener('blur', () => this.onHold(null));
     }
     return b;
-  }
-
-  /** 随堂检测: one question for the phase; the answer is kept, so the result stays shown when coming back. */
-  private renderCheck(s: Snapshot): void {
-    const q = periodQuestion(s);
-    this.check.hidden = !q;
-    if (!q) return;
-    const answers = load<Record<string, number>>('periodQuiz', {});
-    const pick = answers[s.id];
-    const done = pick != null;
-    const all = Object.entries(answers);
-    const right = all.filter(([id, a]) => SNAPSHOTS.some(x => x.id === id && periodQuestion(x)?.answer === a)).length;
-    const opts = q.options.map((o, i) => h('button', {
-      type: 'button',
-      class: `pq-opt${done ? (i === q.answer ? ' ok' : i === pick ? ' bad' : ' dim') : ''}`,
-      disabled: done,
-      onclick: () => {
-        save('periodQuiz', { ...load<Record<string, number>>('periodQuiz', {}), [s.id]: i });
-        this.sig = '';
-        this.setYear(this.year);
-      },
-    }, h('i', { text: 'ABCD'[i] }), h('span', { text: tr(o, lang) })));
-    const next = SNAPSHOTS[SNAPSHOTS.indexOf(s) + 1];
-    fill(this.checkSum, h('h3', { text: t('pqTitle') }), h('small', { text: t('pqProgress', { a: all.length, n: SNAPSHOTS.length, c: right }) }), done ? null : h('em', { class: 'pv-new' }));
-    fill(this.checkBody,
-      h('p', { class: 'pq-q', text: tr(q.prompt, lang) }),
-      h('div', { class: 'pq-opts' }, ...opts),
-      done ? h('p', { class: `pq-res ${pick === q.answer ? 'ok' : 'bad'}` }, h('b', { text: t(pick === q.answer ? 'pqRight' : 'pqWrong') }), h('span', { text: tr(q.why, lang) })) : null,
-      done && next ? h('button', { type: 'button', class: 'pq-next', text: `${t('pqNext')} →`, onclick: () => this.onYear(next.year) }) : null);
   }
 
   /** Distinct polities of a snapshot, most important first, with their areas (neighbours collapse into one entry). */

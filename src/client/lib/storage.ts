@@ -15,7 +15,7 @@ export function save(k: string, v: unknown): void {
   try { localStorage.setItem(KEY + k, s); } catch { /* ignore */ }
 }
 
-/** Learning progress: events whose story was watched, and events marked as learned. */
+/** Learning progress: events whose story was watched, events marked as learned, and the course's best scores. */
 export class Progress {
   watched = new Set<string>(load<string[]>('watched', []));
   learned = new Set<string>(load<string[]>('learned', []));
@@ -28,4 +28,10 @@ export class Progress {
     return this.learned.has(id);
   }
   quiz(score: number): void { if (score > this.best) { this.best = score; save('quizBest', score); } }
+  /** the course: best result per lesson / unit test (`test:<book>-<unit>`), as [right, asked] */
+  scores = load<Record<string, [number, number]>>('lessons', {});
+  score(id: string, right: number, n: number): void {
+    const b = this.scores[id];
+    if (!b || right / n >= b[0] / b[1]) { this.scores[id] = [right, n]; save('lessons', this.scores); }
+  }
 }
