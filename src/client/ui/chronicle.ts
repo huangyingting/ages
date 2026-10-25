@@ -8,9 +8,9 @@ import { load, save } from '../lib/storage.ts';
 import { h, icon, iconBtn, setIcon } from './dom.ts';
 
 /**
- * The period panel down the right edge: the current dynasty (header), the docked map legend, then 大事年表 — the
+ * The period panel in the right-hand column: the current dynasty (header), the docked map legend, then 大事年表 — the
  * chronicle as a list (year · headline). The line at or before the timeline's year is highlighted and scrolled into
- * view; clicking a line opens the event. Folds to a slim tab that keeps the dynasty name.
+ * view; clicking a line opens the event. Folds to its dynasty header (to a slim tab on phones).
  */
 export class Chronicle {
   readonly el: HTMLElement;
@@ -31,7 +31,7 @@ export class Chronicle {
     this.list = h('ol', { class: 'ch-list' });
     this.list.addEventListener('wheel', () => (this.userScroll = performance.now()), { passive: true });
     this.list.addEventListener('touchmove', () => (this.userScroll = performance.now()), { passive: true });
-    this.foldBtn = iconBtn('chevron', t('fold'), () => this.fold(!this.folded), 'ch-fold');
+    this.foldBtn = iconBtn('up', t('fold'), () => this.fold(!this.folded), 'ch-fold');
     const tab = h('button', { type: 'button', class: 'ch-tab', onclick: () => this.fold(false) }, icon('list'), h('span'));
     this.el = h('aside', { class: 'chronicle', 'aria-label': t('chronicle') }, tab, this.head, this.list, this.foldBtn);
     const mobile = matchMedia('(max-width: 720px)').matches;
@@ -45,7 +45,7 @@ export class Chronicle {
 
   fold(on: boolean, persist = true): void {
     this.el.classList.toggle('folded', on);
-    setIcon(this.foldBtn, on ? 'chevL' : 'chevron');
+    setIcon(this.foldBtn, on ? 'down' : 'up');
     this.foldBtn.title = this.foldBtn.ariaLabel = t(on ? 'unfold' : 'fold');
     if (persist) save('chFolded', on);
     if (!on) this.scrollToCur(true);

@@ -5,7 +5,7 @@ import { load, save } from './storage.ts';
 const S = {
   brand: { zh: '长河', en: 'Ages' },
   brandSub: { zh: '3D 中国历史地图', en: '3D Atlas of Chinese History' },
-  search: { zh: '搜索事件、朝代、地点…', en: 'Search events, dynasties, places…' },
+  search: { zh: '搜索事件、朝代、地点', en: 'Search the atlas' },
   noHits: { zh: '没有找到', en: 'No matches' },
   lang: { zh: 'EN', en: '中' },
   langTitle: { zh: 'Switch to English', en: '切换到中文' },

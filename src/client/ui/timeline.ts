@@ -14,13 +14,11 @@ import { h, iconBtn, setIcon } from './dom.ts';
 /**
  * The bottom timeline: play button, age headers, coloured era bands (two lanes for overlapping regimes) over the curve of
  * the dynasty's territorial area, event ticks and a draggable thumb. Its readout — year with ‹ › stepping, era, ruler
- * and territory area — is the `hero` headline the app places at the top left of the map. The axis is piecewise-linear (see shared/lib/timeline.ts)
+ * and territory area — sits at the bar's left end beside the play button. The axis is piecewise-linear (see shared/lib/timeline.ts)
  * so the dense recent centuries get room while prehistory stays visible.
  */
 export class Timeline {
   readonly el: HTMLElement;
-  /** The large year headline (year, era · ruler, territory area), placed over the map by the app. */
-  readonly hero: HTMLElement;
   private areaEl: HTMLElement;
   private curve: HTMLElement;
   private track: HTMLElement;
@@ -87,8 +85,8 @@ export class Timeline {
     const row = h('div', { class: 'tl-yr' },
       iconBtn('chevL', t('prevStop'), () => this.step(-1), 'tl-prev'), this.yearEl, this.input,
       iconBtn('chevron', t('nextStop'), () => this.step(1), 'tl-next'));
-    this.hero = h('div', { class: 'hero' }, row, h('div', { class: 'tl-sub' }, this.eraEl, this.rulerEl), this.areaEl);
-    this.el = h('div', { class: 'tl' }, h('div', { class: 'tl-read' }, this.playBtn, this.speedBtn), this.track, this.foldBtn);
+    const txt = h('div', { class: 'tl-txt' }, row, h('div', { class: 'tl-sub' }, this.eraEl, this.rulerEl), this.areaEl);
+    this.el = h('div', { class: 'tl' }, h('div', { class: 'tl-read' }, this.playBtn, txt, this.speedBtn), this.track, this.foldBtn);
     if (load<boolean>('tlFolded', false)) this.fold(true);
     this.build();
     this.bind();
@@ -265,7 +263,7 @@ export class Timeline {
     this.track.setAttribute('aria-label', t('era'));
     this.yearEl.title = this.input.title = t('goYear');
     this.input.setAttribute('aria-label', t('goYear'));
-    for (const [c, k] of [['.tl-prev', 'prevStop'], ['.tl-next', 'nextStop']] as const) { const b = this.hero.querySelector<HTMLElement>(c)!; b.title = t(k); b.setAttribute('aria-label', t(k)); }
+    for (const [c, k] of [['.tl-prev', 'prevStop'], ['.tl-next', 'nextStop']] as const) { const b = this.el.querySelector<HTMLElement>(c)!; b.title = t(k); b.setAttribute('aria-label', t(k)); }
     this.playBtn.title = this.playBtn.ariaLabel = t(this.playing ? 'pause' : 'play');
     this.speedBtn.title = this.speedBtn.ariaLabel = t('speed');
     this.foldBtn.title = this.foldBtn.ariaLabel = t(this.el.classList.contains('folded') ? 'unfold' : 'fold');

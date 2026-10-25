@@ -52,6 +52,7 @@ class App {
   ready = false;
   private langBtn!: HTMLButtonElement;
   private bar!: HTMLElement;
+  private side!: HTMLElement;
 
   constructor(private root: HTMLElement, stage: HTMLElement) {
     this.atlas = new Atlas(stage, lowfx);
@@ -146,7 +147,7 @@ class App {
       if (final) { this.saveYear(y); }
     };
     tl.onEvent = e => this.openEvent(e);
-    this.chronicle.onOpen = e => this.openEvent(e);
+    this.chronicle.onOpen = e => { this.openEvent(e); if (matchMedia('(max-width: 720px)').matches) this.chronicle.fold(true, false); };
     this.chronicle.onEra = id => this.openEra(id);
     this.legend.onYear = y => { tl.setPlaying(false); tl.set(y, true); };
     this.legend.onHold = (p, c) => this.atlas.hold(p, c);
@@ -181,14 +182,11 @@ class App {
     this.quiz.onYear = y => { this.timeline.set(y, true, false); this.atlas.setYear(y); };
     this.reader.onClose = () => {};
 
-    // top-left: brand mark and search (the period lives in the timeline readout and the period panel)
-    this.bar = h('div', { class: 'top-l' },
-      h('div', { class: 'brand' }, h('span', { class: 'logo', 'aria-hidden': 'true' }), h('span', { class: 'brand-t' }, h('b', { text: 'Ages' }), h('span', { text: t('brandSub') }))),
-      this.search.el);
     this.chronicle.mount(this.legend.el);
     this.timeline.onRender = y => { this.chronicle.update(y); this.legend.setYear(y); };
 
-    // top-right: one toolbar slab (music · language · study hall · map settings · full screen)
+    // one right-hand column: a header slab (mark · search · tools) over a stack of panels — the open card, then the
+    // period panel; the reader, textbook, quiz, menus and story caption open over that stack. The timeline keeps the bottom.
     this.langBtn = h('button', { type: 'button', class: 'ib lang', 'data-act': 'lang', onclick: () => setLang(lang === 'zh' ? 'en' : 'zh') });
     const hubBtn = iconBtn('grid', t('hub'), () => this.pop(this.hub.el.hidden ? 'hub' : null), 'b-hub');
     const setBtn = iconBtn('sliders', t('settings'), () => this.pop(this.settings.el.hidden ? 'settings' : null), 'b-settings');
@@ -196,12 +194,17 @@ class App {
     fullBtn.hidden = !document.fullscreenEnabled;
     document.addEventListener('fullscreenchange', () => fullBtn.classList.toggle('on', !!document.fullscreenElement));
     const tools = h('div', { class: 'tools' }, this.music.el, this.langBtn, hubBtn, setBtn, fullBtn);
-    const top = h('div', { class: 'top-r' }, tools, this.hub.el, this.settings.el);
+    this.bar = h('div', { class: 'side-head' },
+      h('div', { class: 'brand' }, h('span', { class: 'logo', 'aria-hidden': 'true' }), h('span', { class: 'brand-t' }, h('b', { text: 'Ages' }), h('span', { text: t('brandSub') }))),
+      this.search.el, tools);
+    this.side = h('div', { class: 'side' }, this.bar,
+      h('div', { class: 'side-body' }, this.card.el, this.chronicle.el, this.learn.el, this.reader.el, this.quiz.el, this.caption.el, this.hub.el, this.settings.el));
     document.addEventListener('pointerdown', e => {
-      if ((!this.hub.el.hidden || !this.settings.el.hidden) && !top.contains(e.target as Node)) this.pop(null);
+      const n = e.target as Node;
+      if ((!this.hub.el.hidden || !this.settings.el.hidden) && !tools.contains(n) && !this.hub.el.contains(n) && !this.settings.el.contains(n)) this.pop(null);
     });
 
-    this.root.append(this.bar, this.timeline.hero, top, this.chronicle.el, this.learn.el, this.card.el, this.reader.el, this.quiz.el, this.caption.el, this.timeline.el, this.help.el);
+    this.root.append(this.side, this.timeline.el, this.help.el);
     this.relabel();
     onLang(l => this.onLang(l));
 
@@ -430,7 +433,7 @@ class App {
     writeLink(this.card.event ? { event: this.card.event.id, lang: l } : { year: this.timeline.year, lang: l });
   }
 
-  /** Tells the camera how much of the screen the card / reader cover so the subject stays visible. */
+  /** Tells the camera how much of the screen the right-hand column / bottom sheet cover so the subject stays visible. */
   private updateInset(): void {
     if (this.root.classList.contains('story-on')) return this.atlas.view.setInset(0, 0, 0);
     const W = this.root.clientWidth, H = this.root.clientHeight;
@@ -438,20 +441,19 @@ class App {
       const top = this.card.open ? this.card.el.getBoundingClientRect().top : H;
       return this.atlas.view.setInset(0, 0, Math.min(H * 0.6, H - top));
     }
-    const r = this.root.getBoundingClientRect();
-    const left = this.card.open ? this.card.el.getBoundingClientRect().right - r.left : 0;
-    let right = W;
-    for (const el of [this.reader.el, this.learn.el]) if (!el.hidden) right = Math.min(right, el.getBoundingClientRect().left - r.left);
-    if (!this.chronicle.folded) right = Math.min(right, this.chronicle.el.getBoundingClientRect().left - r.left);
-    this.atlas.view.setInset(Math.min(W * 0.4, left), Math.min(W * 0.45, W - right), 0);
+    // the column's panels cover the right edge; an empty column (period panel folded, nothing open) covers only its header
+    const covered = this.card.open || !this.reader.el.hidden || !this.learn.el.hidden || !this.chronicle.folded;
+    const right = covered ? W - (this.side.getBoundingClientRect().left - this.root.getBoundingClientRect().left) : 0;
+    this.atlas.view.setInset(0, Math.min(W * 0.45, right), 0);
   }
 
   private relabel(): void {
     this.langBtn.textContent = t('lang');
     this.langBtn.title = t('langTitle');
     this.langBtn.setAttribute('aria-label', t('langTitle'));
-    const b = this.bar.querySelector('.brand-t')!;
-    b.querySelector('span')!.textContent = t('brandSub');
+    const b = this.bar.querySelector<HTMLElement>('.brand')!;
+    b.querySelector('.brand-t span')!.textContent = t('brandSub');
+    b.title = `Ages · ${t('brandSub')}`;
     const set = (cls: string, k: Parameters<typeof t>[0]) => { const el = this.root.querySelector<HTMLElement>(cls); if (el) { el.title = t(k); el.setAttribute('aria-label', t(k)); } };
     set('.b-hub', 'hub'); set('.b-settings', 'settings'); set('.b-full', 'fullscreen');
     document.title = lang === 'zh' ? '长河 · 3D 中国历史地图' : 'Ages · 3D Atlas of Chinese History';

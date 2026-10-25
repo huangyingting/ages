@@ -29,7 +29,7 @@ From the ground up (`scene/ink.ts` `INK` orders, then depth-tested models, then 
 | 4 | Map ink | route strokes, arrowheads, base rings, selection ring, battlefields | painted flat on the map: no depth test, so hills never cut them |
 | 5 | Models | capital, dynasty scenery, event models, story actors | depth-tested and stand on top of the ink |
 | 6 | Labels | polities, places, rivers, admin areas, works, pins | HTML, decluttered by priority |
-| 7 | UI | tooltip, cards, panels, timeline | |
+| 7 | UI | tooltip, then one right-hand column (header, card, period panel or textbook, reader, quiz) and the bottom timeline | nothing else floats over the map |
 
 ## 2. What stands on the map
 
