@@ -4,7 +4,7 @@ import { outdoorEnvironment } from '../models/environment.ts';
 import { instance } from '../models/library.ts';
 
 /**
- * The turntable at the top of the info panel: the subject's 3D model (landmark, figure, army …) on a bronze plinth,
+ * The turntable at the top of the info panel: the subject's 3D model (landmark, figure, army …) on its own base,
  * slowly turning; drag to spin it. One small renderer, shared by every card and only running while visible.
  */
 export class Preview {
@@ -40,17 +40,10 @@ export class Preview {
     const rim = new THREE.DirectionalLight('#fde68a', 0.9);
     rim.position.set(0.5, 2.5, -3.5);
     this.scene.add(key, fill, rim, new THREE.HemisphereLight('#e0f2fe', '#2a2219', 0.35));
-    // a stepped bronze plinth with a hairline ring, so every model sits on the same stage
-    const plinth = new THREE.Group();
-    const m1 = new THREE.MeshStandardMaterial({ color: '#2a2219', roughness: 0.8, metalness: 0.2 });
-    const m2 = new THREE.MeshStandardMaterial({ color: '#8a6a3a', roughness: 0.45, metalness: 0.75 });
-    const a = new THREE.Mesh(new THREE.CylinderGeometry(1.22, 1.3, 0.08, 64), m1);
-    a.position.y = -0.04;
-    a.receiveShadow = true;
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.24, 0.012, 6, 96), m2);
-    ring.rotation.x = Math.PI / 2;
-    plinth.add(a, ring);
-    this.scene.add(plinth);
+    // models bring their own base; an invisible floor only catches a soft contact shadow
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(2.4, 48).rotateX(-Math.PI / 2), new THREE.ShadowMaterial({ opacity: 0.18 }));
+    floor.receiveShadow = true;
+    this.scene.add(floor);
     this.bindDrag();
   }
 
@@ -85,7 +78,7 @@ export class Preview {
     let g: THREE.Group;
     try { g = await instance(recipe, true); } catch { return; }
     if (id !== this.req) return;
-    // frame the model: normalise to the plinth and aim the camera at its middle
+    // frame the model: normalise its footprint and aim the camera at its middle
     const box = new THREE.Box3().setFromObject(g);
     const size = box.getSize(new THREE.Vector3());
     const k = 1.9 / Math.max(size.x, size.z, size.y * 0.9, 0.01);
