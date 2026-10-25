@@ -6,11 +6,13 @@ import { packModel, unpackModel } from '../../src/client/models/pack.ts';
 import { loadPack, parseHero } from '../../src/client/models/heroes/index.ts';
 import { LIFE } from '../../src/shared/data/life.ts';
 import { ERAS } from '../../src/shared/data/eras.ts';
+import { PEOPLE } from '../../src/shared/data/jiangshan.ts';
 import * as HEROES from '../../src/shared/data/heroes.ts';
+import { personLook } from '../../src/client/models/costume.ts';
 import { EVENTS } from '../../src/shared/data/events.ts';
 import { STORIES, TRAVELLER } from '../../src/shared/data/stories.ts';
 
-const { capitalModel } = HEROES;
+const { capitalModel, personModel } = HEROES;
 
 const stats = (o: THREE.Object3D) => {
   let meshes = 0, tris = 0;
@@ -108,4 +110,30 @@ describe('period-dressed figures', () => {
     const steppe = buildFresh({ kind: 'person', role: 'ruler', year: 1038, eth: 'steppe', prop: 'sword' });
     expect(stats(steppe).tris).toBeGreaterThan(200);
   });
+
+  it('gives named historical figures distinct character-specific portraits, props and vignettes', () => {
+    expect(personLook('ruler', 'xianqin', { person: '大禹' }).hat).toBe('douli');
+    expect(personLook('scholar', 'weijin', { person: '诸葛亮' }).hat).toBe('guanjin');
+    expect(personLook('scholar', 'song', { person: '包拯' }).crescent).toBe(true);
+    expect(personLook('scholar', 'suitang', { person: '鉴真' }).blind).toBe(true);
+    expect(personLook('scholar', 'song', { person: '苏轼' }).hat).toBe('dongpo');
+    expect(personLook('ruler', 'qing', { person: '洪秀全' }).hat).toBe('taiping');
+    expect(personLook('scholar', 'modern', { person: '袁隆平' }).hat).toBe('straw');
+    expect(personLook('scholar', 'qing', { person: '曹雪芹' }).badge).toBeUndefined();
+    expect(personLook('general', 'qinhan', { person: '项羽' }).armor).not.toBe(
+      personLook('general', 'weijin', { person: '吕布' }).armor,
+    );
+
+    for (const p of PEOPLE) {
+      const r = personModel(p);
+      const s = stats(buildFresh(r));
+      expect(s.tris, p.id).toBeGreaterThan(200);
+      if (r.hero) {
+        expect(s.tris, p.id).toBeLessThan(130_000);
+      } else {
+        expect(r.person, p.id).toBe(p.name.zh);
+        expect(s.tris, p.id).toBeLessThan(30_000);
+      }
+    }
+  }, 120_000);
 });

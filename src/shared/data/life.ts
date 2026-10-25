@@ -50,8 +50,8 @@ function P(zh: string, at: At, o: WhoOpt = {}): void {
   const p = personNamed(zh);
   const base: ModelRecipe = personModel(p ?? { name: { zh }, ...(o.year !== undefined ? { span: [o.year - 40, o.year] } : {}) });
   const model: ModelRecipe = base.hero ? base : {
-    ...base, ...(o.role ? { role: o.role } : {}), ...(o.year !== undefined ? { year: o.year } : {}),
-    ...(o.prop ? { prop: o.prop } : {}), ...(o.female ? { female: true } : {}), ...(o.eth ? { eth: o.eth } : {}), bare: true,
+    ...base, ...(o.role && !base.role ? { role: o.role } : {}), ...(o.year !== undefined && base.year === undefined ? { year: o.year } : {}),
+    ...(o.prop && !base.prop ? { prop: o.prop } : {}), ...(o.female ? { female: true } : {}), ...(o.eth ? { eth: o.eth } : {}), bare: true,
   };
   const name = p?.name ?? { zh, en: o.en ?? zh };
   const desc = o.desc ? { zh: o.desc[0], en: o.desc[1] } : p ? p.title : { zh: '', en: '' };

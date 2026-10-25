@@ -255,7 +255,8 @@ export class Card {
     const all = lifeOf(l.era);
     const i = all.indexOf(l);
     const go = (k: number) => this.hooks.life(all[(i + k + all.length) % all.length]);
-    this.setHero(l.model, t(l.kind), LIFE_COLOR[l.kind], [i + 1, all.length], () => go(-1), () => go(1));
+    const cardModel = l.model.bare ? { ...l.model, bare: undefined } : l.model;
+    this.setHero(cardModel, t(l.kind), LIFE_COLOR[l.kind], [i + 1, all.length], () => go(-1), () => go(1));
     const others = all.filter(x => x !== l);
     const twin = lifeEvent(l);
     // a figure in the people index: this one card also carries their lifespan, journey and events

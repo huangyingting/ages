@@ -33,7 +33,8 @@ export type Beard = 'none' | 'short' | 'long' | 'goatee' | 'moustache' | 'full';
  */
 export type Hat = 'none' | 'scholar' | 'futou' | 'tophat' | 'beret' | 'cap' | 'crown' | 'turban' | 'helmet' | 'bicorne' | 'wreath'
   | 'mianguan' | 'tongtian' | 'jinxian' | 'ruanjiao' | 'zhanjiao' | 'wusha' | 'yishan' | 'fangjin' | 'boli' | 'gugu'
-  | 'qingguan' | 'guapi' | 'liangba' | 'qinhan_helm' | 'plume' | 'doumou' | 'peaked';
+  | 'qingguan' | 'guapi' | 'liangba' | 'qinhan_helm' | 'plume' | 'doumou' | 'peaked'
+  | 'douli' | 'guanjin' | 'dongpo' | 'fujin' | 'pheasant' | 'straw' | 'khitan' | 'taiping';
 
 /** Leg stances: feet targets solved with IK so knees always bend forward and bones keep their length. */
 export type Stance = 'stand' | 'relax' | 'walk' | 'run' | 'kick' | 'kneel' | 'wide';
@@ -41,6 +42,8 @@ export type Stance = 'stand' | 'relax' | 'walk' | 'run' | 'kick' | 'kneel' | 'wi
 export interface FigureOpts {
   /** total height incl. hair/hat, default 0.62 */
   h?: number;
+  /** torso/waist width multiplier (1 = standard, >1 = broad/rotund build) */
+  w?: number;
   x?: number; y?: number; z?: number;
   /** facing (radians about Y), default 0 = +z */
   ry?: number;
@@ -104,6 +107,10 @@ export interface FigureOpts {
   pibo?: string;
   /** Peacock feather plume (花翎) on Qing hats */
   feathers?: boolean;
+  /** Silver crescent moon on the forehead (包拯额上月牙) */
+  crescent?: boolean;
+  /** Gently closed eyelids (鉴真双目失明) */
+  blind?: boolean;
 }
 
 export interface FigureAnchors {
@@ -128,8 +135,8 @@ const SKIN = '#d9a882';
 const Y = (y: number) => (y <= 0.5 ? y : y <= 0.735 ? 0.5 + (y - 0.5) * 1.234 : 0.79 + (y - 0.735) * 0.9);
 
 /** Shoulder, elbow and wrist of a figure's arm in body space (same maths the figure uses, for overlays). */
-export function armJoints(o: Pick<FigureOpts, 'h' | 'armL' | 'armR'>, sgn: -1 | 1): { sh: V3; el: V3; wr: V3; dir: V3 } {
-  const u = o.h ?? 0.62, sh: V3 = [sgn * 0.13 * u, Y(0.735) * u, 0];
+export function armJoints(o: Pick<FigureOpts, 'h' | 'w' | 'armL' | 'armR'>, sgn: -1 | 1): { sh: V3; el: V3; wr: V3; dir: V3 } {
+  const u = o.h ?? 0.62, bw = o.w ?? 1, sh: V3 = [sgn * 0.13 * u * bw, Y(0.735) * u, 0];
   const { elbow, wrist, dir } = armFK(sgn, (sgn < 0 ? o.armL : o.armR) ?? {}, sh, 0.17 * u, 0.155 * u);
   return { sh, el: elbow, wr: wrist, dir };
 }
@@ -380,8 +387,8 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
 
   const skin = o.skin ?? SKIN, hair = o.hair ?? '#3b2a20', outfit = o.outfit ?? 'tunic';
   const top = o.top, bottom = o.bottom ?? tone(top, -0.25), accent = o.accent ?? tone(top, 0.25);
-  const shoes = o.shoes ?? '#2b211b', shirt = o.shirt ?? '#f1ece0';
-  const S = (pts: [number, number][]) => pts.map(([r, y]) => [r * u, Y(y) * u] as [number, number]);
+  const shoes = o.shoes ?? '#2b211b', shirt = o.shirt ?? '#f1ece0', bw = o.w ?? 1;
+  const S = (pts: [number, number][]) => pts.map(([r, y]) => [r * u * bw, Y(y) * u] as [number, number]);
   const flat = (m: THREE.Mesh, k = 0.74) => { m.scale.z = k; return m; };
   const U = (v: V3): V3 => [v[0] * u, v[1] * u, v[2] * u];
 
@@ -629,8 +636,17 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
   ellip(body, skin, 0, hy - hr * 0.6, hr * 0.22, hr * 0.66, hr * 0.48, hr * 0.7); // jaw and chin
   for (const sx of [-1, 1]) ellip(body, tone(skin, -0.08), sx * hr * 0.98, hy - hr * 0.02, -hr * 0.04, hr * 0.14, hr * 0.26, hr * 0.12); // ears
   for (const sx of [-1, 1]) {
-    ellip(body, '#2a201b', sx * hr * 0.34, hy + hr * 0.06, hr * 0.94, hr * 0.12, hr * 0.05, hr * 0.04); // eyes
+    if (o.blind) {
+      box(body, '#6b4c3b', sx * hr * 0.34, hy + hr * 0.05, hr * 0.94, hr * 0.24, hr * 0.03, hr * 0.04); // closed peaceful eyelids
+    } else {
+      ellip(body, '#2a201b', sx * hr * 0.34, hy + hr * 0.06, hr * 0.94, hr * 0.12, hr * 0.05, hr * 0.04); // eyes
+    }
     box(body, tone(hair, -0.15), sx * hr * 0.36, hy + hr * 0.25, hr * 0.92, hr * 0.32, hr * 0.05, hr * 0.06, 0, 0, sx * -0.08); // brows
+  }
+  if (o.crescent) {
+    // 包拯额上银色月牙
+    ellip(body, '#f8fafc', 0, hy + hr * 0.4, hr * 1.02, hr * 0.19, hr * 0.16, hr * 0.05);
+    ellip(body, skin, hr * 0.09, hy + hr * 0.47, hr * 1.05, hr * 0.14, hr * 0.13, hr * 0.05);
   }
   ellip(body, tone(skin, -0.05), 0, hy - hr * 0.14, hr * 1.0, hr * 0.11, hr * 0.22, hr * 0.15); // nose
   box(body, '#9a6352', 0, hy - hr * 0.5, hr * 0.9, hr * 0.26, hr * 0.035, hr * 0.05); // mouth
@@ -933,6 +949,67 @@ function hatFor(p: THREE.Object3D, s: Hat, c: string, hy: number, hr: number, u:
         ellip(p, i % 2 ? '#65a30d' : '#4d7c0f', Math.cos(a) * hr * 1.0, ty - hr * 0.25, Math.sin(-a) * hr * -1.0, hr * 0.2, hr * 0.1, hr * 0.12, a);
       }
       break;
+    case 'douli': { // 斗笠: wide conical woven-bamboo rain hat with bamboo rim rings
+      lathe(p, [[0, hr * 0.95], [hr * 0.35, hr * 0.85], [hr * 1.15, hr * 0.38], [hr * 2.05, -hr * 0.08], [hr * 2.1, -hr * 0.12], [0, hr * 0.88]], c, 0, ty - hr * 0.12, 0, 20);
+      cyl(p, tone(c, -0.22), 0, ty + hr * 0.22, 0, hr * 1.18, hr * 0.04, 18);
+      break;
+    }
+    case 'guanjin': { // 纶巾 (诸葛巾): tall pleated silk crown with white jade forehead ornament
+      cyl(p, c, 0, ty - hr * 0.05, -hr * 0.04, hr * 0.96, hr * 0.26, 18);
+      lathe(p, [[0, 0], [hr * 0.86, 0], [hr * 0.94, hr * 0.65], [hr * 0.78, hr * 1.28], [0, hr * 1.32]], c, 0, ty + hr * 0.12, -hr * 0.06, 16);
+      for (const i of [-1, 0, 1]) box(p, tone(c, 0.18), i * hr * 0.24, ty + hr * 0.72, hr * 0.74, hr * 0.04, hr * 0.95, hr * 0.05, 0, -0.08, 0);
+      ellip(p, badge ?? '#e2ece0', 0, ty + hr * 0.14, hr * 0.92, hr * 0.14, hr * 0.18, hr * 0.06);
+      break;
+    }
+    case 'dongpo': { // 东坡巾: tall square double-walled Song literati hat with notched front fold
+      const m1 = lathe(p, [[0, 0], [hr * 1.04, 0], [hr * 1.08, hr * 0.55], [0, hr * 0.55]], tone(c, -0.08), 0, ty - hr * 0.1, -hr * 0.04, 4);
+      m1.rotation.y = Math.PI / 4;
+      const m2 = lathe(p, [[0, 0], [hr * 0.84, 0], [hr * 0.9, hr * 1.25], [0, hr * 1.25]], c, 0, ty + hr * 0.15, -hr * 0.06, 4);
+      m2.rotation.y = Math.PI / 4;
+      break;
+    }
+    case 'fujin': { // 幅巾 / 葛巾: soft folded cloth headscarf with headband and two cloth tails behind
+      ellip(p, c, 0, ty + hr * 0.08, -hr * 0.06, hr * 1.06, hr * 0.55, hr * 1.06);
+      ellip(p, tone(c, 0.08), 0, ty + hr * 0.46, -hr * 0.22, hr * 0.64, hr * 0.42, hr * 0.68);
+      cyl(p, tone(c, -0.15), 0, ty - hr * 0.12, -hr * 0.04, hr * 1.02, hr * 0.12, 16);
+      for (const sx of [-1, 1]) tube(p, [[sx * hr * 0.22, ty - hr * 0.1, -hr * 0.95], [sx * hr * 0.3, ty - hr * 0.75, -hr * 1.08]], hr * 0.08, hr * 0.05, c, { radial: 5, sub: 2 });
+      break;
+    }
+    case 'pheasant': { // 束发金冠双雉尾 (吕布 / 项羽): ornate golden coronet with twin long curving pheasant plumes
+      cyl(p, '#eab308', 0, ty + hr * 0.08, -hr * 0.04, hr * 0.92, hr * 0.34, 16);
+      cyl(p, '#991b1b', 0, ty + hr * 0.36, -hr * 0.06, hr * 0.52, hr * 0.38, 12);
+      ellip(p, '#dc2626', 0, ty + hr * 0.16, hr * 0.9, hr * 0.15, hr * 0.18, hr * 0.07);
+      for (const sx of [-1, 1]) {
+        tube(p, [
+          [sx * hr * 0.2, ty + hr * 0.5, -hr * 0.1],
+          [sx * hr * 0.85, ty + hr * 1.55, -hr * 0.55],
+          [sx * hr * 1.45, ty + hr * 2.15, -hr * 1.35],
+          [sx * hr * 1.75, ty + hr * 1.9, -hr * 2.05],
+        ], hr * 0.085, hr * 0.025, badge ?? '#d97706', { radial: 6, sub: 4 });
+      }
+      break;
+    }
+    case 'straw': { // 草帽 (袁隆平): wide-brimmed woven golden straw sun hat with dark band
+      cyl(p, c, 0, ty - hr * 0.06, 0, hr * 1.85, hr * 0.05, 22);
+      lathe(p, [[0, 0], [hr * 0.98, 0], [hr * 0.88, hr * 0.68], [0, hr * 0.72]], c, 0, ty - hr * 0.04, 0, 18);
+      cyl(p, '#292524', 0, ty + hr * 0.02, 0, hr * 0.99, hr * 0.1, 18);
+      break;
+    }
+    case 'khitan': { // 契丹金冠 / 西夏白高冠: tall flaring steppe gold/felt crown with front plaque and ear flaps
+      lathe(p, [[0, 0], [hr * 0.96, 0], [hr * 0.88, hr * 1.15], [hr * 0.65, hr * 1.45], [0, hr * 1.48]], c, 0, ty - hr * 0.08, -hr * 0.04, 16);
+      cyl(p, '#eab308', 0, ty - hr * 0.12, -hr * 0.04, hr * 1.0, hr * 0.12, 16);
+      box(p, '#eab308', 0, ty + hr * 0.55, hr * 0.82, hr * 0.55, hr * 0.85, hr * 0.06, 0, -0.1, 0);
+      ellip(p, badge ?? '#dc2626', 0, ty + hr * 0.55, hr * 0.86, hr * 0.14, hr * 0.2, hr * 0.06);
+      for (const sx of [-1, 1]) ellip(p, '#52341e', sx * hr * 0.98, hy - hr * 0.02, -hr * 0.1, hr * 0.18, hr * 0.55, hr * 0.45);
+      break;
+    }
+    case 'taiping': { // 太平天国金龙黄冠: yellow silk wrap with golden dragon frontlet and red jewel
+      ellip(p, '#eab308', 0, ty + hr * 0.05, -hr * 0.05, hr * 1.14, hr * 0.62, hr * 1.12);
+      box(p, '#facc15', 0, ty + hr * 0.45, hr * 0.78, hr * 0.95, hr * 0.58, hr * 0.08, 0, -0.12, 0);
+      ellip(p, '#dc2626', 0, ty + hr * 0.42, hr * 0.85, hr * 0.16, hr * 0.18, hr * 0.06);
+      for (const sx of [-1, 1]) tube(p, [[sx * hr * 0.85, ty - hr * 0.1, -hr * 0.6], [sx * hr * 0.95, ty - hr * 0.95, -hr * 0.8]], hr * 0.09, hr * 0.06, '#eab308', { radial: 5, sub: 2 });
+      break;
+    }
     default:
   }
   void u;

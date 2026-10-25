@@ -5,8 +5,8 @@ import {
 } from './prims.ts';
 import { human, type HumanOpts, type HumanPose } from './human.ts';
 import { figure, figureBase, headwear, type Hat } from './figure.ts';
-import { costume } from './costume.ts';
-import { eraOf } from '../../shared/data/era.ts';
+import { costume, personLook } from './costume.ts';
+import { eraOf, type Era } from '../../shared/data/era.ts';
 import type { PersonRole } from '../../shared/data/heroes.ts';
 import { horse } from './animals.ts';
 import { grp, proof, hall, gourd, minipine } from './timber.ts';
@@ -3750,33 +3750,29 @@ export const RICH: Record<string, Builder> = {
 export function personModel(gp: THREE.Group, r: ModelRecipe): void {
   const role = str(r.role, 'scholar') as PersonRole;
   const era = eraOf(typeof r.year === 'number' ? r.year : 1000);
+  const person = typeof r.person === 'string' ? r.person : undefined;
   // `bare`: standing straight on the map (scenery) rather than on a card's plinth
   const y = r.bare ? 0 : figureBase(gp, '#c9b58e', '#6e5a40');
-  let look = costume(role, era);
-  if (r.eth === 'steppe') {
-    // Khitan (辽), Tangut (西夏), or Jurchen (金) imperial/noble attire: fur-trimmed steppe coat (圆领窄袖袍),
-    // cloud collar (披领), golden steppe belt, and northern fur/gold crown (皮冠 / 金冠).
-    look = {
-      ...look, top: r.female ? '#b91c1c' : '#d6c8a8', bottom: '#27272a', accent: '#eab308',
-      piling: '#991b1b', pattern: 'yuan', wideSleeves: false,
-      hat: r.female ? 'crown' : 'boli', hatColor: r.female ? '#eab308' : '#52341e',
-    };
-  }
-  // `female`: an empress (武则天) or a heroine in armour (花木兰) — the role's dress without a beard
-  if (r.female && r.eth !== 'steppe') {
-    const w = costume('woman', era);
-    look = role === 'ruler' ? { ...w, top: '#d6a62a', accent: '#a8321f', hat: 'crown', hatColor: P.gold, cape: '#a8321f' }
-      : role === 'general' ? { ...look, beard: 'none', hat: 'none', hairStyle: 'bun' } : w;
-  } else if (r.female) {
-    look = { ...look, beard: 'none', hairStyle: 'bun' };
-  }
+  const look = personLook(role, era, { person, female: Boolean(r.female), eth: typeof r.eth === 'string' ? r.eth : undefined });
   const common = { h: 0.62, x: 0, y, z: 0, hair: '#1c1714', beardColor: '#2a2420', accent: P.gold, ...look, top: str(r.color, look.top) };
   const modern = era === 'minguo' || era === 'modern';
   const prop = typeof r.prop === 'string' ? r.prop : '';
+  if (!r.bare) personVignette(gp, y, person, role, era, prop);
   if (prop) {
-    // a signature object in the right hand (羽扇, 青龙刀, 琵琶 …), the left hand resting
-    const two = prop === 'pipa' || prop === 'bow';
-    const a = figure(gp, { ...common, armR: two ? { fwd: 0.7, side: 0.1, bend: 1.3, inward: 0.5 } : { fwd: 0.55, side: 0.15, bend: 0.9 }, armL: two ? { fwd: 0.6, bend: 1.0, inward: 0.3 } : { fwd: 0.15, bend: 0.3 } });
+    // a signature object in the right hand (羽扇, 青龙刀, 琵琶 …), with paired/two-handed pose when appropriate
+    const two = prop === 'pipa' || prop === 'bow' || prop === 'map';
+    const reverent = prop === 'hu';
+    const paired = prop === 'twin_swords' || prop === 'mala' || prop === 'rice' || prop === 'chrysanthemum';
+    const a = figure(gp, {
+      ...common,
+      armR: two ? { fwd: 0.7, side: 0.1, bend: 1.3, inward: 0.5 }
+        : reverent ? { fwd: 0.62, bend: 1.25, inward: 0.45 }
+        : { fwd: 0.55, side: 0.15, bend: 0.9 },
+      armL: two ? { fwd: 0.6, bend: 1.0, inward: 0.3 }
+        : reverent ? { fwd: 0.58, bend: 1.2, inward: 0.45 }
+        : paired ? { fwd: 0.45, side: 0.12, bend: 0.85 }
+        : { fwd: 0.15, bend: 0.3 },
+    });
     holdProp(gp, prop, a.handR, a.handL);
   } else if (role === 'ruler') {
     const a = figure(gp, {
@@ -3830,14 +3826,15 @@ function holdProp(gp: THREE.Group, prop: string, R: V3, L: V3): void {
       break;
     }
     case 'sword': { // 剑 raised before the chest
-      rod(gp, [x, y - 0.03, z + 0.01], [x, y + 0.02, z + 0.01], 0.006, '#3a2a1c', 5);
-      box(gp, P.gold, x, y + 0.025, z + 0.01, 0.04, 0.008, 0.012);
-      box(gp, '#c9ced4', x, y + 0.12, z + 0.01, 0.012, 0.18, 0.003);
-      cone(gp, '#c9ced4', x, y + 0.215, z + 0.01, 0.007, 0.02, 4);
+      rod(gp, [x, y - 0.035, z], [x, y + 0.024, z], 0.007, '#3a2a1c', 6);
+      ellip(gp, P.gold, x, y - 0.038, z, 0.011, 0.009, 0.011);
+      box(gp, P.gold, x, y + 0.022, z, 0.044, 0.011, 0.018);
+      box(gp, '#cbd5e1', x, y + 0.033, z, 0.014, 0.18, 0.007);
+      cone(gp, '#cbd5e1', x, y + 0.213, z, 0.008, 0.024, 4);
       break;
     }
     case 'guandao': { // 青龙偃月刀: long pole with a crescent blade and a red tassel
-      rod(gp, [x, 0.02, z], [x, y + 0.36, z], 0.007, '#3a2a1c', 5);
+      rod(gp, [x, 0.07, z], [x, y + 0.36, z], 0.007, '#3a2a1c', 5);
       slab(gp, [[0, 0], [0.012, 0.13], [0.04, 0.16], [0.05, 0.1], [0.035, 0.02]], 0.004, '#c9ced4').position.set(x - 0.004, y + 0.33, z);
       box(gp, P.gold, x, y + 0.33, z, 0.022, 0.012, 0.022);
       ellip(gp, '#b91c1c', x, y + 0.31, z, 0.012, 0.022, 0.012);
@@ -3849,7 +3846,7 @@ function holdProp(gp: THREE.Group, prop: string, R: V3, L: V3): void {
       cyl(gp, P.paper, L[0], L[1], L[2] + 0.01, 0.012, 0.11, 8).rotation.z = Math.PI / 2;
       break;
     }
-    case 'book': box(gp, '#3a5a7a', x, y, z + 0.012, 0.05, 0.07, 0.014); box(gp, '#f1ece0', x, y, z + 0.02, 0.046, 0.066, 0.004); break;
+    case 'book': box(gp, '#3a5a7a', x, y - 0.035, z + 0.012, 0.05, 0.07, 0.014); box(gp, '#f1ece0', x, y - 0.033, z + 0.02, 0.046, 0.066, 0.004); break;
     case 'cup': { // 酒杯 raised, a wine gourd at the hip
       lathe(gp, [[0, 0], [0.012, 0.004], [0.018, 0.022], [0, 0.022]], P.bronze, x, y + 0.005, z + 0.01, 8);
       lathe(gp, [[0, 0], [0.02, 0.01], [0.018, 0.03], [0.01, 0.04], [0.016, 0.055], [0.006, 0.07], [0, 0.07]], '#b8862e', L[0], L[1] - 0.06, L[2] + 0.02, 8);
@@ -3860,9 +3857,11 @@ function holdProp(gp: THREE.Group, prop: string, R: V3, L: V3): void {
       for (let i = 0; i < 3; i++) ellip(gp, '#c0262d', x, y + 0.4 - i * 0.05, z, 0.016, 0.024, 0.016);
       break;
     }
-    case 'spade': { // 耒耜: Yu the Great's digging spade
-      rod(gp, [x, 0.03, z + 0.01], [x, y + 0.2, z], 0.006, '#6b4a2e', 5);
-      slab(gp, [[-0.025, 0], [0.025, 0], [0.02, 0.05], [-0.02, 0.05]], 0.006, '#8a7458').position.set(x, 0.0, z + 0.006);
+    case 'spade': { // 耒耜: Yu the Great's two-pronged digging spade with bronze/stone blade visible on the plinth
+      rod(gp, [x, 0.09, z], [x, y + 0.24, z], 0.007, '#6b4a2e', 5);
+      box(gp, '#6b4a2e', x, y + 0.24, z, 0.036, 0.01, 0.012);
+      box(gp, '#8a7458', x, 0.115, z, 0.052, 0.068, 0.01);
+      for (const sx of [-1, 1]) cone(gp, '#9ca3af', x + sx * 0.014, 0.075, z, 0.01, 0.03, 4).rotation.x = Math.PI;
       break;
     }
     case 'axe': { // 钺: Fu Hao's bronze ceremonial axe
@@ -3891,5 +3890,147 @@ function holdProp(gp: THREE.Group, prop: string, R: V3, L: V3): void {
       break;
     }
     case 'scroll': cyl(gp, P.paper, x, y, z + 0.01, 0.012, 0.12, 8).rotation.z = Math.PI / 2; break;
+    case 'bamboo_scroll': { // 竹简卷: bound bamboo slips held in hand
+      for (let i = 0; i < 6; i++) box(gp, i % 2 ? '#c8a868' : '#b89452', x - 0.025 + i * 0.01, y - 0.035, z + 0.015, 0.008, 0.075, 0.005);
+      for (const dy of [-0.018, 0.02]) box(gp, '#991b1b', x, y + dy, z + 0.016, 0.062, 0.004, 0.007);
+      cyl(gp, '#b89452', x + 0.032, y - 0.036, z + 0.015, 0.012, 0.078, 8);
+      break;
+    }
+    case 'hu': { // 朝笏 (象牙笏板): narrow curved ivory/jade court tablet held reverently before the chest
+      const mx = (x + L[0]) * 0.5, my = (y + L[1]) * 0.5, mz = Math.max(z, L[2]) + 0.012;
+      box(gp, '#f5efe2', mx, my - 0.02, mz, 0.026, 0.135, 0.007, 0, -0.22, 0);
+      break;
+    }
+    case 'serpent_spear': { // 丈八蛇矛 (张飞): long iron pole with sinusoidal wavy serpent blade
+      rod(gp, [x, 0.07, z], [x, y + 0.34, z], 0.007, '#1f1916', 5);
+      ellip(gp, '#dc2626', x, y + 0.33, z, 0.014, 0.022, 0.014);
+      tube(gp, [
+        [x, y + 0.34, z],
+        [x + 0.014, y + 0.38, z],
+        [x - 0.014, y + 0.42, z],
+        [x + 0.012, y + 0.46, z],
+        [x, y + 0.51, z],
+      ], 0.011, 0.002, '#d4d8dd', { radial: 5, sub: 3 });
+      break;
+    }
+    case 'halberd': { // 方天画戟 / 霸王戟 (吕布 / 项羽): long shaft, central spear tip, crescent side-blade(s), red tassel
+      rod(gp, [x, 0.07, z], [x, y + 0.42, z], 0.007, '#3a2218', 5);
+      cone(gp, '#e2e8f0', x, y + 0.45, z, 0.012, 0.095, 4);
+      box(gp, P.gold, x, y + 0.36, z, 0.022, 0.018, 0.022);
+      ellip(gp, '#dc2626', x, y + 0.32, z, 0.015, 0.026, 0.015);
+      for (const sx of [-1, 1]) {
+        tube(gp, [
+          [x + sx * 0.01, y + 0.33, z],
+          [x + sx * 0.045, y + 0.37, z],
+          [x + sx * 0.012, y + 0.41, z],
+        ], 0.007, 0.005, '#cbd5e1', { radial: 4, sub: 3 });
+      }
+      break;
+    }
+    case 'twin_swords': { // 雌雄双股剑 (刘备): paired swords held in right and left hands
+      for (const [hx, hy, hz] of [[x, y, z], [L[0], L[1], L[2]]] as const) {
+        rod(gp, [hx, hy - 0.035, hz], [hx, hy + 0.022, hz], 0.0065, '#3a2a1c', 6);
+        ellip(gp, P.gold, hx, hy - 0.038, hz, 0.01, 0.008, 0.01);
+        box(gp, P.gold, hx, hy + 0.02, hz, 0.04, 0.01, 0.016);
+        box(gp, '#cbd5e1', hx, hy + 0.03, hz, 0.013, 0.17, 0.007);
+        cone(gp, '#cbd5e1', hx, hy + 0.2, hz, 0.0075, 0.022, 4);
+      }
+      break;
+    }
+    case 'map': { // 舆图 / 工程图纸 (裴秀, 郦道元, 李春): unrolled map scroll spanning between both hands
+      const cx = (x + L[0]) * 0.5, cy = (y + L[1]) * 0.5 - 0.035, cz = Math.max(z, L[2]) + 0.018;
+      box(gp, '#ebe1c8', cx, cy, cz, 0.14, 0.085, 0.004);
+      for (const sx of [-1, 1]) cyl(gp, '#7c2d12', cx + sx * 0.072, cy - 0.004, cz, 0.008, 0.092, 8);
+      box(gp, '#2563eb', cx, cy + 0.042, cz + 0.003, 0.11, 0.006, 0.002, 0, 0, 0.18);
+      box(gp, '#dc2626', cx - 0.02, cy + 0.022, cz + 0.003, 0.04, 0.03, 0.002);
+      break;
+    }
+    case 'armillary': { // 浑仪 / 历算环 (郭守敬): handheld bronze astronomical rings
+      const ax = x, ay = y + 0.045, az = z + 0.02;
+      rod(gp, [ax, y - 0.02, az], [ax, ay - 0.035, az], 0.004, P.bronze, 5);
+      add(gp, g('prop:arm1', () => new THREE.TorusGeometry(1, 0.1, 6, 18)), mat(P.gold, { metal: 0.6 }), ax, ay, az, 0.042, 0.042, 0.042);
+      add(gp, g('prop:arm2', () => new THREE.TorusGeometry(1, 0.1, 6, 18)), mat(P.bronze, { metal: 0.5 }), ax, ay, az, 0.034, 0.034, 0.034, 0.8, 0.5, 0);
+      ellip(gp, '#eab308', ax, ay, az, 0.009);
+      break;
+    }
+    case 'rice': { // 金黄稻穗 (袁隆平, 贾思勰): heavy drooping golden hybrid rice panicles in both hands
+      for (const [hx, hy, hz] of [[x, y, z], [L[0], L[1], L[2]]] as const) {
+        for (let i = -1; i <= 1; i++) {
+          const dx = i * 0.012;
+          rod(gp, [hx + dx * 0.3, hy - 0.03, hz + 0.01], [hx + dx, hy + 0.05, hz + 0.02], 0.0025, '#65a30d', 3);
+          tube(gp, [
+            [hx + dx, hy + 0.05, hz + 0.02],
+            [hx + dx * 1.6, hy + 0.09, hz + 0.04],
+            [hx + dx * 2.2, hy + 0.065, hz + 0.065],
+          ], 0.009, 0.005, '#eab308', { radial: 5, sub: 3 });
+        }
+      }
+      break;
+    }
+    case 'chrysanthemum': { // 东篱秋菊与酒壶 (陶渊明): golden chrysanthemum branch + rustic wine pot
+      rod(gp, [x, y - 0.02, z + 0.01], [x + 0.01, y + 0.065, z + 0.025], 0.003, '#3f6212', 4);
+      for (const [dx, dy, c] of [[0.01, 0.07, '#facc15'], [-0.008, 0.055, '#eab308'], [0.022, 0.05, '#fde047']] as const) {
+        ellip(gp, c, x + dx, y + dy, z + 0.028, 0.016, 0.012, 0.016);
+      }
+      lathe(gp, [[0, 0], [0.022, 0.01], [0.025, 0.035], [0.012, 0.05], [0.016, 0.058], [0, 0.058]], '#78716c', L[0], L[1] - 0.04, L[2] + 0.015, 10);
+      break;
+    }
+    case 'mala': { // 佛珠与经卷 (鉴真): 108-bead sandalwood rosary in right hand + sutra scroll in left
+      add(gp, g('prop:mala', () => new THREE.TorusGeometry(1, 0.16, 6, 16)), mat('#78350f'), x, y - 0.015, z + 0.02, 0.028, 0.036, 0.028, 0.3, 0.2, 0);
+      ellip(gp, '#dc2626', x, y - 0.052, z + 0.02, 0.007, 0.012, 0.007);
+      cyl(gp, '#eab308', L[0], L[1], L[2] + 0.015, 0.011, 0.1, 8).rotation.z = Math.PI / 2;
+      break;
+    }
+  }
+}
+
+/** Miniature scenic vignette on the card plinth (`!r.bare`) so each person card reads as a historical diorama. */
+function personVignette(gp: THREE.Group, y: number, person: string | undefined, role: PersonRole, era: Era, prop: string): void {
+  if (person === '大禹') {
+    // 禹疏九河: rushing blue water waves and carved stone channel blocks at his feet
+    for (let i = 0; i < 4; i++) ellip(gp, i % 2 ? '#2563eb' : '#60a5fa', -0.22 + i * 0.08, y + 0.012, 0.18 - i * 0.03, 0.055, 0.014, 0.032);
+    box(gp, '#78716c', 0.24, y, -0.1, 0.11, 0.06, 0.08);
+    return;
+  }
+  if (person === '苏武') {
+    // 苏武牧羊: a loyal white steppe sheep standing beside him on the plinth
+    const sx = 0.22, sz = 0.06;
+    ellip(gp, '#f5f5f4', sx, y + 0.075, sz, 0.065, 0.048, 0.045);
+    ellip(gp, '#e7e5e4', sx - 0.045, y + 0.105, sz + 0.03, 0.028, 0.024, 0.032);
+    for (const dx of [-0.03, 0.03]) for (const dz of [-0.02, 0.02]) cyl(gp, '#44403c', sx + dx, y + 0.025, sz + dz, 0.007, 0.05, 5);
+    return;
+  }
+  if (person === '袁隆平' || person === '贾思勰' || prop === 'rice') {
+    // 稻田金穗: golden rice stalks rising from the side of the plinth
+    for (let i = 0; i < 5; i++) {
+      const rx = 0.2 + (i - 2) * 0.03, rz = -0.06 + (i % 2) * 0.04;
+      rod(gp, [rx, y, rz], [rx + 0.01, y + 0.14, rz], 0.004, '#65a30d', 4);
+      ellip(gp, '#eab308', rx + 0.02, y + 0.15, rz + 0.01, 0.012, 0.032, 0.012, 0, 0, -0.4);
+    }
+    return;
+  }
+  if (role === 'general') {
+    // 战鼓或石锁: bronze-studded crimson war drum beside the general on the plinth
+    cyl(gp, '#7f1d1d', -0.24, y + 0.055, -0.1, 0.055, 0.07, 12);
+    cyl(gp, '#f5ebe0', -0.24, y + 0.092, -0.1, 0.052, 0.008, 12);
+    box(gp, '#3a2a1c', -0.24, y + 0.015, -0.1, 0.09, 0.03, 0.09);
+  } else if (role === 'ruler') {
+    // 鎏金三足铜炉: imperial gilt-bronze tripod incense censer on the plinth
+    lathe(gp, [[0, 0.02], [0.045, 0.025], [0.052, 0.055], [0.038, 0.075], [0.046, 0.082], [0, 0.082]], P.gold, 0.24, y, -0.08, 12);
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2;
+      cyl(gp, P.bronze, 0.24 + Math.cos(a) * 0.03, y + 0.012, -0.08 + Math.sin(a) * 0.03, 0.006, 0.024, 5);
+    }
+  } else {
+    // 书案竹简 / 奇石: low scholar stand with stacked books/scrolls or wine jar
+    box(gp, '#4a3222', 0.23, y + 0.022, -0.08, 0.12, 0.044, 0.075);
+    if (era === 'xianqin' || era === 'qinhan') {
+      for (let i = 0; i < 3; i++) cyl(gp, '#c8a868', 0.22 + (i - 1) * 0.022, y + 0.054, -0.08, 0.01, 0.06, 8).rotation.z = Math.PI / 2;
+    } else if (prop === 'cup' || prop === 'chrysanthemum') {
+      lathe(gp, [[0, 0], [0.026, 0.01], [0.032, 0.04], [0.016, 0.062], [0.022, 0.07], [0, 0.07]], '#6d9082', 0.23, y + 0.044, -0.08, 10);
+    } else {
+      box(gp, '#1e3a5f', 0.23, y + 0.052, -0.08, 0.075, 0.016, 0.055);
+      box(gp, '#f5ebe0', 0.23, y + 0.066, -0.08, 0.07, 0.014, 0.05);
+    }
   }
 }
