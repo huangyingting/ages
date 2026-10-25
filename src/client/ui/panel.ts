@@ -1,17 +1,22 @@
 import { h } from './dom.ts';
 
 /**
- * The right-hand drawer: one full-height panel hosting stacked views (period details at the base; card, textbook,
- * reader and quiz above). A view is shown by un-hiding it; the most recently shown one sits on top, and hiding it
- * reveals the one beneath. The drawer is open while any view is shown.
+ * The two side panels and their stacked views. Left: the things being studied — a lesson, the quiz and the card with
+ * its 3D view — floating between the headline and the line key. Right: reference — the period details and the reader —
+ * in the drawer under the toolbar. A view is shown by un-hiding it; within a side, the most recently shown one sits on
+ * top and hiding it reveals the one beneath. On phones both sides are the same bottom sheet, and the side holding the
+ * most recently shown view is in front.
  */
 export class Panel {
-  readonly el: HTMLElement;
+  readonly left: HTMLElement;
+  readonly right: HTMLElement;
   private order: HTMLElement[] = [];
-  onChange: (open: boolean) => void = () => {};
+  onChange: () => void = () => {};
 
-  constructor(views: HTMLElement[]) {
-    this.el = h('div', { class: 'panel' }, ...views);
+  constructor(left: HTMLElement[], right: HTMLElement[]) {
+    this.left = h('div', { class: 'panel panel-l' }, ...left);
+    this.right = h('div', { class: 'panel panel-r' }, ...right);
+    const views = [...left, ...right];
     const mo = new MutationObserver(recs => {
       for (const r of recs) {
         const v = r.target as HTMLElement;
@@ -28,13 +33,23 @@ export class Panel {
     this.apply();
   }
 
-  get open(): boolean { return this.order.length > 0; }
-  /** The view on top, if any. */
-  get top(): HTMLElement | null { return this.order[this.order.length - 1] ?? null; }
+  get leftOpen(): boolean { return this.order.some(v => this.left.contains(v)); }
+  get rightOpen(): boolean { return this.order.some(v => this.right.contains(v)); }
+  /** The view on top of a side. */
+  top(side: 'left' | 'right'): HTMLElement | null {
+    const box = side === 'left' ? this.left : this.right;
+    return [...this.order].reverse().find(v => box.contains(v)) ?? null;
+  }
 
   private apply(): void {
-    this.order.forEach((v, i) => { v.style.zIndex = String(i + 1); v.classList.toggle('top', i === this.order.length - 1); });
-    this.el.classList.toggle('on', this.open);
-    this.onChange(this.open);
+    for (const box of [this.left, this.right]) {
+      const mine = this.order.filter(v => box.contains(v));
+      mine.forEach((v, i) => { v.style.zIndex = String(i + 1); v.classList.toggle('top', i === mine.length - 1); });
+      box.classList.toggle('on', mine.length > 0);
+    }
+    const last = this.order[this.order.length - 1];
+    this.left.classList.toggle('front', !!last && this.left.contains(last));
+    this.right.classList.toggle('front', !!last && this.right.contains(last));
+    this.onChange();
   }
 }

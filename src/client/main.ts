@@ -56,7 +56,8 @@ class App {
   lesson!: LessonView;
   player!: StoryPlayer;
   ready = false;
-  private langBtn!: HTMLButtonElement;
+  private hudTl!: HTMLElement;
+  private hudBl!: HTMLElement;
   private brand!: HTMLElement;
   /** the period view is kept open (persisted) */
   private pinned = load<boolean>('details', false);
@@ -103,8 +104,11 @@ class App {
       play: e => void this.playStory(e),
       open: e => this.openEvent(e),
       change: id => {
-        this.root.classList.toggle('lesson-on', !!id || this.lesson.open);
-        if (!this.lesson.open && this.learn.open) this.learn.render();
+        const on = !!id || this.lesson.open;
+        this.root.classList.toggle('lesson-on', on);
+        // the lesson scene: the period details step aside (still pinned) and come back when the lesson ends
+        if (on) this.period.view.hidden = true;
+        else if (this.pinned && !matchMedia('(max-width: 720px)').matches) this.period.view.hidden = false;
         writeLink(id ? { lesson: id, lang } : { year: this.timeline.year, lang });
       },
     });
@@ -171,7 +175,7 @@ class App {
     this.period.onHold = p => this.atlas.hold(p);
     this.period.onPolity = p => this.atlas.flyToPolity(p);
     this.period.onEra = id => this.openEra(id);
-    this.period.onDetails = () => this.details(this.panel.top !== this.period.view);
+    this.period.onDetails = () => this.details(this.panel.top('right') !== this.period.view);
     this.period.onClose = () => this.details(false);
     tl.onEra = id => this.openEra(id);
     tl.onPlay = on => { if (on) { this.player.stop(); this.closeCard(); } };
@@ -194,13 +198,15 @@ class App {
     this.caption.onSpeed = v => (this.player.speed = v);
     this.caption.onVoice = on => { this.player.narrate = on; if (!on) speechSynthesis.cancel(); };
 
-    this.learn.onOpen = e => this.openEvent(e);
     this.learn.onLesson = l => this.startLesson(l);
     this.learn.onTest = (b, u) => { this.leaveForLesson(); this.lesson.startTest(b, u); };
     this.settings.onChange = (k, on) => this.atlas.setLayer(k, on);
     this.settings.onSurface = s => { this.atlas.setSurface(s); save('surface', s); };
+    this.settings.onLang = l => setLang(l);
+    this.settings.onHelp = () => { this.pop(null); this.help.toggle(true); };
     this.hub.onPlay = j => this.playJourney(j);
-    this.hub.onPick = w => { this.pop(null); if (w === 'help') this.help.toggle(true); else this.toggle(w); };
+    this.hub.onPick = w => { this.pop(null); this.toggle(w); };
+    this.hub.stat = () => { const [n, m] = this.learn.done(); return n ? `✓ ${n}/${m}` : ''; };
     this.quiz.onClose = () => this.root.classList.remove('quiz-on');
     this.quiz.onYear = y => { this.timeline.set(y, true, false); this.atlas.setYear(y); };
     this.reader.onClose = () => {};
@@ -208,11 +214,12 @@ class App {
     this.period.mount(this.chronicle.el);
     this.timeline.onRender = y => { this.chronicle.update(y); this.period.setYear(y); };
 
-    // Level 1 — the map overlay: headline (brand · era · year · reign) top left, one toolbar row (search · 时期详情 ·
-    // study hall · settings · language) fixed top right with the period's figures under it, the line key bottom left, the phase line / story caption and the timeline bottom centre.
-    // Level 2 — one right-hand drawer of stacked views (period details at the base; card, textbook, reader, quiz).
-    // Level 3 — popovers under the tools (study hall, settings) and the help dialog.
-    this.langBtn = h('button', { type: 'button', class: 'ib lang', 'data-act': 'lang', onclick: () => setLang(lang === 'zh' ? 'en' : 'zh') });
+    // Level 1 — the map overlay: headline (brand · era · year · reign) top left, one grouped toolbar fixed top right
+    // (search · 时期详情 | study hall · settings) with the period's figures under it, the line key bottom left, the phase
+    // line / story caption and the timeline bottom centre.
+    // Level 2 — two sides. Left, between the headline and the line key: what is being studied — a lesson, the quiz, the
+    // card with its 3D view. Right, a drawer under the toolbar: reference — the period details and the Wikipedia reader.
+    // Level 3 — popovers under the tools (study hall, settings) and dialogs (the course picker, help).
     const hubBtn = iconBtn('grid', t('hub'), () => this.pop(this.hub.el.hidden ? 'hub' : null), 'b-hub');
     const setBtn = iconBtn('sliders', t('settings'), () => this.pop(this.settings.el.hidden ? 'settings' : null), 'b-settings');
     const fullBtn = iconBtn('full', t('fullscreen'), () => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen?.().catch(() => {}); }, 'b-full');
@@ -220,20 +227,22 @@ class App {
     document.addEventListener('fullscreenchange', () => fullBtn.classList.toggle('on', !!document.fullscreenElement));
     this.settings.extra = h('div', { class: 'set-extra' }, this.music.el, fullBtn);
     this.settings.render();
-    const tools = h('div', { class: 'tools' }, this.search.el, this.period.btn, hubBtn, setBtn, this.langBtn);
-    // the toolbar stays in the top-right corner; the drawer opens below it and the map overlay shrinks beside it
+    const tools = h('div', { class: 'tools' }, this.search.el, this.period.btn, h('i', { class: 'tools-sep', 'aria-hidden': 'true' }), hubBtn, setBtn);
     const bar = h('div', { class: 'bar' }, tools, this.hub.el, this.settings.el);
     this.brand = h('div', { class: 'brand' }, h('span', { class: 'logo', 'aria-hidden': 'true' }), h('b', { text: 'Ages' }), h('span', { class: 'brand-k' }));
+    this.hudTl = h('div', { class: 'hud-tl' }, this.brand, this.timeline.head);
+    this.hudBl = h('div', { class: 'hud-bl' }, this.period.key);
     const hud = h('div', { class: 'hud' },
-      h('div', { class: 'hud-tl' }, this.brand, this.timeline.head),
+      this.hudTl,
       h('div', { class: 'hud-tr' }, this.period.stats),
       h('div', { class: 'hud-bot' },
-        h('div', { class: 'hud-bl' }, this.period.key),
+        this.hudBl,
         h('div', { class: 'hud-bc' }, this.period.line, this.caption.el, this.timeline.el)));
-    this.panel = new Panel([this.period.view, this.learn.el, this.lesson.el, this.card.el, this.reader.el, this.quiz.el]);
-    this.panel.onChange = open => {
-      this.root.classList.toggle('panel-on', open);
-      this.period.pressed(this.panel.top === this.period.view);
+    this.panel = new Panel([this.lesson.el, this.quiz.el, this.card.el], [this.period.view, this.reader.el]);
+    this.panel.onChange = () => {
+      this.root.classList.toggle('panel-on', this.panel.rightOpen);
+      this.root.classList.toggle('dock-on', this.panel.leftOpen);
+      this.period.pressed(this.panel.top('right') === this.period.view);
       this.updateInset();
     };
     this.details(this.pinned && !matchMedia('(max-width: 720px)').matches);
@@ -242,14 +251,14 @@ class App {
       if ((!this.hub.el.hidden || !this.settings.el.hidden) && !tools.contains(n) && !this.hub.el.contains(n) && !this.settings.el.contains(n)) this.pop(null);
     });
 
-    this.root.append(hud, this.panel.el, bar, this.help.el);
+    this.root.append(hud, this.panel.left, this.panel.right, bar, this.learn.el, this.help.el);
     this.relabel();
     onLang(l => this.onLang(l));
 
     const inset = () => this.updateInset();
     new MutationObserver(inset).observe(this.root, { attributes: true, attributeFilter: ['class'] });
     const ro = new ResizeObserver(inset);
-    ro.observe(this.root); ro.observe(this.panel.el); ro.observe(this.timeline.el);
+    ro.observe(this.root); ro.observe(this.panel.left); ro.observe(this.panel.right); ro.observe(this.timeline.el); ro.observe(this.hudTl); ro.observe(this.hudBl);
 
     window.addEventListener('keydown', e => this.key(e));
     window.addEventListener('hashchange', () => {
@@ -285,24 +294,25 @@ class App {
 
   /** Opens one toolbar popover (or none). */
   private pop(which: 'hub' | 'settings' | null): void {
-    this.hub.toggle(which === 'hub');
+    if (which === 'hub') this.hub.show(); else this.hub.toggle(false);
     this.settings.toggle(which === 'settings');
     this.root.querySelector('.b-hub')?.classList.toggle('on', which === 'hub');
     this.root.querySelector('.b-settings')?.classList.toggle('on', which === 'settings');
   }
 
   private toggle(which: 'learn' | 'quiz'): void {
-    if (which === 'learn') { this.learn.toggle(); if (this.learn.open && this.quiz.open) this.quiz.toggle(false); }
+    if (which === 'learn') this.learn.toggle();
     else { if (!this.quiz.open) { this.stopStory(); this.closeCard(); this.learn.toggle(false); this.lesson.stop(); } this.quiz.toggle(); this.root.classList.toggle('quiz-on', this.quiz.open); }
   }
 
-  /** Opens a lesson of the course over the catalogue. */
+  /** Leaves the course picker for the lesson scene. */
   startLesson(l: Lesson): void {
     this.leaveForLesson();
     this.lesson.start(l);
   }
 
   private leaveForLesson(): void {
+    this.learn.toggle(false);
     this.stopStory();
     this.closeCard();
     if (this.quiz.open) this.toggle('quiz');
@@ -446,12 +456,12 @@ class App {
     if (e.key === 'Escape') {
       if (!this.hub.el.hidden || !this.settings.el.hidden) this.pop(null);
       else if (!this.help.el.hidden) this.help.toggle(false);
+      else if (this.learn.open) this.learn.toggle(false);
       else if (this.reader.open) this.reader.close();
       else if (this.player.state !== 'idle') this.stopStory();
       else if (this.quiz.open) this.quiz.toggle(false);
       else if (this.card.open) this.closeCard();
       else if (this.lesson.open) this.lesson.stop();
-      else if (this.learn.open) this.learn.toggle(false);
       else if (!this.period.view.hidden) this.details(false);
       return;
     }
@@ -497,7 +507,8 @@ class App {
     writeLink(this.card.event ? { event: this.card.event.id, lang: l } : this.lesson.open && this.lesson.id && !this.lesson.id.startsWith('test:') ? { lesson: this.lesson.id, lang: l } : { year: this.timeline.year, lang: l });
   }
 
-  /** Tells the camera how much of the screen the drawer (right) / bottom sheet and timeline cover so the subject stays visible. */
+  /** Fits the left column between the headline and the line key, and tells the camera how much of the screen the two
+   * sides (or the phone's bottom sheet) and the timeline cover so the subject stays visible. */
   private updateInset(): void {
     if (!this.panel) return;
     const H = this.root.clientHeight;
@@ -505,18 +516,23 @@ class App {
     const tl = this.timeline.el.getBoundingClientRect().top - top;
     // the phone's bottom sheet sits right above the timeline
     this.root.style.setProperty('--tl-b', `${Math.round(H - tl)}px`);
+    // the left column: under the headline, above the line key (or the timeline, where the key is folded away)
+    const head = this.hudTl.getBoundingClientRect().bottom - top;
+    const foot = Math.min(tl, this.hudBl.getClientRects().length ? this.hudBl.getBoundingClientRect().top - top : tl);
+    this.root.style.setProperty('--lt', `${Math.round(head + 14)}px`);
+    this.root.style.setProperty('--lb', `${Math.round(H - foot + 14)}px`);
     if (this.root.classList.contains('story-on')) return this.atlas.view.setInset(0, 0, 0);
     if (matchMedia('(max-width: 720px)').matches) {
-      const sheet = this.panel.open ? tl - this.panel.el.offsetHeight : tl;
+      const box = this.panel.left.classList.contains('front') ? this.panel.left : this.panel.right;
+      const open = this.panel.leftOpen || this.panel.rightOpen;
+      const sheet = open ? tl - box.offsetHeight : tl;
       return this.atlas.view.setInset(0, 0, Math.min(H * 0.62, H - Math.min(sheet, tl)));
     }
-    this.atlas.view.setInset(0, this.panel.open ? this.panel.el.offsetWidth : 0, 0);
+    const l = this.panel.left;
+    this.atlas.view.setInset(this.panel.leftOpen ? l.offsetLeft + l.offsetWidth : 0, this.panel.rightOpen ? this.panel.right.offsetWidth : 0, 0);
   }
 
   private relabel(): void {
-    this.langBtn.textContent = t('lang');
-    this.langBtn.title = t('langTitle');
-    this.langBtn.setAttribute('aria-label', t('langTitle'));
     this.brand.querySelector('.brand-k')!.textContent = `${lang === 'zh' ? '长河' : 'Changhe'} · ${t('kicker')}`;
     this.brand.title = `Ages · ${t('brandSub')}`;
     const set = (cls: string, k: Parameters<typeof t>[0]) => { const el = this.root.querySelector<HTMLElement>(cls); if (el) { el.title = t(k); el.setAttribute('aria-label', t(k)); } };

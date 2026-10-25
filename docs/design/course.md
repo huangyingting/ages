@@ -12,16 +12,17 @@ It is modelled on pocket-planet's geography classroom (lesson → steps that dri
 | Types (`Lesson`, `LessonStep`, `Check`) | `src/shared/data/types.ts` |
 | Lessons, one file per book | `src/shared/data/lessons/{g7a,g7b,g8a,g8b,hs1}.ts`, gathered in `lessons/index.ts` |
 | Questions, unit test, course order | `src/shared/lib/course.ts` |
-| Catalogue (历史课堂 drawer) | `src/client/ui/learn.ts` |
+| Course picker (历史课堂 dialog) | `src/client/ui/learn.ts` |
 | Lesson player and unit test | `src/client/ui/lesson.ts` |
 | Content invariants | `tests/unit/course.test.ts` |
 
 ## Flow
 
-1. **Catalogue**: 学习中心 → 历史课堂. Book tabs, then units. A unit has its lesson (with best score), its 单元测验 and
-   the list of its textbook events.
-2. **Steps**: the card in the drawer says one thing at a time; the map shows it (year, camera, the event's model,
-   a polity's area). Steps about an event offer **看动画** (its story) and **详情** (its card, stacked over the lesson).
+1. **Course picker**: 学习中心 → 学习 → 历史课堂 opens a dialog: book tabs, then every unit of the book with its lesson
+   (minutes, blurb, best score) and its 单元测验; a ✓ marks a passed unit. Picking one closes the dialog.
+2. **Lesson scene**: the lesson runs in the left column, between the headline and the line key; the period details and
+   the period's figures step aside (the pin is kept) until it ends. The step card says one thing at a time; the map shows it (year, camera, the event's model,
+   a polity's area). Steps about an event offer **看动画** (its story) and **详情** (its card, stacked over the lesson in the left column).
    The map stays free to explore.
 3. **随堂检测**: the lesson's checks, one at a time. Each answer locks and shows right/wrong and *why*; the next
    question unlocks only after answering.

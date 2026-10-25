@@ -43,6 +43,7 @@
   --ease-out: cubic-bezier(.2, .8, .2, 1);
   --gap: 12px;
   --pw: 340px;
+  --lw: 360px;
   --bar-h: 66px; /* the toolbar row and its margins: the drawer and the period figures start below it */
   --scrim: rgba(246, 241, 231, 0.88);
   --k-prehistory: #8a6f52; --k-politics: #c08a1e; --k-war: #c8372d; --k-reform: #2f8a57; --k-culture: #2f6fb0;
@@ -367,28 +368,32 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .tl-ruler { margin-top: 4px; font-size: var(--t-s); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .tl-ruler:empty { display: none; }
 
-/* tools (top right): search · study hall · settings · language, with their popovers below */
-/* the toolbar: one row fixed in the top-right corner over the map and the drawer; its popovers drop below it */
+/* the toolbar (top right): one frosted plate, grouped — find (search · 时期详情) | study hall · settings — fixed in the
+   corner over the map and the drawer; its popovers drop below it */
 .bar { position: absolute; top: 16px; right: 20px; z-index: 9; }
 .hud-tr { top: var(--bar-h); right: 20px; width: 340px; display: flex; flex-direction: column; align-items: flex-end; }
-.tools { display: flex; align-items: center; gap: 6px; }
-/* map buttons — the toolbar and the timeline's transport row share one look: frosted fill, solid on hover, vermilion when on */
-.tools > .ib, .tl-ctl > .ib:not(.tl-play), .tl-speed button {
+.tools { --cut: 9px; position: relative; isolation: isolate; display: flex; align-items: center; gap: 2px; padding: 3px; }
+/* the plate is drawn on ::before so the search results below are not clipped */
+.tools::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: var(--panel); clip-path: var(--pp-clip); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass);
+}
+.tools > .ib { width: 34px; height: 34px; background: none; }
+.tools > .ib:hover { background: var(--well); color: var(--ink); }
+.tools > .ib.on { color: var(--zhu); background: var(--zhu-fill); }
+.tools-sep { flex: none; width: 1px; height: 20px; margin: 0 5px; background: var(--rule-2); transform: skewX(-22deg); }
+/* the timeline's transport buttons: frosted fill, solid on hover, vermilion when on */
+.tl-ctl > .ib:not(.tl-play), .tl-speed button {
   width: 34px; height: 34px; background: var(--panel); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass);
 }
-.tools > .ib:hover, .tl-ctl > .ib:not(.tl-play):hover, .tl-speed button:hover { background: var(--panel-solid); color: var(--ink); }
-.tools > .ib.on, .tl-speed button.on { color: var(--zhu); background: var(--panel-solid); }
-.tools .ib.lang { width: 38px; }
+.tl-ctl > .ib:not(.tl-play):hover, .tl-speed button:hover { background: var(--panel-solid); color: var(--ink); }
+.tl-speed button.on { color: var(--zhu); background: var(--panel-solid); }
 .search {
   --cut: 6px; position: relative; isolation: isolate; width: 210px; display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 10px;
   transition: width .25s var(--ease-out);
 }
-/* the slab is drawn on ::before so the results list below is not clipped */
-.search::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: var(--panel); clip-path: var(--pp-clip);
-  -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass);
-}
+.search::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; clip-path: var(--pp-clip); transition: background .15s; }
+.search:hover::before { background: var(--well); }
 .search:focus-within { width: 260px; }
 .search:focus-within::before { background: var(--panel-solid); }
 .search .ic { width: 16px; height: 16px; fill: var(--ink-3); flex: none; }
@@ -441,10 +446,10 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 }
 .amb:hover { color: var(--zhu); }
 .story-on .amb { display: none; }
-.story-on .hud-stats, .story-on .map-key, .quiz-on .hud-stats { opacity: 0; pointer-events: none; }
+.story-on .hud-stats, .story-on .map-key, .quiz-on .hud-stats, .lesson-on .hud-stats { opacity: 0; pointer-events: none; }
 .story-on .hud-stats *, .story-on .map-key * { pointer-events: none; }
 
-.set-extra { display: flex; gap: 6px; margin-top: 14px; }
+.set-extra { display: flex; gap: 6px; }
 .set-extra .ib { width: auto; min-width: 36px; padding: 0 10px; gap: 6px; display: inline-flex; background: var(--well); font-size: var(--t-s); }
 .b-music .mu-t { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .b-music.on .ic { animation: beat 1.2s ease-in-out infinite; }
@@ -453,8 +458,17 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 /* level 3 — popovers under the tools */
 .menu { position: absolute; top: 46px; right: 0; width: 340px; max-height: calc(100vh - 220px); overflow: auto; z-index: 12; padding: 14px 16px 16px; animation: drop .2s var(--ease-out); }
 @keyframes drop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
-.menu h3 { font-size: var(--t-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin: 2px 2px 8px; }
+.menu h3 { display: flex; align-items: baseline; gap: 8px; font-size: var(--t-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin: 2px 2px 8px; }
+.menu h3 i { font-style: normal; font-weight: 700; color: var(--zhu); font-variant-numeric: tabular-nums; }
 .menu h3 + * { margin-bottom: 16px; }
+.menu .langs { display: flex; }
+.menu .langs button { flex: 1; padding: 6px 10px; font-size: var(--t-s); }
+.menu-foot { display: flex; margin: 4px -6px -6px; padding-top: 6px; }
+.menu-foot button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 6px; font-size: var(--t-xs); color: var(--ink-2); }
+.menu-foot button .ic { width: 15px; height: 15px; fill: currentColor; }
+.menu-foot button:hover { color: var(--zhu); }
+.hub-tabs { margin: 0 0 10px; }
+.hub-tabs button { flex: 1; }
 .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .sw { display: flex; flex-direction: column; gap: 6px; padding: 5px 5px 7px; border: 0; border-radius: 0; background: var(--well); font-size: var(--t-s); color: var(--ink-2); }
 .sw i { display: block; height: 46px; border-radius: 0; }
@@ -487,7 +501,7 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .hc-t { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .hc-t b { font-size: var(--t-m); font-weight: 700; }
 .hc-t small { font-size: var(--t-xs); color: var(--ink-3); }
-.hub-card em { font-style: normal; font-size: var(--t-xs); font-weight: 700; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.hub-card em { flex: none; font-style: normal; font-size: var(--t-xs); font-weight: 700; color: var(--ok); font-variant-numeric: tabular-nums; }
 .hub-card::after { content: '›'; position: absolute; right: 13px; top: 50%; transform: translateY(-52%); font-size: var(--t-l); color: var(--ink-3); transition: color .2s, transform .2s; }
 .hub-card:hover { background: var(--well); }
 .hub-card:hover > .ic { background: var(--zhu); fill: #fff; }
@@ -499,23 +513,37 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .jn small { font-size: var(--t-xs); color: var(--ink-3); }
 
 
-/* ================================================================ level 2 — the drawer
-   One full-height, edge-attached frosted plane on the right (flat: no border, no shadow). Its views stack: period
-   details at the base, then whatever was opened last on top (course, lesson, card, reader, quiz); only the top view is drawn,
-   so closing it reveals the one beneath. */
+/* ================================================================ level 2 — the two sides
+   Flat frosted planes, no border, no shadow. Each side stacks its views: whatever was opened last is on top and only
+   the top view is drawn, so closing it reveals the one beneath.
+   Left (what is studied: lesson, quiz, card with its 3D view): a floating slab between the headline (--lt) and the line
+   key (--lb), both measured by main.ts. Right (reference: period details, reader): a drawer under the toolbar. */
 .panel {
-  position: absolute; top: var(--bar-h); right: 0; bottom: 0; width: var(--pw); z-index: 8; background: var(--panel); color: var(--ink);
+  position: absolute; z-index: 8; background: var(--panel); color: var(--ink);
   -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass);
-  transform: translateX(100%); visibility: hidden; transition: transform .35s var(--ease-out), visibility 0s .35s;
+  visibility: hidden; transition: transform .35s var(--ease-out), opacity .35s, visibility 0s .35s;
 }
-.panel.on { transform: none; visibility: visible; transition: transform .35s var(--ease-out); }
-.story-on .panel { transform: translateX(100%); }
+.panel.on { transform: none; opacity: 1; visibility: visible; transition: transform .35s var(--ease-out), opacity .35s; }
+.panel-r { top: var(--bar-h); right: 0; bottom: 0; width: var(--pw); transform: translateX(100%); }
+.panel-l {
+  --cut: 12px; left: 24px; top: var(--lt, 170px); bottom: var(--lb, 120px); width: var(--lw); clip-path: var(--pp-clip);
+  opacity: 0; transform: translateX(-24px);
+}
+/* on wide screens the left slab hugs its top view, from under the headline down to at most the line key */
+@media (min-width: 721px) {
+  .panel-l { bottom: auto; max-height: calc(100% - var(--lt, 170px) - var(--lb, 120px)); display: flex; flex-direction: column; }
+  .panel-l .view { position: relative; inset: auto; flex: 0 1 auto; min-height: 0; }
+  .panel-l .view:not(.top) { display: none; }
+  .panel-l .view.quiz { overflow: auto; }
+}
+.story-on .panel-r { transform: translateX(100%); }
+.story-on .panel-l { transform: translateX(-24px); opacity: 0; pointer-events: none; }
 .view { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; animation: view-in .28s var(--ease-out); }
 .panel .view:not(.top) { visibility: hidden; }
 @keyframes view-in { from { opacity: 0; transform: translateX(16px); } }
-.view-head, .drawer header, .quiz header, .modal-box header { flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 6px 10px 16px; }
-.view-head h2, .drawer header h2, .quiz header h2, .modal-box header h2 { flex: 1; font-size: var(--t-m); font-weight: 700; margin: 0; }
-.view-head .ib, .drawer header .ib, .quiz header .ib, .modal-box header .ib { width: 28px; height: 28px; }
+.view-head, .quiz header, .modal-box header { flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 6px 10px 16px; }
+.view-head h2, .quiz header h2, .modal-box header h2 { flex: 1; font-size: var(--t-m); font-weight: 700; margin: 0; }
+.view-head .ib, .quiz header .ib, .modal-box header .ib { width: 28px; height: 28px; }
 .view-body { flex: 1; min-height: 0; overflow: auto; padding: 0 16px 12px; }
 
 /* 时期详情, by priority: overview → events (fill the rest, scroll inside) → folded polities */
@@ -703,11 +731,11 @@ details.sec > :last-child { margin-bottom: 12px; }
 .card .periods .y { color: var(--ink-3); font-size: var(--t-2xs); padding-top: 2px; font-variant-numeric: tabular-nums; }
 .card .periods b { color: var(--ink); font-weight: 700; }
 .evlist { list-style: none; margin: 0; padding: 0; }
-.evlist button, .u-evs button {
+.evlist button {
   width: 100%; display: flex; gap: 10px; align-items: baseline; border: 0; background: none; padding: 6px 8px; text-align: left; font-size: var(--t-s); color: var(--ink-2); border-radius: 0;
 }
-.evlist button:hover, .u-evs button:hover { background: var(--well); color: var(--ink); }
-.evlist .y, .u-evs .y { color: var(--ink-3); font-size: var(--t-2xs); min-width: 6.4em; flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.evlist button:hover { background: var(--well); color: var(--ink); }
+.evlist .y { color: var(--ink-3); font-size: var(--t-2xs); min-width: 6.4em; flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
 i.ok { color: var(--ok); font-style: normal; margin-left: auto; }
 i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 
@@ -735,23 +763,27 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 .skel i:first-child { height: 150px; border-radius: 0; }
 .skel i.s { width: 60%; }
 @keyframes shimmer { to { background-position: -200% 0; } }
-.dr-body { display: flex; flex-direction: column; min-height: 0; flex: 1; }
-.tabs { display: flex; gap: 2px; margin: 0 14px 8px; padding: 3px; overflow-x: auto; flex: none; border-radius: 0; background: var(--well); }
-.tabs button { border: 0; background: none; padding: 6px 10px; font-size: var(--t-s); white-space: nowrap; color: var(--ink-2); border-radius: 0; }
+/* ================================================================ 历史课堂 — the course picker (a dialog): book tabs, then every unit with its lesson and unit test */
+.tabs { display: flex; gap: 2px; padding: 3px; overflow-x: auto; flex: none; background: var(--well); }
+.tabs button { border: 0; background: none; padding: 6px 10px; font-size: var(--t-s); white-space: nowrap; color: var(--ink-2); }
 .tabs button:hover { color: var(--ink); }
 .tabs button.on { color: var(--ink); font-weight: 600; background: var(--panel-solid); }
-.drawer .units { overflow: auto; padding: 0 10px 12px; flex: 1; font-size: var(--t-s); }
-.u-head { position: relative; width: 100%; display: flex; gap: 10px; align-items: center; border: 0; background: none; padding: 10px 6px 13px; text-align: left; color: var(--ink); border-radius: 0; }
-.u-head:hover { background: var(--well); }
-.u-n { flex: none; width: 24px; height: 24px; border-radius: 0; background: var(--well); display: grid; place-items: center; font-size: var(--t-xs); font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.unit.open .u-n { background: var(--zhu); color: #fff; }
-.u-t { flex: 1; line-height: 1.4; font-size: var(--t-s); }
-.u-p { font-size: var(--t-2xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.u-head .bar { position: absolute; left: 40px; right: 6px; bottom: 5px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--ok) calc(var(--p) * 100%), var(--well-2) 0); }
-.u-body { padding: 0 0 10px 34px; }
-.u-row { width: 100%; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; padding: 8px 10px; border: 0; background: var(--well); text-align: left; color: var(--ink); }
+.modal-box.course { width: min(640px, calc(100% - 24px)); height: min(760px, calc(100% - 40px)); display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+.course header { padding: 14px 8px 4px 22px; }
+.course header h2 { flex: none; font-size: var(--t-l); }
+.c-done { flex: 1; font-size: var(--t-xs); font-weight: 600; color: var(--ok); font-variant-numeric: tabular-nums; }
+.c-intro { flex: none; margin: 0 22px 12px; font-size: var(--t-s); line-height: 1.7; color: var(--ink-2); }
+.course .tabs { margin: 0 22px 6px; }
+.course .tabs button { flex: 1; }
+.course .units { flex: 1; min-height: 0; overflow: auto; padding: 0 22px 18px; font-size: var(--t-s); }
+.unit { padding: 12px 0 4px; }
+.u-h { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.u-n { flex: none; font-size: var(--t-xs); font-weight: 700; color: var(--zhu); font-variant-numeric: tabular-nums; }
+.u-t { flex: 1; font-size: var(--t-m); font-weight: 700; line-height: 1.4; color: var(--ink); }
+.u-row { width: 100%; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; padding: 9px 12px; border: 0; background: var(--well); text-align: left; color: var(--ink); }
 .u-row:hover { background: var(--zhu-fill); }
 .u-row:hover b { color: var(--zhu); }
+.u-test { background: none; }
 .u-mk { flex: none; width: 14px; font-style: normal; font-size: var(--t-xs); color: var(--zhu); text-align: center; }
 .u-rt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .u-rt b { font-size: var(--t-s); font-weight: 700; line-height: 1.4; }
@@ -759,8 +791,6 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 .u-best { flex: none; font-size: var(--t-2xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .u-best.ok { color: var(--ok); font-weight: 600; }
 .u-ok { flex: none; font-style: normal; font-size: var(--t-xs); font-weight: 700; color: var(--ok); }
-.u-sub { margin: 10px 0 2px; font-size: var(--t-2xs); font-weight: 600; color: var(--ink-3); }
-.u-evs { list-style: none; margin: 0; padding: 0; }
 
 /* ================================================================ quiz */
 .view.quiz { display: block; overflow: auto; }
@@ -895,7 +925,7 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 .btn:focus-visible, .chip:focus-visible, .ib:focus-visible, .hub-card:focus-visible, .opt:focus-visible, .seg button:focus-visible, .tabs button:focus-visible { outline-offset: -2px; }
 
 @media (max-width: 1180px) {
-  :root { --pw: 320px; }
+  :root { --pw: 320px; --lw: 330px; }
   .tl-hint { display: none; }
   #app.panel-on:not(.story-on) .hud-bot { grid-template-columns: minmax(0, 1fr); }
   #app.panel-on .hud-bl { display: none; }
@@ -906,7 +936,8 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
   .hud-bl { display: none; }
 }
 
-/* ================================================================ phones: the drawer becomes a bottom sheet over the timeline */
+/* ================================================================ phones: both sides become one bottom sheet over the timeline;
+   the side opened last is in front */
 @media (max-width: 720px) {
   :root { --pw: 100%; }
   .hud::before { background: linear-gradient(180deg, var(--scrim) 0, transparent 150px); }
@@ -929,11 +960,11 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
   .tl-ctl { height: 34px; }
   .tl-speed { display: none; }
   .tl-flag { display: none; }
-  .panel {
-    top: auto; left: 0; right: 0; width: auto; bottom: var(--tl-b, 120px); height: 44vh;
+  .panel-l, .panel-r {
+    top: auto; left: 0; right: 0; width: auto; bottom: var(--tl-b, 120px); height: 44vh; clip-path: none; opacity: 1;
     transform: translateY(calc(100% + var(--tl-b, 120px)));
   }
-  .story-on .panel { transform: translateY(calc(100% + var(--tl-b, 120px))); }
+  .panel.on:not(.front), .story-on .panel { transform: translateY(calc(100% + var(--tl-b, 120px))); visibility: hidden; }
   .info-hero { height: 112px; }
   .card h2 { font-size: var(--t-xl); }
   .caption { padding: 8px 6px 10px 12px; }

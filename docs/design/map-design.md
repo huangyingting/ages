@@ -201,14 +201,16 @@ The interface has three levels; the map is always in view and is never covered b
 
 | Level | Where | Contents |
 |---|---|---|
-| 1 · Map overlay | text straight on the map over soft edge scrims, no boxes | top left: brand kicker, era (click → era card), the year in large light type (a readout, not an input), reign; top right: one fixed toolbar row — search · 时期详情 · hub · settings · language — that never moves (the drawer opens below it), then under it the period's figures (realm area, the four largest other polities, number of coexisting polities), which shift left beside the drawer; bottom left: line key and disclaimer; bottom centre: the phase title (click → 时期详情) and the timeline bar |
-| 2 · Drawer | one panel on the right from under the toolbar to the bottom edge (340 px; 320 px under 1180 px; a bottom sheet above the timeline on phones) | stacked views: 时期详情 at the base, then the card, textbook, reader or quiz — only the latest is drawn; closing a view reveals the one beneath |
-| 3 · Popovers | under the tool row | hub (learn, quiz, help, journeys), settings (map style, layers, music, full screen); help dialog |
+| 1 · Map overlay | text straight on the map over soft edge scrims, no boxes | top left: brand kicker, era (click → era card), the year in large light type (a readout, not an input), reign; top right: one grouped toolbar plate — find (search · 时期详情) \| study hall · settings — that never moves, then under it the period's figures (realm area, the four largest other polities, number of coexisting polities), which shift left beside the drawer; bottom left: line key and disclaimer; bottom centre: the phase title (click → 时期详情) and the timeline bar |
+| 2 · Sides | left: a floating slab (360 px) from under the headline, hugging its content, never lower than the line key; right: a drawer from under the toolbar to the bottom edge (340 px; both narrower under 1180 px). On phones both are one bottom sheet above the timeline, the side opened last in front | left — what is studied: the lesson, the quiz, the card with its 3D view; right — reference: 时期详情 and the Wikipedia reader. Each side stacks its views; only the latest is drawn and closing it reveals the one beneath, so a card and its article can sit side by side |
+| 3 · Popovers & dialogs | under the toolbar; dialogs centred | study hall (tabs: 学习 — 历史课堂 with ✓ n/31, 历史小测验; 人物行迹 — the journeys), settings in numbered sections (01 地图风格, 02 图层, 03 声音与显示, 04 语言; 使用说明 at the foot); the course picker and help dialogs |
 
 Trade-offs: the first screen carries only what answers "when, who, how big" — the year, dynasty, reign, realm area and
-the largest neighbours. Everything else (all polities, the chronicle, the period check, notes) waits one click away in
-the drawer, which opens closed by default and remembers being pinned. During a story the drawer and figures step aside
-and the caption takes the phase line's place. The camera's view inset follows the drawer, so the subject is never under it.
+the largest neighbours. Everything else (all polities, the chronicle, notes) waits one click away in the drawer, which
+opens closed by default and remembers being pinned. A lesson is its own scene: the course picker closes, the lesson runs
+in the left column, and the period details and figures step aside until it ends. During a story both sides and the
+figures step aside and the caption takes the phase line's place. The camera's view inset follows both sides, so the
+subject is never under them.
 
 **时期详情, by priority.** (1) Overview: the phase span in vermilion with the phase stepper, the phase title, a
 three-cell strip — dynasty (click → era card) · capital · area — and the note. (2) 本时期大事 fills the remaining height
@@ -218,7 +220,7 @@ while the year changes: 并存政权 (every polity with its area). Checks live i
 
 **Surfaces.** The interface is borderless. Every surface — drawer, popovers, search results, tool buttons, tooltips and
 tags — is a flat, translucent frosted plane (`--panel` + `--glass`) with no border, no hairline and no drop shadow. Inside
-the drawer, sections are set apart by spacing and headings, not rules. The timeline has no surface at all: its controls,
+the sides, sections are set apart by spacing and headings, not rules. The timeline has no surface at all: its controls,
 translucent dynasty bands and axis sit straight on the map's foot scrim.
 
 **Buttons.** One shape and one set of variants everywhere: a cut-corner slab (two 45° corners) with no border. *Default*

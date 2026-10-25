@@ -1,5 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { markPoints, mockWikipedia, openApp, setMapPose, shot, state, watchErrors } from './helpers.ts';
+
+/** The language switch lives in the settings popover (04 语言). */
+async function switchLang(page: Page): Promise<void> {
+  await page.locator('.b-settings').click();
+  await page.locator('.settings .langs button:not(.on)').click();
+  await page.keyboard.press('Escape');
+}
 
 test.describe('Ages atlas', () => {
   test('boots into the map and switches between English and Chinese', async ({ page }) => {
@@ -12,7 +19,7 @@ test.describe('Ages atlas', () => {
     await expect(page.locator('.labels .polity', { hasText: /^Qin$/ }).first()).toBeVisible();
     await shot(page, 'desktop-home-en');
 
-    await page.locator('[data-act=lang]').click();
+    await switchLang(page);
     await expect(page.locator('html')).toHaveAttribute('lang', /^zh/);
     await expect(page.locator('.tl-year')).toHaveText('前221年');
     await expect(page.locator('.search .q')).toHaveAttribute('placeholder', /搜索/);
@@ -195,6 +202,7 @@ test.describe('Ages atlas', () => {
     await openApp(page, 'y=1085&lang=zh');
     await expect(page.locator('.tl-ruler')).toHaveText('北宋神宗 · 元丰八年');
     await page.locator('.b-hub').click();
+    await page.locator('.hub-tabs [data-tab=journeys]').click();
     await expect(page.locator('.journeys .jn')).toHaveCount(7);
     await page.locator('[data-journey=sushi]').click();
     await expect(page.locator('.caption')).toBeVisible();
@@ -317,7 +325,7 @@ test.describe('Ages atlas', () => {
       return a.hoverHalo.obj.visible || a.selHalo.obj.visible;
     })).toBe(false);
     await page.keyboard.press('Escape');
-    await page.locator('[data-act=lang]').click();
+    await switchLang(page);
     for (const dist of [48, 14]) {
       await setMapPose(page, { lon: 110, lat: 34, dist, tilt: 0.8 });
       const sizes = await page.locator('.place.on:not(.modeled) .b, .pin.on:not(.model-hit) .b').evaluateAll(els =>
@@ -391,7 +399,7 @@ test.describe('Ages atlas', () => {
     await expect(card.locator('h2')).toHaveText('泰山');
     await page.keyboard.press('Escape');
 
-    await page.locator('[data-act=lang]').click();
+    await switchLang(page);
     await expect(name).toHaveText('Mount Tai');
     // The longer translated name may step aside, leaving the model as this object's keyboard target.
     await expect(model).toBeVisible();
@@ -461,22 +469,22 @@ test.describe('Ages atlas', () => {
     expect(errs).toEqual([]);
   });
 
-  test('learn drawer lists textbook units and opens events', async ({ page }) => {
+  test('course picker lists each unit with its lesson and unit test', async ({ page }) => {
     const errs = watchErrors(page);
     await openApp(page, 'y=1950&lang=zh');
     await page.locator('.b-hub').click();
     await page.locator('.b-learn').click();
-    const drawer = page.locator('.drawer');
-    await expect(drawer).toBeVisible();
-    await expect(drawer.locator('.tabs button')).toHaveCount(5);
-    await drawer.locator('.u-head').nth(2).click();
-    const first = drawer.locator('.u-evs button').first();
-    await expect(first).toBeVisible();
+    const course = page.locator('.course');
+    await expect(course).toBeVisible();
+    await expect(course.locator('.tabs button')).toHaveCount(5);
+    await course.locator('.tabs [data-book=g8a]').click();
+    const units = course.locator('.unit');
+    expect(await units.count()).toBeGreaterThan(3);
+    await expect(units.first().locator('.u-ls')).toHaveCount(1);
+    await expect(units.first().locator('.u-test')).toHaveCount(1);
     await shot(page, 'desktop-learn');
-    await first.click();
-    await expect(page.locator('.card')).toBeVisible();
-    await page.locator('.card .btn', { hasText: '已掌握' }).click();
-    await expect(drawer.locator('.u-head').nth(2).locator('.u-p')).toHaveText(/^1\//);
+    await page.keyboard.press('Escape');
+    await expect(course).toBeHidden();
     expect(errs).toEqual([]);
   });
 
@@ -485,11 +493,17 @@ test.describe('Ages atlas', () => {
     await openApp(page, 'lang=zh');
     await page.locator('.b-hub').click();
     await page.locator('.b-learn').click();
-    const drawer = page.locator('.drawer');
-    await drawer.locator('.u-head').nth(2).click();
-    await drawer.locator('.u-ls[data-lesson="g7a-3"]').click();
+    await page.locator('.course .tabs [data-book=g7a]').click();
+    await page.locator('.course .u-ls[data-lesson="g7a-3"]').click();
+    await expect(page.locator('.course')).toBeHidden();
     const ls = page.locator('[data-testid=lesson]');
     await expect(ls).toBeVisible();
+    // the lesson scene: the lesson runs in the left column, between the headline and the line key
+    await ls.evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)));
+    const lb = (await ls.boundingBox())!;
+    expect(lb.x).toBeLessThan(60);
+    expect(lb.y).toBeGreaterThanOrEqual((await page.locator('.hud-tl').boundingBox())!.y + (await page.locator('.hud-tl').boundingBox())!.height);
+    expect(lb.y + lb.height).toBeLessThanOrEqual((await page.locator('.map-key').boundingBox())!.y);
     await expect(page).toHaveURL(/#lesson=g7a-3/);
     await expect(ls.locator('.ls-n')).toHaveText('1 / 8');
     await page.keyboard.press('ArrowRight');
