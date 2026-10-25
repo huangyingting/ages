@@ -117,6 +117,12 @@ export class Atlas {
   private beam!: Beam;
   private tip!: HTMLElement;
   private overCanvas = false;
+  /** the camera's pose last frame and the frames since it last moved: hover waits until the map holds still */
+  private camPos = new THREE.Vector3();
+  private camQuat = new THREE.Quaternion();
+  private camStill = Infinity;
+  /** a keyboard-focused object whose tooltip waits for the map to stop */
+  private focusWait: MapTarget | null = null;
   private raycaster = new THREE.Raycaster();
   private hiT = -1;
   private hiDur = 0;
@@ -218,13 +224,21 @@ export class Atlas {
     const enter = () => {
       if (!this.storyMode && !this.pickHandler) this.setHover({ target: this.resolveTarget(target) });
     };
+    const focus = () => {
+      this.focusWait = this.camMoving() ? target : null;
+      enter();
+    };
     const leave = () => {
       if (this.hover && 'target' in this.hover && this.hover.target.key === target.key) this.setHover(null);
     };
     el.addEventListener('pointerenter', enter);
+    // a name that slid under a resting pointer while the map moved lights up on the next move
+    el.addEventListener('pointermove', e => {
+      if (!e.buttons && !(this.hover && 'target' in this.hover && this.hover.target.key === target.key)) enter();
+    });
     el.addEventListener('pointerleave', leave);
-    el.addEventListener('focus', enter);
-    el.addEventListener('blur', leave);
+    el.addEventListener('focus', focus);
+    el.addEventListener('blur', () => { if (this.focusWait === target) this.focusWait = null; leave(); });
     el.addEventListener('click', ev => {
       ev.stopPropagation();
       if (this.pickHandler) {
@@ -335,8 +349,28 @@ export class Atlas {
     }
   }
 
+  private camMoving(): boolean { return this.camStill === 0; }
+
   /** Halos, hover growth and the tooltip follow their objects every frame (models grow as the camera zooms). */
   private frameMarks(dt: number): void {
+    // while the map moves (drag, inertia, zoom, flight) nothing is hovered: a tooltip or a lit name would ride along
+    // with the map past a still pointer; hover returns once the map is still and the pointer moves
+    // (damping leaves a sub-pixel tail for a long time: only motion over ~1/5000 of the view distance per frame counts)
+    const cam = this.view.camera;
+    const moved = cam.position.distanceTo(this.camPos) > cam.position.distanceTo(this.view.controls.target) * 2e-4
+      || cam.quaternion.angleTo(this.camQuat) > 2e-4;
+    this.camPos.copy(cam.position);
+    this.camQuat.copy(cam.quaternion);
+    if (moved) {
+      this.camStill = 0;
+      const hv = this.hover;
+      if (hv && 'target' in hv && document.activeElement === hv.target.label?.el) this.focusWait = hv.target;
+      if (hv) this.setHover(null);
+    } else if (this.camStill++ === 0 && this.focusWait) {
+      const f = this.focusWait;
+      this.focusWait = null;
+      if (document.activeElement === f.label.el && !this.storyMode && !this.pickHandler) this.setHover({ target: this.resolveTarget(f) });
+    }
     const h = this.hover;
     if (h && 'target' in h && (!Atlas.onMap(h.target) || this.storyMode || this.pickHandler)) this.setHover(null);
     const minR = this.fx.s * 0.42;
@@ -383,6 +417,7 @@ export class Atlas {
   }
 
   private setHover(h: Hover | null): void {
+    if (h && this.camMoving()) return;
     const old = this.hover;
     const same = (a: Hover | null, b: Hover | null) => a && b && 'target' in a && 'target' in b ? a.target === b.target : a === b;
     if (old && h && 'at' in old && 'at' in h) old.at.copy(h.at);

@@ -90,6 +90,7 @@ Invisible keyboard targets follow visible models without reserving extra space.
 | Hover over open land | the same tooltip names the polity under the pointer, with its role and area (with the admin layer on: the administrative area) |
 | Click, tap, Enter or Space on a focused object | opens the card directly; the object gets one selection ring, with no second name plate or hover ring. An open **event** also gets a soft light beam rising from its ring (`Beam` in `halo.ts`): the ring's colour, faded from the ground up, fading in and out with the ring and never pulsing, so the one open event can be found from afar |
 | Esc | closes the card and clears the selection |
+| Drag, wheel, inertia or a camera flight | clears the hover at once — no tooltip or lit name rides along with the moving map; hover returns when the map holds still and the pointer moves (a click that opens a card likewise keeps the tooltip away until the pointer moves) |
 
 The model's transparent keyboard target does not intercept map dragging. When its geographical name is visible, only
 the name is in the tab order. Place text uses semantic buttons with a circular anchor; passive map annotations do not.

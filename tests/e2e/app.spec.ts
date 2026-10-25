@@ -254,6 +254,9 @@ test.describe('Ages atlas', () => {
       await page.waitForTimeout(300);
       return await tip.isVisible() && (await tip.locator('b').textContent()) === await pin.getAttribute('aria-label');
     }, { timeout: 30_000 }).toBe(true);
+    // the tooltip never rides along with a moving map: any camera motion clears the hover
+    await page.evaluate(() => { const v = (window as any).__atlas.atlas.view; v.camera.position.x += 0.5; v.controls.target.x += 0.5; });
+    await expect(tip).toBeHidden();
     expect(errs).toEqual([]);
   });
 
