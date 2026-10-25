@@ -372,9 +372,12 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .bar { position: absolute; top: 16px; right: 20px; z-index: 9; }
 .hud-tr { top: var(--bar-h); right: 20px; width: 340px; display: flex; flex-direction: column; align-items: flex-end; }
 .tools { display: flex; align-items: center; gap: 6px; }
-.tools > .ib { width: 34px; height: 34px; background: var(--panel); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); }
-.tools > .ib:hover { background: var(--panel-solid); }
-.tools > .ib.on { color: var(--zhu); background: var(--panel-solid); }
+/* map buttons — the toolbar and the timeline's transport row share one look: frosted fill, solid on hover, vermilion when on */
+.tools > .ib, .tl-ctl > .ib:not(.tl-play), .tl-speed button {
+  width: 34px; height: 34px; background: var(--panel); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass);
+}
+.tools > .ib:hover, .tl-ctl > .ib:not(.tl-play):hover, .tl-speed button:hover { background: var(--panel-solid); color: var(--ink); }
+.tools > .ib.on, .tl-speed button.on { color: var(--zhu); background: var(--panel-solid); }
 .tools .ib.lang { width: 38px; }
 .search {
   --cut: 6px; position: relative; isolation: isolate; width: 210px; display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 10px;
@@ -762,10 +765,9 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 /* ================================================================ timeline bar (bottom centre): transport row over the track
    The track, top to bottom: territorial-area curve, event dots, dynasty bands (with phase hairlines), axis. */
 .tl { position: relative; width: 100%; display: flex; flex-direction: column; padding: 4px 16px 2px; user-select: none; -webkit-user-select: none; }
-.tl-ctl { display: flex; align-items: center; gap: 4px; height: 38px; min-width: 0; }
-.tl-ctl > .ib { width: 30px; height: 30px; color: var(--ink-2); }
-.tl-speed { margin-left: 8px; flex: none; }
-.tl-speed button { font-variant-numeric: tabular-nums; }
+.tl-ctl { display: flex; align-items: center; gap: 6px; height: 40px; min-width: 0; }
+.tl-speed { margin-left: 10px; flex: none; gap: 6px; padding: 0; background: none; }
+.tl-speed button { width: auto; min-width: 34px; padding: 0 8px; font-size: var(--t-xs); font-variant-numeric: tabular-nums; }
 .tl-hint { margin-left: auto; padding-left: 12px; min-width: 0; font-size: var(--t-xs); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tl-curve { position: absolute; left: 0; right: 0; top: 0; height: 20px; pointer-events: none; }
 .tl-curve svg { display: block; width: 100%; height: 100%; overflow: visible; }

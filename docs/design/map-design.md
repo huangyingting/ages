@@ -222,7 +222,8 @@ translucent dynasty bands and axis sit straight on the map's foot scrim.
 
 **Buttons.** One shape and one set of variants everywhere: a cut-corner slab (two 45° corners) with no border. *Default*
 is a light tinted fill (`--well`, `--well-2` on hover); *primary* is vermilion with white text; *icon* buttons have no fill
-until hover (toolbar buttons over the map sit on `--panel`). State is shown by fill and colour, never by an outline:
+until hover. Buttons over the map — the toolbar and the timeline's transport row (step, speed) — share one look: 34px
+slabs on frosted `--panel`, solid on hover, vermilion text when on; play is the primary button. State is shown by fill and colour, never by an outline:
 selected is a vermilion tint (`--zhu-fill`) with vermilion text, done is a green tint. Only keyboard focus draws an
 outline, and the current list row keeps its inset accent bar. Text is warm charcoal
 (`--ink` `#2d2a25`, `--ink-2`, `--ink-3`), never pure black. Sizes come from one scale — see
