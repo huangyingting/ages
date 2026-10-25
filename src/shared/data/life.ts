@@ -44,14 +44,14 @@ const B = (id: string, name: Txt, at: At, model: ModelRecipe, desc: Txt, o?: Opt
 const C = (id: string, name: Txt, at: At, model: ModelRecipe, desc: Txt, o?: Opt) => thing('custom', id, name, at, model, desc, o);
 const F = (id: string, name: Txt, at: At, model: ModelRecipe, desc: Txt, o?: Opt) => thing('food', id, name, at, model, desc, o);
 
-interface WhoOpt extends Opt { en?: string; role?: string; year?: number; prop?: string; female?: boolean; desc?: Txt }
+interface WhoOpt extends Opt { en?: string; role?: string; year?: number; prop?: string; female?: boolean; eth?: string; desc?: Txt }
 /** A person: from the people index when listed there (their card, period dress, hero model), else described here. */
 function P(zh: string, at: At, o: WhoOpt = {}): void {
   const p = personNamed(zh);
-  const base: ModelRecipe = p ? personModel(p) : { kind: 'person', role: o.role ?? 'scholar', ...(o.year !== undefined ? { year: o.year } : {}) };
+  const base: ModelRecipe = personModel(p ?? { name: { zh }, ...(o.year !== undefined ? { span: [o.year - 40, o.year] } : {}) });
   const model: ModelRecipe = base.hero ? base : {
     ...base, ...(o.role ? { role: o.role } : {}), ...(o.year !== undefined ? { year: o.year } : {}),
-    ...(o.prop ? { prop: o.prop } : {}), ...(o.female ? { female: true } : {}), bare: true,
+    ...(o.prop ? { prop: o.prop } : {}), ...(o.female ? { female: true } : {}), ...(o.eth ? { eth: o.eth } : {}), bare: true,
   };
   const name = p?.name ?? { zh, en: o.en ?? zh };
   const desc = o.desc ? { zh: o.desc[0], en: o.desc[1] } : p ? p.title : { zh: '', en: '' };
@@ -100,8 +100,12 @@ B('erlitou', ['二里头宫殿', 'Erlitou palace'], [113.6, 35.4], hero(A1 + 'lf
   ['二里头遗址有中国最早的宫城与夯土台基宫殿，可能是夏都斟鄩。', 'Erlitou has China\'s earliest palace city with rammed-earth halls — perhaps the Xia capital Zhenxun.'], { wiki: ['二里头文化', 'Erlitou culture'] });
 C('jue', ['青铜爵', 'Bronze jue'], [112.0, 33.6], hero(C1 + 'lf_jue', 'ding'),
   ['二里头出土中国最早的青铜容器“爵”，用于饮酒祭祀。', 'Erlitou yielded China\'s earliest bronze vessels — the tripod jue for ritual wine.'], { wiki: ['爵', 'Jue (vessel)'] });
+C('erlidrag', ['绿松石龙形器', 'Erlitou turquoise dragon'], [112.8, 34.6], hero(C1 + 'lf_jue', 'ding', { style: 'dragon' }),
+  ['二里头贵族墓出土，由两千余片绿松石拼嵌而成，被誉为“中华第一龙”。', 'Mosaic dragon of over 2,000 turquoise pieces from an Erlitou noble tomb, hailed as the earliest Chinese dragon icon.'], { wiki: ['绿松石龙形器', 'Erlitou culture'] });
 F('wine', ['杜康酿酒', 'Grain wine'], [112.47, 34.15], hero(FD + 'lf_wine', 'ding'),
   ['传说杜康始造秫酒；夏商贵族盛行以谷物酿酒、以铜爵饮酒。', 'Legend credits Du Kang with brewing; Xia and Shang nobles drank grain wine from bronze cups.'], { wiki: ['杜康', 'Du Kang'], tier: 2 });
+B('taosi', ['陶寺观象台与《夏小正》', 'Taosi Observatory and Xia Calendar'], [111.45, 36.85], hero(A2 + 'lf_guanxing', 'monument', { style: 'taosi' }),
+  ['山西襄汾陶寺遗址的半圆形十三柱夯土观象台，印证《尚书》《夏小正》“观象授时”传统。', 'Semicircular 13-pillar rammed-earth observatory at Taosi, Shanxi, matching the Xia phenological calendar Xia Xiaozheng.'], { wiki: ['陶寺遗址', 'Taosi'], tier: 2 });
 
 era('shang');
 P('妇好', [115.4, 36.9], { en: 'Fu Hao', role: 'general', year: -1200, female: true, prop: 'axe',
@@ -110,6 +114,8 @@ C('oracle', ['甲骨占卜', 'Oracle bones'], [114.3, 35.0], { kind: 'oracle' },
   ['商人用龟甲兽骨占卜并刻下卜辞，甲骨文是成熟的汉字体系。', 'Shang diviners cracked turtle shells and ox bones and carved the answers — the earliest mature Chinese script.'], { wiki: ['甲骨文', 'Oracle bone script'] });
 B('houmuwu', ['后母戊鼎', 'Houmuwu ding'], [113.0, 36.6], { kind: 'ding' },
   ['重八百三十二千克，是现存最重的商代青铜器。', 'At 832 kg, the heaviest Shang bronze vessel ever found.'], { wiki: ['后母戊鼎', 'Houmuwu ding'] });
+C('siyang', ['四羊方尊', 'Four-ram square zun'], [112.1, 28.2], { kind: 'ding', style: 'siyang' },
+  ['商代晚期青铜礼器巅峰之作，四角塑卷角羊首，湖南宁乡出土。', 'Masterpiece of late Shang bronze casting with four horned rams at the shoulders, unearthed in Ningxiang, Hunan.'], { wiki: ['四羊方尊', 'Four-goat Square Zun'] });
 B('sanxingdui', ['三星堆', 'Sanxingdui'], [104.2, 31.0], hero('archaeology/ar_sanxingdui', 'monument'),
   ['古蜀国的青铜纵目面具、神树与金杖，风格神秘独特。', 'Bronze masks with protruding eyes, sacred trees and a gold staff of the ancient Shu kingdom.'], { wiki: ['三星堆遗址', 'Sanxingdui'] });
 F('cauldron', ['鼎烹', 'Cooking in the ding'], [116.6, 34.4], hero(FD + 'lf_cauldron', 'ding'),
@@ -118,9 +124,11 @@ F('cauldron', ['鼎烹', 'Cooking in the ding'], [116.6, 34.4], hero(FD + 'lf_ca
 era('wzhou');
 P('周公', [112.45, 34.62], { en: 'Duke of Zhou', role: 'scholar', year: -1040, prop: 'scroll',
   desc: ['辅佐成王，营建东都洛邑，制礼作乐，奠定周代礼乐制度。', 'Regent for King Cheng; built Luoyi and set down the rites and music of Zhou.'], wiki: ['周公旦', 'Duke of Zhou'] });
+C('hezun', ['何尊', 'He zun ("Zhai zi Zhongguo")'], [107.15, 34.36], { kind: 'ding', style: 'hezun' },
+  ['西周成王时期青铜尊，内底铭文“宅兹中国”是“中国”一词最早的文字记载。', 'Early Western Zhou bronze ritual wine vessel whose inscription contains the earliest written occurrence of "Zhongguo" (China).'], { wiki: ['何尊', 'He zun'] });
 C('bell', ['礼乐编钟', 'Ritual bells'], [110.4, 33.4], { kind: 'bell' },
   ['周代以礼乐治国，编钟、编磬奏雅乐，按等级列鼎。', 'Zhou ruled by rites and music: chime bells and stones played court music, vessels marked rank.'], { wiki: ['礼乐', 'Rites and music'] });
-C('jingtian', ['井田制', 'Well-field system'], [107.9, 34.4], hero(C1 + 'lf_jingtian', 'hut'),
+C('jingtian', ['井田制', 'Well-field system'], [106.2, 34.8], hero(C1 + 'lf_jingtian', 'hut'),
   ['土地划成“井”字九块，八家各耕私田、共耕中间公田。', 'Land cut into nine squares like the character 井: eight families farmed their own and shared the middle field.'], { wiki: ['井田制', 'Well-field system'] });
 B('beacon', ['烽火台', 'Beacon tower'], [109.2, 35.6], { kind: 'beacon' },
   ['骊山烽火传警；周幽王“烽火戏诸侯”导致西周灭亡。', 'Beacons on Mount Li sent alarms; King You\'s false alarms led to the fall of Western Zhou.'], { wiki: ['烽火戏诸侯', 'King You of Zhou'], tier: 2 });
@@ -156,8 +164,12 @@ F('zongzi', ['粽子', 'Zongzi'], [114.3, 30.6], hero(FD + 'lf_zongzi', 'ding'),
 C('hufu', ['胡服骑射', 'Hu dress and mounted archery'], [114.5, 36.6], hero(C1 + 'lf_hufu', 'rider'),
   ['赵武灵王改穿短衣长裤、学习骑射，赵国由此强盛。', 'King Wuling of Zhao put his army in nomad trousers on horseback archery, making Zhao strong.'], { wiki: ['胡服骑射', 'King Wuling of Zhao'] });
 P('孟子', [116.98, 35.4], { prop: 'book', tier: 2, desc: ['儒家“亚圣”，主张仁政与“民为贵”。', 'Confucianism\'s Second Sage, who preached benevolent rule: "the people matter most".'] });
+B('jixia', ['稷下学宫（百家争鸣）', 'Jixia Academy (Hundred Schools)'], [118.35, 36.85], hero(A2 + 'lf_academy', 'temple', { style: 'jixia' }),
+  ['齐国临淄稷下学宫为战国百家争鸣中心，孟子、荀子、邹衍等先生曾在此讲学议政。', 'Academy outside the Ji Gate of Linzi in Qi where Mencius, Xunzi and masters of the Hundred Schools debated statecraft.'], { wiki: ['稷下学宫', 'Jixia Academy'] });
 
 era('qin');
+B('terracotta-life', ['兵马俑', 'Terracotta Army'], [109.28, 34.38], hero('asia3/terracotta', 'warrior'),
+  ['秦始皇陵陪葬坑出土八千余件陶俑陶马，军阵严整、千人千面。', 'Over 8,000 life-sized terracotta warriors and horses guarding the First Emperor\'s mausoleum.'], { wiki: ['兵马俑', 'Terracotta Army'] });
 B('taishan-qin', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple'),
   ['秦始皇东巡登泰山封禅，刻石颂秦德，开历代帝王泰山封禅之先。', 'The First Emperor climbed Mount Tai to perform the feng and shan rites, the first of the imperial sacrifices to Heaven there.'], { wiki: ['封禅', 'Feng Shan'] });
 P('李斯', [108.2, 33.8], { prop: 'brush', desc: ['秦朝丞相，推行小篆“书同文”，统一文字。', 'Qin chancellor who standardised writing in small seal script.'] });
@@ -168,14 +180,19 @@ B('lingqu', ['灵渠', 'Lingqu Canal'], [110.6, 25.6], hero(A1 + 'lf_lingqu', 'w
 F('mill', ['石转磨与面食', 'Rotary mill'], [108.0, 35.6], hero(FD + 'lf_mill', 'hut'),
   ['战国秦汉推广石转磨，小麦磨成面粉，面食由此兴起。', 'Rotary stone mills spread in the Qin and Han, turning wheat into flour for buns and noodles.'], { wiki: ['磨', 'Quern-stone'] });
 P('蒙恬', [109.7, 38.3], { prop: 'sword', tier: 2, desc: ['秦大将，北击匈奴，修筑长城与直道。', 'Qin general who drove back the Xiongnu and built the Great Wall and the Straight Road.'] });
+C('shuihudi', ['睡虎地秦简（《秦律十八种》）', 'Shuihudi Qin bamboo slips'], [113.75, 31.02], { kind: 'scroll', style: 'slips' },
+  ['湖北云梦出土一千一百余枚秦代竹简，记载《秦律十八种》《编年记》，印证《史记》“明法度，定律令”。', 'Over 1,100 Qin bamboo slips from Yunmeng, Hubei, preserving the Eighteen Qin Statutes and administrative laws.'], { wiki: ['睡虎地秦简', 'Shuihudi Qin bamboo texts'], tier: 2 });
 
 era('whan');
 B('taishan-whan', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple'),
   ['汉武帝八次东巡泰山，封禅告成功，泰山成为“五岳独尊”。', 'Emperor Wu came to Mount Tai eight times to report his achievements to Heaven, making it the foremost of the Five Peaks.'], { wiki: ['封禅', 'Feng Shan'] });
 P('张骞', [103.8, 36.06], { prop: 'staff', desc: ['两次出使西域，“凿空”丝绸之路。', 'Envoy who twice crossed to the Western Regions, opening the Silk Road.'] });
+P('霍去病', [108.5, 37.6], { prop: 'spear', desc: ['西汉名将，漠北之战封狼居胥，“匈奴未灭，何以家为”。', 'Young Western Han cavalry commander who routed the Xiongnu and performed the Feng rite at Mount Langjuxu.'] });
 P('司马迁', [110.4, 35.47], { prop: 'brush', desc: ['著《史记》，中国第一部纪传体通史。', 'Author of the Records of the Grand Historian, China\'s first comprehensive history.'] });
 B('que', ['汉阙', 'Han que towers'], [107.6, 33.6], hero(A1 + 'lf_que', 'gate'),
   ['宫殿、陵墓前成对的阙楼，是汉代建筑的标志。', 'Paired gate towers before Han palaces and tombs — the signature of Han architecture.'], { wiki: ['阙', 'Que (tower)'] });
+C('changxin', ['长信宫灯', 'Changxin Palace Lamp'], [115.48, 38.85], { kind: 'ding', style: 'lamp' },
+  ['满城汉墓出土的鎏金宫女执灯，灯烟经衣袖吸入腹腔水盘以消烟环保。', 'Gilt-bronze palace maid lamp from the Mancheng Han tomb; smoke is drawn through her sleeve into the hollow body to keep the air clean.'], { wiki: ['长信宫灯', 'Changxin Palace Lamp'], tier: 2 });
 C('cuju', ['蹴鞠', 'Cuju football'], [118.3, 36.8], hero(C1 + 'lf_cuju', 'bell'),
   ['起源于齐国临淄的古代足球，汉代用于军中练兵。', 'Ancient football from Linzi in Qi, played to train Han soldiers.'], { wiki: ['蹴鞠', 'Cuju'] });
 F('tofu', ['豆腐', 'Tofu'], [116.8, 32.6], hero(FD + 'lf_tofu', 'ding'),
@@ -187,12 +204,17 @@ era('xin');
 P('王莽', [108.0, 34.0], {});
 C('xinmoney', ['王莽钱币', 'Wang Mang\'s coins'], [110.8, 34.6], hero(C1 + 'lf_coins', 'scroll', { style: 'knife' }),
   ['王莽多次改币，铸造金错刀、货泉、布币，铸工精美却扰乱经济。', 'Wang Mang reissued money again and again — gold-inlaid knife coins, spade and huoquan coins — beautiful but ruinous.'], { wiki: ['王莽钱币', 'Wang Mang'] });
+C('jialiang', ['新莽铜嘉量', 'Xin-dynasty bronze Jialiang'], [112.8, 34.6], { kind: 'ding', style: 'jialiang' },
+  ['王莽国师刘歆设计制造的标准量器，集斛、斗、升、合、龠五量于一器。', 'Standard bronze dry measure designed by Liu Xin under Wang Mang, combining five graduated measures in one vessel.'], { wiki: ['新莽铜嘉量', 'Jia liang'] });
 B('mingtang', ['明堂辟雍', 'Mingtang and Biyong'], [109.6, 33.2], hero(A1 + 'lf_mingtang', 'palace'),
   ['王莽在长安南郊建明堂、辟雍，上圆下方，象征天地。', 'Wang Mang built the Hall of Light ringed by water south of Chang\'an — round above, square below, like heaven and earth.'], { wiki: ['明堂', 'Mingtang'] });
 C('lulin', ['绿林赤眉起义', 'Lülin and Red Eyebrows'], [112.6, 31.0], { kind: 'flag', color: '#16a34a' },
   ['王莽改制失败，饥民在绿林山与赤眉军中起义，新朝灭亡。', 'When Wang Mang\'s reforms failed, starving peasants rose as the Lülin and Red Eyebrows and ended Xin.'], { wiki: ['绿林军', 'Lülin'], tier: 2 });
 
 era('ehan');
+P('张衡', [111.0, 33.4], { year: 132, en: 'Zhang Heng', desc: ['东汉科学家、文学家，造浑天仪与候风地动仪。', 'Eastern Han polymath who built the water-powered armillary sphere and the first seismoscope.'] });
+C('didongyi', ['候风地动仪', 'Zhang Heng\'s seismoscope'], [112.6, 36.2], { kind: 'seismoscope' },
+  ['张衡于132年发明的测震仪器，八龙衔珠、下对八蟾，为世界最早的地震仪。', 'Invented by Zhang Heng in 132 AD: eight bronze dragons drop a ball into a toad\'s mouth in the direction of a distant earthquake.'], { wiki: ['候风地动仪', 'Zhang Heng\'s seismoscope'] });
 P('张仲景', [112.53, 32.99], { prop: 'herbs', year: 180, en: 'Zhang Zhongjing',
   desc: ['“医圣”，著《伤寒杂病论》，相传冬至做“娇耳”为百姓治冻耳。', 'The Sage of Medicine who wrote the Treatise on Cold Damage; he is said to have made "tender ears" dumplings for frostbite.'] });
 P('蔡伦', [107.4, 33.3], { desc: ['改进造纸术，用树皮、麻头、破布、渔网造出“蔡侯纸”。', 'Improved papermaking with bark, hemp, rags and fishnets.'], en: 'Cai Lun' });
@@ -201,10 +223,15 @@ P('华佗', [115.8, 33.85], { desc: ['神医，发明麻沸散施行外科手术
 LIFE_LIST[LIFE_LIST.length - 1].model = hero('people-c/pp_huatuo', 'person', { role: 'scholar', year: 200 });
 B('baimasi', ['白马寺', 'White Horse Temple'], [113.6, 35.4], { kind: 'temple' },
   ['佛教传入中国后的第一座官办寺院，以白马驮经得名。', 'The first Buddhist temple in China, named after the white horse that carried the sutras.'], { wiki: ['白马寺', 'White Horse Temple'] });
+C('matafeiyan', ['马踏飞燕', 'Bronze Galloping Horse'], [102.64, 37.93], { kind: 'rider', style: 'gallop' },
+  ['甘肃武威雷台汉墓出土，骏马三足腾空、一足轻踏飞燕，展现汉代天马神韵。', 'Unearthed from the Leitai Han tomb in Wuwei: a galloping steed poised with one hoof on a flying swallow.'], { wiki: ['马踏飞燕', 'Flying Horse of Gansu'], tier: 2 });
 F('jiaozi', ['饺子', 'Jiaozi dumplings'], [113.8, 32.0], hero(FD + 'lf_jiaozi', 'ding'),
   ['相传张仲景以面皮包羊肉驱寒药材，即“娇耳”，后成为饺子。', 'Zhang Zhongjing\'s "tender ears" — mutton and warming herbs in dough — became jiaozi.'], { wiki: ['饺子', 'Jiaozi'] });
-C('baixi', ['百戏', 'Han acrobatics'], [111.0, 35.8], hero(C1 + 'lf_acrobats', 'bell'),
+C('baixi', ['百戏', 'Han acrobatics'], [110.2, 35.8], hero(C1 + 'lf_acrobats', 'bell'),
   ['汉代盛行走索、跳丸、寻橦、角抵等杂技表演，统称“百戏”。', 'Tightrope walking, juggling, pole balancing and wrestling — the Han "hundred entertainments".'], { wiki: ['百戏', 'Baixi'], tier: 2 });
+P('班超', [82.96, 41.72], { tier: 2, desc: ['东汉名将，“投笔从戎”，经营西域三十一年，任西域都护，其兄班固撰《汉书》。', 'Eastern Han general and diplomat who secured the Western Regions for 31 years; brother of Book of Han author Ban Gu.'] });
+C('caizhi', ['蔡侯造纸坊', 'Cai Lun\'s papermaking workshop'], [112.85, 26.42], { kind: 'printing', style: 'paper' },
+  ['东汉蔡伦总结前人经验，以树皮、麻头、破布、旧渔网抄造“蔡侯纸”，推动人类文明传播。', 'Eastern Han papermaking workshop using mulberry bark, hemp, rags and fishnets to pulp, screen and dry Cai-Hou paper.'], { wiki: ['造纸术', 'History of paper'], tier: 2 });
 
 era('sanguo');
 P('诸葛亮', [104.07, 30.66], { prop: 'fan', desc: ['蜀汉丞相，羽扇纶巾，鞠躬尽瘁，死而后已。', 'Chancellor of Shu Han with his feather fan — devoted to the last.'] });
@@ -216,6 +243,7 @@ C('muniu', ['木牛流马', 'Wooden ox'], [106.0, 32.6], hero(C2 + 'lf_muniu', '
   ['诸葛亮北伐时发明的运粮器械，行于秦岭栈道。', 'Zhuge Liang\'s wheeled transport carrying grain along the Qinling plank roads.'], { wiki: ['木牛流马', 'Wooden ox'] });
 F('mantou', ['馒头', 'Mantou buns'], [102.3, 26.6], hero(FD + 'lf_mantou', 'ding'),
   ['相传诸葛亮南征渡泸水时以面裹肉代替人头祭祀，称“蛮头”。', 'Legend: crossing the Lu River, Zhuge Liang offered meat in dough instead of heads — "mantou".'], { wiki: ['馒头', 'Mantou'], tier: 2 });
+P('周瑜', [117.28, 31.25], { tier: 2, desc: ['东吴大都督，赤壁之战率水军火攻大破曹军，奠定三分天下之势。', 'Grand Commander of Eastern Wu whose fire-ship victory at Red Cliffs secured the Three Kingdoms balance.'] });
 
 era('wjin');
 C('qixian', ['竹林七贤', 'Seven Sages of the Bamboo Grove'], [113.4, 35.26], hero(C2 + 'lf_qixian', 'scroll'),
@@ -228,6 +256,8 @@ F('tangbing', ['汤饼', 'Noodle soup'], [114.6, 34.2], hero(FD + 'lf_noodles', 
   ['束皙《饼赋》记载的汤饼即面片汤，是面条的前身。', 'The "soup cakes" praised in Shu Xi\'s Rhapsody on Bread — forerunner of noodles.'], { wiki: ['汤饼', 'Chinese noodles'] });
 P('左思', [112.0, 33.8], { prop: 'scroll', year: 290, en: 'Zuo Si', tier: 2,
   desc: ['作《三都赋》，豪贵之家竞相传写，“洛阳纸贵”。', 'His Rhapsody on the Three Capitals was copied so much that "paper grew dear in Luoyang".'] });
+P('裴秀', [111.0, 36.2], { en: 'Pei Xiu', role: 'scholar', year: 268, prop: 'scroll', tier: 2,
+  desc: ['西晋地图学家，主持绘制《禹贡地域图》，提出“制图六体”，奠定中国传统地图学理论。', 'Western Jin cartographer who drew the Yugong Atlas and formulated the Six Principles of Cartography.'], wiki: ['裴秀', 'Pei Xiu'] });
 
 era('ejin');
 P('王羲之', [120.58, 30.0], { desc: ['“书圣”，《兰亭集序》被誉为“天下第一行书”。', 'The Sage of Calligraphy; his Lanting Preface is the finest running script.'] });
@@ -238,6 +268,8 @@ B('mogao', ['莫高窟', 'Mogao Caves'], [94.8, 40.04], hero('china/cn_mogao', '
   ['366年乐僔开凿第一窟，千年间凿成七百多窟，壁画与彩塑辉煌。', 'Begun in 366 by the monk Le Zun; over a thousand years 700 caves of murals and statues were cut.'], { wiki: ['莫高窟', 'Mogao Caves'] });
 P('顾恺之', [118.0, 31.2], { prop: 'brush', year: 380, en: 'Gu Kaizhi', tier: 2,
   desc: ['画家，作《洛神赋图》《女史箴图》，主张“以形写神”。', 'Painter of Nymph of the Luo River, who held that form must convey spirit.'] });
+P('法显', [120.38, 36.07], { en: 'Faxian', role: 'monk', year: 410, prop: 'staff', tier: 2,
+  desc: ['东晋高僧，西行天竺求法十四年，自海路归国于青州牢山登陆，著《佛国记》。', 'Eastern Jin monk who walked to India and returned by sea to Laoshan in 412, writing A Record of Buddhistic Kingdoms.'], wiki: ['法显', 'Faxian'] });
 
 era('nanbei');
 B('yungang', ['云冈石窟', 'Yungang Grottoes'], [113.13, 40.11], hero(A1 + 'lf_grotto', 'temple', { style: 'yungang' }),
@@ -254,20 +286,27 @@ F('sushi', ['寺院素斋', 'Temple vegetarian food'], [118.8, 32.06], hero(FD +
   ['梁武帝崇佛，颁《断酒肉文》，僧人从此素食，“南朝四百八十寺”。', 'Emperor Wu of Liang banned meat and wine for monks — Chinese Buddhist vegetarian cooking began.'], { wiki: ['素食', 'Buddhist cuisine'] });
 P('贾思勰', [118.5, 36.7], { prop: 'herbs', year: 540, en: 'Jia Sixie', tier: 2,
   desc: ['著《齐民要术》，中国现存最早最完整的农书。', 'Wrote Essential Techniques for the Welfare of the People, the oldest complete Chinese farming manual.'] });
+P('郦道元', [115.98, 39.48], { en: 'Li Daoyuan', role: 'scholar', year: 515, prop: 'book', tier: 2,
+  desc: ['北魏地理学家，撰《水经注》四十卷，记述全国一千二百余条水系与历史古迹。', 'Northern Wei geographer whose 40-volume Commentary on the Water Classic documented over 1,200 rivers and historical sites.'], wiki: ['郦道元', 'Li Daoyuan'] });
 
 // ---------------------------------------------------------------------------------------------- Sui Tang
 era('sui');
 B('zhaozhou', ['赵州桥', 'Zhaozhou Bridge'], [114.77, 37.7], hero(A1 + 'lf_zhaozhou', 'bridge'),
   ['李春设计的敞肩石拱桥，距今一千四百年，仍屹立不倒。', 'Li Chun\'s open-spandrel stone arch, standing for 1,400 years.'], { wiki: ['赵州桥', 'Anji Bridge'] });
+B('hanjiacang', ['含嘉仓', 'Hanjia Granary'], [112.46, 34.68], hero(A1 + 'lf_hangtu', 'hut', { style: 'granary' }),
+  ['隋唐洛阳国家粮仓，地下圆形仓窖群储粮数百万石，体现隋代富庶。', 'Imperial underground granary complex at Luoyang with hundreds of moisture-proof subterranean grain pits.'], { wiki: ['含嘉仓', 'Hanjia Granary'] });
 C('keju', ['科举考试', 'Imperial examination'], [113.2, 33.6], hero(C2 + 'lf_keju', 'scroll'),
   ['隋炀帝设进士科，以考试选拔官员，延续一千三百年。', 'Emperor Yang created the jinshi exam: officials chosen by examination for 1,300 years.'], { wiki: ['科举', 'Imperial examination'] });
 P('李春', [115.4, 38.6], { prop: 'book', year: 600, en: 'Li Chun', desc: ['隋代工匠，主持建造赵州桥。', 'Sui craftsman who built the Zhaozhou Bridge.'] });
 P('隋炀帝', [119.4, 32.4], { tier: 2 });
+C('youchun', ['展子虔《游春图》', 'Strolling About in Spring (Zhan Ziqian)'], [116.3, 36.4], { kind: 'scroll', style: 'handscroll' },
+  ['隋代画家展子虔绘青绿山水手卷，是中国现存最早的传世卷轴山水画。', 'Blue-and-green landscape handscroll by Sui master Zhan Ziqian, the oldest surviving Chinese landscape painting.'], { wiki: ['游春图', 'Zhan Ziqian'], tier: 2 });
 
 era('tang');
 B('taishan-tang', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple'),
   ['725年唐玄宗泰山封禅，御书《纪泰山铭》刻于岱顶石壁。', 'In 725 Emperor Xuanzong held the feng-shan rites and carved his Inscription on Mount Tai into the summit cliff.'], { wiki: ['封禅', 'Feng Shan'] });
 P('武则天', [112.45, 34.62], { role: 'ruler', female: true, desc: ['中国历史上唯一的正统女皇帝，以洛阳为神都。', 'China\'s only reigning empress, who made Luoyang her Divine Capital.'] });
+P('李白', [114.9, 30.5], { prop: 'cup', desc: ['“诗仙”，盛唐浪漫主义诗人，“天生我材必有用”。', 'The Immortal of Poetry, greatest romantic poet of the High Tang.'] });
 P('杜甫', [104.03, 30.66], { prop: 'brush', desc: ['“诗圣”，其诗被称为“诗史”，居成都草堂。', 'The Poet Sage whose verse is called "poetic history"; he lived in a thatched cottage in Chengdu.'] });
 P('鉴真', [119.4, 32.4], { role: 'monk', year: 740, en: 'Jianzhen',
   desc: ['扬州高僧，六次东渡终抵日本，传播佛法与唐文化。', 'Yangzhou monk who reached Japan on his sixth try, bringing Buddhism and Tang culture.'] });
@@ -292,6 +331,8 @@ era('wudai');
 P('李煜', [118.78, 32.04], { prop: 'brush', desc: ['南唐后主、词人，“问君能有几多愁”。', 'Last ruler of Southern Tang and great ci poet: "How much sorrow can one hold?"'] });
 B('huqiu', ['虎丘塔', 'Tiger Hill Pagoda'], [120.58, 31.34], hero(A2 + 'lf_huqiu', 'pagoda'),
   ['959年建成的八角七层砖塔，因地基不均而倾斜，被称为“中国斜塔”。', 'Octagonal seven-storey brick pagoda of 959, leaning on its uneven footing — China\'s leaning tower.'], { wiki: ['云岩寺塔', 'Huqiu Tower'] });
+B('hanhaitang', ['钱氏捍海塘', 'Qian Seawall on Qiantang River'], [120.2, 30.1], { kind: 'weir', style: 'seawall' },
+  ['吴越王钱镠筑竹笼石塘与铁幢捍御钱塘江大潮，护佑两浙农桑。', 'King Qian Liu of Wuyue built bamboo-and-stone gabion seawalls to tame the Qiantang tidal bore, protecting the Jiangnan delta.'], { wiki: ['钱氏捍海塘', 'Qiantang River seawall'] });
 C('yeyan', ['韩熙载夜宴', 'Night revels of Han Xizai'], [117.2, 31.0], hero(C2 + 'lf_yeyan', 'bell'),
   ['顾闳中画南唐大臣韩熙载家宴：听琵琶、观舞、清吹、宴散。', 'Gu Hongzhong painted the Southern Tang minister\'s party: pipa, dance, flutes and farewells.'], { wiki: ['韩熙载夜宴图', 'The Night Revels of Han Xizai'] });
 C('print', ['雕版印刷九经', 'Printing the Classics'], [114.36, 34.8], { kind: 'printing' },
@@ -318,6 +359,10 @@ C('diancha', ['点茶斗茶', 'Whisked tea'], [118.3, 27.0], hero(FD + 'lf_tea',
 C('midautumn', ['中秋赏月', 'Mid-Autumn'], [116.6, 33.0], hero('festivals/fs_midautumn', 'monument'),
   ['宋代中秋成为正式节日，赏月、吃月饼。', 'Mid-Autumn became a full festival in the Song: moon-viewing and mooncakes.'], { wiki: ['中秋节', 'Mid-Autumn Festival'], tier: 2 });
 P('包拯', [117.27, 31.86], { tier: 2 });
+P('司马光', [111.22, 35.14], { prop: 'book', tier: 2,
+  desc: ['北宋名臣、史学家，历时十九年主编编年体通史巨著《资治通鉴》二百九十四卷。', 'Northern Song statesman and historian who spent 19 years compiling the 294-scroll chronological history Zizhi Tongjian.'] });
+P('欧阳修', [114.99, 27.09], { prop: 'brush', tier: 2,
+  desc: ['唐宋八大家之一，北宋文坛领袖，合撰《新唐书》、独撰《新五代史》。', 'Leader of Northern Song literary reform who co-compiled the New Book of Tang and wrote the Historical Records of the Five Dynasties.'] });
 
 era('nsong');
 P('岳飞', [114.3, 32.2], { desc: ['抗金名将，“精忠报国”，冤死风波亭。', 'General against the Jin, "serve the country with utmost loyalty", wrongly executed.'] });
@@ -331,10 +376,47 @@ F('tangyuan', ['汤圆', 'Tangyuan'], [121.55, 29.87], hero(FD + 'lf_tangyuan', 
   ['宋代元宵节吃“浮圆子”，象征团圆。', 'Floating rice balls eaten at the Lantern Festival since the Song, a sign of reunion.'], { wiki: ['汤圆', 'Tangyuan (food)'] });
 P('陆游', [120.58, 30.0], { prop: 'brush', tier: 2 });
 P('辛弃疾', [117.0, 36.4], { prop: 'sword', tier: 2 });
+P('文天祥', [113.8, 22.4], { prop: 'brush', tier: 2, desc: ['南宋末年抗元丞相，作《过零丁洋》：“人生自古谁无死，留取丹心照汗青。”', 'Southern Song loyalist prime minister who resisted the Yuan: "Since antiquity who has escaped death? Leave a loyal heart to shine in history."'] });
+
+era('liao');
+P('耶律阿保机', [119.3, 43.9], { en: 'Yelü Abaoji', role: 'ruler', year: 916, eth: 'steppe',
+  desc: ['辽太祖，统一契丹各部，创制契丹文字，建皇都临潢府。', 'Founder of the Liao dynasty who united the Khitan tribes, created the Khitan script and built the Supreme Capital.'], wiki: ['辽太祖', 'Emperor Taizu of Liao'] });
+P('萧绰', [116.4, 40.0], { en: 'Empress Dowager Xiao Yanyan', role: 'general', year: 1004, female: true, prop: 'bow',
+  desc: ['承天太后，摄政二十七年，亲御戎车南下订立澶渊之盟。', 'Empress Dowager Chengtian who governed Liao at its height and concluded the Chanyuan Treaty with Song.'], wiki: ['萧绰', 'Xiao Yanyan'] });
+B('yingxian', ['应县木塔', 'Yingxian Wooden Pagoda'], [113.19, 39.56], hero(A2 + 'lf_yingxian', 'pagoda'),
+  ['1056年建成的佛宫寺释迦塔，高67.31米，“五明四暗”，是世界现存最高最古的纯木结构楼阁式塔。', 'Built in 1056 at 67.31 m with five visible storeys and four hidden mezzanines — the world\'s tallest and oldest all-timber pagoda.'], { wiki: ['佛宫寺释迦塔', 'Pagoda of Fogong Temple'] });
+C('nabo', ['四时捺钵', 'Seasonal Nabo royal camp'], [123.5, 45.2], hero(C2 + 'lf_nabo', 'yurt'),
+  ['辽帝随水草四时迁徙行营议政，“春水秋山”海东青猎天鹅、冰钓头鱼。', 'The Liao court moved with the seasons in felt tent camps, governing while hunting swans with gyrfalcons in spring and stags in autumn.'], { wiki: ['捺钵', 'Nabo'] });
+C('jiguanhu', ['鸡冠壶与辽三彩', 'Cockscomb flask and Liao sancai'], [118.9, 41.8], hero(C2 + 'lf_sancai', 'camel', { style: 'liao' }),
+  ['仿契丹皮囊形制的绿釉鸡冠壶与色彩绚丽的辽三彩印花盘。', 'Green-glazed ceramic flasks shaped like stitched Khitan leather bags alongside three-colour stamped Liao dishes.'], { wiki: ['鸡冠壶', 'Ceramics of the Liao dynasty'], tier: 2 });
+
+era('xixia');
+P('李元昊', [106.2, 38.5], { en: 'Li Yuanhao (Emperor Jingzong)', role: 'ruler', year: 1038, eth: 'steppe',
+  desc: ['西夏开国皇帝，定都兴庆府，命野利仁荣创制西夏文，在三川口、好水川击败宋军。', 'Founding emperor of Western Xia who established Xingqing as capital, commissioned the Tangut script and defeated Song armies.'], wiki: ['李元昊', 'Emperor Jingzong of Western Xia'] });
+B('baisikou', ['拜寺口双塔', 'Baisikou Twin Pagodas'], [104.2, 38.8], hero(A2 + 'lf_baisikou', 'pagoda'),
+  ['贺兰山东麓的西夏十三层八角密檐式砖塔，东西双塔并峙，塔身浮雕兽面与佛像。', 'Twin 13-storey octagonal close-eave brick pagodas of the Western Xia at the foot of the Helan Mountains.'], { wiki: ['拜寺口双塔', 'Baisikou Twin Pagodas'] });
+C('xixiawen', ['西夏文与鎏金铜牛', 'Tangut script and gilt-bronze ox'], [100.45, 38.9], hero(C2 + 'lf_xixiawen', 'monument'),
+  ['西夏陵出土重达188千克的国宝鎏金铜牛，以及西夏文碑刻与泥活字印本。', 'The 188 kg gilt-bronze recumbent ox from the Western Xia tombs, alongside Tangut script steles and movable-type sutras.'], { wiki: ['西夏文', 'Tangut script'] });
+C('tieyaozi', ['铁鹞子重骑兵', 'Iron Hawks heavy cavalry'], [103.8, 36.8], hero(C1 + 'lf_hufu', 'rider', { style: 'tieyaozi' }),
+  ['西夏精锐重甲骑兵，人马俱披冷锻铁甲，骑手以钩络带固定于鞍上，冲锋如飞。', 'Elite Western Xia cataphract cavalry clad in cold-forged iron lamellar armour, riders strapped to their saddles.'], { wiki: ['铁鹞子', 'Military of Western Xia'], tier: 2 });
+P('野利仁荣', [105.2, 37.2], { en: 'Yeli Renrong', role: 'scholar', year: 1038, prop: 'scroll', tier: 2,
+  desc: ['西夏学者，奉元昊命创制西夏文六千余字，主持蕃学、译经与律令编纂。', 'Western Xia scholar who created over 6,000 Tangut characters for Li Yuanhao and headed the Tangut Academy.'], wiki: ['野利仁荣', 'Yeli Renrong'] });
+
+era('jin');
+P('完颜阿骨打', [126.97, 45.5], { en: 'Wanyan Aguda (Emperor Taizu)', role: 'ruler', year: 1115, eth: 'steppe',
+  desc: ['金太祖，起兵抗辽，建立猛安谋克制度，于会宁府建大金国。', 'Founder of the Jin dynasty who united the Jurchens under the Meng\'an-Mouke system and overthrew the Liao.'], wiki: ['金太祖', 'Emperor Taizu of Jin'] });
+P('元好问', [112.73, 38.0], { en: 'Yuan Haowen', role: 'scholar', year: 1230, prop: 'brush',
+  desc: ['金末元初大诗人、史学家，“问世间、情是何物，直教生死相许”。', 'Leading poet and literary historian of the Jin: "Ask the world what love is, that makes one pledge life and death."'], wiki: ['元好问', 'Yuan Haowen'] });
+B('chongfusi', ['崇福寺弥陀殿', 'Mituo Hall of Chongfu Temple'], [112.42, 39.5], hero(A1 + 'lf_foguang', 'temple', { style: 'jin' }),
+  ['1143年建于山西朔州，高大月台、孔雀蓝琉璃脊饰与精美隔扇窗，为金代巨构。', 'Built in 1143 in Shuozhou, Shanxi: high platform, peacock-blue glazed ridge and geometric lattice doors.'], { wiki: ['崇福寺 (朔州)', 'Chongfu Temple'] });
+B('lugou', ['金中都卢沟桥', 'Lugou Bridge (Marco Polo Bridge)'], [116.21, 39.85], hero(A1 + 'lf_zhaozhou', 'bridge', { style: 'lugou' }),
+  ['金章宗明昌三年（1192年）建成，十一孔联拱石桥，望柱雕数百石狮，“卢沟晓月”为燕京八景之一。', 'Completed in 1192 under the Jin: an 11-arch granite bridge lined with hundreds of carved stone lions, praised by Marco Polo.'], { wiki: ['卢沟桥', 'Marco Polo Bridge'] });
+C('jinyuanben', ['金院本与杂剧砖雕', 'Jin yuanben and zaju brick reliefs'], [111.36, 35.62], hero(C2 + 'lf_opera', 'temple', { style: 'jin' }),
+  ['山西侯马金代董氏墓出土彩绘戏台与五名杂剧演员砖雕，见证金院本的繁盛。', 'Painted brick stage and five zaju actor figurines from the 1210 Jin tomb at Houma, Shanxi.'], { wiki: ['院本', 'Zaju'] });
 
 // ---------------------------------------------------------------------------------------------- Yuan Ming Qing
 era('yuan');
-P('关汉卿', [115.48, 38.87], { prop: 'scroll', year: 1260, en: 'Guan Hanqing',
+P('关汉卿', [115.48, 38.87], { prop: 'scroll', year: 1280, en: 'Guan Hanqing',
   desc: ['元曲四大家之首，作《窦娥冤》。', 'Foremost of the Yuan dramatists, author of The Injustice to Dou E.'] });
 C('zaju', ['元杂剧', 'Yuan zaju drama'], [111.5, 36.08], hero(C2 + 'lf_opera', 'temple', { style: 'yuan' }),
   ['元代杂剧兴盛，山西临汾牛王庙戏台是现存元代戏台。', 'Yuan zaju plays flourished; the Niuwang Temple stage in Linfen still stands.'], { wiki: ['元杂剧', 'Zaju'] });
@@ -350,6 +432,8 @@ F('shuanrou', ['涮羊肉', 'Mutton hotpot'], [111.7, 40.8], hero(FD + 'lf_hotpo
   ['蒙古人带来的吃法，铜锅炭火涮薄切羊肉。', 'A Mongol way of eating: thin-sliced mutton swished in a charcoal brass pot.'], { wiki: ['涮羊肉', 'Instant-boiled mutton'], tier: 2 });
 C('naadam', ['那达慕', 'Naadam'], [116.18, 42.36], hero('festivals/fs_naadam', 'yurt'),
   ['蒙古族的赛马、摔跤、射箭盛会，上都草原年年举行。', 'The Mongol festival of horse racing, wrestling and archery on the grasslands of Shangdu.'], { wiki: ['那达慕', 'Naadam'], tier: 2 });
+P('脱脱', [118.8, 42.2], { en: 'Toqto\'a', role: 'scholar', year: 1344, prop: 'book', tier: 2,
+  desc: ['元朝中书右丞相，主持纂修《辽史》《金史》《宋史》三部正史，并治理黄河。', 'Yuan Grand Chancellor who served as chief editor of the official Histories of Liao, Jin and Song.'], wiki: ['脱脱', 'Toqto\'a'] });
 
 era('ming');
 P('李时珍', [115.3, 30.4], { desc: ['医药学家，历时27年著《本草纲目》。', 'Physician who spent 27 years writing the Compendium of Materia Medica.'], en: 'Li Shizhen' });
@@ -386,12 +470,14 @@ C('springfest', ['春节', 'Spring Festival'], [113.26, 23.13], hero('festivals/
   ['贴春联、放爆竹、逛庙会、吃年夜饭，广州有迎春花市。', 'Couplets, firecrackers, temple fairs and the reunion dinner; Guangzhou holds its flower fair.'], { wiki: ['春节', 'Chinese New Year'], tier: 2 });
 C('jingzhang', ['京张铁路', 'Beijing–Zhangjiakou Railway'], [115.95, 40.45], { kind: 'train' },
   ['詹天佑主持修建的第一条中国人自建铁路，1909年通车，青龙桥用“人”字形线路爬坡。', 'The first railway built by Chinese engineers (Zhan Tianyou, 1909), climbing Qinglongqiao on a switchback.'], { wiki: ['京张铁路', 'Imperial Peking–Kalgan Railway'], tier: 2 });
+C('siku', ['《四库全书》与钦定二十四史', 'Siku Quanshu and Imperial Twenty-Four Histories'], [123.45, 41.79], { kind: 'scroll', style: 'siku' },
+  ['乾隆朝武英殿校刊钦定《二十四史》（自《史记》至《明史》），并纂修《四库全书》分藏文渊阁、文溯阁等七阁。', 'Under Qianlong the court canonised the Twenty-Four Histories from Shiji to Mingshi and compiled the Siku Quanshu in four colour-coded silk bindings.'], { wiki: ['二十四史', 'Twenty-Four Histories'], tier: 2 });
 
 // ---------------------------------------------------------------------------------------------- modern
 era('roc');
 B('zhongshanling', ['中山陵', 'Sun Yat-sen Mausoleum'], [119.2, 32.8], hero(A2 + 'lf_zhongshanling', 'monument'),
   ['孙中山陵墓，蓝色琉璃瓦象征青天白日，392级台阶。', 'Sun Yat-sen\'s tomb, roofed in blue glazed tiles, up 392 steps on Purple Mountain.'], { wiki: ['中山陵', 'Sun Yat-sen Mausoleum'] });
-B('bund', ['上海外滩', 'The Bund'], [121.49, 31.24], hero('china/cn_bund', 'skyline'),
+B('bund', ['上海外滩', 'The Bund'], [121.49, 31.24], hero('china/cn_bund', 'skyline', { style: 'roc' }),
   ['万国建筑博览群，近代上海金融中心。', 'The "museum of world architecture", Shanghai\'s financial heart.'], { wiki: ['外滩', 'The Bund'] });
 B('honglou', ['北大红楼', 'Red Building of Peking University'], [116.4, 39.92], hero(A2 + 'lf_honglou', 'factory'),
   ['新文化运动与五四运动的发源地，1918年建成。', 'Cradle of the New Culture and May Fourth movements, built in 1918.'], { wiki: ['北京大学红楼', 'Red Building (Peking University)'] });
@@ -399,6 +485,8 @@ P('鲁迅', [120.58, 30.0], { prop: 'book', year: 1925, en: 'Lu Xun',
   desc: ['现代文学奠基人，作《狂人日记》《阿Q正传》。', 'Founder of modern Chinese literature: A Madman\'s Diary, The True Story of Ah Q.'] });
 C('dasheng', ['大生纱厂', 'Dasheng cotton mill'], [120.86, 32.0], { kind: 'factory' },
   ['状元张謇“实业救国”，在南通创办纱厂，民族工业兴起。', 'Zhang Jian, a top-scoring scholar, built mills in Nantong to save the nation through industry.'], { wiki: ['大生纱厂', 'Zhang Jian'] });
+C('redboat-life', ['中国共产党诞生', 'Founding of the CPC (Red Boat)'], [120.75, 30.2], { kind: 'redboat' },
+  ['1921年中共一大由上海转移至嘉兴南湖红船闭幕，宣告中国共产党成立。', 'In 1921 the First National Congress of the CPC concluded aboard the Red Boat on South Lake in Jiaxing.'], { wiki: ['中国共产党第一次全国代表大会', '1st National Congress of the Chinese Communist Party'] });
 
 era('prc');
 P('袁隆平', [112.9, 28.2], { prop: 'herbs', year: 1975, en: 'Yuan Longping',

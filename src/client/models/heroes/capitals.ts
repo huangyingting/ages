@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { type Builder, type V3, type Paint, add, mat, g, box, rbox, cyl, cone, ellip, lathe, rod, skin, slab, gable, tbox, prism, shade, hash3, plinth, tree, SITE } from '../prims.ts';
+import { type Builder, type V3, type Paint, add, mat, g, box, rbox, cyl, cone, ellip, lathe, rod, skin, slab, gable, tbox, prism, shade, mix, hash3, fbm, plinth, tree, SITE } from '../prims.ts';
 import { grp } from '../timber.ts';
 import { human, type HumanOpts } from '../human.ts';
 
@@ -51,14 +51,32 @@ function band(p: THREE.Object3D, z0: number, z1: number, y: number, h: number, c
   prism(p, [...L, ...R.reverse()], y, h, c);
 }
 
-/** Rammed-earth (夯土) block, tapered, with the horizontal tamping layers painted as bands. */
+/** Rammed-earth (夯土) or masonry block, tapered, with horizontal tamping/coursed layers and organic surface texture. */
 function earth(p: THREE.Object3D, x: number, y: number, z: number, w0: number, d0: number, w1: number, d1: number, h: number, c: string, bands = 3, top = shade(c, 1.08)): number {
-  const rings: V3[][] = [];
-  for (let i = 0; i <= bands; i++) {
-    const t = i / bands, hw = (w0 + (w1 - w0) * t) / 2, hd = (d0 + (d1 - d0) * t) / 2, yy = y + h * t;
-    rings.push([[x - hw, yy, z - hd], [x + hw, yy, z - hd], [x + hw, yy, z + hd], [x - hw, yy, z + hd]]);
+  const nb = Math.max(bands * 2, 5), sub = 6, rings: V3[][] = [];
+  for (let i = 0; i <= nb; i++) {
+    const t = i / nb, hw = (w0 + (w1 - w0) * t) / 2, hd = (d0 + (d1 - d0) * t) / 2, yy = y + h * t;
+    const corners: [number, number][] = [[x - hw, z - hd], [x + hw, z - hd], [x + hw, z + hd], [x - hw, z + hd]];
+    const ring: V3[] = [];
+    for (let s = 0; s < 4; s++) {
+      const [ax, az] = corners[s], [bx, bz] = corners[(s + 1) % 4];
+      for (let k = 0; k < sub; k++) {
+        const u = k / sub;
+        ring.push([ax + (bx - ax) * u, yy, az + (bz - az) * u]);
+      }
+    }
+    rings.push(ring);
   }
-  skin(p, rings, c, { caps: true, flat: true, paint: (_x, py, _z, _nx, ny) => (ny > 0.6 ? top : Math.floor(((py - y) / h) * bands) % 2 ? shade(c, 0.9) : c) });
+  skin(p, rings, c, {
+    caps: true, flat: true,
+    paint: (px, py, pz, _nx, ny) => {
+      const n = fbm(px * 12, py * 18, pz * 12);
+      if (ny > 0.6) return shade(top, 0.94 + n * 0.12);
+      const layer = Math.floor(((py - y) / Math.max(0.001, h)) * nb);
+      const blk = hash3(Math.floor(px * 28), layer, Math.floor(pz * 28));
+      return shade(c, (layer % 2 ? 0.9 : 1.01) * (0.93 + n * 0.1 + blk * 0.06));
+    },
+  });
   return y + h;
 }
 
@@ -119,7 +137,9 @@ function roof(p: THREE.Object3D, x: number, y: number, z: number, w: number, d: 
   const tile = o.tile, rib = o.rib === undefined ? shade(tile, 1.16) : o.rib, fascia = o.fascia ?? shade(tile, 0.68), under = o.under ?? shade(tile, 0.55);
   for (let i = 0; i < R.length - 1; i++) for (let j = 0; j < n; j++) {
     const j1 = (j + 1) % n, a = R[i][j], b = R[i][j1], c = R[i + 1][j1], e = R[i + 1][j];
-    const col = i === 0 ? fascia : o.thatch ? (i % 2 ? tile : shade(tile, 0.9)) : i === 1 && o.edge ? o.edge : rib && j % 2 ? rib : tile;
+    const hsh = hash3(i, j, 7);
+    const baseCol = i === 0 ? fascia : o.thatch ? (i % 2 ? tile : shade(tile, 0.88)) : i === 1 && o.edge ? o.edge : rib && j % 2 ? rib : tile;
+    const col = i === 0 ? baseCol : shade(baseCol, o.thatch ? 0.9 + hsh * 0.18 : 0.95 + hsh * 0.09);
     M.t(a, b, c, col);
     M.t(a, c, e, col);
   }
@@ -167,9 +187,16 @@ function body(p: THREE.Object3D, x: number, y: number, z: number, w: number, d: 
   for (let i = 1; i < nD; i++) for (const sx of [-1, 1]) cyl(p, o.col, x + (sx * w) / 2, y, z - d / 2 + (i * d) / nD, cr, h, 6);
   const bh = Math.min(0.01, h * 0.14);
   box(p, o.beam ?? o.col, x, y + h - bh, z, w + 0.004, bh, d + 0.004);
+  // Decorative painted architrave band (额枋彩画) under the lintel beam
+  if (h > 0.03) box(p, mix(o.beam ?? o.col, '#2f7a68', 0.38), x, y + h - bh * 1.45, z, w + 0.002, bh * 0.45, d + 0.002);
   if (o.door) {
     const nd = Math.min(nW, o.doorN ?? nW), i0 = Math.floor((nW - nd) / 2), bw = w / nW;
-    for (let i = i0; i < i0 + nd; i++) box(p, o.door, x - w / 2 + (i + 0.5) * bw, y, z + d / 2 - cr, bw * 0.72, h * 0.72, 0.004);
+    for (let i = i0; i < i0 + nd; i++) {
+      const dx = x - w / 2 + (i + 0.5) * bw, dw = bw * 0.72, dh = h * 0.72;
+      box(p, o.door, dx, y, z + d / 2 - cr, dw, dh, 0.004);
+      box(p, o.col, dx, y, z + d / 2 - cr + 0.001, 0.0025, dh, 0.003);
+      box(p, shade(o.col, 1.15), dx, y + dh * 0.52, z + d / 2 - cr + 0.001, dw * 0.96, 0.0025, 0.003);
+    }
   }
   let top = y + h;
   if (o.bracket) {

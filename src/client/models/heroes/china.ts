@@ -1,7 +1,7 @@
 import { human, passerby } from '../human.ts';
 import * as THREE from 'three';
 import {
-  type Builder, type Paint, type V3, add, g, mat, box, cyl, cone, rod, strut, ellip, sweep, tube, skin, lathe, tbox, shade, fbm, hash3,
+  type Builder, type Paint, type V3, add, g, mat, box, rbox, gable, cyl, cone, rod, strut, ellip, sweep, tube, skin, lathe, tbox, shade, fbm, hash3,
   tree, PLINTH_SIDE,
 } from '../prims.ts';
 import { type HFn, type IslandOpts, island as island0, sstep, ridged } from '../nature.ts';
@@ -717,11 +717,13 @@ const cn_mogao: Builder = gp => {
 
 // ---------------------------------------------------------------------------------------------------------
 // The Bund & Lujiazui, Shanghai — Oriental Pearl Tower, Jin Mao, the "bottle opener" and the twisting Shanghai Tower
-const cn_bund: Builder = gp => {
+const cn_bund: Builder = (gp, r) => {
   // Ref: Lujiazui skyline (Wikipedia: Oriental Pearl Tower 468 m, spheres Ø50/45 m; SWFC 492 m trapezoid aperture; Jin Mao 421 m; Shanghai Tower 632 m) and the Bund's granite neoclassical row (Customs House clock tower, HSBC dome, Sassoon House green pyramid). Scale ≈ 0.00158/m.
+  // When r.style === 'roc', renders the 1920s–1930s Republic-era Bund ("万国建筑博览群") without modern Pudong skyscrapers.
+  const roc = r.style === 'roc';
   const WC = '#6c7d74', WL = Y0 - 0.01;
   calm(gp, 0.49, WL - 0.004, WC, -0.12);
-  const zc = (x: number) => 0.06 + 0.12 * x, RW = 0.085;
+  const zc = (x: number) => (roc ? -0.1 + 0.1 * x : 0.06 + 0.12 * x), RW = 0.085;
   const h: HFn = rimFade((x, z) => { const d = Math.abs(z - zc(x)); return d < RW ? -0.03 : 0.0; });
   island(gp, 0.5, h, '#6a8a56', (x, y, z) => {
     if (y < WL + 0.004) return '#76847c';
@@ -730,111 +732,136 @@ const cn_bund: Builder = gp => {
     if (d > -RW - 0.025) return '#b8b4a8';
     return fbm(x * 14, 1, z * 14, 2) > 0.58 ? '#759a5e' : null;
   }, { rings: 30, segs: 100 });
-  // --- Pudong skyline
-  const PK = '#9a4c60', CR = '#d9d6cf';
-  {
-    // Oriental Pearl Tower: three Ø9 m columns and three raking legs, Ø50 m lower and Ø45 m upper spheres,
-    // five small spheres between them, the Ø16 m space module at 350 m and the antenna mast
-    const x = -0.17, z = -0.2, y0 = Y0;
-    for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + 0.3; cyl(gp, CR, x + Math.cos(a) * 0.014, y0, z + Math.sin(a) * 0.014, 0.007, 0.43, 8); }
-    for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + 0.3 + Math.PI / 3; rod(gp, [x + Math.cos(a) * 0.065, y0, z + Math.sin(a) * 0.065], [x + Math.cos(a) * 0.022, y0 + 0.11, z + Math.sin(a) * 0.022], 0.0055, CR, 6); }
-    ellip(gp, PK, x, y0 + 0.147, z, 0.04, 0.04, 0.04);
-    cyl(gp, '#a9aeb2', x, y0 + 0.143, z, 0.0415, 0.007, 20);
-    for (let k = 0; k < 5; k++) ellip(gp, PK, x, y0 + 0.215 + k * 0.03, z, 0.0095, 0.0095, 0.0095);
-    ellip(gp, PK, x, y0 + 0.415, z, 0.036, 0.036, 0.036);
-    cyl(gp, '#a9aeb2', x, y0 + 0.412, z, 0.0375, 0.006, 20);
-    cyl(gp, CR, x, y0 + 0.43, z, 0.009, 0.12, 8);
-    ellip(gp, PK, x, y0 + 0.553, z, 0.013, 0.013, 0.013);
-    strut(gp, [x, y0 + 0.56, z], [x, y0 + 0.74, z], 0.006, 0.0015, '#c9ccd0', 6);
-  }
-  // Jin Mao: stepped pagoda-like tower with a spire
-  {
-    const x = 0.02, z = -0.3;
-    let y = Y0, w = 0.07;
-    for (let i = 0; i < 13; i++) {
-      const hh = i < 6 ? 0.06 : 0.035;
-      box(gp, i % 2 ? '#9aa6ad' : '#b5bec4', x, y, z, w, hh, w, Math.PI / 4);
-      box(gp, '#6f7d86', x, y + hh - 0.004, z, w + 0.004, 0.004, w + 0.004, Math.PI / 4);
-      y += hh; w *= i < 6 ? 0.96 : 0.9;
+  if (!roc) {
+    // --- Pudong skyline (modern)
+    const PK = '#9a4c60', CR = '#d9d6cf';
+    {
+      // Oriental Pearl Tower: three Ø9 m columns and three raking legs, Ø50 m lower and Ø45 m upper spheres,
+      // five small spheres between them, the Ø16 m space module at 350 m and the antenna mast
+      const x = -0.17, z = -0.2, y0 = Y0;
+      for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + 0.3; cyl(gp, CR, x + Math.cos(a) * 0.014, y0, z + Math.sin(a) * 0.014, 0.007, 0.43, 8); }
+      for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + 0.3 + Math.PI / 3; rod(gp, [x + Math.cos(a) * 0.065, y0, z + Math.sin(a) * 0.065], [x + Math.cos(a) * 0.022, y0 + 0.11, z + Math.sin(a) * 0.022], 0.0055, CR, 6); }
+      ellip(gp, PK, x, y0 + 0.147, z, 0.04, 0.04, 0.04);
+      cyl(gp, '#a9aeb2', x, y0 + 0.143, z, 0.0415, 0.007, 20);
+      for (let k = 0; k < 5; k++) ellip(gp, PK, x, y0 + 0.215 + k * 0.03, z, 0.0095, 0.0095, 0.0095);
+      ellip(gp, PK, x, y0 + 0.415, z, 0.036, 0.036, 0.036);
+      cyl(gp, '#a9aeb2', x, y0 + 0.412, z, 0.0375, 0.006, 20);
+      cyl(gp, CR, x, y0 + 0.43, z, 0.009, 0.12, 8);
+      ellip(gp, PK, x, y0 + 0.553, z, 0.013, 0.013, 0.013);
+      strut(gp, [x, y0 + 0.56, z], [x, y0 + 0.74, z], 0.006, 0.0015, '#c9ccd0', 6);
     }
-    cone(gp, '#c9d2d8', x, y, z, w * 0.7, 0.06, 4, Math.PI / 4);
-    rod(gp, [x, y + 0.05, z], [x, y + 0.12, z], 0.002, '#dfe3e8', 4);
-  }
-  // Shanghai World Financial Center: a square prism sheared by two arcs into a slab, with the trapezoid aperture through the top
-  {
-    const x = 0.15, z = -0.33, H = 0.78, Ht = 0.1, d1 = 0.012, dT = 0.08 + (d1 - 0.08) * ((H - Ht) / H);
-    tbox(gp, 0.09, 0.08, 0.09, dT, H - Ht, '#8fa6b4', x, Y0, z, 0, 0, 0.35);
-    const top = g('cn:swfcTop', () => {
-      const W = 0.045, sh = new THREE.Shape([new THREE.Vector2(-W, 0), new THREE.Vector2(W, 0), new THREE.Vector2(W, Ht), new THREE.Vector2(-W, Ht)]);
-      sh.holes.push(new THREE.Path([new THREE.Vector2(-0.026, 0.028), new THREE.Vector2(0.026, 0.028), new THREE.Vector2(0.034, 0.084), new THREE.Vector2(-0.034, 0.084)]));
-      const eg = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false });
-      eg.translate(0, 0, -0.5);
-      return eg;
-    });
-    const gr = grp(gp, x, z, 0.35, Y0 + H - Ht);
-    add(gr, top, mat('#8fa6b4', { rough: 0.35 }), 0, 0, 0, 1, 1, (dT + d1) / 2);
-    box(gr, '#c9d2d8', 0, Ht, 0, 0.09, 0.003, d1);
-  }
-  // Shanghai Tower: rounded triangle twisting 120° as it rises, glass-green
-  {
-    const x = 0.3, z = -0.2, H = 0.92, NF = 16, S = 21, rings: V3[][] = [];
-    for (let i = 0; i <= NF; i++) {
-      const t = i / NF, R = 0.064 * (1 - 0.42 * t) * (t > 0.94 ? 0.9 : 1), tw = t * 2.1, ring: V3[] = [];
-      for (let j = 0; j < S; j++) {
-        const a = (j / S) * Math.PI * 2, rr = R * (1 + 0.14 * Math.cos(3 * a) - (Math.abs(Math.sin(1.5 * a)) < 0.12 ? 0.1 : 0));
-        ring.push([x + Math.cos(a + tw) * rr, Y0 + t * H - (i === NF ? 0.03 * Math.cos(a + tw) : 0), z + Math.sin(a + tw) * rr]);
+    // Jin Mao: stepped pagoda-like tower with a spire
+    {
+      const x = 0.02, z = -0.3;
+      let y = Y0, w = 0.07;
+      for (let i = 0; i < 13; i++) {
+        const hh = i < 6 ? 0.06 : 0.035;
+        box(gp, i % 2 ? '#9aa6ad' : '#b5bec4', x, y, z, w, hh, w, Math.PI / 4);
+        box(gp, '#6f7d86', x, y + hh - 0.004, z, w + 0.004, 0.004, w + 0.004, Math.PI / 4);
+        y += hh; w *= i < 6 ? 0.96 : 0.9;
       }
-      rings.push(ring);
+      cone(gp, '#c9d2d8', x, y, z, w * 0.7, 0.06, 4, Math.PI / 4);
+      rod(gp, [x, y + 0.05, z], [x, y + 0.12, z], 0.002, '#dfe3e8', 4);
     }
-    skin(gp, rings, '#94adb4', {
-      caps: true, flat: true, metal: 0.3, rough: 0.35,
-      paint: (_px, py) => (Math.floor(((py - Y0) / H) * 9 * 4) % 4 === 0 ? '#738c94' : null),
+    // Shanghai World Financial Center: a square prism sheared by two arcs into a slab, with the trapezoid aperture through the top
+    {
+      const x = 0.15, z = -0.33, H = 0.78, Ht = 0.1, d1 = 0.012, dT = 0.08 + (d1 - 0.08) * ((H - Ht) / H);
+      tbox(gp, 0.09, 0.08, 0.09, dT, H - Ht, '#8fa6b4', x, Y0, z, 0, 0, 0.35);
+      const top = g('cn:swfcTop', () => {
+        const W = 0.045, sh = new THREE.Shape([new THREE.Vector2(-W, 0), new THREE.Vector2(W, 0), new THREE.Vector2(W, Ht), new THREE.Vector2(-W, Ht)]);
+        sh.holes.push(new THREE.Path([new THREE.Vector2(-0.026, 0.028), new THREE.Vector2(0.026, 0.028), new THREE.Vector2(0.034, 0.084), new THREE.Vector2(-0.034, 0.084)]));
+        const eg = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false });
+        eg.translate(0, 0, -0.5);
+        return eg;
+      });
+      const gr = grp(gp, x, z, 0.35, Y0 + H - Ht);
+      add(gr, top, mat('#8fa6b4', { rough: 0.35 }), 0, 0, 0, 1, 1, (dT + d1) / 2);
+      box(gr, '#c9d2d8', 0, Ht, 0, 0.09, 0.003, d1);
+    }
+    // Shanghai Tower: rounded triangle twisting 120° as it rises, glass-green
+    {
+      const x = 0.3, z = -0.2, H = 0.92, NF = 16, S = 21, rings: V3[][] = [];
+      for (let i = 0; i <= NF; i++) {
+        const t = i / NF, R = 0.064 * (1 - 0.42 * t) * (t > 0.94 ? 0.9 : 1), tw = t * 2.1, ring: V3[] = [];
+        for (let j = 0; j < S; j++) {
+          const a = (j / S) * Math.PI * 2, rr = R * (1 + 0.14 * Math.cos(3 * a) - (Math.abs(Math.sin(1.5 * a)) < 0.12 ? 0.1 : 0));
+          ring.push([x + Math.cos(a + tw) * rr, Y0 + t * H - (i === NF ? 0.03 * Math.cos(a + tw) : 0), z + Math.sin(a + tw) * rr]);
+        }
+        rings.push(ring);
+      }
+      skin(gp, rings, '#94adb4', {
+        caps: true, flat: true, metal: 0.3, rough: 0.35,
+        paint: (_px, py) => (Math.floor(((py - Y0) / H) * 9 * 4) % 4 === 0 ? '#738c94' : null),
+      });
+    }
+    // Generic glass towers to fill out the skyline
+    const T: [number, number, number, number, string][] = [
+      [-0.36, -0.22, 0.05, 0.26, '#7c95a6'], [-0.28, -0.36, 0.05, 0.34, '#a3b4bf'], [-0.42, -0.06, 0.045, 0.18, '#94a6b2'], [-0.06, -0.38, 0.05, 0.4, '#b9c4cc'],
+      [-0.02, -0.18, 0.04, 0.22, '#8aa0ae'], [0.4, -0.06, 0.045, 0.24, '#a6b7c2'], [0.12, -0.16, 0.045, 0.3, '#7f97a8'], [0.24, -0.4, 0.04, 0.42, '#97aab6'],
+      [0.42, -0.2, 0.04, 0.3, '#b5c1c9'], [-0.18, -0.4, 0.04, 0.28, '#8697a4'],
+    ];
+    T.forEach(([x, z, w, hh, c], i) => {
+      if (Math.hypot(x, z) > 0.46) return;
+      box(gp, c, x, Y0, z, w, hh, w, i * 0.4);
+      for (let k = 1; k < 4; k++) box(gp, shade(c, 0.78), x, Y0 + (hh * k) / 4, z, w + 0.002, 0.004, w + 0.002, i * 0.4);
     });
+  } else {
+    // 1920s–1930s Pudong waterfront warehouses & docks across the river, plus a dark-hull ocean steamer with red/black funnel
+    for (const [wx, wz, ww, wd, wh, wc] of [[-0.22, -0.28, 0.11, 0.06, 0.036, '#8b7765'], [-0.05, -0.3, 0.12, 0.065, 0.04, '#9a8b78'], [0.14, -0.28, 0.1, 0.06, 0.034, '#7d6e60']] as const) {
+      box(gp, wc, wx, Y0, wz, ww, wh, wd, -0.1);
+      gable(gp, ww + 0.006, 0.018, wd + 0.006, '#4a4540', wx, Y0 + wh, wz, Math.PI / 2 - 0.1);
+    }
+    // Waibaidu steel truss bridge (外白渡桥, 1907) on the right
+    const br = grp(gp, -0.32, zc(-0.32), -0.1, Y0);
+    for (const sx of [-1, 1]) {
+      box(br, '#565c62', 0, 0.012, sx * 0.022, 0.11, 0.004, 0.004);
+      box(br, '#565c62', 0, 0.036, sx * 0.022, 0.08, 0.003, 0.003);
+      for (let k = -2; k <= 2; k++) rod(br, [k * 0.02, 0.012, sx * 0.022], [k * 0.016, 0.036, sx * 0.022], 0.0018, '#565c62', 4);
+    }
+    box(br, '#6e6a62', 0, 0.009, 0, 0.11, 0.004, 0.044);
   }
-  // Generic glass towers to fill out the skyline
-  const T: [number, number, number, number, string][] = [
-    [-0.36, -0.22, 0.05, 0.26, '#7c95a6'], [-0.28, -0.36, 0.05, 0.34, '#a3b4bf'], [-0.42, -0.06, 0.045, 0.18, '#94a6b2'], [-0.06, -0.38, 0.05, 0.4, '#b9c4cc'],
-    [-0.02, -0.18, 0.04, 0.22, '#8aa0ae'], [0.4, -0.06, 0.045, 0.24, '#a6b7c2'], [0.12, -0.16, 0.045, 0.3, '#7f97a8'], [0.24, -0.4, 0.04, 0.42, '#97aab6'],
-    [0.42, -0.2, 0.04, 0.3, '#b5c1c9'], [-0.18, -0.4, 0.04, 0.28, '#8697a4'],
-  ];
-  T.forEach(([x, z, w, hh, c], i) => {
-    if (Math.hypot(x, z) > 0.46) return;
-    box(gp, c, x, Y0, z, w, hh, w, i * 0.4);
-    for (let k = 1; k < 4; k++) box(gp, shade(c, 0.78), x, Y0 + (hh * k) / 4, z, w + 0.002, 0.004, w + 0.002, i * 0.4);
-  });
-  // --- The Bund: a row of stone heritage buildings along the waterfront
-  const ry = Math.atan2(-0.12, 1), bd = (x: number) => zc(x) + RW + 0.13;
+  // --- The Bund: a row of stone heritage buildings along the waterfront (larger & grander when style === 'roc')
+  const ry = Math.atan2(roc ? -0.1 : -0.12, 1), bs = roc ? 1.48 : 1.0, bd = (x: number) => zc(x) + RW + (roc ? 0.15 : 0.13);
   const B: [number, number, number, string, string?][] = [
     [-0.33, 0.07, 0.09, '#d4c8ae'], [-0.25, 0.07, 0.11, '#c9bc9f', 'dome'], [-0.165, 0.08, 0.1, '#e1d8c4', 'clock'], [-0.08, 0.07, 0.09, '#bfb39a'],
     [0.0, 0.07, 0.1, '#d9ceb7'], [0.08, 0.07, 0.12, '#cdbfa2', 'peace'], [0.16, 0.06, 0.085, '#e0d6c0'], [0.24, 0.06, 0.08, '#c7bba3'], [0.32, 0.05, 0.075, '#d5cab2'],
   ];
-  for (const [x, w, hh, c, kind] of B) {
+  for (const [x, w0, hh0, c, kind] of B) {
+    const w = w0 * (roc ? 1.06 : 1), hh = hh0 * bs, dp = 0.08 * (roc ? 1.25 : 1);
     const z = bd(x);
     if (Math.hypot(x, z + 0.04) > 0.47) continue;
     const gr = grp(gp, x, z, ry, Y0);
-    box(gr, c, 0, 0, 0, w, hh, 0.08);
+    box(gr, c, 0, 0, 0, w, hh, dp);
     // Rusticated granite base, a grid of tall windows, cornice
-    box(gr, shade(c, 0.88), 0, 0, 0.0005, w + 0.002, 0.016, 0.081);
+    box(gr, shade(c, 0.88), 0, 0, 0.0005, w + 0.002, 0.016 * bs, dp + 0.001);
     const nf = Math.max(3, Math.round((hh - 0.02) / 0.016)), nc = Math.max(3, Math.round(w / 0.011));
-    for (let f = 0; f < nf; f++) for (let k = 0; k < nc; k++) box(gr, '#4a4a46', -w / 2 + ((k + 0.5) / nc) * w, 0.02 + f * 0.016, 0.0402, w / nc * 0.45, 0.009, 0.002);
-    box(gr, shade(c, 0.82), 0, hh, 0, w + 0.004, 0.004, 0.084);
+    for (let f = 0; f < nf; f++) for (let k = 0; k < nc; k++) box(gr, '#4a4a46', -w / 2 + ((k + 0.5) / nc) * w, 0.02 + f * 0.016, dp / 2 + 0.0002, w / nc * 0.45, 0.009, 0.002);
+    box(gr, shade(c, 0.82), 0, hh, 0, w + 0.004, 0.004 * bs, dp + 0.004);
     if (kind === 'clock') {
       // Customs House (1927): square clock tower in stages
-      box(gr, c, 0, hh, 0.005, 0.032, 0.05, 0.032);
-      box(gr, shade(c, 0.9), 0, hh + 0.05, 0.005, 0.026, 0.018, 0.026);
-      cyl(gr, '#e9e4d6', 0, hh + 0.035, 0.0215, 0.009, 0.0015, 14).rotation.x = Math.PI / 2;
-      box(gr, shade(c, 0.85), 0, hh + 0.068, 0.005, 0.016, 0.01, 0.016);
-      cone(gr, '#6e6a62', 0, hh + 0.078, 0.005, 0.009, 0.012, 4, Math.PI / 4);
+      box(gr, c, 0, hh, 0.005, 0.032 * bs, 0.05 * bs, 0.032 * bs);
+      box(gr, shade(c, 0.9), 0, hh + 0.05 * bs, 0.005, 0.026 * bs, 0.018 * bs, 0.026 * bs);
+      cyl(gr, '#e9e4d6', 0, hh + 0.035 * bs, 0.005 + 0.0165 * bs, 0.009 * bs, 0.0015, 14).rotation.x = Math.PI / 2;
+      box(gr, shade(c, 0.85), 0, hh + 0.068 * bs, 0.005, 0.016 * bs, 0.01 * bs, 0.016 * bs);
+      cone(gr, '#6e6a62', 0, hh + 0.078 * bs, 0.005, 0.009 * bs, 0.012 * bs, 4, Math.PI / 4);
     } else if (kind === 'dome') {
       // HSBC Building (1923): drum and shallow dome
-      cyl(gr, c, 0, hh, 0, 0.022, 0.016, 14);
-      for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; cyl(gr, shade(c, 1.05), Math.cos(a) * 0.022, hh, Math.sin(a) * 0.022, 0.0016, 0.016, 5); }
-      lathe(gr, [[0.024, 0], [0.022, 0.012], [0.014, 0.022], [0, 0.026]], '#6f7a72', 0, hh + 0.016, 0, 14);
+      cyl(gr, c, 0, hh, 0, 0.022 * bs, 0.016 * bs, 14);
+      for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; cyl(gr, shade(c, 1.05), Math.cos(a) * 0.022 * bs, hh, Math.sin(a) * 0.022 * bs, 0.0016 * bs, 0.016 * bs, 5); }
+      lathe(gr, [[0.024 * bs, 0], [0.022 * bs, 0.012 * bs], [0.014 * bs, 0.022 * bs], [0, 0.026 * bs]], '#6f7a72', 0, hh + 0.016 * bs, 0, 14);
     } else if (kind === 'peace') {
       // Sassoon House / Peace Hotel (1929): copper-green pyramid roof
-      box(gr, c, 0, hh, 0, 0.03, 0.02, 0.03);
-      cone(gr, '#56786a', 0, hh + 0.02, 0, 0.024, 0.036, 4, Math.PI / 4);
+      box(gr, c, 0, hh, 0, 0.03 * bs, 0.02 * bs, 0.03 * bs);
+      cone(gr, '#56786a', 0, hh + 0.02 * bs, 0, 0.024 * bs, 0.036 * bs, 4, Math.PI / 4);
     }
+  }
+  if (roc) {
+    // 1920s dark-green Shanghai tramcar (有轨电车) with trolley pole on the Bund boulevard
+    const tr = grp(gp, -0.06, zc(-0.06) + RW + 0.055, ry, Y0);
+    rbox(tr, '#234d36', 0, 0.004, 0, 0.085, 0.026, 0.026, 0.003);
+    box(tr, '#e8dcc0', 0, 0.016, 0, 0.086, 0.009, 0.027);
+    rbox(tr, '#5c4028', 0, 0.03, 0, 0.078, 0.005, 0.024, 0.002);
+    rod(tr, [0, 0.035, 0], [-0.02, 0.056, 0], 0.0012, '#3a3a3a', 4);
   }
   // Promenade lamps, strollers and boats on the Huangpu
   for (let i = 0; i < 9; i++) {

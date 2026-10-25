@@ -421,7 +421,39 @@ function bowGable(p: THREE.Object3D, x: number, y: number, z: number, d: number,
   const c = slab(gr, [...arc(0.005), ...arc(-0.001).reverse()], 0.013, cap, 0, false);
   c.rotation.y = Math.PI / 2;
 }
-const lf_academy: Builder = gp => {
+const lf_academy: Builder = (gp, r) => {
+  if (r.style === 'jixia') {
+    // Warring States Qi Jixia Academy (齐国临淄稷下学宫·百家争鸣): a grand high-terrace lecture hall (高台讲堂)
+    // outside the Ji Gate of Linzi, flanked by twin watch-towers (稷门双阙), a bronze tripod and bell rack in the
+    // courtyard, and low lacquer bamboo-slip tables where scholars of the Hundred Schools debate.
+    ground(gp, '#9a8668');
+    const col = '#8b241c', tile = '#3b4248', wall = '#dfd4be';
+    // Two-tier rammed-earth platform (战国高台基座) with stepped stone stairways
+    box(gp, '#9a8262', 0, Y0, -0.1, 0.56, 0.06, 0.34);
+    box(gp, '#a89070', 0, Y0 + 0.06, -0.11, 0.44, 0.045, 0.25);
+    for (let i = 0; i < 6; i++) {
+      box(gp, '#b49e7e', 0, Y0 + i * 0.017, 0.095 - i * 0.014, 0.14, 0.017, 0.022);
+    }
+    // Main Jixia Lecture Hall (稷下大讲堂): deep timber colonnade with cinnabar pillars and bronze-gray tile hip roof
+    const hy = Y0 + 0.105;
+    xhall(gp, 0, hy, -0.11, 0.36, 0.18, 0.11, { roof: 'hip', tile, wall, col, band: '#5c281d', rh: 0.075, ncol: 6 });
+    // Twin Ji-Gate Que watchtowers (稷门双阙) flanking the front courtyard
+    for (const sx of [-1, 1]) {
+      const qx = sx * 0.27, qz = 0.22;
+      box(gp, '#9a8262', qx, Y0, qz, 0.11, 0.11, 0.11);
+      xhall(gp, qx, Y0 + 0.11, qz, 0.09, 0.09, 0.065, { roof: 'hip', tile, wall, col, band: '#5c281d', rh: 0.045, ncol: 2 });
+    }
+    // Debate court (论道广场): ceremonial bronze tripod ding + low lacquer tables with bamboo slips + debating scholars
+    cyl(gp, '#5a7866', 0, Y0 + 0.018, 0.16, 0.026, 0.03, 10);
+    for (const sx of [-1, 1]) {
+      for (const dz of [0.1, 0.22]) {
+        box(gp, '#3d1c16', sx * 0.13, Y0 + 0.008, dz, 0.075, 0.016, 0.042);
+        box(gp, '#c8a86b', sx * 0.13, Y0 + 0.018, dz, 0.052, 0.004, 0.028);
+        human(gp, sx * 0.13, Y0, dz - sx * 0.036, { h: 0.036, pose: 'point', ry: sx < 0 ? 0.6 : -2.2, top: sx < 0 ? '#243b53' : '#5a3a22', bottom: '#d8d0bc', hair: '#1c1714', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
+      }
+    }
+    return;
+  }
   ground(gp, SITE.grass);
   const wall = '#dcd7cb', tile = '#5d6266', col = '#7a3528', dark = '#33261e';
   const pave: Paint = (x, _y, z, _nx, ny) => (ny < 0.5 ? null : Math.abs(x) < 0.025 ? '#9a9488' : hash3(Math.floor(x / 0.02), 0, Math.floor(z / 0.02)) > 0.5 ? SITE.paving : '#a19c90');
@@ -497,7 +529,48 @@ function frust(p: THREE.Object3D, bot: [number, number][], top: [number, number]
   }
   return skin(p, rings, c, { caps: true, flat: true, paint });
 }
-const lf_guanxing: Builder = gp => {
+const lf_guanxing: Builder = (gp, r) => {
+  if (r.style === 'taosi') {
+    // Taosi Ancient Solar Observatory & Xia Xiaozheng (山西襄汾陶寺观象台与《夏小正》, c. 2100 BCE):
+    // Three concentric semicircular rammed-earth terraces topped by an arc of 13 tall rammed-earth/stone pillars
+    // forming 12 narrow viewing slits (观测缝) aligned with the winter-to-summer solstice sunrises over Mt. Chongfeng,
+    // and a central circular gnomon observation point (立表观测原心) with radiant sightlines.
+    ground(gp, '#9e8462');
+    const oz = 0.19;
+    // Three concentric semicircular stepped rammed-earth terraces (三层半圆形夯土台基)
+    for (const [rad, h, w, col] of [[0.38, 0.032, 0.068, '#8c7252'], [0.3, 0.064, 0.062, '#9c8260'], [0.21, 0.048, 0.056, '#ab916e']] as const) {
+      const segs = 16;
+      for (let i = 0; i < segs; i++) {
+        const a = -Math.PI * 0.08 - ((i + 0.5) / segs) * Math.PI * 0.84;
+        const sx = Math.cos(a) * rad, sz = oz + Math.sin(a) * rad;
+        const S = grp(gp, sx, sz, -a - Math.PI / 2, Y0);
+        box(S, i % 2 ? col : shade(col, 0.96), 0, 0, 0, w, h, (rad * Math.PI * 0.84) / segs + 0.008);
+      }
+    }
+    // Circular central observation point (观测原心: three concentric rammed-earth rings + 立表槷表)
+    const oy = Y0 + 0.032;
+    cyl(gp, '#ab916e', 0, Y0, oz, 0.14, 0.032, 20);
+    for (const [cr, cc] of [[0.082, '#6b533b'], [0.054, '#c4a67a'], [0.025, '#4a3525']] as const) {
+      cyl(gp, cc, 0, oy, oz, cr, 0.008, 16);
+    }
+    cyl(gp, '#8b241c', 0, oy + 0.008, oz, 0.01, 0.12, 8);
+    // 13 tall rammed-earth/stone observation pillars (十三根夯土观测柱, forming 12 calendar slits for 20 solar terms)
+    const arcR = 0.305, py = Y0 + 0.064;
+    for (let i = 0; i < 13; i++) {
+      const a = -Math.PI * 0.11 - (i / 12) * Math.PI * 0.78;
+      const px = Math.cos(a) * arcR, pz = oz + Math.sin(a) * arcR;
+      const ph = 0.18 + (i === 0 || i === 6 || i === 12 ? 0.028 : 0);
+      const P = grp(gp, px, pz, -a - Math.PI / 2, py);
+      box(P, i % 2 ? '#8f7453' : '#9c805e', 0, 0, 0, 0.044, ph, 0.028);
+      box(P, '#755c3f', 0, ph, 0, 0.048, 0.012, 0.032);
+    }
+    // Three solar sightlines (冬至、春秋分、夏至日出观测线) radiating from the central gnomon through the slits
+    for (const idx of [0.5, 6.0, 11.5]) {
+      const a = -Math.PI * 0.11 - (idx / 12) * Math.PI * 0.78;
+      rod(gp, [0, oy + 0.012, oz], [Math.cos(a) * 0.39, py + 0.008, oz + Math.sin(a) * 0.39], 0.004, idx === 6 ? '#eab308' : '#d97706', 4);
+    }
+    return;
+  }
   ground(gp, SITE.grass);
   const pave: Paint = (x, _y, z, _nx, ny) => (ny < 0.5 ? null : hash3(Math.floor(x / 0.016), 3, Math.floor(z / 0.011)) > 0.5 ? '#9c978c' : '#928d82');
   pbox(gp, SITE.paving, 0, Y0 - 0.001, 0.07, 0.12, 0.003, 0.74, pave, 0.011);
@@ -1387,6 +1460,117 @@ const lf_pavilion: Builder = (gp, r) => {
   }
 };
 
+// ---------------------------------------------------------------------------------------------------------
+// 应县木塔 — Sakyamuni Pagoda of Fogong Temple, Yingxian, Shanxi (Liao, 1056 AD): world's tallest all-timber
+// pagoda (67.31 m), octagonal, 5 visible storeys with 4 hidden structural mezzanines ("五明四暗"), double eave on
+// the ground floor (副阶周匝), red columns, white plaster walls, balconied pingzuo railings, and tall iron spire.
+const lf_yingxian: Builder = gp => {
+  ground(gp, SITE.paving);
+  // Two-tier stone platform: square lower terrace + octagonal upper terrace (阶基)
+  pbox(gp, '#a8a090', 0, Y0, -0.04, 0.42, 0.016, 0.42, brickPaint('#9e9686', '#b4ac9c', 0.006), 0.014);
+  poly(gp, 8, 0.2, 0.195, 0.018, 0, Y0 + 0.016, -0.04, '#b5ad9c', ringPaint('#989080', 32), 1, 3);
+  stairs(gp, 0, Y0, Y0 + 0.034, 0.15, 0.07, 0.05, '#b5ad9c', 5);
+  const pg = grp(gp, 0, -0.04, 0, Y0 + 0.034);
+  const red = '#8c2d22', wall = '#e4dccb', tile = '#4a4e54', rib = '#62676e', under = '#5a281e';
+  let y = 0;
+  // 5 visible storeys (明层) + 4 hidden pingzuo mezzanines (暗层)
+  for (let i = 0; i < 5; i++) {
+    const R = 0.135 - i * 0.012, h = i === 0 ? 0.068 : 0.048 - i * 0.003;
+    // Main octagonal timber body with white plaster walls and red corner columns
+    poly(pg, 8, R * 0.94, R * 0.93, h, 0, y, 0, wall, (x, py, z, _nx, ny) => {
+      if (Math.abs(ny) > 0.6) return null;
+      const a = ((Math.atan2(z, x) + TAU) % (TAU / 8)) / (TAU / 8);
+      if (a < 0.14 || a > 0.86) return red;
+      if (Math.abs(a - 0.5) < 0.18 && py > h * 0.12 && py < h * 0.82) return '#5c1e16';
+      return wall;
+    }, 3, 4);
+    for (let k = 0; k < 8; k++) {
+      const va = (k * Math.PI) / 4 + Math.PI / 8;
+      cyl(pg, red, Math.cos(va) * R * 0.95, y, Math.sin(va) * R * 0.95, 0.004, h, 6);
+    }
+    // Ground storey outer ambulatory gallery (副阶周匝 lower eave)
+    if (i === 0) {
+      for (let k = 0; k < 8; k++) {
+        const va = (k * Math.PI) / 4 + Math.PI / 8;
+        cyl(pg, red, Math.cos(va) * 0.168, 0, Math.sin(va) * 0.168, 0.0035, 0.036, 6);
+      }
+      proof(pg, 0, 0.036, 0, { n: 8, R0: 0.21, R1: 0.138, h: 0.018, lift: 0.2, tile, rib, under });
+    }
+    // Dougong bracket belt under the eave
+    poly(pg, 8, R * 0.96, R * 1.03, 0.009, 0, y + h, 0, red, ringPaint('#4a1812', 48), 1, 6);
+    // Iconic vertical calligraphy plaques ("释迦塔" on 3rd storey, "天下奇观" on 4th)
+    if (i === 2 || i === 3) {
+      box(pg, '#1c2842', 0, y + h * 0.45, R * 0.92, 0.018, 0.028, 0.005);
+      box(pg, '#d8aa38', 0, y + h * 0.47, R * 0.925, 0.012, 0.022, 0.003);
+    }
+    y = proof(pg, 0, y + h + 0.009, 0, {
+      n: 8, R0: R * 1.42, R1: i === 4 ? 0.008 : R * 0.88, h: i === 4 ? 0.052 : 0.02,
+      lift: 0.22, tile, rib, under,
+    });
+    // Pingzuo mezzanine (暗层) with red wooden balustrade between storeys 1..4
+    if (i < 4) {
+      const Rm = (R - 0.012) * 0.97, hm = 0.016;
+      poly(pg, 8, Rm, Rm, hm, 0, y - 0.003, 0, red, ringPaint('#541a12', 64), 1, 6);
+      poly(pg, 8, Rm * 1.04, Rm * 1.04, 0.006, 0, y + hm - 0.003, 0, '#b03a2a', ringPaint('#6a2018', 64), 1, 6);
+      y += hm;
+    }
+  }
+  // Tall Liao iron-and-gilt-bronze steeple (铁刹) with lotus base,相轮 rings, and 8 iron guy chains to corner eaves
+  lathe(pg, [[0, 0], [0.024, 0], [0.028, 0.01], [0.016, 0.022], [0.018, 0.055], [0.006, 0.085], [0, 0.105]], '#b88832', 0, y - 0.004, 0, 10);
+  for (let k = 0; k < 8; k++) {
+    const a = (k * Math.PI) / 4 + Math.PI / 8, Re = (0.135 - 4 * 0.012) * 1.38;
+    rod(pg, [0, y + 0.085, 0], [Math.cos(a) * Re, y - 0.042, Math.sin(a) * Re], 0.0012, '#4a443c', 3);
+  }
+  for (const [x, z] of [[-0.31, -0.18], [0.31, -0.18], [-0.28, 0.22], [0.28, 0.22]] as const) minipine(gp, x, Y0, z, 0.11);
+  human(gp, 0.03, Y0, 0.28, { h: 0.032, pose: 'pray', ry: Math.PI, top: '#7a482e', bottom: '#3a2c22', hair: null, dress: 'ankle', detail: 'lo' });
+};
+
+// ---------------------------------------------------------------------------------------------------------
+// 拜寺口双塔 — Twin Pagodas of Baisikou at the foot of the Helan Mountains, Ningxia (Western Xia, 12th–13th c.):
+// two 13-storey octagonal close-eave brick pagodas (密檐式砖塔) — the slender East Pagoda and fuller West Pagoda —
+// with colourful Western Xia relief niches and Tibetan-style gilt lotus-and-umbrella finials against craggy peaks.
+function stairs(p: THREE.Object3D, x: number, y0: number, y1: number, z0: number, w: number, run: number, c: string, n = 5): void {
+  for (let i = 0; i < n; i++) box(p, i % 2 ? shade(c, 0.94) : c, x, y0, z0 + (run * (i + 0.5)) / n, w, ((y1 - y0) * (n - i)) / n, run / n);
+}
+const lf_baisikou: Builder = gp => {
+  const Y = land(gp, 0.46, (x, z) => {
+    const mtn = Math.max(0, -z - 0.06) * 0.52 * (0.7 + 0.5 * Math.cos(x * 5)) + (fbm(x * 9, 2, z * 9) - 0.5) * 0.025;
+    return Math.max(0, mtn);
+  }, (x, y, z) => (y > Y0 + 0.045 ? shade('#7c7060', 0.85 + fbm(x * 16, y * 20, z * 16) * 0.3) : mix('#b49c74', '#7e8654', fbm(x * 10, 1, z * 10))));
+  const brick = '#b89e7e', eave = '#8c6e50', red = '#9a3428', teal = '#2e6e62';
+  // Build East Pagoda (+x, slenderer) and West Pagoda (-x, slightly fuller fusiform entasis)
+  for (const [tx, tz, rScale, entasis] of [[-0.145, 0.05, 1.06, 0.012], [0.145, 0.05, 0.95, 0.004]] as const) {
+    const by = Y(tx, tz);
+    const P = grp(gp, tx, tz, 0, by);
+    // Octagonal stone & brick pedestal
+    poly(P, 8, 0.088 * rScale, 0.084 * rScale, 0.022, 0, 0, 0, '#9a9080', ringPaint('#7e7466', 24), 1, 3);
+    // Tall 1st storey shaft with arched niche (券门) and polychrome Western Xia pediment
+    const h1 = 0.068, R1 = 0.068 * rScale;
+    poly(P, 8, R1, R1 * 0.98, h1, 0, 0.022, 0, brick, brickPaint(brick, '#cbb494', 0.005), 4, 3);
+    box(P, red, 0, 0.024, R1 * 0.92, 0.026, 0.042, 0.006);
+    box(P, '#221814', 0, 0.024, R1 * 0.94, 0.016, 0.032, 0.005);
+    box(P, teal, 0, 0.066, R1 * 0.93, 0.03, 0.008, 0.006);
+    // 13 closely stacked corbelled brick eaves (十三层密檐)
+    let py = 0.022 + h1;
+    for (let i = 0; i < 13; i++) {
+      const t = i / 12, belly = Math.sin(t * Math.PI) * entasis;
+      const Rm = (0.066 - t * 0.024) * rScale + belly, hm = 0.015 - t * 0.0025;
+      // Corbelled brick eave (叠涩挑檐) + recessed shadow course
+      poly(P, 8, Rm * 1.24, Rm * 0.94, hm * 0.52, 0, py, 0, i % 2 ? '#6e523a' : eave, ringPaint(red, 32), 1, 3);
+      poly(P, 8, Rm * 0.91, Rm * 0.91, hm * 0.48, 0, py + hm * 0.52, 0, '#cab08e', brickPaint('#cab08e', undefined, 0.004), 1, 2);
+      py += hm;
+    }
+    // Red-and-gilt Tibetan-Xia lotus umbrella spire (刹座与相轮宝顶)
+    lathe(P, [[0, 0], [0.028, 0], [0.032, 0.01], [0.018, 0.02], [0.022, 0.038], [0.008, 0.058], [0, 0.072]], '#c88a2e', 0, py, 0, 10);
+    lathe(P, [[0, 0], [0.024, 0.004], [0.016, 0.024], [0, 0.03]], red, 0, py + 0.008, 0, 10);
+  }
+  // Low stone prayer wall and figures between the twin pagodas
+  pbox(gp, '#948876', 0, Y(0, 0.16), 0.16, 0.09, 0.014, 0.05, brickPaint('#948876', '#a89c8a', 0.005), 0.01);
+  human(gp, -0.03, Y(-0.03, 0.24), 0.24, { h: 0.034, pose: 'pray', ry: Math.PI, top: '#8a3828', bottom: '#3a2c22', hair: '#1c1714', dress: 'ankle', detail: 'lo' });
+  for (const [x, z] of [[-0.32, 0.16], [0.32, 0.14], [-0.24, -0.18], [0.25, -0.16]] as const) minipine(gp, x, Y(x, z), z, 0.095);
+};
+
 export const H_LIFE_ARCH2: Record<string, Builder> = {
   lf_huqiu, lf_tieta, lf_academy, lf_guanxing, lf_baita, lf_tulou, lf_yiheyuan, lf_siheyuan, lf_zhongshanling, lf_honglou, lf_pavilion,
+  lf_yingxian, lf_baisikou,
 };

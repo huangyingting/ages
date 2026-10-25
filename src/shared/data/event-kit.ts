@@ -49,7 +49,7 @@ export function ev(e: EvIn): HistEvent {
   return {
     id: e.id, scope: 'china', year: e.y, end: e.end, kind: e.k, lon, lat, place, weight: e.w,
     title: i18(e.t), summary: i18(e.s), points: e.p.map(i18), curriculum: parseCurriculum(e.c),
-    model: typeof e.m === 'string' ? { kind: e.m } : e.m,
+    model: typeof e.m === 'string' ? { kind: e.m, year: e.y } : e.m ? { year: e.y, ...e.m } : undefined,
     wiki: e.wiki ? { zh: e.wiki[0], en: e.wiki[1] } : undefined,
     people: e.who?.map(i18),
     story: e.story,

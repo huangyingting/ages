@@ -18,7 +18,7 @@ const person = (k: string): ModelRecipe => {
   const prop = flags.find(f => f !== 'female');
   return { kind: 'person', role, ...(y ? { year: Number(y) } : {}), ...(prop ? { prop } : {}), ...(flags.includes('female') ? { female: true } : {}) };
 };
-const list: ModelRecipe[] = (q.get('k')?.split(',') ?? Object.keys(BUILDERS)).map(k => (k.startsWith('traveller:') ? journey(k) : k.includes('/') ? { kind: 'palace', hero: k } : k.startsWith('person:') ? person(k) : { kind: k }));
+const list: ModelRecipe[] = (q.get('k')?.split(',') ?? Object.keys(BUILDERS)).map(k => (k.startsWith('traveller:') ? journey(k) : k.includes('/') ? (() => { const [hero, style] = k.split(':'); return { kind: 'palace', hero, ...(style ? { style } : {}), label: k }; })() : k.startsWith('person:') ? person(k) : k.includes(':') && !k.startsWith('troop:') ? (() => { const [kind, style] = k.split(':'); return { kind, style, label: k }; })() : { kind: k }));
 const canvas = document.getElementById('c') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1);

@@ -102,7 +102,7 @@ export const EVENTS_EARLY: HistEvent[] = [
       'Confucius founded Confucianism, teaching benevolence (ren) and rule by virtue. He opened private schools for all; his sayings are collected in the Analects.'],
     p: [['仁、为政以德', 'benevolence, rule by virtue'], ['有教无类、因材施教', 'education for all, teach to the student'], ['《论语》', 'The Analects']],
     wiki: ['孔子', 'Confucius'] }),
-  ev({ id: 'tieli', y: -500, k: 'economy', at: 'linzi', w: 2, m: 'scroll', c: 'g7a.2 hs1.1',
+  ev({ id: 'tieli', y: -500, k: 'economy', at: 'linzi', w: 2, m: { kind: 'chariot', style: 'plough' }, c: 'g7a.2 hs1.1',
     t: ['铁犁牛耕', 'Iron ploughs and oxen'],
     s: ['春秋时期出现铁农具和牛耕，战国时期得到推广，大大提高了农业生产力，推动井田制瓦解。',
       'Iron tools and ox ploughing appeared in the Spring & Autumn period and spread in the Warring States, boosting farming.'],

@@ -75,13 +75,33 @@ const isLandmark = (m: ModelRecipe | undefined): m is ModelRecipe =>
 const near = (a: { lon: number; lat: number }, b: { lon: number; lat: number }, d: number) => Math.hypot(a.lon - b.lon, a.lat - b.lat) < d;
 
 /**
+ * Dynasty affinity for events on boundary years or during multi-regime periods (Song / Liao / Western Xia / Jin),
+ * preventing one regime's events and historical figures from spilling onto another regime's map.
+ */
+const EVENT_ERA: Record<string, string | string[]> = {
+  xia_found: 'xia', shang_found: 'shang', muye: 'wzhou', qin_unify: 'qin',
+  sanguo: 'sanguo', wjin_unify: 'wjin', sui_unify: 'sui',
+  liao_found: 'liao', song_found: 'bsong', chanyuan: 'bsong',
+  jiaozi: 'bsong', xixia_found: 'xixia', bisheng: 'bsong', wanganshi: 'bsong',
+  jin_found: 'jin', qingming: 'bsong', jingkang: ['bsong', 'nsong', 'jin'],
+  yuefei: 'nsong', south_shift: 'nsong', genghis: 'yuan',
+  yuan_found: 'yuan', marco_polo: 'yuan', ming_found: 'ming',
+  li_zicheng: 'ming', roc_found: 'roc', dujiang: 'roc', founding: 'prc',
+};
+
+/**
  * The scenery for a dynasty: landmarks of its key (non-war) textbook events — buildings, works, ships, inventions — and
  * its famous people in period dress standing beside them. Most important events first; nothing piles up on the capital
  * (which has its own palace) or on another landmark.
  */
 export function sceneryOf(era: Era, events: HistEvent[] = EVENTS): SceneryItem[] {
+  const inEra = (e: HistEvent) => {
+    const pin = EVENT_ERA[e.id];
+    if (pin) return Array.isArray(pin) ? pin.includes(era.id) : pin === era.id;
+    return e.year >= era.start && e.year <= era.end;
+  };
   const list = events
-    .filter(e => e.scope === era.scope && !e.source && e.year >= era.start && e.year <= era.end)
+    .filter(e => e.scope === era.scope && !e.source && inEra(e))
     .sort((a, b) => a.weight - b.weight || Number(!!b.model?.hero) - Number(!!a.model?.hero) || a.year - b.year);
   const cap = era.capital ? PLACE.get(era.capital) : undefined;
   const taken: Pt[] = cap ? [cap] : [];

@@ -408,18 +408,43 @@ export const SITE = {
 /** The one plinth side colour every model shares (dark walnut-brown, like a museum diorama base). */
 export const PLINTH_SIDE = '#4e3d30';
 
+function defaultPlinthPaint(top: string, R: number): Paint {
+  return (x, _y, z) => {
+    const r = Math.hypot(x, z);
+    if (r > R * 0.91 && r < R * 0.94) return shade(top, 0.86);
+    if (top === SITE.water) {
+      const w = Math.sin(r * 46) * 0.04 + (fbm(x * 12, 0.2, z * 12, 2) - 0.5) * 0.14;
+      return shade(top, 0.94 + w);
+    }
+    if (top === SITE.paving || top === SITE.stone || top === SITE.court) {
+      const s = 22, gx = x * s, gz = z * s;
+      const ix = Math.floor(gx), iz = Math.floor(gz);
+      const fx = gx - ix, fz = gz - iz;
+      if (fx < 0.09 || fz < 0.09) return shade(top, 0.87);
+      return shade(top, 0.94 + hash3(ix, iz, 11) * 0.12);
+    }
+    if (top === SITE.grass || top === SITE.meadow || top === SITE.rice) {
+      const n = fbm(x * 9, 0.4, z * 9, 3);
+      const base = n > 0.56 ? mix(top, SITE.earth, (n - 0.56) * 0.7) : top;
+      return shade(base, 0.91 + fbm(x * 22, 1.3, z * 22, 2) * 0.18);
+    }
+    const n = fbm(x * 10, 0.7, z * 10, 3);
+    const ring = Math.sin(r * 34) * 0.025;
+    return shade(top, 0.91 + n * 0.18 + ring);
+  };
+}
+
 /**
  * The shared map-model base: a low bevelled disc (radius R, height h) with a uniform dark side and a site-coloured
- * top (`top` from SITE, optionally painted per vertex). Returns the top height. Every map diorama stands on this.
+ * top (`top` from SITE, painted per vertex with `o.paint` or a natural procedural ground texture). Returns the top height.
  */
 export function plinth(p: THREE.Object3D, top: string = SITE.earth, o: { R?: number; h?: number; paint?: Paint; seg?: number } = {}): number {
   const R = o.R ?? 0.46, h = o.h ?? 0.035, seg = o.seg ?? 56;
   lathe(p, [[0, 0], [R * 0.97, 0], [R, h * 0.18], [R, h * 0.7], [R * 0.985, h * 0.92], [R * 0.965, h], [0, h]], PLINTH_SIDE, 0, 0, 0, seg);
-  if (o.paint) {
-    const geo = new THREE.RingGeometry(0.0005, R * 0.965, seg, 10);
-    geo.rotateX(-Math.PI / 2);
-    add(p, paintFaces(geo, top, o.paint), mat('#ffffff', { vc: true, rough: 0.92 }), 0, h + 0.0015, 0, 1, 1, 1);
-  } else lathe(p, [[0, h], [R * 0.965, h], [0, h + 0.0015]], top, 0, 0, 0, seg);
+  const rings = o.paint ? 10 : 6;
+  const geo = new THREE.RingGeometry(0.0005, R * 0.965, seg, rings);
+  geo.rotateX(-Math.PI / 2);
+  add(p, paintFaces(geo, top, o.paint ?? defaultPlinthPaint(top, R)), mat('#ffffff', { vc: true, rough: top === SITE.water ? 0.22 : 0.9 }), 0, h + 0.0015, 0, 1, 1, 1);
   return h;
 }
 

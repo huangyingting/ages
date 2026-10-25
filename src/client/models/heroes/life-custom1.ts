@@ -439,7 +439,68 @@ function whiteHe(p: O, x: number, y: number, z: number, s: number, ry: number): 
   tube(H, [[-4.2, 16, 0], [-6.8, 15, 0], [-7.2, 10.5, 0], [-5.2, 8.6, 0]], 0.75, 0.75, C, { radial: 6, sub: 3 }).scale.z = 1.6;
 }
 // Ref: Commons "Bronze jue, Erlitou culture" / Shang jia photos — tall blade legs, long spout, grey-green patina.
-const lf_jue: Builder = gp => {
+const lf_jue: Builder = (gp, r) => {
+  if (r?.style === 'dragon') {
+    // 绿松石龙形器 — Erlitou Culture Turquoise Dragon (Tomb M3, Yanshi, Henan): ~2,000 blue-green turquoise
+    // tesserae laid on a cinnabar-stained burial mat, with a trapezoidal head, garlic-bulb nose, white jade eyes,
+    // undulating S-curved body, and a bronze bell (铜铃) at its flank.
+    const Y = ground(gp, 0.46, '#7e664a', '#52402e', 0.03, (x, _y, z) => {
+      const d = Math.hypot(x * 0.9, z);
+      if (d < 0.34) return fbm(x * 18, 2, z * 18) > 0.45 ? '#8e3024' : '#74281e'; // cinnabar bed (朱砂铺底)
+      return fbm(x * 10, 0, z * 10, 2) > 0.55 ? '#8a7254' : null;
+    });
+    // Woven burial mat border under the cinnabar bed
+    const MW = 0.72, MD = 0.46, MY = Y + 0.004;
+    for (let i = 0; i < 44; i++) {
+      const x = -MW / 2 + (i + 0.5) * (MW / 44);
+      cb(gp, i % 2 ? '#8c3426' : '#7a2c20', x, MY, 0, MW / 44, 0.003, MD);
+    }
+    for (const sz of [-1, 1]) cb(gp, '#6e583a', 0, MY + 0.001, sz * MD / 2, MW + 0.01, 0.005, 0.012);
+    for (const sx of [-1, 1]) cb(gp, '#6e583a', sx * MW / 2, MY + 0.001, 0, 0.012, 0.005, MD + 0.01);
+    const DY = MY + 0.004, turq = '#249682', turq2 = '#36b59e', jade = '#e8e4d4', red = '#a83224';
+    // Undulating S-curved dragon body composed of mosaic-painted turquoise segments
+    const pts: V3[] = [];
+    for (let i = 0; i <= 28; i++) {
+      const t = i / 28, x = -0.24 + t * 0.5, z = Math.sin(t * Math.PI * 2.3) * 0.095 * (1 - t * 0.3);
+      pts.push([x, DY + 0.012 * (1 - t * 0.45), z]);
+    }
+    sweep(gp, pts.map((p, i) => {
+      const t = i / 28, w = (0.044 * (1 - t * 0.65) + 0.008);
+      return { p, w, h: w * 0.52 };
+    }), turq, { radial: 10, sub: 2 });
+    // Individual raised turquoise tesserae tiles (绿松石片) along the spine and flanks
+    for (let i = 0; i < 26; i++) {
+      const t = i / 26, x = -0.23 + t * 0.47, z = Math.sin(t * Math.PI * 2.3) * 0.095 * (1 - t * 0.3);
+      const w = 0.036 * (1 - t * 0.6) + 0.006;
+      for (const s of [-1, 0, 1]) {
+        const c = (i + s) % 3 === 0 ? turq2 : (i + s) % 2 === 0 ? turq : '#1b7a68';
+        cb(gp, c, x, DY + 0.02 - t * 0.006 - Math.abs(s) * 0.003, z + s * w * 0.52, 0.014, 0.006, w * 0.44, -Math.cos(t * Math.PI * 2.3) * 0.45);
+      }
+    }
+    // Trapezoidal dragon head at left (-x): broad forehead, white jade eyes, red-and-turquoise garlic-bulb snout
+    const hx = -0.255, hz = 0.01;
+    cb(gp, turq, hx, DY + 0.018, hz, 0.075, 0.026, 0.092, 0.15);
+    for (let ix = -2; ix <= 2; ix++) for (let iz = -2; iz <= 2; iz++) {
+      cb(gp, (ix + iz) % 2 ? turq2 : turq, hx + ix * 0.013, DY + 0.032, hz + iz * 0.016, 0.011, 0.005, 0.013, 0.15);
+    }
+    for (const sz of [-1, 1]) {
+      el(gp, jade, hx + 0.008, DY + 0.034, hz + sz * 0.028, 0.011, 0.006, 0.011);
+      dot(gp, turq, hx + 0.008, DY + 0.038, hz + sz * 0.028, 0.0045);
+      // Whisker/horn scrolls flanking the head
+      tube(gp, [[hx + 0.01, DY + 0.014, hz + sz * 0.045], [hx - 0.02, DY + 0.014, hz + sz * 0.085], [hx + 0.02, DY + 0.014, hz + sz * 0.105]], 0.008, 0.005, turq2, { radial: 6, sub: 3 });
+    }
+    // Garlic-bulb nose (蒜头状鼻端) and long median nasal ridge
+    rod(gp, [hx + 0.025, DY + 0.036, hz], [hx - 0.045, DY + 0.034, hz - 0.006], 0.007, jade, 6);
+    el(gp, red, hx - 0.052, DY + 0.026, hz - 0.008, 0.018, 0.015, 0.022);
+    el(gp, turq2, hx - 0.052, DY + 0.036, hz - 0.008, 0.012, 0.008, 0.014);
+    // Bronze bell (铜铃) with loop handle resting beside the dragon's waist
+    const bx = -0.02, bz = -0.11;
+    lathe(gp, [[0, 0], [0.028, 0.002], [0.024, 0.032], [0.018, 0.048], [0, 0.05]], '#4a7c66', bx, DY, bz, 12);
+    torus(gp, '#3e6b58', bx, DY + 0.054, bz, 0.01, 0.28);
+    // Companion Erlitou bronze jue at the corner
+    erlitouJue(gp, 0.22, DY, -0.13, 0.011, -0.4);
+    return;
+  }
   const Y = ground(gp, 0.46, '#8a7456', '#5e4c38', 0.03, (x, _y, z) => {
     const n = fbm(x * 10, 0, z * 10, 2);
     return Math.abs(x) < 0.38 && Math.abs(z - 0.02) < 0.25 ? null : n > 0.62 ? '#94805e' : n < 0.36 ? '#7c684c' : null;
@@ -832,7 +893,43 @@ function horseArcher(p: O, x: number, y: number, z: number, ry: number, s: numbe
   for (let i = 0; i < 4; i++) rod(H, [0.07 + (i - 1.5) * 0.006, seat + 0.03, -0.1], [0.07 + (i - 1.5) * 0.006, seat + 0.06, -0.08], 0.003, '#e9e2cf', 3);
 }
 // Ref: Commons "Mounted archer, China, Han dynasty, c. 50 BC - 50 AD, glazed earthenware - ROM" — rider turning to shoot, short coat.
-const lf_hufu: Builder = gp => {
+const lf_hufu: Builder = (gp, r) => {
+  if (r?.style === 'tieyaozi') {
+    // 西夏铁鹞子 — Western Xia "Iron Hawks" Heavy Cavalry: barded warhorses in dark cold-forged iron lamellar
+    // armor (冷锻铁甲) with red-tasselled iron chanfrons, Tangut cataphract riders strapped to high saddles with
+    // 钩络带, wearing red-crested conical helmets and long iron lamellar coats, charging with lances & flags.
+    const Y = ground(gp, 0.46, '#9c8866', '#62543e', 0.03, (x, _y, z) => {
+      const n = fbm(x * 8, 1, z * 8, 3);
+      return n > 0.58 ? '#ab9672' : n < 0.36 ? '#867454' : null;
+    });
+    const iron = '#32363c', red = '#a82c22', gold = '#d4a238';
+    const cataphract = (cx: number, cz: number, ry: number, s: number, coat: string) => {
+      const G = grp(gp, cx, Y, cz, ry, s);
+      const seat = horse(G, coat, '#1e1814', { stride: 0.08, saddle: red, cloth: iron });
+      // Iron lamellar horse barding (具装马铠: 鸡颈, 当胸, 马身甲, 搭后) + chanfron mask (马面具) with red plume
+      cb(G, iron, 0, 0.34, 0.02, 0.16, 0.16, 0.4);
+      for (let i = -3; i <= 3; i++) cb(G, i % 2 ? '#24282e' : '#424750', 0, 0.27, i * 0.054, 0.168, 0.085, 0.04);
+      cb(G, red, 0, 0.21, 0.02, 0.172, 0.022, 0.41);
+      cb(G, iron, 0, 0.52, 0.28, 0.072, 0.085, 0.1, 0, 0.45);
+      el(G, red, 0, 0.59, 0.26, 0.02, 0.034, 0.02);
+      // Heavy armored rider strapped to the saddle with 钩络带
+      const h = 0.54, y0 = seat - h * 0.45;
+      const R = man(G, 0, y0, -0.02, {
+        h, pose: 'sit', top: iron, bottom: '#26282c', hat: iron, hatStyle: 'helmet',
+        armor: gold, feet: [[-0.2, 0.05, 0.12], [0.2, 0.05, 0.12]],
+        hands: [[-0.14, 0.52, 0.16], [0.18, 0.58, 0.18]],
+      });
+      // Tall Tangut lance with red swallowtail pennant
+      rod(G, [R.handR[0], R.handR[1] - 0.1, R.handR[2] - 0.18], [R.handR[0] + 0.04, R.handR[1] + 0.24, R.handR[2] + 0.48], 0.008, '#5a3a22', 5);
+      rod(G, [R.handR[0] + 0.04, R.handR[1] + 0.24, R.handR[2] + 0.48], [R.handR[0] + 0.045, R.handR[1] + 0.28, R.handR[2] + 0.56], 0.011, '#c8ced6', 4);
+      cb(G, red, R.handR[0] + 0.04, R.handR[1] + 0.19, R.handR[2] + 0.42, 0.006, 0.055, 0.09);
+    };
+    cataphract(-0.1, 0.08, Math.PI * 0.35, 0.5, '#4a3222');
+    cataphract(0.16, -0.1, Math.PI * 0.32, 0.48, '#2c2420');
+    // Helan foothill rocks & Tangut war banner
+    for (let i = 0; i < 6; i++) rock(gp, '#7c7264', -0.32 + hash3(i, 4, 2) * 0.64, Y, -0.28 + hash3(i, 2, 7) * 0.52, 0.022, 0.014, 0.018, i, i, true);
+    return;
+  }
   const Y = ground(gp, 0.46, '#8c8a5e', '#5c5840', 0.03, (x, _y, z) => {
     const n = fbm(x * 7, 0, z * 7, 3);
     if (Math.abs(z - 0.06 - Math.sin(x * 4) * 0.03) < 0.08 + n * 0.03) return n > 0.5 ? '#9c8c68' : '#948462';

@@ -93,3 +93,19 @@ describe('period capitals', () => {
     }
   }, 120_000);
 });
+
+describe('period-dressed figures', () => {
+  it('builds dynasty-authentic ruler, scholar, general, woman and steppe outfits across eras', () => {
+    const years = [-1500, -150, 400, 700, 1060, 1290, 1500, 1750, 1925, 1980];
+    for (const year of years) {
+      for (const role of ['ruler', 'scholar', 'general', 'woman']) {
+        const g = buildFresh({ kind: 'person', role, year });
+        const s = stats(g);
+        expect(s.tris, `${role}@${year}`).toBeGreaterThan(200);
+        expect(s.tris, `${role}@${year}`).toBeLessThan(30_000);
+      }
+    }
+    const steppe = buildFresh({ kind: 'person', role: 'ruler', year: 1038, eth: 'steppe', prop: 'sword' });
+    expect(stats(steppe).tris).toBeGreaterThan(200);
+  });
+});

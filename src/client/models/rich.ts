@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { ModelRecipe } from '../../shared/data/types.ts';
 import {
-  type Builder, type V3, mat, box, tbox, cyl, cone, rbox, rod, skin, slab, lathe, gable, tube, shade, hash3, sweep, add, g, plinth, tree, SITE, PLINTH_SIDE, type Paint,
+  type Builder, type V3, mat, box, tbox, cyl, cone, rbox, rod, skin, slab, lathe, gable, tube, shade, hash3, fbm, paintFaces, sweep, add, g, plinth, tree, SITE, PLINTH_SIDE, type Paint,
 } from './prims.ts';
 import { human, type HumanOpts, type HumanPose } from './human.ts';
 import { figure, figureBase, headwear, type Hat } from './figure.ts';
@@ -284,6 +284,51 @@ const army: Builder = (gp, r) => {
 };
 
 const rider: Builder = (gp, r) => {
+  const style = str(r.style, '');
+  if (style === 'gallop') {
+    // 马踏飞燕 / 铜奔马 (Eastern Han, Leitai Han Tomb, Wuwei, Gansu): verdigris-patinated bronze galloping horse poised
+    // with only its right hind hoof touching the back of a spread-winged flying swallow (飞燕回首), three hooves airborne,
+    // head held high with open neighing mouth and wind-swept tail, mounted on a carved museum plinth.
+    const y0 = ground(gp, 0.44, SITE.stone);
+    rbox(gp, '#322b26', 0, y0, 0, 0.44, 0.028, 0.26, 0.005);
+    const py = y0 + 0.028, c = '#3d6b58', hi = '#5d8f78', lo = '#264236', br = '#7a6842';
+    // dynamic galloping bronze horse body, muscular arched neck, lifted head, and flying S-tail (turned sideways to show profile)
+    const H = grp(gp, 0, 0, Math.PI / 2 - 0.18, py);
+    // spread-winged bronze swallow (飞燕) on the pedestal under the right hind hoof
+    const swX = -0.02, swZ = -0.095;
+    bronze(ellip(H, lo, swX, 0.016, swZ, 0.022, 0.014, 0.042), lo);
+    bronze(ellip(H, hi, swX + 0.008, 0.025, swZ + 0.032, 0.012, 0.011, 0.014, 0, -0.5, 0), hi); // turned swallow head
+    for (const sx of [-1, 1]) {
+      bronze(box(H, c, swX + sx * 0.052, 0.018, swZ - 0.004, 0.072, 0.005, 0.028, 0, sx * 0.25, sx * 0.14), c);
+      bronze(box(H, lo, swX + sx * 0.016, 0.014, swZ - 0.048, 0.012, 0.004, 0.032, 0, sx * -0.22, 0), lo); // forked swallow tail
+    }
+    const bodyGeo = paintFaces(new THREE.SphereGeometry(1, 18, 12), c, (x, y, z) => {
+      const n = fbm(x * 8, y * 8, z * 8, 3);
+      return n > 0.62 ? hi : n < 0.34 ? br : shade(c, 0.88 + n * 0.24);
+    });
+    add(H, bodyGeo, mat('#ffffff', { vc: true, metal: 0.55, rough: 0.38 }), 0, 0.21, 0.01, 0.068, 0.072, 0.165);
+    bronze(ellip(H, hi, 0, 0.22, 0.12, 0.062, 0.068, 0.065), hi); // muscular chest
+    bronze(ellip(H, c, 0, 0.225, -0.11, 0.06, 0.065, 0.065), c); // croup
+    bronze(tube(H, [[0, 0.23, 0.13], [0, 0.31, 0.18], [0, 0.385, 0.205]], 0.042, 0.028, c, { radial: 8, sub: 4 }), c);
+    // hogged mane ridge (鬃毛) and alert head with open mouth and pricked ears
+    bronze(tube(H, [[0, 0.25, 0.11], [0, 0.33, 0.155], [0, 0.4, 0.185]], 0.01, 0.008, hi, { radial: 5, sub: 3 }), hi);
+    bronze(ellip(H, c, 0, 0.395, 0.235, 0.026, 0.028, 0.052, 0.28, 0, 0), c);
+    bronze(ellip(H, br, 0, 0.375, 0.272, 0.018, 0.012, 0.028, 0.48, 0, 0), br); // open lower jaw
+    for (const sx of [-1, 1]) cone(H, hi, sx * 0.016, 0.422, 0.205, 0.007, 0.026, 5);
+    // streaming bronze tail lifted in the wind
+    bronze(tube(H, [[0, 0.24, -0.16], [0, 0.285, -0.23], [0, 0.31, -0.29], [0, 0.28, -0.34]], 0.018, 0.007, hi, { radial: 6, sub: 4 }), hi);
+    // four legs in flying lateral gait: right hind leg planted on the swallow, the other three airborne!
+    const leg = (pts: V3[]) => {
+      bronze(tube(H, pts, 0.02, 0.011, c, { radial: 6, sub: 3 }), c);
+      const last = pts[pts.length - 1];
+      bronze(cyl(H, br, last[0], last[1] - 0.006, last[2], 0.013, 0.012, 7), br);
+    };
+    leg([[-0.032, 0.2, -0.11], [-0.026, 0.11, -0.125], [swX, 0.028, swZ]]); // right hind hoof on swallow
+    leg([[0.038, 0.21, -0.11], [0.042, 0.15, -0.19], [0.042, 0.14, -0.27]]); // left hind kicked back airborne
+    leg([[-0.038, 0.2, 0.13], [-0.042, 0.15, 0.22], [-0.042, 0.18, 0.29]]); // right fore reaching forward
+    leg([[0.038, 0.2, 0.12], [0.042, 0.13, 0.08], [0.042, 0.11, 0.01]]); // left fore tucked airborne
+    return;
+  }
   // A mounted warrior facing +z (fx carries it at the head of a route as the general). Default: a Tang–Song armoured
   // cavalryman (cf. the 昭陵 / 敦煌 murals and Song 武经总要) — iron lamellar 札甲 over a coat in the side's colour, helmet
   // with neck flaps, a long 马槊 lance with a red horsehair tassel and a swallow-tailed pennant, bow case (弓韬) and
@@ -291,11 +336,12 @@ const rider: Builder = (gp, r) => {
   // horse in lamellar barding too (Northern Wei, Jin 铁浮屠); 'nomad': a steppe horse archer (Xiongnu–Mongol) in a fur hat
   // and belted robe on a small stocky horse, composite bow in hand; 'qing': a Qing bannerman in studded 棉甲 and a
   // spiked helmet with bow and quiver. r.color: the side's colour.
-  const style = str(r.style, ''), team = str(r.color, style === 'nomad' ? '#3e4a6a' : '#a8352a');
+  const team = str(r.color, style === 'nomad' ? '#3e4a6a' : '#a8352a');
   const nomad = style === 'nomad', qing = style === 'qing', heavy = style === 'heavy';
+  const y0 = heavy && !r.bare ? ground(gp, 0.44, SITE.grass) : 0;
   const iron = '#5d5f62', leather = '#4a3020';
   const k = nomad ? 0.88 : 1;
-  const M = grp(gp, 0, 0, 0);
+  const M = grp(gp, 0, 0, 0, y0);
   M.scale.setScalar(k);
   const coat = str(r.coat, nomad ? '#8a7258' : qing ? '#e6e0d4' : '#5a3a24');
   const top = horse(M, coat, nomad ? '#3a2e24' : '#1c1410', { cloth: leather, saddle: '#3a2216' }) - 0.01;
@@ -314,7 +360,8 @@ const rider: Builder = (gp, r) => {
     cone(M, '#b02a22', x, y - 0.025, z, 0.008, 0.025, 5).rotation.x = Math.PI;
   }
   if (heavy) {
-    // 具装: lamellar barding — a skirt over the barrel and quarters (身甲, 搭后) and a chest guard (当胸)
+    // 具装: lamellar barding — a skirt over the barrel and quarters (身甲, 搭后) and a chest guard (当胸) +chamfron (马面帘)
+    box(M, iron, 0, top + 0.11, 0.34, 0.048, 0.095, 0.016, 0.55); // iron horse mask (马面帘)
     for (const sx of [-1, 1]) {
       const rings: V3[][] = [];
       for (let i = 0; i <= 18; i++) {
@@ -338,7 +385,7 @@ const rider: Builder = (gp, r) => {
     }), shade(iron, 0.8), { closed: false, flat: true });
   }
   // the rider
-  const h = 0.5 * k, seat = top * k + 0.01;
+  const h = 0.5 * k, seat = y0 + top * k + 0.01;
   const hands: [V3, V3] = nomad || qing ? [[-0.16, 0.55, 0.36], [0.12, 0.47, 0.22]] : [[-0.1, 0.42, 0.3], [0.13, 0.5, 0.18]];
   const R = human(gp, 0, seat - h * 0.45, -0.02 * k, {
     h, pose: 'sit', top: nomad ? team : qing ? shade(team, 0.85) : team, bottom: nomad ? '#4a3a2a' : '#3a3128', skin: '#c99872', hair: '#1c1714',
@@ -346,7 +393,7 @@ const rider: Builder = (gp, r) => {
     armor: nomad ? undefined : qing ? team : iron, armorTrim: nomad ? undefined : qing ? '#d6b04a' : shade(team, 0.8),
     detail: 'lo', build: 1.08, feet: [[-0.21, 0.04, 0.1], [0.21, 0.04, 0.1]], hands,
   });
-  rod(gp, R.handL, [0, top * k + 0.06, 0.28 * k], 0.002, '#2a1a10', 3);
+  rod(gp, R.handL, [0, y0 + top * k + 0.06, 0.28 * k], 0.002, '#2a1a10', 3);
   if (nomad || qing) {
     // composite recurved bow held up in the left hand, quiver on the right hip
     const [lx, ly, lz] = R.handL, bh = 0.13;
@@ -464,6 +511,55 @@ function teamHorse(H: THREE.Object3D, coat: string, mane: string, step = 1): voi
 }
 
 const chariot: Builder = (gp, r) => {
+  if (r.style === 'plough') {
+    // Spring & Autumn / Warring States Iron Plough and Ox (铁犁牛耕): furrowed brown earth ridges, a muscular draught
+    // ox wearing a wooden shoulder yoke (牛轭) pulling a curved wooden plough beam (犁辕) fitted with a gleaming
+    // cast-iron V-shaped ploughshare (铁铧冠) and mouldboard (犁壁), guided by a farmer holding the plough handle.
+    const y = ground(gp, 0.47, '#6b533b');
+    const G = grp(gp, 0.01, 0.01, -0.92, y);
+    for (let i = -4; i <= 4; i++) {
+      const fx = i * 0.058, turned = i <= 0;
+      box(G, turned ? '#4d3723' : '#7b6247', fx, 0, 0, 0.038, turned ? 0.016 : 0.008, 0.62);
+    }
+    // Muscular draught ox (耕牛) at z = +0.15 walking toward +z
+    const ox = grp(G, 0, 0.15, 0, 0);
+    const coat = '#4e3524', dark = '#362317', horn = '#dfd6c0', wood = '#734f30', iron = '#949ea8';
+    rbox(ox, coat, 0, 0.105, 0, 0.115, 0.115, 0.25, 0.032);
+    ellip(ox, coat, 0, 0.215, 0.065, 0.046, 0.032, 0.055); // shoulder hump (牛肩峰)
+    rbox(ox, shade(coat, 0.94), 0, 0.135, 0.145, 0.082, 0.08, 0.095, 0.022); // head
+    rbox(ox, '#3d281c', 0, 0.125, 0.195, 0.058, 0.045, 0.04, 0.012); // muzzle
+    for (const sx of [-1, 1]) {
+      rod(ox, [sx * 0.036, 0.205, 0.145], [sx * 0.088, 0.245, 0.175], 0.008, horn, 6);
+      ellip(ox, dark, sx * 0.048, 0.185, 0.135, 0.018, 0.009, 0.01);
+      for (const [lz, stride] of [[0.085, 0.022], [-0.085, -0.022]] as const) {
+        rod(ox, [sx * 0.042, 0.115, lz], [sx * 0.042, 0.005, lz + sx * stride], 0.014, dark, 6);
+      }
+    }
+    rod(ox, [0, 0.19, -0.125], [0, 0.08, -0.155], 0.006, dark, 5); // tail
+    // Wooden V-yoke (牛轭) on the ox's neck + hemp traction ropes (挽索)
+    rod(ox, [-0.07, 0.23, 0.095], [0.07, 0.23, 0.095], 0.009, wood, 5);
+    for (const sx of [-1, 1]) {
+      rod(ox, [sx * 0.052, 0.23, 0.095], [sx * 0.06, 0.125, 0.095], 0.007, wood, 4);
+      rod(G, [sx * 0.06, 0.155, 0.24], [sx * 0.018, 0.085, -0.03], 0.0035, '#a89068', 4);
+    }
+    // Plough frame: curved wooden beam (犁辕), strut (犁箭), sole (犁底), handle (犁梢), and cast-iron V-share (铁犁铧)
+    tube(G, [[0, 0.032, -0.16], [0, 0.095, -0.04], [0, 0.125, 0.08], [0, 0.165, 0.2]], 0.009, 0.007, wood, { radial: 6, sub: 5 });
+    box(G, wood, 0, 0.008, -0.14, 0.024, 0.018, 0.15);
+    rod(G, [0, 0.018, -0.1], [0, 0.095, -0.07], 0.007, wood, 4);
+    rod(G, [0, 0.02, -0.19], [0, 0.185, -0.25], 0.008, wood, 5);
+    rod(G, [-0.042, 0.18, -0.245], [0.042, 0.18, -0.245], 0.006, wood, 4);
+    // Gleaming V-shaped cast-iron ploughshare (铁铧冠) lying horizontally at the nose of the plough sole + iron mouldboard (犁壁)
+    const share = slab(G, [[0, 0.075], [-0.052, -0.02], [-0.032, -0.028], [0, 0.032], [0.032, -0.028], [0.052, -0.02]], 0.008, iron, 0, false);
+    share.rotation.x = Math.PI / 2 - 0.18;
+    share.position.set(0, 0.016, -0.065);
+    share.material = mat(iron, { metal: 0.85, rough: 0.25 });
+    const mb = box(G, shade(iron, 0.9), 0, 0.022, -0.105, 0.062, 0.042, 0.01);
+    mb.rotation.y = 0.38;
+    mb.material = mat(shade(iron, 0.9), { metal: 0.85, rough: 0.28 });
+    // Farmer guiding the plough handle
+    figure(G, { h: 0.3, x: -0.045, y: 0, z: -0.29, ry: 0.08, top: '#7a5c3e', bottom: '#4a3c2c', accent: '#9a7b52', hair: '#1c1714', hairStyle: 'topknot', hat: 'turban', hatColor: '#8c6f46', outfit: 'tunic', armR: { fwd: 0.95, side: -0.15, bend: 0.45 }, armL: { fwd: 0.8, side: 0.2, bend: 0.5 }, stance: 'walk' });
+    return;
+  }
   // Western Zhou / Spring-and-Autumn war chariot (cf. the 张家坡 and 虢国 chariot pits, 殷墟 车马坑): four horses
   // abreast, the inner pair (服) under a yoke beam (衡) with inverted-V yoke saddles (軛), the outer pair (骖) on traces;
   // one curved draught pole (辀); a single axle centred under a small rectangular lacquered box (舆, ≈1.3 × 0.9 m,
@@ -1571,83 +1667,349 @@ const bell: Builder = gp => {
   rod(gp, [b.handR[0] + 0.05, b.handR[1] + 0.01, b.handR[2] + 0.08], [b.handR[0] - 0.08, b.handR[1] - 0.03, b.handR[2] - 0.16], 0.005, '#7a5a3a', 5);
 };
 
-const ding: Builder = gp => {
+const ding: Builder = (gp, r) => {
+  const yb0 = ground(gp, 0.46, SITE.stone);
+  const style = str(r.style, '');
+  const c = '#526858', hi = '#6f8b75', lo = '#354439', goldPat = '#7d7348';
+  const B = (m: THREE.Mesh, col = c) => bronze(m, col);
+  const patinaPaint: Paint = (x, y, z) => {
+    const n = fbm(x * 16 + 1.3, y * 16, z * 16, 3);
+    const m = fbm(x * 38, y * 38 + 4.1, z * 38, 2);
+    if (m > 0.68) return '#5d8a6e'; // malachite verdigris cluster
+    if (m < 0.28) return '#6b5842'; // earthen / cuprite mineralization
+    return shade(c, 0.84 + n * 0.32);
+  };
+  if (style === 'siyang') {
+    // 四羊方尊 (late Shang, Ningxiang, Hunan; National Museum of China): square bronze ritual wine zun with high splayed
+    // pedestal, four sculpted horned rams projecting from the four shoulders (四角卷角羊首), scale-patterned ram chests,
+    // long square neck with rising blade motifs (蕉叶纹), wide everted square trumpet rim, and notched corner/mid flanges.
+    rbox(gp, '#322b26', 0, yb0, 0, 0.38, 0.022, 0.38, 0.004);
+    const y0 = yb0 + 0.022;
+    // splayed square pedestal (圈足), belly (方腹), long neck (长颈), and wide square trumpet mouth (侈口)
+    B(tbox(gp, 0.25, 0.25, 0.19, 0.19, 0.085, lo, 0, y0, 0), lo);
+    const bellyGeo = paintFaces(new THREE.BoxGeometry(0.24, 0.16, 0.24, 12, 8, 12), c, patinaPaint);
+    add(gp, bellyGeo, mat('#ffffff', { vc: true, metal: 0.48, rough: 0.44 }), 0, y0 + 0.165, 0, 1, 1, 1);
+    const neckGeo = paintFaces(new THREE.BoxGeometry(0.18, 0.15, 0.18, 10, 8, 10), c, patinaPaint);
+    add(gp, neckGeo, mat('#ffffff', { vc: true, metal: 0.48, rough: 0.44 }), 0, y0 + 0.31, 0, 1, 1, 1);
+    B(tbox(gp, 0.18, 0.18, 0.28, 0.28, 0.055, hi, 0, y0 + 0.37, 0), hi); // flared square rim
+    box(gp, '#1b241e', 0, y0 + 0.422, 0, 0.23, 0.004, 0.23);
+    // rising blade motifs (蕉叶纹) on all 4 neck faces + 8 notched flanges (扉棱)
+    for (let f = 0; f < 4; f++) {
+      const F = grp(gp, 0, 0, (f * Math.PI) / 2, y0);
+      for (const dx of [-0.045, 0, 0.045]) cone(F, hi, dx, 0.25, 0.092, 0.018, 0.11, 4);
+      for (let k = 0; k < 6; k++) {
+        B(box(F, goldPat, 0, 0.02 + k * 0.062, 0.115 - (k > 3 ? 0.022 : 0), 0.01, 0.044, 0.018), goldPat);
+        B(box(F, goldPat, 0.115 - (k > 3 ? 0.022 : 0), 0.02 + k * 0.062, 0.115 - (k > 3 ? 0.022 : 0), 0.016, 0.044, 0.016), goldPat);
+      }
+    }
+    // four sculpted rams (四羊首) projecting diagonally from the four shoulders (y = y0 + 0.22)
+    for (let i = 0; i < 4; i++) {
+      const R = grp(gp, 0, 0, Math.PI / 4 + (i * Math.PI) / 2, y0 + 0.22);
+      B(ellip(R, c, 0, -0.02, 0.155, 0.045, 0.055, 0.045), c); // scale-patterned ram chest
+      B(ellip(R, hi, 0, 0.022, 0.195, 0.032, 0.028, 0.048, 0.25, 0, 0), hi); // ram head & snout
+      B(cone(R, goldPat, 0, -0.008, 0.225, 0.009, 0.028, 5), goldPat); // pointed chin beard
+      for (const sx of [-1, 1]) {
+        B(ellip(R, goldPat, sx * 0.026, 0.03, 0.19, 0.008, 0.007, 0.008), goldPat); // eyes
+        // thick C-curled ram horns (大卷角) with transverse ridges
+        B(tube(R, [
+          [sx * 0.014, 0.045, 0.185], [sx * 0.052, 0.058, 0.175], [sx * 0.068, 0.025, 0.155],
+          [sx * 0.052, -0.005, 0.168], [sx * 0.036, 0.012, 0.192],
+        ], 0.016, 0.007, goldPat, { radial: 7, sub: 4 }), goldPat);
+      }
+    }
+    return;
+  }
+  if (style === 'hezun') {
+    // 何尊 (early Western Zhou, King Cheng yr 5, Baoji, Shaanxi): square-footed, round-bellied, trumpet-mouthed bronze
+    // ritual wine zun with 4 dramatic openwork notched flanges (透雕扉棱), high-relief ram-horned taotie mask, and the
+    // 122-character inner bottom inscription containing the earliest written word "中国" ("宅兹中国").
+    rbox(gp, '#322b26', 0, yb0, 0, 0.36, 0.022, 0.36, 0.004);
+    const y0 = yb0 + 0.022;
+    const zunPts: [number, number][] = [
+      [0, 0], [0.135, 0], [0.118, 0.065], [0.155, 0.14], [0.162, 0.21],
+      [0.125, 0.275], [0.135, 0.35], [0.195, 0.435], [0.175, 0.435], [0.11, 0.27], [0.11, 0.07], [0, 0.07],
+    ];
+    const zGeo = new THREE.LatheGeometry(zunPts.map(([r, py]) => new THREE.Vector2(r, py)), 28);
+    zGeo.computeVertexNormals();
+    add(gp, paintFaces(zGeo, c, patinaPaint), mat('#ffffff', { vc: true, metal: 0.5, rough: 0.42 }), 0, y0, 0, 1, 1, 1);
+    // "宅兹中国" 122-character archaic gold-highlighted inscription (铭文) gleaming inside the bottom of the vessel
+    cyl(gp, '#1e2822', 0, y0 + 0.072, 0, 0.102, 0.004, 20);
+    for (let cx = -3; cx <= 3; cx++) for (let cz = -3; cz <= 3; cz++) {
+      if (cx * cx + cz * cz <= 10) box(gp, '#d4af37', cx * 0.02, y0 + 0.076, cz * 0.02, 0.009, 0.003, 0.012);
+    }
+    // 4 openwork T-notched flanges (四道透雕扉棱) + high-relief taotie masks with projecting horns on the belly
+    for (let i = 0; i < 4; i++) {
+      const F = grp(gp, 0, 0, (i * Math.PI) / 2, y0);
+      for (let k = 0; k < 7; k++) {
+        const fy = 0.015 + k * 0.058, fr = k < 1 ? 0.13 : k < 4 ? 0.162 : k < 5 ? 0.132 : 0.175;
+        B(box(F, goldPat, fr, fy, 0, 0.032, 0.042, 0.01), goldPat);
+        B(box(F, hi, fr + 0.014, fy + 0.012, 0, 0.012, 0.014, 0.014), hi);
+      }
+      const M = grp(F, 0, 0, Math.PI / 4, 0);
+      for (const sz of [-1, 1]) {
+        B(ellip(M, goldPat, 0.162, 0.175, sz * 0.035, 0.012, 0.012, 0.014), goldPat);
+        B(box(M, hi, 0.172, 0.215, sz * 0.048, 0.024, 0.014, 0.048, sz * 0.35, 0, 0.2), hi); // protruding ram horn
+      }
+    }
+    return;
+  }
+  if (style === 'lamp') {
+    // 长信宫灯 (Western Han, tomb of Dou Wan at Mancheng, Hebei): lustrous gilt-bronze (通体鎏金) kneeling palace maid
+    // holding a circular shuttered lamp with her left hand while her wide right sleeve curves over the lamp top as a
+    // hollow smoke duct (虹管吸烟入体).
+    rbox(gp, '#261816', 0, yb0, 0, 0.38, 0.024, 0.38, 0.005);
+    const y0 = yb0 + 0.024, gilt = '#dda838', giltDk = '#b58322', giltHi = '#f3cb68';
+    const G = (m: THREE.Mesh, col = gilt) => { m.material = mat(col, { metal: 0.82, rough: 0.22 }); return m; };
+    // kneeling palace maid body: flared quju shenyi hem, slender waist, crossed lapels, headscarf & bun
+    G(lathe(gp, [[0, 0], [0.145, 0], [0.135, 0.04], [0.095, 0.12], [0.072, 0.19], [0.082, 0.28], [0, 0.29]], gilt, -0.02, y0, -0.02, 20));
+    G(box(gp, giltDk, -0.02, y0 + 0.16, 0.055, 0.095, 0.028, 0.025), giltDk); // waist sash
+    G(box(gp, giltHi, -0.02, y0 + 0.22, 0.056, 0.055, 0.07, 0.02, 0, 0, 0.35), giltHi); // crossed lapel
+    G(ellip(gp, giltHi, -0.02, y0 + 0.335, -0.015, 0.042, 0.048, 0.044), giltHi); // serene gilt face
+    G(ellip(gp, giltDk, -0.02, y0 + 0.365, -0.035, 0.044, 0.036, 0.042), giltDk); // coiled headscarf & low bun
+    G(ellip(gp, giltDk, -0.02, y0 + 0.31, -0.065, 0.028, 0.024, 0.026), giltDk); //坠马髻 / 垂髻 at the nape
+    // left arm supporting the lamp tray + circular shuttered bronze lamp (灯盘与双片活动灯罩) with glowing flame
+    const lx = 0.095, lz = 0.065, ly = y0 + 0.155;
+    G(tube(gp, [[-0.08, y0 + 0.24, 0.01], [-0.04, y0 + 0.17, 0.06], [lx - 0.02, ly, lz]], 0.026, 0.018, gilt, { radial: 8, sub: 3 }));
+    G(cyl(gp, giltDk, lx, ly - 0.025, lz, 0.052, 0.025, 18), giltDk); // lamp base & 盘
+    add(gp, g('rich:cyl16', () => new THREE.CylinderGeometry(1, 1, 1, 16)), mat('#fbbf24', { emissive: '#f59e0b', transparent: 0.78 }), lx, ly + 0.038, lz, 0.038, 0.072, 0.038);
+    G(box(gp, gilt, lx - 0.022, ly + 0.002, lz - 0.022, 0.045, 0.072, 0.012, 0, 0.78, 0), gilt); // rear shutter panel
+    G(cone(gp, giltHi, lx, ly + 0.075, lz, 0.052, 0.024, 16), giltHi); // conical lamp hood
+    // raised right arm with huge sweeping sleeve (宽大右袖) arching into the top of the lamp hood as the smoke flue
+    G(tube(gp, [[0.045, y0 + 0.26, -0.01], [0.095, y0 + 0.33, 0.025], [lx + 0.015, ly + 0.135, lz], [lx, ly + 0.09, lz]], 0.034, 0.024, giltHi, { radial: 10, sub: 4 }));
+    G(box(gp, giltDk, 0.085, y0 + 0.25, 0.025, 0.024, 0.095, 0.055, 0.2, 0, -0.25), giltDk); // hanging lower fold of the wide sleeve
+    return;
+  }
+  if (style === 'jialiang') {
+    // 新莽铜嘉量 (Xin Dynasty, 9 AD, National Palace Museum / National Museum of China): Wang Mang & Liu Xin's standard
+    // bronze measure combining five capacities in one cast bronze apparatus — central cylinder (斛 above, 斗 inverted
+    // below), left ear cylinder (升), right ear double-cylinder (合 above, 龠 below), with seal-script inscriptions.
+    rbox(gp, '#322b26', 0, yb0, 0, 0.42, 0.022, 0.34, 0.004);
+    const y0 = yb0 + 0.022, br = '#6e5a38', pat = '#4c6656';
+    const jPts: [number, number][] = [[0, 0.06], [0.128, 0.06], [0.128, 0.28], [0.145, 0.28], [0.145, 0], [0.128, 0], [0.128, 0.05], [0, 0.05]];
+    const jGeo = new THREE.LatheGeometry(jPts.map(([r, py]) => new THREE.Vector2(r, py)), 28);
+    jGeo.computeVertexNormals();
+    add(gp, paintFaces(jGeo, br, (x, y, z) => {
+      const r = Math.hypot(x, z), th = Math.atan2(z, x), n = fbm(x * 18, y * 18, z * 18, 3);
+      if (r < 0.132) return shade('#2c241b', 0.8 + y * 0.8); // hollowed interior of the 斛 measure
+      if (Math.abs(y - 0.055) < 0.009 || Math.abs(y - 0.27) < 0.009) return '#9c824a'; // raised gauge rings
+      if (y > 0.08 && y < 0.24 && Math.sin(th * 24) > 0.35 && Math.sin(y * 95) > 0) return '#b89b58'; // incised seal-script columns
+      return n > 0.62 ? pat : shade(br, 0.88 + n * 0.24);
+    }), mat('#ffffff', { vc: true, metal: 0.6, rough: 0.36 }), 0, y0 + 0.015, 0, 1, 1, 1);
+    // three low feet under the 斗 bottom
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2;
+      B(box(gp, br, Math.cos(a) * 0.12, y0, Math.sin(a) * 0.12, 0.024, 0.02, 0.024), br);
+    }
+    // left ear: cylindrical 升 measure connected by a bronze strut
+    B(box(gp, br, -0.175, y0 + 0.15, 0, 0.06, 0.024, 0.024), br);
+    B(cyl(gp, br, -0.215, y0 + 0.11, 0, 0.042, 0.11, 18), br);
+    cyl(gp, '#221e18', -0.215, y0 + 0.216, 0, 0.035, 0.006, 16);
+    // right ear: double-ended 合 (top) and 龠 (bottom) measure
+    B(box(gp, br, 0.165, y0 + 0.15, 0, 0.05, 0.022, 0.022), br);
+    B(cyl(gp, br, 0.195, y0 + 0.115, 0, 0.028, 0.095, 16), br);
+    cyl(gp, '#221e18', 0.195, y0 + 0.206, 0, 0.021, 0.006, 14);
+    return;
+  }
   // 后母戊鼎 (late Shang, National Museum of China): 133 cm tall, mouth 110×79 cm, 832.84 kg. Rectangular body with a
   // plain central field framed by taotie / kui-dragon bands on a cloud-and-thunder ground, flanges on the corners and
   // centre lines, two upright ears on the short sides (tigers flanking a human head), four hollow columnar legs with
-  // beast masks and raised string bands; dark green-grey patina. Scale ≈ 0.48 units per metre, on a museum plinth.
-  const yb0 = ground(gp, 0.46, SITE.stone);
+  // beast masks and raised string bands; mottled green-grey bronze patina with cuprite and malachite accents.
   gp = grp(gp, 0, 0, 0, yb0);
   gp.scale.setScalar(0.8);
   const y0 = 0;
-  const c = '#55685a', hi = '#6c8270', lo = '#3a463c';
   const W = 0.53, D = 0.38, legH = 0.22, bodyH = 0.27, yb = y0 + legH, yr = yb + bodyH;
-  const B = (m: THREE.Mesh, col = c) => bronze(m, col);
-  // legs: hollow bronze columns, beast mask on the outer face of the top and two string bands lower down
+  // legs: hollow bronze columns, beast mask on the outer face of the top and three raised string bands lower down
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
     const lx = sx * (W / 2 - 0.075), lz = sz * (D / 2 - 0.07);
-    B(lathe(gp, [[0, 0], [0.05, 0], [0.047, 0.03], [0.045, 0.12], [0.05, legH - 0.02], [0.056, legH + 0.02], [0, legH + 0.02]], c, lx, y0, lz, 16));
-    for (const by of [0.07, 0.1]) B(cyl(gp, hi, lx, y0 + by, lz, 0.049, 0.008, 16), hi);
+    const lg = new THREE.LatheGeometry([[0, 0], [0.05, 0], [0.047, 0.03], [0.045, 0.12], [0.05, legH - 0.02], [0.056, legH + 0.02], [0, legH + 0.02]].map(([r, py]) => new THREE.Vector2(r, py)), 18);
+    lg.computeVertexNormals();
+    add(gp, paintFaces(lg, c, patinaPaint), mat('#ffffff', { vc: true, metal: 0.45, rough: 0.48 }), lx, y0, lz, 1, 1, 1);
+    for (const by of [0.055, 0.082, 0.11]) B(cyl(gp, hi, lx, y0 + by, lz, 0.049, 0.007, 16), hi);
     const ox = lx + sx * 0.03, oz = lz + sz * 0.03;
     const face = grp(gp, ox, oz, Math.atan2(sx, sz), y0 + legH - 0.07);
     B(box(face, hi, 0, 0, 0.022, 0.012, 0.075, 0.016), hi);
     for (const ex of [-1, 1]) {
-      B(ellip(face, hi, ex * 0.022, 0.045, 0.026, 0.01, 0.008, 0.006), hi);
+      B(ellip(face, goldPat, ex * 0.022, 0.045, 0.026, 0.01, 0.008, 0.006), goldPat);
       B(ellip(face, lo, ex * 0.022, 0.045, 0.031, 0.006, 0.005, 0.003), lo);
+      B(box(face, hi, ex * 0.028, 0.06, 0.022, 0.02, 0.01, 0.008, 0, 0, ex * -0.35), hi); // curved horn
       B(box(face, hi, ex * 0.028, 0.012, 0.022, 0.016, 0.008, 0.008, 0, 0, ex * 0.5), hi);
     }
   }
-  // body: straight-walled rectangular basin with a thickened, everted rim; dark interior
-  B(rbox(gp, c, 0, yb, 0, W, bodyH, D, 0.008));
-  B(rbox(gp, c, 0, yr - 0.004, 0, W + 0.02, 0.022, D + 0.02, 0.004));
-  box(gp, '#1f241d', 0, yr + 0.014, 0, W - 0.04, 0.004, D - 0.04);
+  // body: straight-walled rectangular basin with vertex-painted bronze patina, thickened everted rim, and recessed interior
+  const bodyGeo = paintFaces(new THREE.BoxGeometry(W, bodyH, D, 18, 10, 14), c, patinaPaint);
+  add(gp, bodyGeo, mat('#ffffff', { vc: true, metal: 0.45, rough: 0.46 }), 0, yb + bodyH / 2, 0, 1, 1, 1);
+  B(rbox(gp, c, 0, yr - 0.004, 0, W + 0.024, 0.024, D + 0.024, 0.004));
+  box(gp, '#1e2620', 0, yr + 0.015, 0, W - 0.038, 0.005, D - 0.038);
+  // inner wall "后母戊" three-character archaic bronze inscription (铸铭) visible inside the rim
+  for (let k = 0; k < 3; k++) box(gp, '#7fa88e', -0.02, yr + 0.017, -D / 2 + 0.035 + k * 0.022, 0.016, 0.003, 0.014);
   // décor bands framing the plain centre on every face (raised relief: kui dragons in pairs meeting at a flange = taotie)
   const faces: [number, number, number, number][] = [[0, D / 2, 0, W], [0, -D / 2, Math.PI, W], [W / 2, 0, Math.PI / 2, D], [-W / 2, 0, -Math.PI / 2, D]];
   for (const [fx, fz, ry, span] of faces) {
     const F = grp(gp, fx, fz, ry, yb);
-    const bw = 0.05, top = bodyH - 0.06;
-    for (const [bx, by, sw, sh] of [[0, top, span - 0.03, 0.05], [0, 0.015, span - 0.03, 0.035], [-(span / 2 - 0.015 - bw / 2), 0.05, bw, top - 0.05], [span / 2 - 0.015 - bw / 2, 0.05, bw, top - 0.05]] as const) {
+    const bw = 0.052, top = bodyH - 0.062;
+    // recessed central plain panel border (素面内框弦纹)
+    B(box(F, hi, 0, top - 0.004, 0.003, span - 0.03 - bw * 2, 0.005, 0.005), hi);
+    B(box(F, hi, 0, 0.05, 0.003, span - 0.03 - bw * 2, 0.005, 0.005), hi);
+    for (const [bx, by, sw, sh] of [[0, top, span - 0.03, 0.052], [0, 0.015, span - 0.03, 0.036], [-(span / 2 - 0.015 - bw / 2), 0.05, bw, top - 0.05], [span / 2 - 0.015 - bw / 2, 0.05, bw, top - 0.05]] as const) {
       B(box(F, lo, bx, by, 0.002, sw, sh, 0.006), lo);
-      // cloud-and-thunder ground: a lattice of small raised squares
+      // cloud-and-thunder ground (云雷纹): a lattice of small raised spirals
       const nx = Math.max(1, Math.floor(sw / 0.0135)), ny = Math.max(1, Math.floor(sh / 0.0135));
       for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) if ((i + j) % 2 === 0) B(box(F, hi, bx - sw / 2 + (i + 0.5) * (sw / nx), by + j * (sh / ny) + 0.003, 0.006, Math.max(0.006, sw / nx * 0.6), Math.max(0.006, sh / ny * 0.55), 0.004), hi);
     }
-    // taotie mask in the top band: centre flange with a pair of bulging eyes and horns either side
-    B(box(F, hi, 0, top - 0.004, 0.008, 0.012, 0.058, 0.014), hi);
-    for (const ex of [-1, 1]) {
-      B(ellip(F, hi, ex * 0.04, top + 0.024, 0.01, 0.012, 0.01, 0.007), hi);
-      B(ellip(F, lo, ex * 0.04, top + 0.024, 0.016, 0.006, 0.005, 0.003), lo);
-      B(box(F, hi, ex * 0.075, top + 0.03, 0.008, 0.05, 0.01, 0.006, 0, 0, ex * 0.25), hi);
+    // taotie mask in the top and bottom bands: centre flange with a pair of bulging eyes and C-horns either side
+    for (const [my, mh] of [[top - 0.004, 0.058], [0.012, 0.04]] as const) {
+      B(box(F, goldPat, 0, my, 0.008, 0.012, mh, 0.015), goldPat);
+      for (const ex of [-1, 1]) {
+        B(ellip(F, goldPat, ex * 0.042, my + mh * 0.45, 0.01, 0.012, 0.01, 0.007), goldPat);
+        B(ellip(F, lo, ex * 0.042, my + mh * 0.45, 0.016, 0.006, 0.005, 0.003), lo);
+        B(box(F, hi, ex * 0.08, my + mh * 0.55, 0.008, 0.052, 0.01, 0.006, 0, 0, ex * 0.25), hi);
+      }
     }
-    // corner flanges (扉棱) with notched profile
-    for (const ex of [-1, 1]) for (let k = 0; k < 4; k++) B(box(F, hi, ex * (span / 2 + 0.002), 0.02 + k * 0.06, 0.004, 0.01, 0.045, 0.012), hi);
+    // corner and mid-face flanges (扉棱) with T-notched profile
+    for (const ex of [-1, 1]) for (let k = 0; k < 5; k++) B(box(F, goldPat, ex * (span / 2 + 0.002), 0.012 + k * 0.052, 0.004, 0.012, 0.038, 0.014), goldPat);
   }
-  // two upright ears on the short sides, outer faces with tigers flanking a human head
+  // two upright ears on the short sides, outer faces with twin tigers flanking a human head (双虎食人首纹)
   for (const sx of [-1, 1]) {
     const E = grp(gp, sx * (W / 2 - 0.012), 0, sx > 0 ? 0 : Math.PI, yr + 0.016);
     for (const ez of [-1, 1]) B(box(E, c, 0, 0, ez * 0.085, 0.034, 0.15, 0.032));
     B(box(E, c, 0, 0.122, 0, 0.034, 0.03, 0.2));
     B(box(E, hi, 0.018, 0.124, 0, 0.004, 0.022, 0.16), hi);
     for (const ez of [-1, 1]) {
-      B(ellip(E, hi, 0.019, 0.07, ez * 0.085, 0.006, 0.05, 0.012, 0, 0, 0), hi);
-      B(ellip(E, hi, 0.019, 0.122, ez * 0.05, 0.006, 0.012, 0.03), hi);
+      B(ellip(E, goldPat, 0.019, 0.07, ez * 0.085, 0.006, 0.05, 0.012, 0, 0, 0), goldPat);
+      B(ellip(E, goldPat, 0.019, 0.122, ez * 0.05, 0.006, 0.012, 0.03), goldPat);
     }
-    B(ellip(E, hi, 0.02, 0.132, 0, 0.008, 0.016, 0.014), hi);
+    B(ellip(E, goldPat, 0.02, 0.055, 0, 0.008, 0.018, 0.016), goldPat); // human head between tiger jaws
   }
 };
 
 const scroll: Builder = (gp, r) => {
-  // a scholar at a low desk unrolling a handscroll, with brush, inkstone and books
+  // Scholar's study & Chinese book history (简牍韦编 → 卷轴装 → 线装古籍 → 钦定四库全书/二十四史):
+  // - style 'slips' or r.year < 105: Pre-Cai Lun bamboo & wooden slips (竹简韦编, 睡虎地秦简, 司马迁《史记》) with
+  //   three-legged stone inkslab (三足石砚), grinding stone (研石), and bronze ring-pommel scraping knife (青铜削刀).
+  // - style 'handscroll' or 105 <= r.year < 960: Silk-mounted paper/silk handscroll (卷轴装, 展子虔《游春图》) and
+  //   rolled silk-wrapped scroll bundles (书帙) with ivory clasps (牙签).
+  // - style 'siku': Qing Imperial Wenyuange / Wensuge desk displaying the four color-coded silk book-cases (楠木书函:
+  //   经部绿绢、史部红绢（钦定二十四史）、子部蓝绢、集部灰褐绢), red-ruled manuscript (朱丝栏写本) and imperial jade seal.
+  const style = str(r.style, '');
+  const yr = typeof r.year === 'number' ? r.year : style === 'slips' ? -150 : style === 'handscroll' ? 600 : style === 'siku' ? 1775 : 1100;
+  const mode = style === 'slips' || yr < 105 ? 'slips' : style === 'siku' ? 'siku' : style === 'handscroll' || yr < 960 ? 'handscroll' : 'codex';
   const y = ground(gp, 0.46, SITE.court);
-  rbox(gp, P.lacquer, 0, y, 0.02, 0.5, 0.1, 0.22, 0.006);
-  for (const sx of [-1, 1]) box(gp, P.lacquer, sx * 0.23, y, 0.02, 0.03, 0.1, 0.2);
-  const ty = y + 0.1;
-  box(gp, str(r.color, P.paper), 0.0, ty + 0.002, 0.04, 0.36, 0.004, 0.12);
-  for (let k = 0; k < 7; k++) box(gp, P.ink, -0.14 + k * 0.045, ty + 0.005, 0.04, 0.004, 0.002, 0.09);
-  for (const sx of [-1, 1]) { cyl(gp, P.darkwood, sx * 0.19, ty + 0.012, 0.04, 0.012, 0.14, 8).rotation.x = Math.PI / 2; }
-  rbox(gp, '#2a2a2a', 0.2, ty, -0.05, 0.06, 0.012, 0.04, 0.003);
-  for (let k = 0; k < 3; k++) rbox(gp, ['#3f5f7a', '#7a5536', '#5d4a7a'][k], -0.2, ty + k * 0.014, -0.05, 0.08, 0.014, 0.06, 0.002);
-  figure(gp, { h: 0.5, x: 0, y, z: -0.17, top: str(r.robe, '#3f5f7a'), accent: P.gold, hair: '#1c1714', hairStyle: 'topknot', hat: 'scholar', hatColor: P.ink, beard: 'long', beardColor: '#2a2420', outfit: 'robe', wideSleeves: true, armR: { fwd: 1.1, bend: 0.5 }, armL: { fwd: 1.0, bend: 0.6 }, stance: 'kneel' });
+  // woven rush mat (席) under the desk and scholar
+  const matGeo = paintFaces(new THREE.BoxGeometry(0.62, 0.006, 0.52, 28, 1, 22), '#b8a070', (x, _y, z) => {
+    const weave = Math.sin(x * 95) * Math.sin(z * 140) * 0.06;
+    if (Math.abs(x) > 0.29 || Math.abs(z) > 0.24) return mode === 'siku' ? '#7f1d1d' : '#6b3e26';
+    return shade('#b8a070', 0.96 + weave);
+  });
+  add(gp, matGeo, mat('#ffffff', { vc: true }), 0, y + 0.003, -0.02, 1, 1, 1);
+  // carved lacquer low desk (几案) with cloud-scroll apron and winged feet
+  const dy = y + 0.006, dh = 0.115, ty = dy + dh;
+  const deskCol = mode === 'slips' ? '#231714' : mode === 'siku' ? '#3d1812' : P.lacquer;
+  rbox(gp, deskCol, 0, ty - 0.018, 0.05, 0.56, 0.018, 0.25, 0.004);
+  box(gp, mode === 'slips' ? '#b91c1c' : '#eab308', 0, ty - 0.022, 0.174, 0.48, 0.005, 0.003);
+  for (const sx of [-1, 1]) {
+    box(gp, deskCol, sx * 0.24, dy, 0.05, 0.028, dh - 0.014, 0.22);
+    box(gp, '#4a150e', sx * 0.245, dy, 0.05, 0.042, 0.014, 0.24);
+  }
+  if (mode === 'slips') {
+    // Unrolled bamboo-slip chronicle (竹简韦编) across the desk: 16 bevelled bamboo strips bound by twin crimson cords
+    for (let i = 0; i < 16; i++) {
+      const sx = -0.15 + i * 0.019;
+      box(gp, i % 2 ? '#cda968' : '#bf9b5a', sx, ty + 0.001, 0.05, 0.015, 0.005, 0.145);
+      for (let j = 0; j < 4; j++) box(gp, P.ink, sx, ty + 0.0065, -0.002 + j * 0.032, 0.004, 0.0015, 0.02);
+    }
+    for (const dz of [-0.048, 0.048]) box(gp, '#8b1e16', -0.007, ty + 0.006, 0.05 + dz, 0.31, 0.002, 0.004);
+    // Rolled cylindrical bamboo-slip bundles (成卷简册) on the left + clay seal block (封泥匣)
+    for (const [rx, rz, ry] of [[-0.22, 0.02, 0.15], [-0.21, 0.095, -0.2]] as const) {
+      const B = grp(gp, rx, rz, ry, ty);
+      cyl(B, '#c49f60', 0, 0.024, 0, 0.024, 0.11, 12).rotation.z = Math.PI / 2;
+      for (const cx of [-0.03, 0.03]) cyl(B, '#7f1d1d', cx, 0.024, 0, 0.025, 0.005, 10).rotation.z = Math.PI / 2;
+      box(B, '#b89f7d', 0, 0.048, 0, 0.022, 0.008, 0.02);
+      box(B, '#991b1b', 0, 0.053, 0, 0.014, 0.003, 0.014);
+    }
+    // Three-legged circular Han stone inkslab (三足石砚) with grinding stone (研石) and bronze ring-pommel scraping knife (青铜环首削刀)
+    cyl(gp, '#323036', 0.225, ty + 0.004, -0.01, 0.034, 0.01, 14);
+    ellip(gp, '#141416', 0.225, ty + 0.014, -0.01, 0.024, 0.002, 0.024);
+    cyl(gp, '#4a474f', 0.232, ty + 0.015, -0.005, 0.009, 0.012, 8);
+    // Bronze scraping knife (刀笔之削刀) for erasing characters on bamboo slips
+    rod(gp, [0.21, ty + 0.004, 0.05], [0.255, ty + 0.004, 0.12], 0.003, '#b8860b', 5);
+    cyl(gp, '#b8860b', 0.205, ty + 0.003, 0.042, 0.009, 0.003, 10);
+  } else if (mode === 'siku') {
+    // Four color-coded cedarwood book-cases (楠木书函) of Siku Quanshu & Imperial Twenty-Four Histories:
+    // Classics (经部绿 #2e6f40), Histories / 24 Histories (史部红 #991b1b), Masters (子部蓝 #1e4d7b), Belles-Lettres (集部灰 #6b655e)
+    const cases: [number, number, string][] = [
+      [-0.22, -0.015, '#2e6f40'], // 经部（绿）
+      [-0.22, 0.075, '#991b1b'],  // 史部·钦定二十四史（红）
+      [0.22, -0.015, '#1e4d7b'],  // 子部（蓝）
+      [0.22, 0.075, '#6b655e'],  // 集部（灰）
+    ];
+    for (const [cx, cz, silk] of cases) {
+      rbox(gp, '#8a5a32', cx, ty, cz, 0.088, 0.026, 0.068, 0.002); // cedarwood box (楠木书函)
+      box(gp, silk, cx, ty + 0.024, cz, 0.082, 0.006, 0.062);       // colored brocade cover
+      box(gp, '#f5efe2', cx - 0.018, ty + 0.0305, cz, 0.014, 0.001, 0.046); // title slip (书签)
+      box(gp, '#eab308', cx + 0.042, ty + 0.014, cz, 0.003, 0.012, 0.016);  // gilt clasp
+    }
+    // Open red-ruled imperial volume (朱丝栏写本) in the center + square jade imperial seal (乾隆御览之宝)
+    rbox(gp, '#991b1b', -0.01, ty, 0.045, 0.26, 0.006, 0.15, 0.002);
+    box(gp, '#fbf6ea', -0.01, ty + 0.006, 0.045, 0.24, 0.005, 0.135);
+    for (let k = 0; k < 7; k++) {
+      const kx = -0.105 + k * 0.032;
+      box(gp, '#dc2626', kx - 0.012, ty + 0.0112, 0.045, 0.0012, 0.001, 0.12); // red vertical ruling (朱丝栏)
+      box(gp, P.ink, kx, ty + 0.0115, 0.042, 0.0045, 0.0015, 0.105);
+    }
+    box(gp, '#dc2626', -0.095, ty + 0.012, 0.082, 0.022, 0.0015, 0.022); // large imperial seal impression
+    // Carved green-jade imperial seal (交龙钮玉玺) at front right
+    rbox(gp, '#5f8d78', 0.135, ty, 0.095, 0.034, 0.02, 0.034, 0.002);
+    ellip(gp, '#4c7763', 0.135, ty + 0.024, 0.095, 0.012, 0.009, 0.012);
+  } else {
+    // Silk-mounted handscroll (手卷): brocade borders, rice-paper heart (or blue-green landscape for 游春图), rollers
+    box(gp, '#991b1b', 0.01, ty + 0.001, 0.05, 0.39, 0.003, 0.145);
+    box(gp, str(r.color, P.paper), 0.01, ty + 0.003, 0.05, 0.34, 0.003, 0.125);
+    if (style === 'handscroll') {
+      // Blue-and-green landscape scroll (青绿山水《游春图》): mineral azurite & malachite peaks with gold outlines
+      for (const [px, pz, pw, pd, col] of [[-0.08, 0.03, 0.09, 0.045, '#1d4ed8'], [0.02, 0.025, 0.11, 0.05, '#15803d'], [0.1, 0.04, 0.08, 0.04, '#0f766e']] as const) {
+        cone(gp, col, px, ty + 0.005, pz, pw * 0.45, 0.018, 5);
+        box(gp, '#eab308', px, ty + 0.005, pz + pd * 0.4, pw * 0.7, 0.0015, 0.004);
+      }
+    } else {
+      for (let k = 0; k < 8; k++) {
+        for (let j = 0; j < 4; j++) {
+          box(gp, P.ink, -0.12 + k * 0.034, ty + 0.005, 0.015 + j * 0.024, 0.005, 0.002, 0.016);
+        }
+      }
+    }
+    box(gp, '#dc2626', -0.14, ty + 0.005, 0.085, 0.014, 0.002, 0.014);
+    box(gp, '#dc2626', 0.15, ty + 0.005, 0.02, 0.012, 0.002, 0.018);
+    for (const sx of [-1, 1]) {
+      cyl(gp, sx < 0 ? P.darkwood : P.paper, 0.01 + sx * 0.195, ty + 0.012, 0.05, sx < 0 ? 0.011 : 0.016, 0.155, 10).rotation.x = Math.PI / 2;
+      for (const sz of [-1, 1]) cyl(gp, '#eab308', 0.01 + sx * 0.195, ty + 0.012, 0.05 + sz * 0.08, 0.008, 0.012, 8).rotation.x = Math.PI / 2;
+    }
+    // Duan inkstone (端砚) and celadon brush-mountain (青瓷笔山)
+    rbox(gp, '#2d262e', 0.235, ty, -0.02, 0.065, 0.014, 0.048, 0.003);
+    ellip(gp, '#111113', 0.235, ty + 0.014, -0.02, 0.022, 0.002, 0.016);
+    box(gp, '#1c1917', 0.25, ty + 0.015, -0.005, 0.008, 0.006, 0.026, 0.4);
+    for (const [dx, ph] of [[-0.018, 0.018], [0, 0.026], [0.018, 0.018]] as const) cone(gp, '#7fa898', 0.235 + dx, ty, 0.045, 0.01, ph, 6);
+    if (mode === 'handscroll') {
+      // Pre-Song rolled silk-wrapped scroll cylinders (卷轴书帙) with ivory clasps
+      for (let k = 0; k < 3; k++) {
+        const sc = ['#7f1d1d', '#1e3a5f', '#4d5d3b'][k];
+        cyl(gp, sc, -0.225, ty + 0.012 + (k === 2 ? 0.018 : 0), -0.02 + (k === 2 ? 0.012 : k * 0.026), 0.012, 0.11, 10).rotation.x = Math.PI / 2;
+      }
+    } else {
+      // Song–Ming–Qing stack of thread-bound books (线装古籍) with white spine stitching and title slips
+      for (let k = 0; k < 3; k++) {
+        const by = ty + k * 0.015;
+        rbox(gp, ['#2b4c6f', '#6b442a', '#3b5249'][k], -0.225, by, -0.015, 0.082, 0.014, 0.062, 0.002);
+        box(gp, '#f5efe2', -0.225, by + 0.002, -0.012, 0.078, 0.01, 0.058);
+        box(gp, '#f5efe2', -0.21, by + 0.0145, -0.015, 0.014, 0.001, 0.042);
+      }
+    }
+  }
+  // Partially unrolled bamboo-slip scroll (竹简) at the front corner of the mat
+  for (let i = 0; i < 8; i++) box(gp, i % 2 ? '#c8a86b' : '#bc9b5e', -0.21 + i * 0.012, dy + 0.002, 0.22, 0.009, 0.004, 0.075);
+  for (const dz of [-0.022, 0.022]) box(gp, '#7a2318', -0.168, dy + 0.006, 0.22 + dz, 0.095, 0.002, 0.003);
+  const c = costume('scholar', eraOf(yr));
+  const a = figure(gp, { ...c, h: 0.44, x: 0, y: dy, z: -0.15, top: str(r.robe, c.top ?? '#2f4f6f'), armR: { fwd: 1.05, bend: 0.55 }, armL: { fwd: 0.95, bend: 0.65 }, stance: 'kneel' });
+  rod(gp, [a.handR[0], a.handR[1] - 0.015, a.handR[2] + 0.01], [a.handR[0] + 0.008, a.handR[1] + 0.075, a.handR[2] + 0.015], 0.0035, '#5a3a22', 5);
 };
 
 const printing: Builder = (gp, r) => {
@@ -1680,6 +2042,41 @@ const printing: Builder = (gp, r) => {
     }
     return S;
   };
+  if (style === 'paper') {
+    // Eastern Han Cai-Hou Papermaking Workshop (蔡侯造纸坊: 沤麻舂捣 → 抄纸竹帘 → 压纸去水 → 晒纸焙干)
+    // 1. Timber pulp vat (抄纸木槽) filled with creamy bark/hemp pulp + bamboo screen frame (抄纸竹帘)
+    const V = grp(gp, -0.11, 0.06, 0.15, floor);
+    box(V, wood, 0, 0, 0, 0.26, 0.11, 0.18);
+    box(V, '#dcd4be', 0, 0.102, 0, 0.23, 0.012, 0.15); // milky paper pulp bath
+    // Bamboo screen mould (竹帘) held at an angle over the vat with a wet sheet of Cai-Hou paper
+    const scr = grp(V, 0, 0.01, 0, 0.13);
+    scr.rotation.x = 0.28;
+    box(scr, '#8c6d46', 0, 0, 0, 0.16, 0.008, 0.11);
+    box(scr, '#f5efe2', 0, 0.005, 0, 0.14, 0.003, 0.092);
+    // 2. Stone mortar (石臼) with raw mulberry bark & hemp bundles (树皮麻头) at front left
+    cyl(gp, '#7c7872', -0.25, floor, 0.24, 0.048, 0.065, 10);
+    cyl(gp, '#cabd9e', -0.25, floor + 0.06, 0.24, 0.034, 0.01, 8);
+    rod(gp, [-0.25, floor + 0.055, 0.24], [-0.22, floor + 0.15, 0.27], 0.009, wood, 5);
+    // 3. Wooden screw/lever press (压纸架) squeezing a thick stack of damp paper sheets at right
+    const Pr = grp(gp, 0.18, 0.12, -0.2, floor);
+    box(Pr, wood, 0, 0, 0, 0.16, 0.025, 0.13);
+    box(Pr, '#f3ecdc', 0, 0.025, 0, 0.12, 0.06, 0.095); // stack of damp paper (湿纸摞)
+    box(Pr, wood, 0, 0.085, 0, 0.14, 0.015, 0.11);
+    for (const sx of [-1, 1]) box(Pr, wood, sx * 0.065, 0.025, 0, 0.014, 0.13, 0.016);
+    box(Pr, wood, 0, 0.14, 0, 0.16, 0.016, 0.022);
+    rod(Pr, [0, 0.095, 0], [0.08, 0.135, 0.04], 0.007, wood, 5);
+    // 4. Heated brick drying wall (晒纸焙墙) at the back with freshly brushed white paper sheets drying
+    const W = grp(gp, 0.04, -0.22, -0.1, floor);
+    box(W, '#b8a88e', 0, 0, 0, 0.44, 0.25, 0.036);
+    roof(W, 0, 0.25, 0, 0.48, 0.06, 0.03, '#52565a', { kind: 'gable', ov: 0.01, lift: 0, plain: true });
+    for (const dx of [-0.13, 0, 0.13]) {
+      box(W, '#f7f2e6', dx, 0.06, 0.019, 0.1, 0.14, 0.003);
+    }
+    // Han artisan dipping the bamboo screen at the pulp vat
+    const c = costume('scholar', eraOf(105));
+    figure(gp, { ...c, h: 0.28, x: -0.11, y: floor, z: -0.09, top: '#6b533b', armL: { fwd: 0.85, side: 0.2, bend: 0.45 }, armR: { fwd: 0.85, side: -0.2, bend: 0.45 } });
+    return;
+  }
   if (style === 'press') {
     // cast-iron hand press: two cheeks with an arched crown, platen on a screw/toggle, bed on rails with an open tympan
     const iron = '#2c2f33', Pr = grp(gp, -0.04, -0.06, -0.75, floor);
@@ -1793,29 +2190,115 @@ const printing: Builder = (gp, r) => {
 };
 
 const compass: Builder = gp => {
-  // 司南: a lodestone spoon on a bronze diviner's board
-  rbox(gp, P.lacquer, 0, 0, 0, 0.6, 0.06, 0.6, 0.01);
-  rbox(gp, P.bronze, 0, 0.06, 0, 0.52, 0.02, 0.52, 0.004);
-  lathe(gp, [[0, 0], [0.2, 0], [0.2, 0.012], [0, 0.012]], tint(P.bronze, 0.15), 0, 0.08, 0, 32);
-  for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2; box(gp, P.ink, Math.cos(a) * 0.17, 0.093, Math.sin(a) * 0.17, 0.02, 0.002, 0.006, -a); }
-  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; box(gp, P.gold, Math.cos(a) * 0.23, 0.081, Math.sin(a) * 0.23, 0.03, 0.002, 0.012, -a); }
-  const sp = anim(gp, 'spin', 0, 0.1, 0, { axis: 'y', speed: 0.3 });
-  ellip(sp, '#2a2a2e', 0, 0.02, -0.03, 0.06, 0.03, 0.07);
-  tube(sp, [[0, 0.02, 0.02], [0, 0.03, 0.12], [0, 0.035, 0.2]], 0.014, 0.008, '#2a2a2e', { radial: 6, sub: 3 });
+  // 汉代司南 (Sinan: lodestone spoon on a bronze diviner's earth-plate 地盘): rests on a round museum plinth and a
+  // black-and-vermilion lacquered wooden frame (栻盘), the square bronze plate engraved with the central Heaven-Pool
+  // (天池), Eight Trigrams (八卦), Twenty-Four Azimuths (二十四山向), and Four Symbols corner plaques, with a glossy
+  // magnetite ladle (磁石勺) spinning to point South.
+  const y0 = ground(gp, 0.46, SITE.stone);
+  rbox(gp, '#1e1614', 0, y0, 0, 0.56, 0.044, 0.56, 0.008);
+  rbox(gp, P.lacquer, 0, y0 + 0.042, 0, 0.53, 0.016, 0.53, 0.006);
+  // bronze earth-plate (地盘) with vertex-painted antique bronze & gilt ring markings
+  const plateGeo = paintFaces(new THREE.BoxGeometry(0.48, 0.022, 0.48, 24, 2, 24), P.bronze, (x, y, z) => {
+    if (y < 0) return shade(P.bronze, 0.8);
+    const r = Math.hypot(x, z);
+    if (r < 0.145) return shade('#b58f48', 1.02 - r * 0.4); // polished central天池 socket
+    if (Math.abs(r - 0.15) < 0.008 || Math.abs(r - 0.195) < 0.007) return '#221c16';
+    if (Math.abs(x) > 0.215 || Math.abs(z) > 0.215) return '#5c4728';
+    return shade(P.bronze, 0.92 + fbm(x * 18, 1, z * 18, 2) * 0.16);
+  });
+  add(gp, plateGeo, mat('#ffffff', { vc: true, metal: 0.65, rough: 0.34 }), 0, y0 + 0.068, 0, 1, 1, 1);
+  const py = y0 + 0.08;
+  // raised circular rim around the Heaven-Pool (天池)
+  lathe(gp, [[0.144, 0], [0.156, 0], [0.154, 0.008], [0.144, 0.008]], P.gold, 0, py, 0, 32);
+  // 24 azimuth tick marks (二十四山向) and 8 Trigram symbols (八卦)
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * Math.PI * 2;
+    box(gp, i % 3 === 0 ? '#991b1b' : P.ink, Math.cos(a) * 0.174, py, Math.sin(a) * 0.174, 0.024, 0.003, 0.005, -a);
+  }
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    for (let k = -1; k <= 1; k++) {
+      const r = 0.208 + k * 0.007;
+      box(gp, P.gold, Math.cos(a) * r, py, Math.sin(a) * r, 0.004, 0.003, 0.026, -a);
+    }
+  }
+  // corner L-square bronze borders (四维规矩纹)
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    box(gp, P.gold, sx * 0.195, py, sz * 0.215, 0.05, 0.003, 0.006);
+    box(gp, P.gold, sx * 0.215, py, sz * 0.195, 0.006, 0.003, 0.05);
+  }
+  // natural lodestone spoon (磁石勺): dark metallic magnetite bowl + curving south-pointing handle
+  const sp = anim(gp, 'spin', 0, py + 0.005, 0, { axis: 'y', speed: 0.3 });
+  const mag = mat('#272930', { metal: 0.65, rough: 0.24 });
+  add(sp, g('rich:sph14', () => new THREE.SphereGeometry(1, 14, 8)), mag, 0, 0.022, -0.025, 0.058, 0.028, 0.068);
+  ellip(sp, '#18191e', 0, 0.036, -0.028, 0.044, 0.008, 0.052); // hollowed inner scoop of the spoon
+  const hnd = tube(sp, [[0, 0.022, 0.025], [0, 0.034, 0.095], [0, 0.042, 0.165], [0, 0.038, 0.215]], 0.018, 0.007, '#272930', { radial: 8, sub: 4 });
+  hnd.material = mag;
 };
 
 const seismoscope: Builder = gp => {
-  // 候风地动仪: domed bronze urn, eight dragons with balls over eight toads
-  ground(gp, 0.42, '#8a7458');
-  const c = P.patina;
-  lathe(gp, [[0, 0], [0.2, 0], [0.24, 0.08], [0.25, 0.2], [0.22, 0.32], [0.16, 0.4], [0.08, 0.44], [0, 0.45]], c, 0, 0.03, 0, 24);
-  lathe(gp, [[0.07, 0], [0.09, 0.03], [0.04, 0.07], [0, 0.08]], tint(c, -0.15), 0, 0.47, 0, 12);
+  // 张衡候风地动仪 (132 AD, Luoyang; National Museum of China reconstruction): two-tier carved Han stone pedestal
+  // (须弥座), bronze wine-jar vessel (尊形铜器) with mottled verdigris/bronze patina, raised string ribs (弦纹), Eight
+  // Trigrams & mountain-cloud relief bands, domed lid with Boshan lotus finial (博山钮), eight S-curved dragons clinging
+  // head-down with copper balls in their jaws (one ball dropping), and eight crouching bronze toads below with upturned
+  // open mouths.
+  const y0 = ground(gp, 0.46, SITE.stone);
+  // two-tier carved stone Sumeru pedestal (汉白玉须弥座) with octagonal upper deck
+  rbox(gp, '#c8c0b0', 0, y0, 0, 0.64, 0.024, 0.64, 0.005);
+  rbox(gp, '#b4ab99', 0, y0 + 0.024, 0, 0.56, 0.02, 0.56, 0.004);
+  const py = y0 + 0.044;
+  cyl(gp, '#d4cdc0', 0, py, 0, 0.34, 0.016, 8);
+  const uy = py + 0.016;
+  const c = '#4b6b5c', br = '#7a643c', hi = '#68917d', lo = '#2c3d35';
+  // bronze vessel (尊形铜器) with vertex-painted patina, string bands (弦纹), and belly relief
+  const urnPts: [number, number][] = [
+    [0, 0], [0.165, 0], [0.15, 0.03], [0.135, 0.06], [0.195, 0.13], [0.228, 0.22],
+    [0.218, 0.31], [0.175, 0.37], [0.145, 0.405], [0.162, 0.43], [0.148, 0.44], [0, 0.44],
+  ];
+  const urnGeo = new THREE.LatheGeometry(urnPts.map(([r, y]) => new THREE.Vector2(r, y)), 28);
+  urnGeo.computeVertexNormals();
+  add(gp, paintFaces(urnGeo, c, (x, y, z) => {
+    const th = Math.atan2(z, x), n = fbm(x * 16, y * 16, z * 16, 3);
+    // raised bronze/gilt string bands and mountain-cloud / Eight-Trigram bands
+    if (Math.abs(y - 0.13) < 0.01 || Math.abs(y - 0.31) < 0.01 || Math.abs(y - 0.37) < 0.009) return '#9c824a';
+    if (y > 0.19 && y < 0.26) {
+      const wave = Math.sin(th * 16 + Math.sin(y * 70) * 1.5);
+      return wave > 0.25 ? '#8a7344' : shade(c, 0.82 + n * 0.25);
+    }
+    return n > 0.62 ? hi : n < 0.34 ? br : shade(c, 0.88 + n * 0.24);
+  }), mat('#ffffff', { vc: true, metal: 0.5, rough: 0.42 }), 0, uy, 0, 1, 1, 1);
+  // domed lid (隆盖) with lotus petals and Boshan mountain finial (博山钮)
+  bronze(lathe(gp, [[0, 0], [0.152, 0], [0.135, 0.032], [0.085, 0.056], [0.032, 0.068], [0, 0.07]], c, 0, uy + 0.435, 0, 20), c);
+  bronze(lathe(gp, [[0.025, 0], [0.042, 0.018], [0.028, 0.048], [0, 0.062]], '#9c824a', 0, uy + 0.5, 0, 10), '#9c824a');
+  // eight dragons (八龙首尾伏贴于尊壁) and eight crouching toads (八蟾蜍仰首张口承丸)
   for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
-    tube(gp, [[ca * 0.2, 0.38, sa * 0.2], [ca * 0.27, 0.36, sa * 0.27], [ca * 0.3, 0.3, sa * 0.3], [ca * 0.31, 0.26, sa * 0.31]], 0.022, 0.012, tint(c, -0.1), { radial: 6, sub: 3 });
-    ellip(gp, P.gold, ca * 0.315, 0.245, sa * 0.315, 0.014);
-    ellip(gp, tint(c, -0.2), ca * 0.33, 0.06, sa * 0.33, 0.04, 0.035, 0.04);
-    ellip(gp, '#1f2a24', ca * 0.33, 0.09, sa * 0.33, 0.016, 0.01, 0.016);
+    const a = (i / 8) * Math.PI * 2;
+    const D = grp(gp, 0, 0, -a, uy);
+    // S-curved dragon body clinging head-down along +x
+    bronze(tube(D, [[0.145, 0.39, 0], [0.205, 0.365, 0], [0.248, 0.305, 0], [0.232, 0.235, 0], [0.255, 0.185, 0]], 0.016, 0.021, c, { radial: 7, sub: 4 }), c);
+    // dorsal ridge spines (背脊扉棱) and four grasping legs
+    for (const [dx, dy] of [[0.205, 0.375], [0.245, 0.32], [0.242, 0.255]] as const) box(D, '#9c824a', dx, dy, 0, 0.014, 0.014, 0.005);
+    for (const sz of [-1, 1]) {
+      rod(D, [0.235, 0.32, sz * 0.012], [0.205, 0.3, sz * 0.028], 0.005, br, 4);
+      rod(D, [0.232, 0.22, sz * 0.012], [0.195, 0.205, sz * 0.028], 0.005, br, 4);
+    }
+    // sculpted dragon head (龙首): snout, lower jaw, twin horns
+    bronze(box(D, hi, 0.268, 0.175, 0, 0.036, 0.022, 0.026, 0, 0, -0.45), hi);
+    bronze(box(D, br, 0.255, 0.162, 0, 0.028, 0.01, 0.02, 0, 0, 0.35), br);
+    for (const sz of [-1, 1]) rod(D, [0.26, 0.192, sz * 0.01], [0.24, 0.222, sz * 0.024], 0.0035, '#eab308', 4);
+    // copper ball (铜丸): dragon 0 is dropping its ball into the toad's mouth!
+    const ballY = i === 0 ? 0.115 : 0.165;
+    add(D, g('rich:sph10', () => new THREE.SphereGeometry(1, 10, 6)), mat('#eab308', { metal: 0.8, rough: 0.2 }), 0.268, ballY, 0, 0.013, 0.013, 0.013);
+    // crouching bronze toad (蟾蜍) at r = 0.275, facing inward with upturned head and wide-open mouth
+    const tx = 0.275;
+    bronze(ellip(D, lo, tx + 0.012, 0.028, 0, 0.042, 0.028, 0.036, 0, 0, 0.38), lo); // squat warty body
+    bronze(ellip(D, c, tx - 0.01, 0.052, 0, 0.028, 0.022, 0.028, 0, 0, -0.55), c); // upturned head
+    ellip(D, '#7f1d1d', tx - 0.008, 0.068, 0, 0.016, 0.008, 0.018); // wide-open upturned mouth
+    for (const sz of [-1, 1]) {
+      ellip(D, '#eab308', tx - 0.002, 0.062, sz * 0.018, 0.006); // bulging golden eyes
+      ellip(D, lo, tx + 0.025, 0.016, sz * 0.032, 0.018, 0.014, 0.014); // hind legs
+      rod(D, [tx - 0.01, 0.032, sz * 0.022], [tx - 0.022, 0.004, sz * 0.024], 0.006, lo, 4); // braced forelegs
+    }
   }
 };
 
@@ -2415,19 +2898,69 @@ function humen(gp: THREE.Group): void {
 }
 
 const redboat: Builder = gp => {
-  // the Red Boat on South Lake (嘉兴南湖红船)
+  // 嘉兴南湖红船 — the 1921 Jiaxing South Lake Red Boat (Wuxi-style 单夹弄丝网船 painted barge):
+  // turned diagonally across South Lake with lotus pads & a willow-lined stone embankment at the shore.
   const lake = waves(gp, 0.46);
-  const b = anim(gp, 'bob', 0, lake - 0.002, 0);
-  const rings: V3[][] = [];
-  for (let i = 0; i <= 8; i++) {
-    const t = i / 8, z = (t - 0.5) * 0.7, w = 0.11 * (0.45 + 0.55 * Math.sin(Math.PI * t)), s = 0.06 + 0.05 * Math.pow(Math.abs(2 * t - 1), 2.5);
-    rings.push([[-w, s, z], [-w * 0.9, 0.02, z], [0, 0, z], [w * 0.9, 0.02, z], [w, s, z]]);
+  // Corner of South Lake stone embankment (南湖石驳岸) & weeping willow at back-left
+  box(gp, '#8e887c', -0.26, lake - 0.006, -0.24, 0.24, 0.022, 0.14, 0.55);
+  box(gp, '#a6a092', -0.26, lake + 0.014, -0.24, 0.25, 0.005, 0.15, 0.55);
+  tree(gp, -0.28, lake + 0.018, -0.25, 0.12, '#6d8248');
+  // Floating South Lake lotus pads (荷叶) & pink lotus blossoms
+  for (const [lx, lz, lr] of [[0.24, 0.2, 0.028], [0.29, 0.15, 0.022], [0.2, 0.26, 0.024], [-0.24, 0.2, 0.026], [-0.18, 0.26, 0.02]] as const) {
+    cyl(gp, '#3e6e38', lx, lake + 0.001, lz, lr, 0.002, 10);
   }
-  skin(b, rings, '#8a2e1e', { caps: true, flat: true, paint: (_x, _y, _z, _nx, ny) => (ny > 0.7 ? '#a07850' : null) });
-  rbox(b, '#a8352a', 0, 0.06, 0, 0.18, 0.1, 0.36, 0.004);
-  for (const sx of [-1, 1]) for (let k = 0; k < 5; k++) box(b, '#e9dcc0', sx * 0.091, 0.09, -0.14 + k * 0.07, 0.002, 0.04, 0.04);
-  gable(b, 0.22, 0.06, 0.4, '#3f3a36', 0, 0.16, 0);
-  for (const z of [-0.2, 0.2]) box(b, '#d6a840', 0, 0.06, z, 0.18, 0.02, 0.01);
+  ellip(gp, '#e88ca0', 0.25, lake + 0.008, 0.22, 0.007, 0.006, 0.007, 6);
+  ellip(gp, '#e88ca0', -0.22, lake + 0.008, 0.23, 0.006, 0.005, 0.006, 6);
+
+  const b = anim(gp, 'bob', 0.02, lake - 0.003, 0.02);
+  b.rotation.y = 0.62;
+  // Flat-bottomed Jiangnan hull with upturned bow (+z) and stern (-z), strake-painted sides & planked teak deck
+  const rings: V3[][] = [];
+  for (let i = 0; i <= 10; i++) {
+    const t = i / 10, z = (t - 0.5) * 0.74, w = 0.118 * (0.46 + 0.54 * Math.sin(Math.PI * t)), s = 0.056 + 0.048 * Math.pow(Math.abs(2 * t - 1), 2.3);
+    rings.push([[-w, s, z], [-w * 0.9, 0.018, z], [0, 0, z], [w * 0.9, 0.018, z], [w, s, z]]);
+  }
+  skin(b, rings, '#7e2618', {
+    caps: true, flat: true,
+    paint: (px, py, pz, _nx, ny) => {
+      if (ny > 0.65) return Math.floor(px * 90) % 2 ? '#a2784e' : '#916840';
+      return Math.floor(py * 110 + Math.abs(pz) * 8) % 2 ? '#8c2c1c' : '#6e2014';
+    },
+  });
+  // Gold/ochre gunwale rub-rails & bow/stern crossbeams
+  for (const sx of [-1, 1]) rod(b, [sx * 0.112, 0.06, -0.26], [sx * 0.112, 0.06, 0.26], 0.004, '#d6a840', 4);
+  for (const z of [-0.28, 0.28]) box(b, '#d6a840', 0, 0.062, z, 0.15, 0.014, 0.014);
+
+  // Main central cabin (中舱) & stateroom (房舱) in wine-red lacquer with carved wood panels & warm lit windows
+  const red = '#982c20', trim = '#d6a840', wood = '#5a2016', roofC = '#3b3734';
+  rbox(b, red, 0, 0.056, -0.02, 0.176, 0.096, 0.4, 0.004);
+  box(b, trim, 0, 0.148, -0.02, 0.182, 0.006, 0.408);
+  box(b, wood, 0, 0.058, -0.02, 0.18, 0.022, 0.404);
+  // 5 lattice windows on each side with warm glowing interior paper & carved mullions
+  for (const sx of [-1, 1]) for (let k = 0; k < 5; k++) {
+    const wz = -0.17 + k * 0.075;
+    box(b, '#f5d996', sx * 0.089, 0.086, wz, 0.003, 0.044, 0.048);
+    box(b, wood, sx * 0.091, 0.086, wz, 0.002, 0.048, 0.004);
+    box(b, wood, sx * 0.091, 0.108, wz, 0.002, 0.004, 0.05);
+  }
+  // Open covered fore-porch (前舱抱厦) at bow (+z) with 4 vermilion posts & balustrade (美人靠)
+  for (const sx of [-1, 1]) {
+    cyl(b, red, sx * 0.082, 0.056, 0.26, 0.0045, 0.088, 6);
+    cyl(b, red, sx * 0.082, 0.056, 0.19, 0.0045, 0.088, 6);
+    box(b, trim, sx * 0.082, 0.072, 0.225, 0.006, 0.016, 0.072);
+  }
+  // Curved barrel-vaulted barge roof (拱形船篷) over the main cabin + fore-porch roof + stern helm hood
+  const rRings: V3[][] = [];
+  for (let i = 0; i <= 8; i++) {
+    const u = (i / 8) * 2 - 1, x = u * 0.104, y = 0.15 + (1 - u * u) * 0.036;
+    rRings.push([[x, y, 0.28], [x, y, -0.24]]);
+  }
+  skin(b, rRings, roofC, { caps: true, flat: true, paint: (px) => (Math.floor((px + 0.2) * 80) % 2 ? '#48433f' : roofC) });
+  rbox(b, '#6e2216', 0, 0.056, -0.25, 0.14, 0.075, 0.09, 0.003);
+  gable(b, 0.155, 0.025, 0.1, roofC, 0, 0.13, -0.25);
+  // Bamboo punt pole (竹篙) on the cabin roof & stern sculling oar (摇橹)
+  rod(b, [0.06, 0.182, -0.2], [0.06, 0.182, 0.24], 0.003, '#b89e5a', 4);
+  rod(b, [-0.04, 0.08, -0.29], [-0.09, 0.015, -0.43], 0.004, '#7a5230', 4);
 };
 
 /** Points along a circular arch of chord `span` and rise `f` springing at (x0 ± span/2, y0), left to right; `off` grows the radius. */
@@ -3086,9 +3619,27 @@ function shikumen(gp: THREE.Group): void {
 }
 
 const statue: Builder = (gp, r) => {
-  // a seated sage statue on a plinth
-  const y = terrace(gp, 0.5, 0.5, 2, 0.06, '#bdb4a2', false);
-  figure(gp, { h: 0.6, x: 0, y, z: 0, top: str(r.color, '#8a7a5a'), bottom: str(r.color, '#8a7a5a'), skin: tint(str(r.color, '#8a7a5a'), 0.1), hair: tint(str(r.color, '#8a7a5a'), -0.2), hairStyle: 'topknot', beard: 'long', beardColor: tint(str(r.color, '#8a7a5a'), -0.2), outfit: 'robe', wideSleeves: true, hat: 'scholar', hatColor: tint(str(r.color, '#8a7a5a'), -0.2), armL: { fwd: 0.6, bend: 1.4, inward: 0.5 }, armR: { fwd: 0.6, bend: 1.4, inward: 0.5 } });
+  // 孔圣先师行教石像 (Qufu Temple of Confucius): a carved bluestone/marble Sumeru pedestal (须弥座) on a courtyard
+  // plinth with stone balustrades, a tripod incense burner (石香炉) before the steps, ancient cypresses (古柏) flanking
+  // the platform, and a weathered limestone statue of Confucius clasping his hands in the 叉手礼 salute.
+  const y0 = ground(gp, 0.46, SITE.court);
+  const st = str(r.color, '#9c927e');
+  const y = y0 + terrace(gp, 0.42, 0.42, 2, 0.045, '#c4bcb0', false);
+  // lotus-waist Sumeru pedestal (束腰仰覆莲座) under the statue
+  rbox(gp, '#a89f91', 0, y, -0.02, 0.24, 0.022, 0.22, 0.004);
+  rbox(gp, '#8c8376', 0, y + 0.022, -0.02, 0.2, 0.026, 0.18, 0.003);
+  rbox(gp, '#b4ab9c', 0, y + 0.048, -0.02, 0.25, 0.022, 0.23, 0.004);
+  // stone incense burner (石香炉) in front of the steps + flanking ancient cypresses
+  lathe(gp, [[0, 0], [0.035, 0], [0.028, 0.015], [0.042, 0.038], [0.036, 0.052], [0, 0.052]], '#787166', 0, y0, 0.28, 12);
+  for (const sx of [-1, 1]) minipine(gp, sx * 0.31, y0, -0.16, 0.18, '#365338');
+  figure(gp, {
+    h: 0.56, x: 0, y: y + 0.07, z: -0.02,
+    top: st, bottom: tint(st, -0.08), accent: tint(st, -0.16), bixi: tint(st, -0.12),
+    skin: tint(st, 0.06), hair: tint(st, -0.22), hairStyle: 'topknot',
+    beard: 'long', beardColor: tint(st, -0.2), outfit: 'robe', wideSleeves: true,
+    hat: 'jinxian', hatColor: tint(st, -0.22),
+    armL: { fwd: 0.65, bend: 1.4, inward: 0.52 }, armR: { fwd: 0.65, bend: 1.4, inward: 0.52 },
+  });
 };
 
 /**
@@ -3202,11 +3753,22 @@ export function personModel(gp: THREE.Group, r: ModelRecipe): void {
   // `bare`: standing straight on the map (scenery) rather than on a card's plinth
   const y = r.bare ? 0 : figureBase(gp, '#c9b58e', '#6e5a40');
   let look = costume(role, era);
+  if (r.eth === 'steppe') {
+    // Khitan (辽), Tangut (西夏), or Jurchen (金) imperial/noble attire: fur-trimmed steppe coat (圆领窄袖袍),
+    // cloud collar (披领), golden steppe belt, and northern fur/gold crown (皮冠 / 金冠).
+    look = {
+      ...look, top: r.female ? '#b91c1c' : '#d6c8a8', bottom: '#27272a', accent: '#eab308',
+      piling: '#991b1b', pattern: 'yuan', wideSleeves: false,
+      hat: r.female ? 'crown' : 'boli', hatColor: r.female ? '#eab308' : '#52341e',
+    };
+  }
   // `female`: an empress (武则天) or a heroine in armour (花木兰) — the role's dress without a beard
-  if (r.female) {
+  if (r.female && r.eth !== 'steppe') {
     const w = costume('woman', era);
     look = role === 'ruler' ? { ...w, top: '#d6a62a', accent: '#a8321f', hat: 'crown', hatColor: P.gold, cape: '#a8321f' }
       : role === 'general' ? { ...look, beard: 'none', hat: 'none', hairStyle: 'bun' } : w;
+  } else if (r.female) {
+    look = { ...look, beard: 'none', hairStyle: 'bun' };
   }
   const common = { h: 0.62, x: 0, y, z: 0, hair: '#1c1714', beardColor: '#2a2420', accent: P.gold, ...look, top: str(r.color, look.top) };
   const modern = era === 'minguo' || era === 'modern';
@@ -3216,7 +3778,25 @@ export function personModel(gp: THREE.Group, r: ModelRecipe): void {
     const two = prop === 'pipa' || prop === 'bow';
     const a = figure(gp, { ...common, armR: two ? { fwd: 0.7, side: 0.1, bend: 1.3, inward: 0.5 } : { fwd: 0.55, side: 0.15, bend: 0.9 }, armL: two ? { fwd: 0.6, bend: 1.0, inward: 0.3 } : { fwd: 0.15, bend: 0.3 } });
     holdProp(gp, prop, a.handR, a.handL);
-  } else if (role === 'ruler') figure(gp, { ...common, armL: { fwd: 0.5, bend: 1.2, inward: 0.4 }, armR: { fwd: 0.5, bend: 1.2, inward: 0.4 } });
+  } else if (role === 'ruler') {
+    const a = figure(gp, {
+      ...common,
+      armL: modern ? { fwd: 0.1, bend: 0.25 } : { fwd: 0.55, bend: 1.25, inward: 0.45 },
+      armR: modern ? { fwd: 0.55, side: 0.15, bend: 0.85 } : { fwd: 0.55, bend: 1.25, inward: 0.45 },
+    });
+    if (!modern) {
+      const mx = (a.handL[0] + a.handR[0]) * 0.5, my = (a.handL[1] + a.handR[1]) * 0.5, mz = (a.handL[2] + a.handR[2]) * 0.5 + 0.015;
+      if (era === 'xianqin' || era === 'qinhan' || era === 'weijin' || era === 'ming') {
+        // 镇圭 / 玉圭: pointed ritual jade tablet held reverently before the chest
+        box(gp, '#d8e8d4', mx, my + 0.01, mz, 0.024, 0.11, 0.007, -0.2);
+        cone(gp, '#d8e8d4', mx, my + 0.115, mz - 0.011, 0.014, 0.028, 4).rotation.set(-0.2, Math.PI / 4, 0);
+      } else {
+        // 诏书 / 玉如意: imperial gold-brocade scroll held across the hands
+        cyl(gp, '#eab308', mx, my + 0.02, mz, 0.013, 0.13, 10).rotation.z = Math.PI / 2;
+        for (const sx of [-1, 1]) cyl(gp, '#991b1b', mx + sx * 0.068, my + 0.02, mz, 0.015, 0.014, 8).rotation.z = Math.PI / 2;
+      }
+    }
+  }
   else if (role === 'general') {
     const a = figure(gp, { ...common, armR: { fwd: 0.3, side: 0.2, bend: 0.3 } });
     const [hx, hy, hz] = a.handR;

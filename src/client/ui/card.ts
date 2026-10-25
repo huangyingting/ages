@@ -11,7 +11,7 @@ import type { Progress } from '../lib/storage.ts';
 import { fill, h, icon, iconBtn } from './dom.ts';
 import { Preview } from './preview.ts';
 import { capitalModel, personModel, placeModel } from '../../shared/data/heroes.ts';
-import { lifeOf, type LifeItem, type LifeKind } from '../../shared/data/life.ts';
+import { LIFE, lifeOf, type LifeItem, type LifeKind } from '../../shared/data/life.ts';
 import { lifeEvent, lifePlace } from '../../shared/data/scenery.ts';
 
 export interface CardHooks {
@@ -201,7 +201,7 @@ export class Card {
     const modern = p.modern && p.modern.zh !== now.zh ? p.modern : now.zh !== p.name.zh ? p.name : undefined;
     const wikiName = p.modern?.zh ? p.modern : p.name;
     const capYears = (p.capital ?? []).reduce((s, [a, b]) => s + Math.max(1, Math.min(b, 1949) - a), 0);
-    this.setHero(life?.model ?? placeModel(p), t(p.kind === 'pass' ? 'pass' : 'place'), '#c9a45c', null);
+    this.setHero(life?.model ?? placeModel(p, year), t(p.kind === 'pass' ? 'pass' : 'place'), '#c9a45c', null);
     const showNames = names.length > 1 || (names.length === 1 && names[0].name.zh !== now.zh);
     fill(this.body,
       this.title(modern ? this.eyebrow(`${t('today')} ${tr(modern, L)}`) : null, tr(now, L), null,
@@ -292,7 +292,10 @@ export class Card {
       const u = unitOf(c.book, c.unit);
       return h('li', {}, h('b', { text: tr(BOOKS[c.book].name, L) }), ' ', h('span', { text: u ? tr(u.title, L) : `#${c.unit}` }));
     });
-    this.setHero(e.model ?? KIND_MODEL[e.kind], kindName(e.kind), `var(--k-${e.kind})`, i >= 0 ? [i + 1, list.length] : null,
+    const twin = LIFE.find(l => lifeEvent(l) === e);
+    const rawModel = (!e.model?.hero && twin?.model) ? twin.model : (e.model ?? KIND_MODEL[e.kind]);
+    const evModel: ModelRecipe = rawModel.year !== undefined ? rawModel : { ...rawModel, year: e.year };
+    this.setHero(evModel, kindName(e.kind), `var(--k-${e.kind})`, i >= 0 ? [i + 1, list.length] : null,
       i > 0 ? () => this.hooks.open(list[i - 1]) : undefined, i >= 0 && i < list.length - 1 ? () => this.hooks.open(list[i + 1]) : undefined);
     fill(this.body,
       this.title(h('div', { class: 'eyebrow' }, h('b', { class: 'ey-y', text: when }),
@@ -316,7 +319,7 @@ export class Card {
     const figures = dy ? PEOPLE.filter(p => p.dyn === dy.id) : [];
     const life = lifeOf(era.id).filter(x => x.kind !== 'person');
     const seat = cap ? tr(placeName(cap, era.start), L) : dy?.seat.zh ? tr(dy.seat, L) : '';
-    const model: ModelRecipe = era.start < -2000 ? { kind: 'hut' } : capitalModel(era);
+    const model: ModelRecipe = capitalModel(era);
     this.setHero(model, t('era'), era.color, [i + 1, ERAS.length],
       i > 0 ? () => this.hooks.era(ERAS[i - 1].id) : undefined, i < ERAS.length - 1 ? () => this.hooks.era(ERAS[i + 1].id) : undefined);
     fill(this.body,

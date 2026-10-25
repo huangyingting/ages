@@ -928,7 +928,48 @@ function glazeAll(G: THREE.Object3D, pick: (hex: string) => Paint | null = h => 
 // Bactrian with amber hair on crown, throat, humps and forearms, a striped fringed carpet on a platform, seven seated
 // musicians in futou facing outwards and a standing woman singer; beside it an amber 三花 horse (cf. 鲜于庭诲墓 pieces).
 // Ref: Commons sancai camel with musicians (Shaanxi History Museum) — cream/amber/green lead glazes on a museum plinth.
-const lf_sancai: Builder = (gp) => {
+const lf_sancai: Builder = (gp, r) => {
+  if (r?.style === 'liao') {
+    // 鸡冠壶与辽三彩 — Khitan Leather-Bag Cockscomb Flask (绿釉皮囊鸡冠壶) with imitation stitched leather seams,
+    // tubular spout & arched handle, paired with a Liao sancai stamped floral dish (辽三彩印花盘) and a tall
+    // white-glazed vase on a museum plinth.
+    const BY = plinth(gp, SITE.paving, { R: 0.46, h: 0.0435 }) + 0.0015, Y = BY;
+    // Wooden museum display stands
+    pbox(gp, '#3c2418', -0.11, Y, 0.02, 0.24, 0.022, 0.18, (x, _y, z) => shade('#3c2418', 0.92 + fbm(x * 30, 1, z * 30) * 0.16), 0.012).userData.noGlaze = true;
+    // 1. Khitan green-glazed leather-bag cockscomb flask (绿釉鸡冠壶): flat oval pouch body that flares from a
+    // ringed foot to a broad shoulder, raised stitched leatherwelt ribs, upright spout, and arched cockscomb loop
+    const JG = grp(gp, -0.11, Y + 0.022, 0.02, 0.25);
+    lathe(JG, [[0, 0], [0.056, 0], [0.052, 0.016], [0.078, 0.09], [0.086, 0.18], [0.068, 0.24], [0.025, 0.26], [0, 0.26]], GZ.green, 0, 0, 0, 20);
+    JG.scale.z = 0.68; // flattened leather-pouch cross-section
+    // Imitation stitched leather seam ridges (仿皮囊缝合线) along the flanks and shoulder
+    for (const sx of [-1, 1]) {
+      tube(JG, [[sx * 0.052, 0.02, 0], [sx * 0.082, 0.11, 0], [sx * 0.088, 0.19, 0], [sx * 0.062, 0.245, 0]], 0.006, 0.005, GZ.cream, { radial: 6, sub: 3 });
+    }
+    // Vertical tubular drinking spout (流) at front (+x) & arched cockscomb crest handle (鸡冠形提梁) with finger hole
+    cyl(JG, GZ.green, 0.038, 0.245, 0, 0.013, 0.042, 10);
+    lathe(JG, [[0.01, 0], [0.016, 0.006], [0.012, 0.012]], GZ.cream, 0.038, 0.282, 0, 10);
+    tube(JG, [[-0.048, 0.235, 0], [-0.042, 0.305, 0], [-0.01, 0.325, 0], [0.018, 0.295, 0], [0.015, 0.25, 0]], 0.011, 0.009, GZ.amber, { radial: 8, sub: 4 });
+    // Cockscomb serrated notches along top of the arch
+    for (let i = 0; i < 5; i++) ell8(JG, GZ.amber, -0.038 + i * 0.013, 0.318 + Math.sin((i / 4) * Math.PI) * 0.012, 0, 0.006, 0.01, 0.005);
+    glazeAll(JG);
+    // 2. Liao sancai stamped peony dish (辽三彩印花盘) tilted on a display easel at front-right
+    const D = grp(gp, 0.16, Y + 0.095, 0.08, -0.45);
+    D.rotation.x = 1.05;
+    lathe(D, [[0, 0], [0.055, 0], [0.095, 0.018], [0.115, 0.026], [0.11, 0.028], [0, 0.012]], GZ.cream, 0, 0, 0, 24);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU;
+      ell8(D, i % 2 ? GZ.green : GZ.amber, Math.cos(a) * 0.062, 0.018, Math.sin(a) * 0.062, 0.018, 0.005, 0.024, a);
+    }
+    ell8(D, GZ.amber, 0, 0.019, 0, 0.024, 0.006, 0.024);
+    glazeAll(D);
+    rod(gp, [0.12, Y, 0.12], [0.16, Y + 0.14, 0.04], 0.004, '#3c2418', 4);
+    rod(gp, [0.2, Y, 0.04], [0.16, Y + 0.14, 0.04], 0.004, '#3c2418', 4);
+    // 3. Tall Liao amber-glazed long-necked phoenix vase at back-right
+    const V = grp(gp, 0.12, Y, -0.15);
+    lathe(V, [[0, 0], [0.036, 0], [0.068, 0.07], [0.064, 0.14], [0.022, 0.2], [0.02, 0.28], [0.034, 0.31], [0, 0.31]], GZ.amber, 0, 0, 0, 18);
+    glazeAll(V);
+    return;
+  }
   // shared museum plinth with a pale stone top
   const BY = plinth(gp, SITE.paving, { R: 0.46, h: 0.0435 }) + 0.0015, Y = BY;
   // ---- the camel: local +z forward, standing square on its rectangular base ----
@@ -1795,9 +1836,79 @@ function jingjuStage(gp: THREE.Group): void {
 }
 
 // Ref: Commons "Theatre actors, Yuan Dynasty.jpg" (Guangshengsi mural), "Battle of Changban Peking Opera 3.jpg" — costumes.
+function jinBrickStage(gp: THREE.Group): void {
+  // 山西侯马金代董氏墓彩绘戏台砖雕与五名杂剧演员砖俑 (1210 AD, Shanxi Museum):
+  // Carved grey-and-terracotta tomb brick wall framing a recessed imitation-timber stage pavilion (仿木构砖雕戏台)
+  // with polychrome red/green dougong brackets, glazed hip-and-gable roof, carved peony panels, and the 5 iconic
+  // Jin yuanben / zaju actor figurines (末泥, 装孤, 副净, 副末, 装旦) standing on the stage dais.
+  land(gp, '#9c8d74', (x, _y, z) => (Math.abs(x) < 0.28 && z > -0.02 ? bricks('#8e887f', 0.035, 0.018, 0.1)(x, 0, z, 0, 1, 0) : shade('#9c8d74', 0.9 + fbm(x * 16, 2, z * 16, 3) * 0.2)), undefined, '#5c4d38');
+  const SX = 0, SZ = -0.1, W = 0.36, D = 0.2, PH = 0.068, T = Y0 + PH, CH = 0.195;
+  const BRK = '#78756e', TERRA = '#b55438', GREEN = '#2d6e5e', GOLD = '#d4a238';
+  // High carved-brick须弥座 base with waist relief panels (束腰牡丹砖雕)
+  pbox(gp, BRK, SX, Y0, SZ, W + 0.05, PH, D + 0.03, (x, y) => {
+    const v = y - Y0;
+    if (v > 0.018 && v < PH - 0.016 && Math.abs((x * 18) % 1) > 0.25) return TERRA;
+    return bricks(BRK, 0.036, 0.016, 0.08)(x, y, 0, 0, 1, 0);
+  }, 0.008);
+  box(gp, '#66635c', SX, T - 0.006, SZ, W + 0.06, 0.008, D + 0.04);
+  // Flanking carved-brick screen walls (八字砖雕影壁) with diagonal lattice (斜方格纹)
+  for (const s of [-1, 1]) {
+    pbox(gp, BRK, SX + s * (W / 2 + 0.045), Y0, SZ + 0.02, 0.065, PH + CH * 0.82, 0.024, (x, y) => {
+      const d = ((x + y) * 65) % 1, e = ((x - y) * 65) % 1;
+      return Math.abs(d) < 0.18 || Math.abs(e) < 0.18 ? TERRA : BRK;
+    }, 0.006);
+  }
+  // Stage columns (imitation timber in painted red brick) & rear/side brick walls
+  const cx = W / 2 - 0.018, cz = D / 2 - 0.016;
+  for (const a of [-1, 1]) for (const b of [-1, 1]) {
+    cyl(gp, '#66635c', SX + a * cx, T, SZ + b * cz, 0.02, 0.009, 10);
+    cyl(gp, '#943224', SX + a * cx, T + 0.009, SZ + b * cz, 0.014, CH - 0.009, 10);
+  }
+  pbox(gp, BRK, SX, T, SZ - cz, 2 * cx - 0.01, CH - 0.024, 0.014, bricks(BRK, 0.032, 0.015, 0.08), 0.008);
+  for (const a of [-1, 1]) pbox(gp, BRK, SX + a * cx, T, SZ, 0.014, CH - 0.024, D - 0.02, bricks(BRK, 0.032, 0.015, 0.08), 0.008);
+  // Polychrome brick lintel (阑额),普拍枋, and dense Jin-style brick dougong bracket sets (砖雕斗拱)
+  box(gp, TERRA, SX, T + CH - 0.026, SZ + cz, W + 0.016, 0.026, 0.026);
+  box(gp, GREEN, SX, T + CH, SZ, W + 0.04, 0.009, D + 0.04);
+  const by = T + CH + 0.009;
+  for (const t of [-1, -0.5, 0, 0.5, 1]) {
+    dougong(gp, SX + t * cx, by, SZ + cz, 0, t % 1 === 0 ? TERRA : GREEN);
+  }
+  // Carved brick plaque and floral arch spandrels under the eaves
+  pbox(gp, TERRA, SX, T + CH - 0.042, SZ + cz + 0.004, 2 * cx - 0.02, 0.018, 0.008, (x) => (Math.floor(x * 80) % 2 ? TERRA : GOLD), 0.004);
+  // Jin hip-and-gable tile roof (歇山顶) with peacock-green glazed ridge and 鸱吻
+  box(gp, '#4a3424', SX, by + 0.02, SZ, W + 0.07, 0.008, D + 0.07);
+  const rt = proof(gp, SX, by + 0.028, SZ, { n: 4, R0: 0.275, R1: 0.13, h: 0.052, lift: 0.28, tile: '#4e555a' });
+  tileRoof(gp, SX, rt - 0.014, SZ, 0.2, 0.16, 0.058, '#4e555a');
+  box(gp, GREEN, SX, rt + 0.042, SZ, 0.2, 0.009, 0.012);
+  for (const s of [-1, 1]) box(gp, GOLD, SX + s * 0.1, rt + 0.046, SZ, 0.014, 0.022, 0.014);
+  // The 5 Houma Jin Tomb painted terracotta zaju actor figurines (五名杂剧彩绘砖俑) standing in a row on stage!
+  const h = 0.138, az = SZ + 0.025;
+  // 1. 副末 (Fumo, far left): ochre coat, black futou, holding clapper (拍板)
+  const fm = man(gp, SX - 0.125, T, az + 0.01, { h: h * 0.94, ry: 0.28, top: '#c28848', dress: 'ankle', head: 'futou', hands: [[-0.08, 0.68, 0.18], [0.08, 0.7, 0.18]] });
+  box(gp, '#5a3820', fm.handR[0], fm.handR[1], fm.handR[2] + 0.008, 0.01, 0.026, 0.005);
+  // 2. 末泥 (Moni, center-left): crimson round-collar robe, spread-wing futou, holding fan
+  const mn = man(gp, SX - 0.062, T, az, { h, ry: 0.12, top: '#a82c22', dress: 'ankle', head: 'futou', sleeves: true, hands: [[-0.1, 0.56, 0.14], [0.12, 0.72, 0.2]] });
+  ell8(gp, '#f3ead8', mn.handR[0], mn.handR[1] + 0.01, mn.handR[2] + 0.01, 0.016, 0.018, 0.003);
+  // 3. 装孤 (Zhuanggu / official, center): vermilion court robe, belt, holding hu tablet (笏)
+  const zg = man(gp, SX, T, az - 0.01, { h: h * 1.02, ry: 0, top: '#b83426', dress: 'ankle', head: 'wusha', beard: '#1c1714', sleeves: true, hands: [[-0.06, 0.68, 0.18], [0.06, 0.68, 0.18]] });
+  box(gp, '#efe6cf', (zg.handL[0] + zg.handR[0]) * 0.5, zg.handL[1] + 0.012, zg.handL[2] + 0.01, 0.01, 0.034, 0.003, -0.2);
+  // 4. 副净 (Fujing / comic role, center-right): open green/ochre tunic, painted face, comical dance pose
+  man(gp, SX + 0.062, T, az + 0.008, { h: h * 0.96, ry: -0.18, top: '#2f6a56', face: '#f5f1e8', head: 'jin', hc: '#8a2a20', pose: 'cheer', lean: 0.12 });
+  // 5. 装旦 (Zhuangdan / female role, far right): green Song-Jin beizi jacket over crimson skirt, high bun
+  man(gp, SX + 0.125, T, az + 0.012, { h: h * 0.93, ry: -0.28, top: '#3a725e', bottom: '#9e2a22', dress: 'ankle', head: 'highbun', sleeves: true, pose: 'pray' });
+  // Pair of carved-brick guardian lions in front of the stage platform
+  for (const s of [-1, 1]) {
+    box(gp, '#8a847a', s * 0.14, Y0, 0.08, 0.036, 0.022, 0.042);
+    ell8(gp, '#78736a', s * 0.14, Y0 + 0.038, 0.08, 0.016, 0.022, 0.02);
+    ell8(gp, TERRA, s * 0.14, Y0 + 0.058, 0.088, 0.015, 0.015, 0.015);
+  }
+  fuse(gp);
+}
+
 const lf_opera: Builder = (gp, r) => {
   if (r.style === 'kunqu') kunquStage(gp);
   else if (r.style === 'jingju') jingjuStage(gp);
+  else if (r.style === 'jin') jinBrickStage(gp);
   else yuanStage(gp);
 };
 
@@ -1979,7 +2090,117 @@ const lf_spinning: Builder = (gp) => {
   blades(gp, leaves);
 };
 
+// =========================================================================================================
+// 四时捺钵 — Liao Dynasty Seasonal Nabo Royal Camp (契丹四时捺钵 / 春水秋山): Khitan imperial felt yurt (御帐)
+// with golden dragon patterns and wolf-head standard (狼头纛), mounted Khitan emperor & falconer hunting swans
+// with a Gyrfalcon (海东青猎天鹅) beside a spring meltwater pond, and a bronze boiling cauldron.
+// =========================================================================================================
+const lf_nabo: Builder = (gp) => {
+  const pond = (x: number, z: number) => Math.hypot(x - 0.16, z - 0.16) < 0.16;
+  land(gp, '#7e8c54', (x, _y, z) => {
+    if (pond(x, z)) return mix('#3a6e82', '#6498ab', Math.max(0, Math.min(1, (0.15 - Math.hypot(x - 0.16, z - 0.16)) / 0.13)));
+    const n = fbm(x * 9, 1, z * 9, 2);
+    return n > 0.58 ? '#8e9860' : n < 0.36 ? '#6c7a48' : null;
+  });
+  const felt = '#ede6d6', red = '#9e2e24', gold = '#d8a638', wood = '#5a3822';
+  // Khitan Imperial Felt Yurt (捺钵御帐) at back-left: cylindrical lattice wall + dome roof + red-and-gold bands
+  const YX = -0.14, YZ = -0.11, YR = 0.155;
+  lathe(gp, [[0, 0], [YR, 0], [YR, 0.088], [YR * 0.92, 0.11], [YR * 0.55, 0.155], [0.026, 0.178], [0, 0.18]], felt, YX, Y0, YZ, 24);
+  // Decorative red felt valances, golden cloud/brocade trim & wooden lattice door facing +z/+x
+  cyl(gp, red, YX, Y0 + 0.078, YZ, YR * 1.01, 0.012, 24);
+  cyl(gp, gold, YX, Y0 + 0.088, YZ, YR * 1.012, 0.005, 24);
+  cyl(gp, red, YX, Y0 + 0.168, YZ, 0.038, 0.01, 16);
+  lathe(gp, [[0, 0], [0.016, 0.008], [0.008, 0.024], [0, 0.032]], gold, YX, Y0 + 0.175, YZ, 10);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * TAU;
+    rod(gp, [YX + Math.cos(a) * 0.032, Y0 + 0.172, YZ + Math.sin(a) * 0.032], [YX + Math.cos(a) * YR * 0.98, Y0 + 0.088, YZ + Math.sin(a) * YR * 0.98], 0.0025, red, 4);
+  }
+  box(gp, wood, YX + 0.06, Y0, YZ + YR * 0.88, 0.052, 0.076, 0.014, 0.42);
+  box(gp, red, YX + 0.06, Y0 + 0.004, YZ + YR * 0.9, 0.042, 0.066, 0.01, 0.42);
+  // Khitan Wolf-Head Royal Standard (狼头纛) beside the yurt entrance
+  const bx = 0.06, bz = -0.18;
+  rod(gp, [bx, Y0, bz], [bx, Y0 + 0.26, bz], 0.004, wood, 6);
+  ell8(gp, gold, bx, Y0 + 0.268, bz + 0.006, 0.012, 0.009, 0.018);
+  for (let k = 0; k < 3; k++) {
+    tube(gp, [[bx, Y0 + 0.24 - k * 0.035, bz], [bx + 0.04, Y0 + 0.22 - k * 0.035, bz + 0.01], [bx + 0.075, Y0 + 0.19 - k * 0.035, bz]], 0.008, 0.002, k === 0 ? red : '#221c18', { radial: 6, sub: 3 });
+  }
+  // Mounted Khitan falconer releasing a white Gyrfalcon (海东青) toward wild swans on the spring pond
+  const H = grp(gp, -0.06, Y0, 0.16, 0.65, 0.46);
+  const seat = horse(H, '#6e462c', '#241810', { stride: 0.06, saddle: gold, cloth: red });
+  const rh = 0.52, ry0 = seat - rh * 0.45;
+  human(H, 0, ry0, -0.02, {
+    h: rh, pose: 'sit', top: '#8c2820', bottom: '#2b241e', hair: '#1c1714', hat: '#3a281a', hatStyle: 'fur',
+    armor: gold, feet: [[-0.2, 0.05, 0.12], [0.2, 0.05, 0.12]], hands: [[-0.14, 0.52, 0.15], [0.22, 0.72, 0.18]], detail: 'hi',
+  });
+  // White Gyrfalcon (海东青) soaring above the rider's raised arm & two white swans on the pond
+  const fx = -0.05 + 0.08, fy = Y0 + 0.27, fz = 0.16 + 0.06;
+  ell8(gp, '#f4f0e6', fx, fy, fz, 0.009, 0.006, 0.018, 0.5);
+  for (const s of [-1, 1]) box(gp, '#f4f0e6', fx + s * 0.018, fy + 0.003, fz, 0.024, 0.002, 0.01, 0, 0, s * 0.35);
+  for (const [sx, sz, a] of [[0.18, 0.14, 0.4], [0.23, 0.21, -0.8]] as const) {
+    ell8(gp, '#f4f0e6', sx, Y0 + 0.008, sz, 0.012, 0.008, 0.018, a);
+    tube(gp, [[sx, Y0 + 0.01, sz + 0.01], [sx, Y0 + 0.026, sz + 0.016], [sx, Y0 + 0.03, sz + 0.01]], 0.003, 0.0025, '#f4f0e6', { radial: 5, sub: 3 });
+  }
+  // Campfire & tripod bronze cauldron (契丹铜釜)
+  lathe(gp, [[0, 0.01], [0.024, 0.014], [0.028, 0.032], [0.022, 0.038], [0, 0.018]], '#4a3828', -0.24, Y0 + 0.01, 0.16, 12);
+  flame(gp, -0.24, Y0 + 0.004, 0.16, 0.008);
+  smoke(gp, -0.24, Y0 + 0.045, 0.16, 0.012);
+};
+
+// =========================================================================================================
+// 西夏文与鎏金铜牛 — Western Xia Gilt-Bronze Recumbent Ox (西夏陵鎏金铜牛, 1.2 m national treasure) on a carved
+// pedestal, beside a Tangut script stele (西夏文残碑) and movable-type printed sutra pages (《吉祥遍至口合本续》).
+// =========================================================================================================
+const lf_xixiawen: Builder = (gp) => {
+  const BY = plinth(gp, SITE.paving, { R: 0.46, h: 0.0435 }) + 0.0015, Y = BY;
+  const gold = '#dfa834', darkGold = '#b57e1e', stone = '#8e8678', wood = '#4a2e1e';
+  // 1. Display pedestal & the Gilt-Bronze Recumbent Ox (西夏鎏金铜牛): muscular folded legs, broad chest,
+  // S-curved horns, alert ears, and gleaming mercury-gilt bronze finish
+  pbox(gp, '#5c221c', -0.08, Y, 0.05, 0.34, 0.032, 0.21, (x, _y, z) => shade('#5c221c', 0.9 + fbm(x * 28, 2, z * 28) * 0.2), 0.012);
+  box(gp, gold, -0.08, Y + 0.03, 0.05, 0.346, 0.004, 0.216);
+  const OX = grp(gp, -0.08, Y + 0.034, 0.05, 0.22);
+  const giltMat = mat(gold, { metal: 0.85, rough: 0.22, flat: false });
+  // Recumbent barrel body, muscular hump & hindquarters
+  sweep(OX, [
+    { p: [-0.11, 0.042, 0], w: 0.052, h: 0.048 },
+    { p: [-0.04, 0.052, 0], w: 0.068, h: 0.062 },
+    { p: [0.05, 0.058, 0], w: 0.072, h: 0.068 },
+    { p: [0.11, 0.065, 0], w: 0.054, h: 0.058 },
+  ], gold, { radial: 14, sub: 4 });
+  // Folded forelegs and hindlegs tucked beneath the body
+  for (const sz of [-1, 1]) {
+    tube(OX, [[0.07, 0.028, sz * 0.052], [0.11, 0.014, sz * 0.048], [0.04, 0.01, sz * 0.042]], 0.018, 0.013, darkGold, { radial: 8, sub: 3 });
+    tube(OX, [[-0.07, 0.03, sz * 0.056], [-0.02, 0.012, sz * 0.052], [-0.09, 0.01, sz * 0.044]], 0.02, 0.014, darkGold, { radial: 8, sub: 3 });
+  }
+  // Raised neck, broad bovine head, muzzle, and curved horns
+  tube(OX, [[0.09, 0.062, 0], [0.135, 0.095, 0], [0.155, 0.12, 0]], 0.042, 0.032, gold, { radial: 10, sub: 3 });
+  add(OX, SPH(12), giltMat, 0.168, 0.125, 0, 0.07, 0.058, 0.064);
+  add(OX, SPH(10), giltMat, 0.205, 0.112, 0, 0.052, 0.04, 0.048);
+  for (const sz of [-1, 1]) {
+    tube(OX, [[0.155, 0.145, sz * 0.024], [0.145, 0.172, sz * 0.052], [0.17, 0.19, sz * 0.042]], 0.01, 0.003, darkGold, { radial: 7, sub: 3 });
+    ell8(OX, gold, 0.15, 0.136, sz * 0.042, 0.008, 0.014, 0.022, 0, sz * 0.4);
+    dot(OX, '#1a1410', 0.182, 0.13, sz * 0.026, 0.0045);
+  }
+  OX.traverse(o => { if ((o as THREE.Mesh).isMesh && o !== OX.children[OX.children.length - 1]) (o as THREE.Mesh).material = giltMat; });
+  // 2. Carved Tangut Script Stele (西夏文残碑) on a tortoise/lotus base at back-right, with dense multi-stroke Tangut glyphs
+  const SX = 0.19, SZ = -0.11;
+  pbox(gp, stone, SX, Y, SZ, 0.14, 0.026, 0.08, (x, _y, z) => shade(stone, 0.9 + fbm(x * 35, 1, z * 35) * 0.2), 0.01);
+  pbox(gp, '#34322e', SX, Y + 0.026, SZ, 0.11, 0.21, 0.032, (px, py, _pz, _nx, _ny, nz) => {
+    if (Math.abs(nz) < 0.6 || Math.abs(px) > 0.044 || py < 0.018 || py > 0.185) return shade('#3a3834', 0.92 + fbm(px * 30, py * 30, 1) * 0.16);
+    const gx = Math.floor((px + 0.044) / 0.011), gy = Math.floor((py - 0.018) / 0.011);
+    return hash3(gx, gy, 19) > 0.35 ? '#c8bfa8' : '#2a2824';
+  }, 0.004, -0.35);
+  // 3. Movable-type printed Tangut sutra book (泥活字印本《吉祥遍至口合本续》) open on a wooden reading stand at front-right
+  const BX = 0.18, BZ = 0.16;
+  box(gp, wood, BX, Y, BZ, 0.12, 0.014, 0.09, -0.3);
+  pbox(gp, '#e6dac0', BX, Y + 0.014, BZ, 0.11, 0.012, 0.08, (px, _py, pz, _nx, ny) => {
+    if (ny < 0.5) return '#cbbca0';
+    if (Math.abs(px) < 0.004) return '#5a4632';
+    const col = Math.floor((px + 0.05) / 0.009), row = Math.floor((pz + 0.035) / 0.006);
+    return Math.abs(px) < 0.046 && Math.abs(pz) < 0.032 && hash3(col, row, 7) > 0.42 ? '#241e1a' : '#e6dac0';
+  }, 0.003, -0.3);
+};
+
 export const H_LIFE_CUSTOM2: Record<string, Builder> = {
   lf_muniu, lf_qixian, lf_lanting, lf_keju, lf_polo, lf_sancai, lf_yeyan, lf_washe, lf_kiln,
-  lf_opera, lf_spinning,
+  lf_opera, lf_spinning, lf_nabo, lf_xixiawen,
 };

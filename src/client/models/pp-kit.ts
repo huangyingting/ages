@@ -1211,7 +1211,7 @@ export function bakeStaticMeshes(gp: THREE.Group): void {
   const tmpC = new THREE.Color();
   const normMat = new THREE.Matrix3();
 
-  const append = (b: Bucket, mesh: THREE.Mesh, color: THREE.Color | null, rough: number, metal: number) => {
+  const append = (b: Bucket, mesh: THREE.Mesh, color: THREE.Color | null, rough: number, metal: number, autoVertPbr = false) => {
     let g0 = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry;
     if (!g0.getAttribute('normal')) { g0 = g0 === mesh.geometry ? g0.clone() : g0; g0.computeVertexNormals(); }
     const pAttr = g0.getAttribute('position');
@@ -1226,7 +1226,6 @@ export function bakeStaticMeshes(gp: THREE.Group): void {
       tmpN.fromBufferAttribute(nAttr, vi).applyMatrix3(normMat).normalize();
       b.pos.push(tmpV.x, tmpV.y, tmpV.z);
       b.norm.push(tmpN.x, tmpN.y, tmpN.z);
-      b.pbr.push(rough, metal);
       if (color) {
         if (cAttr) tmpC.fromBufferAttribute(cAttr as THREE.BufferAttribute, vi).multiply(color);
         else tmpC.copy(color);
@@ -1234,6 +1233,12 @@ export function bakeStaticMeshes(gp: THREE.Group): void {
       } else if (cAttr) {
         tmpC.fromBufferAttribute(cAttr as THREE.BufferAttribute, vi);
         b.col.push(tmpC.r, tmpC.g, tmpC.b);
+      }
+      if (autoVertPbr) {
+        const [vr, vm] = inferPbr(tmpC);
+        b.pbr.push(vr, vm);
+      } else {
+        b.pbr.push(rough, metal);
       }
     }
   };
@@ -1247,8 +1252,9 @@ export function bakeStaticMeshes(gp: THREE.Group): void {
         const key = `${m.flatShading}`;
         let b = buckets.get(key);
         if (!b) { b = newPair(); buckets.set(key, b); }
-        const [rough, metal] = m.userData.autoPbr && !mesh.geometry.getAttribute('color') ? inferPbr(m.color) : [m.roughness ?? 0.66, m.metalness ?? 0];
-        append(isDetail(mesh) ? b.detail : b.main, mesh, m.color, rough, metal);
+        const hasVC = !!mesh.geometry.getAttribute('color');
+        const [rough, metal] = m.userData.autoPbr && !hasVC ? inferPbr(m.color) : [m.roughness ?? 0.66, m.metalness ?? 0];
+        append(isDetail(mesh) ? b.detail : b.main, mesh, m.color, rough, metal, !!m.userData.autoPbr && hasVC);
         toRemove.push(mesh);
       } else if (m && !Array.isArray(m) && mesh.parent === gp && !mesh.geometry.morphAttributes.position) {
         let l = extra.get(m);

@@ -527,7 +527,54 @@ const oracle: Builder = gp => {
   ellip(gp, '#9a2e1e', -0.22, mat0 + 0.012, 0.24, 0.024, 0.003, 0.024);
 };
 
-const weir: Builder = gp => {
+const weir: Builder = (gp, r) => {
+  if (r?.style === 'seawall') {
+    // 钱氏捍海塘 (King Qian Liu of Wuyue, 910 AD, Hangzhou): the Qiantang River tidal bore (钱塘江大潮) crashing with
+    // white foam crests against the tiered bamboo-cage stone seawall (竹笼石塘) anchored by rows of heavy timber piles
+    // (木桩) and an octagonal iron Wave-Quelling Talisman pillar (镇海铁幢), protecting the green fields and houses of
+    // Hangzhou behind the embankment.
+    const h0 = ground(gp, 0.46, '#6e8650', '#5a4a34');
+    const wy = h0 + 0.002;
+    water(gp, clipR([[-0.45, -0.02], [0.45, -0.02], [0.45, 0.46], [-0.45, 0.46]], 0.448), wy, '#436d78');
+    // surging Qiantang tidal bore wave (一线潮) rolling toward the seawall with white foam crest
+    for (let i = -8; i <= 8; i++) {
+      const x = i * 0.046, z = 0.16 + Math.cos(i * 0.25) * 0.015;
+      ellip(gp, '#568591', x, wy + 0.012, z + 0.025, 0.036, 0.016, 0.032);
+      ellip(gp, '#e6f2f2', x, wy + 0.024, z, 0.032, 0.009, 0.016);
+      if (i % 2 === 0) ellip(gp, '#dceaea', x, wy + 0.008, 0.045, 0.028, 0.005, 0.014);
+    }
+    // stepped stone & rammed-earth seawall embankment (捍海石塘) running across z ∈ [-0.08, 0.02]
+    for (let t = 0; t < 3; t++) {
+      const ty = h0 + t * 0.024, tz = 0.01 - t * 0.028, tw = 0.82 - t * 0.04;
+      box(gp, t % 2 ? '#989284' : '#aba496', 0, ty, tz, tw, 0.025, 0.042);
+    }
+    // giant woven bamboo gabion cages packed with stones (竹笼巨石) + double rows of driven timber piles (楗木桩)
+    for (let i = -6; i <= 6; i++) {
+      const x = i * 0.056;
+      const g1 = cyl(gp, '#c29f58', x, 0, 0.035, 0.015, 0.048, 8);
+      g1.rotation.z = Math.PI / 2; g1.position.y = wy + 0.014;
+      for (const dx of [-0.015, 0.015]) {
+        const b = cyl(gp, '#7c5d2c', x + dx, 0, 0.035, 0.0165, 0.004, 8);
+        b.rotation.z = Math.PI / 2; b.position.y = wy + 0.014;
+      }
+      cyl(gp, '#4f3622', x - 0.02, wy, 0.056, 0.006, 0.048, 6);
+      cyl(gp, '#4f3622', x + 0.02, wy, 0.02, 0.006, 0.062, 6);
+    }
+    // octagonal cast-iron Wave-Quelling Pillar (吴越镇海铁幢) on a lotus stone base + Wuyue banner & workmen
+    const topY = h0 + 0.072;
+    cyl(gp, '#c8c2b4', -0.22, topY, -0.05, 0.032, 0.014, 8);
+    cyl(gp, '#32353a', -0.22, topY + 0.014, -0.05, 0.014, 0.11, 8);
+    cone(gp, '#d4af37', -0.22, topY + 0.124, -0.05, 0.02, 0.028, 8);
+    person(gp, -0.08, topY, -0.045, { h: 0.075, pose: 'point', top: '#8a261e', bottom: '#2b2622', dress: 'ankle', hat: '#1c1714', hatStyle: 'cap', ry: 0.2, detail: 'lo' });
+    for (const [wx, wz] of [[0.08, -0.04], [0.18, -0.05]] as const) {
+      person(gp, wx, topY, wz, { h: 0.068, pose: 'carry', top: '#5a6452', bottom: '#3a3228', hat: '#b89c64', hatStyle: 'conical', ry: -0.4, detail: 'lo' });
+    }
+    // protected Jiangnan mulberry trees and whitewashed house behind the seawall
+    box(gp, '#ece6d8', 0.12, h0, -0.24, 0.14, 0.055, 0.09);
+    prism(gp, [[-0.08, -0.055], [0.08, -0.055], [0.08, 0.055], [-0.08, 0.055]], h0 + 0.055, 0.03, '#4a4e54').position.set(0.12, 0, -0.24);
+    for (const [tx, tz] of [[-0.26, -0.22], [-0.08, -0.28], [0.28, -0.18]] as const) minipine(gp, tx, h0, tz, 0.075, '#4c7038');
+    return;
+  }
   // Dujiangyan 都江堰 as built by Li Bing 李冰 (Qin, c. 256 BC), seen from downstream (north/upstream = -z, east = +x):
   // the Fish Mouth 鱼嘴 splits the grey-green Min into the outer river (west) and inner river (east); the Jingang levee
   // of bamboo gabions 竹笼 (woven cylinders of river cobbles), the low Feishayan 飞沙堰 spillway, timber macha 杩槎

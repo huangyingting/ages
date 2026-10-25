@@ -135,7 +135,7 @@ export function kindOf(zh: string, year: Year): EventKind {
 }
 
 function modelOf(zh: string, kind: EventKind, year: Year): ModelRecipe | undefined {
-  const k = (kind2: string): ModelRecipe => ({ kind: kind2 });
+  const k = (kind2: string): ModelRecipe => ({ kind: kind2, year });
   if (/水师|舰|海战|海军|船|舟|下西洋|航海/.test(zh)) return k(kind === 'war' ? (year >= 1840 ? 'warship' : 'fireship') : 'junk');
   if (/长城|筑城|城墙/.test(zh)) return k('wall');
   if (/桥/.test(zh)) return k('bridge');

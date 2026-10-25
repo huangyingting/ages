@@ -453,7 +453,61 @@ function lf_banpo(gp: THREE.Group): void {
 // corner stepped in, galleries on all sides, an 8-bay south gate with three passages, an 8 × 3-bay main hall on its own base
 // in the north of the court; rammed earth, timber posts, wattle-and-daub walls and thatch (no tile, no bronze cauldrons yet)
 
-function lf_hangtu(gp: THREE.Group): void {
+function lf_hangtu(gp: THREE.Group, r?: ModelRecipe): void {
+  if (r?.style === 'granary') {
+    // 含嘉仓 — Sui-Tang Luoyang Imperial Underground Granary (窖藏): round subterranean grain pits lined with
+    // fire-baked clay, wooden planks and chaff-and-reed mats, one cutaway pit brimming with golden millet,
+    // one capped with a conical thatch roof, workers hauling sacks, and the granary warden's tiled hall.
+    const R = 0.46, Y = 0.045, earth = '#9e825a', baked = '#a85c3a', wood = '#6b482e', grain = '#d8a83e', straw = '#9a8656';
+    land(gp, R, (x, z) => Y + (fbm(x * 7, 4, z * 7) - 0.5) * 0.006, (x, _y, z) => {
+      const d = Math.hypot(x + 0.12, z - 0.08);
+      if (d < 0.145) return d < 0.105 ? shade(grain, 0.92 + fbm(x * 35, 1, z * 35) * 0.16) : baked;
+      return mix('#8d7652', SITE.grass, sstep(0.22, 0.42, Math.hypot(x, z)));
+    });
+    const ram = rammedP(earth);
+    // Exposed rammed-earth & brick perimeter wall of the Hanjia Granary enclosure at the north
+    pbox(gp, earth, 0, Y, -0.31, 0.58, 0.055, 0.032, ram, 0.014, 0.006);
+    gable(gp, 0.6, 0.014, 0.042, '#54585c', 0, Y + 0.055, -0.31);
+    // Warden's timber hall (仓城管理署) in the northeast
+    const hx = 0.18, hz = -0.2, hw = 0.22, hd = 0.11;
+    pbox(gp, '#8c867a', hx, Y, hz, hw + 0.02, 0.018, hd + 0.02, ashlarP('#8c867a'), 0.012, 0.006);
+    box(gp, '#d6ccb8', hx, Y + 0.018, hz, hw - 0.01, 0.05, hd - 0.01);
+    for (let i = 0; i < 4; i++) for (const sz of [-1, 1]) cyl(gp, '#7a3426', hx - hw * 0.42 + i * (hw * 0.28), Y + 0.018, hz + sz * (hd * 0.46), 0.004, 0.052, 6);
+    hip(gp, hx, Y + 0.068, hz, hw + 0.05, hd + 0.05, 0.042, '#52565a', { chiwei: '#3e4246', lift: 0.08 });
+    // Pit 1 (front-left, open cutaway showing the 仓窖 structure & golden Tang millet mound):
+    // outer fire-baked clay rim + wooden stave lining ring + golden millet heap + inscribed brick (铭砖)
+    const px1 = -0.12, pz1 = 0.08;
+    lathe(gp, [[0.105, 0], [0.138, 0], [0.142, 0.022], [0.112, 0.022], [0.102, 0.004]], baked, px1, Y - 0.002, pz1, 24);
+    for (let i = 0; i < 20; i++) {
+      const a = (i / 20) * TAU;
+      box(gp, i % 2 ? wood : shade(wood, 0.88), px1 + Math.cos(a) * 0.108, Y - 0.002, pz1 + Math.sin(a) * 0.108, 0.014, 0.024, 0.004, -a);
+    }
+    const gGeo = new THREE.ConeGeometry(0.102, 0.048, 20, 4);
+    gGeo.translate(0, 0.024, 0);
+    add(gp, paintFaces(gGeo, grain, (x, y, z) => shade(grain, 0.88 + fbm(x * 40, y * 40, z * 40) * 0.24)), mat('#ffffff', { vc: true, rough: 0.85 }), px1, Y + 0.002, pz1, 1, 1, 1);
+    // Inscribed Tang brick plaque (含嘉仓铭砖) beside Pit 1
+    pbox(gp, '#5c6064', px1 + 0.13, Y, pz1 + 0.09, 0.036, 0.028, 0.01, (x, y) => (Math.abs(x) < 1.2 && y > 0.5 && y < 3.5 ? '#c8bfa8' : '#5c6064'), 0.006, 0.006, -0.3);
+    // Pit 2 (back-left, capped with a steep waterproof conical reed-thatch dome over timber rafters)
+    const px2 = -0.16, pz2 = -0.14;
+    lathe(gp, [[0, 0], [0.115, 0], [0.118, 0.014], [0, 0.014]], earth, px2, Y, pz2, 20);
+    const cGeo = new THREE.ConeGeometry(0.125, 0.075, 20, 4);
+    cGeo.translate(0, 0.0375, 0);
+    add(gp, paintFaces(cGeo, straw, (x, y, z) => shade(straw, (Math.floor(y * 160) % 2 ? 0.92 : 1.04) * (0.9 + fbm(x * 25, y * 25, z * 25) * 0.2))), mat('#ffffff', { vc: true, rough: 0.92 }), px2, Y + 0.012, pz2, 1, 1, 1);
+    cyl(gp, wood, px2, Y + 0.08, pz2, 0.012, 0.012, 8);
+    // Pit 3 (front-right, sealed with rammed-earth & chaff dome + wooden vent tube)
+    const px3 = 0.17, pz3 = 0.11;
+    lathe(gp, [[0, 0], [0.105, 0], [0.095, 0.022], [0.04, 0.038], [0, 0.042]], shade(earth, 1.06), px3, Y, pz3, 18);
+    cyl(gp, wood, px3, Y + 0.038, pz3, 0.009, 0.02, 6);
+    gable(gp, 0.03, 0.012, 0.03, straw, px3, Y + 0.056, pz3);
+    // Grain sacks, woven baskets & granary workers + official tallying
+    for (const [sx, sz] of [[0.03, 0.16], [0.06, 0.14], [0.045, 0.18]] as const) {
+      ellip(gp, '#c4ab78', sx, Y + 0.012, sz, 0.016, 0.012, 0.022, sx * 4);
+    }
+    human(gp, 0.02, Y, 0.06, { h: 0.052, pose: 'carry', top: '#6e5840', bottom: '#4a3c2c', hair: '#1c1714', hatStyle: 'turban', ry: -1.1, detail: 'lo' });
+    human(gp, -0.01, Y, 0.22, { h: 0.052, pose: 'walk', top: '#7a6248', bottom: '#4a3c2c', hair: '#1c1714', hatStyle: 'turban', ry: -2.2, detail: 'lo' });
+    human(gp, 0.12, Y, -0.04, { h: 0.054, pose: 'point', top: '#8a3228', bottom: '#2d2520', hair: '#1c1714', hatStyle: 'cap', hat: '#1c1816', dress: 'ankle', ry: -0.6, detail: 'lo' });
+    return;
+  }
   const R = 0.46, Y = 0.03, earth = '#a08660', wood = '#5a4030', straw = '#857654', wattle = '#9a8566', floor = '#b39d78';
   land(gp, R, (x, z) => Y + (fbm(x * 7, 4, z * 7) - 0.5) * 0.008, (x, _y, z) => mix(SITE.grass, SITE.meadow, fbm(x * 12, 3, z * 12)));
   const ram = rammedP(earth);
@@ -1211,7 +1265,69 @@ function lf_songyue(gp: THREE.Group): void {
 function willow(p: THREE.Object3D, x: number, y: number, z: number, s: number): void {
   tree(anim(p, 'sway', x, y, z, { amp: 0.03, speed: 0.8 }), x * 0.01, 0, z * 0.01, s * 0.62, '#7f8c55');
 }
-function lf_zhaozhou(gp: THREE.Group): void {
+function lf_zhaozhou(gp: THREE.Group, r?: ModelRecipe): void {
+  if (r?.style === 'lugou') {
+    // Jin Dynasty Lugou Bridge (金中都卢沟桥, 1189–1192 CE): 5-arch white-stone bridge spanning the Yongding
+    // River with triangular upstream ice-breaking cutwaters (三角形斩凌分水尖), white marble balustrades topped by
+    // rows of carved stone lions (卢沟桥石狮), and the imperial "Lugou Dawn Moon" stele & Huabiao at the bridgehead.
+    const R = 0.46, WL = 0.04, stone = '#dcd8cf', trim = '#c5bfb2', marble = '#f2efe6';
+    const bankH: HF = (x, z) => 0.016 + 0.075 * sstep(0.29, 0.42, Math.abs(x)) + (fbm(x * 8, 2, z * 8) - 0.5) * 0.008;
+    land(gp, R, bankH, (x, y, z) => y < WL + 0.004 ? '#5c5240' : Math.abs(z) < 0.11 ? stone : mix(SITE.grass, SITE.meadow, fbm(x * 10, 3, z * 10)), 24, 80);
+    waterSurf(gp, R, WL, (x, z) => bankH(x, z) < WL + 0.003, '#4f7688', 24, 80);
+    // Multi-arch stone bridge profile extruded in XY plane (thickness 0.18 along Z): 5 semicircular arches + cambered deck
+    const archC = [-0.23, -0.115, 0, 0.115, 0.23], ar = 0.042;
+    const pts: [number, number][] = [[-0.35, 0.036], [-0.35, 0.102], [0, 0.114], [0.35, 0.102], [0.35, 0.036]];
+    for (let k = archC.length - 1; k >= 0; k--) {
+      const cx = archC[k];
+      pts.push([cx + ar, 0.036]);
+      for (let j = 1; j <= 9; j++) {
+        const a = (j / 10) * Math.PI;
+        pts.push([cx + Math.cos(a) * ar, 0.038 + Math.sin(a) * ar]);
+      }
+      pts.push([cx - ar, 0.036]);
+    }
+    slab(gp, pts, 0.18, stone, 0, false);
+    // Arch ring voussoir trim (拱券石眉) on front and back faces
+    for (const cx of archC) {
+      const ringPts: [number, number][] = [];
+      for (let j = 0; j <= 10; j++) {
+        const a = (j / 10) * Math.PI;
+        ringPts.push([cx + Math.cos(a) * (ar + 0.009), 0.038 + Math.sin(a) * (ar + 0.009)]);
+      }
+      for (let j = 10; j >= 0; j--) {
+        const a = (j / 10) * Math.PI;
+        ringPts.push([cx + Math.cos(a) * ar, 0.038 + Math.sin(a) * ar]);
+      }
+      slab(gp, ringPts, 0.188, trim, 0, false);
+    }
+    // 4 river piers with triangular iron-clad cutwater prows (三角形斩凌分水尖)
+    for (const px of [-0.1725, -0.0575, 0.0575, 0.1725]) {
+      box(gp, trim, px, 0.025, 0, 0.028, 0.068, 0.194);
+      cone(gp, '#8a9199', px, 0.025, 0.105, 0.022, 0.065, 4).rotation.y = Math.PI / 4;
+    }
+    // Gently cambered granite flagstone deck (石桥面)
+    box(gp, trim, 0, 0.102, 0, 0.72, 0.014, 0.196);
+    // White marble balustrades (汉白玉栏板) + 11 baluster posts per side each crowned with a Lugou stone lion (卢沟桥石狮)
+    for (const sz of [-1, 1]) {
+      const bz = sz * 0.088;
+      box(gp, marble, 0, 0.114, bz, 0.68, 0.024, 0.01);
+      for (let i = 0; i < 11; i++) {
+        const lx = -0.31 + i * 0.062;
+        box(gp, marble, lx, 0.114, bz, 0.013, 0.038, 0.014);
+        box(gp, '#e2ddd0', lx, 0.152, bz, 0.017, 0.005, 0.017); // lotus pedestal cap
+        ellip(gp, '#f7f4ec', lx, 0.165, bz, 0.0075, 0.011, 0.0075); // seated stone lion body
+        ellip(gp, '#e8e2d5', lx, 0.176, bz - sz * 0.002, 0.0065, 0.0065, 0.0065); // lion head
+      }
+    }
+    // Bridgehead white-marble Huabiao columns (桥头汉白玉华表) & "Lugou Dawn Moon" stele ("卢沟晓月"御碑)
+    for (const sz of [-1, 1]) {
+      cyl(gp, marble, 0.365, 0.088, sz * 0.11, 0.01, 0.125, 8);
+      box(gp, marble, 0.365, 0.19, sz * 0.11, 0.024, 0.006, 0.01);
+    }
+    box(gp, '#6e6a63', 0.38, 0.088, 0.165, 0.03, 0.018, 0.042);
+    box(gp, '#3f3f46', 0.38, 0.106, 0.165, 0.01, 0.082, 0.03);
+    return;
+  }
   const R = 0.46, WL = 0.04, st = '#aaa69c', W = 0.12, hw = W / 2, XE = 0.45, RI = 0.435, RO = 0.463, CY = -0.26;
   const bankH: HF = (x, z) => 0.015 + 0.105 * sstep(0.26 - 0.08 * sstep(0.12, 0.32, Math.abs(z)), 0.4 - 0.06 * sstep(0.12, 0.32, Math.abs(z)), Math.abs(x + (fbm(z * 4, 2, 1) - 0.5) * 0.05 * sstep(0.1, 0.3, Math.abs(z)))) + (fbm(x * 9, 3, z * 9) - 0.5) * 0.01 * sstep(0.3, 0.4, Math.abs(x));
   land(gp, R, bankH, (x, y, z, sl) => {
@@ -1451,7 +1567,72 @@ function tangSet(p: THREE.Object3D, x: number, y: number, z: number, ry: number,
   box(gs, c, 0, u(0.042), u(0.068), u(0.06), u(0.005), u(0.006));
   for (const sx of [-1, 1]) box(gs, blk, sx * u(0.024), u(0.047), u(0.068), u(0.009), u(0.004), u(0.009));
 }
-function lf_foguang(gp: THREE.Group): void {
+function lf_foguang(gp: THREE.Group, r?: ModelRecipe): void {
+  if (r?.style === 'jin') {
+    // 崇福寺弥陀殿 — Jin-dynasty great timber hall at Shuozhou, Shanxi (1143 AD): high brick-and-ashlar yuetai
+    // platform with balustrade, 7×4-bay single-eave xieshan roof with peacock-blue/emerald glazed ridge & tall
+    // glazed chiwen finials, deep Jin bracket sets, geometric diamond-lattice doors (隔扇窗) and the vertical
+    // blue-and-gold plaque "弥陀殿" under the front eave.
+    const R = 0.46, stone = '#969084', col = '#7c2e22', wood = '#5c3a26', blk = '#482c1c', wall = '#cfc5b0', tile = '#484d52', glaze = '#1f7a68';
+    const Y = 0.035, P = Y + 0.048, W = 0.44, D = 0.22, HZ = -0.05, Hc = 0.076, y0 = P + Hc;
+    land(gp, R, (x, z) => Y + (fbm(x * 8, 3, z * 8) - 0.5) * 0.004, (x, _y, z) =>
+      Math.abs(x) < 0.28 && z > -0.24 && z < 0.36 ? shade(SITE.paving, 0.92 + hash3(Math.floor(x * 45), 2, Math.floor(z * 45)) * 0.12) : mix(SITE.grass, '#6d784a', fbm(x * 10, 2, z * 10)),
+    );
+    // High Jin-dynasty yuetai (月台) + main plinth with ashlar courses and stone balustrade
+    pbox(gp, stone, 0, Y, HZ + 0.03, W + 0.08, P - Y, D + 0.14, ashlarP(stone), 0.014, 0.007);
+    box(gp, shade(stone, 1.1), 0, P - 0.003, HZ + 0.03, W + 0.086, 0.004, D + 0.146);
+    stairs(gp, 0, Y, P, HZ + D / 2 + 0.1, 0.09, 0.09, shade(stone, 1.05), 8, 0, shade(stone, 0.88));
+    // Stone balustrades around the front yuetai
+    for (const sx of [-1, 1]) {
+      box(gp, shade(stone, 1.06), sx * 0.15, P, HZ + D / 2 + 0.095, 0.19, 0.016, 0.008);
+      for (let k = 0; k < 4; k++) box(gp, shade(stone, 0.92), sx * (0.06 + k * 0.06), P, HZ + D / 2 + 0.095, 0.009, 0.022, 0.012);
+    }
+    const xs = Array.from({ length: 8 }, (_, i) => -W / 2 + (i * W) / 7), zs = Array.from({ length: 5 }, (_, i) => HZ - D / 2 + (i * D) / 4);
+    for (const x of xs) for (const z of [zs[0], zs[4]]) {
+      cyl(gp, col, x, P, z, 0.0065, Hc, 8);
+      cyl(gp, shade(stone, 1.12), x, P, z, 0.01, 0.004, 8);
+      tangSet(gp, x, y0, z, z === zs[4] ? 0 : Math.PI, 0.76, wood, blk);
+    }
+    for (let i = 1; i < 4; i++) for (const sx of [-1, 1]) {
+      cyl(gp, col, sx * W / 2, P, zs[i], 0.0065, Hc, 8);
+      tangSet(gp, sx * W / 2, y0, zs[i], (sx * Math.PI) / 2, 0.76, wood, blk);
+    }
+    // Walls and Jin-dynasty geometric diamond-lattice doors (隔扇门窗) across 5 front bays
+    const fz = zs[4];
+    box(gp, wall, 0, P, HZ, W - 0.006, Hc - 0.004, D - 0.006);
+    const jinLattice: Paint = (px, py, _pz, _nx, _ny, nz) => {
+      if (Math.abs(nz) < 0.6) return col;
+      const d1 = Math.abs(((px + py) * 0.7) % 1), d2 = Math.abs(((px - py + 10) * 0.7) % 1);
+      return d1 < 0.22 || d2 < 0.22 ? '#8a3224' : '#e4dac4';
+    };
+    for (let i = 1; i < 6; i++) {
+      const xc = (xs[i] + xs[i + 1]) / 2;
+      pbox(gp, '#7a2c20', xc, P + 0.003, fz + 0.001, 0.048, Hc * 0.88, 0.004, jinLattice, 0.005, 0.005);
+    }
+    // End bays with round-arched brick windows
+    for (const i of [0, 6]) {
+      const xc = (xs[i] + xs[i + 1]) / 2;
+      pbox(gp, '#7a2c20', xc, P + Hc * 0.3, fz + 0.001, 0.042, Hc * 0.48, 0.004, jinLattice, 0.005, 0.005);
+    }
+    // Bracket zone & Jin vertical plaque "弥陀殿" in cobalt blue & gold
+    const py = y0 + 0.034;
+    box(gp, wood, 0, y0, HZ, W + 0.02, 0.032, D + 0.02);
+    box(gp, '#1a3258', 0, y0 + 0.004, fz + 0.026, 0.026, 0.038, 0.006);
+    box(gp, '#d8aa38', 0, y0 + 0.006, fz + 0.029, 0.018, 0.032, 0.003);
+    // Steep Jin hip-and-gable (歇山) roof with glazed emerald-teal ridge & tall glazed chiwen finials
+    hip(gp, 0, py + 0.008, HZ, W + 0.11, D + 0.11, 0.088, tile, { chiwei: glaze, ridge: glaze, lift: 0.14, k: 0.38, under: '#5c3e2c' });
+    // Triangular gable boards (山花板) on left and right ends to distinguish xieshan from wudian
+    for (const sx of [-1, 1]) {
+      gable(gp, D * 0.56, 0.042, 0.016, '#6e3426', sx * (W * 0.36), py + 0.042, HZ, (sx * Math.PI) / 2);
+    }
+    // Bronze incense burner on the yuetai & figures
+    cyl(gp, '#4a5a48', 0, P, HZ + D / 2 + 0.055, 0.014, 0.022, 8);
+    smoke(gp, 0, P + 0.025, HZ + D / 2 + 0.055, 0.01);
+    human(gp, -0.05, P, HZ + D / 2 + 0.06, { h: 0.048, pose: 'pray', top: '#7a4e32', bottom: '#3e3024', hair: null, dress: 'ankle', ry: Math.PI, detail: 'lo' });
+    human(gp, 0.08, Y, 0.25, { h: 0.048, pose: 'walk', top: '#4a5868', bottom: '#2e2a26', hair: '#1c1714', hatStyle: 'turban', ry: -2.6, detail: 'lo' });
+    for (const sx of [-1, 1]) minipine(gp, sx * 0.33, Y, -0.18, 0.14, '#2c5634');
+    return;
+  }
   const R = 0.46, stone = '#948f85', col = '#8a4632', wood = '#6e4a32', blk = '#5e3e2e', wall = '#d4cab4', tile = '#5d6266';
   const TT = 0.19, TX = 0.31, TZ0 = -0.3, TZ1 = 0.09;
   const hf: HF = (x, z) => {
