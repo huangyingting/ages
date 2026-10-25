@@ -423,7 +423,7 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .st-c { margin: 6px 0 0; font-size: var(--t-xs); color: var(--ink-3); }
 
 /* the foot: line key (left) and the phase line / story caption over the timeline (centre) */
-.hud-bot { left: 24px; right: 24px; bottom: 16px; display: grid; grid-template-columns: 230px minmax(0, 1fr) 230px; gap: 24px; align-items: end; }
+.hud-bot { left: 24px; right: 24px; bottom: 16px; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 24px; align-items: end; }
 .hud-bl { min-width: 0; padding-bottom: 4px; }
 .map-key { display: flex; flex-direction: column; gap: 6px; font-size: var(--t-xs); color: var(--ink-2); transition: opacity .4s; }
 .mk-row { display: flex; flex-wrap: wrap; gap: 5px 14px; }
@@ -434,7 +434,6 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .mk-line.k-wall i { border-top-width: 4px; }
 .mk-line.k-sea i { border-top-style: dotted; }
 .mk-ev i { width: 8px; height: 8px; margin: 0 5px; border: 0; background: var(--zhu); transform: rotate(45deg); }
-.mk-disc { margin: 2px 0 0; font-size: var(--t-2xs); line-height: 1.5; color: var(--ink-3); }
 .hud-bc { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .amb {
   max-width: 100%; border: 0; background: none; padding: 0 4px; font-size: var(--t-m); font-weight: 600; color: var(--ink);
@@ -545,7 +544,7 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 
 /* 时期详情 — a popover like the study hall and settings; by priority: overview → events (fill the rest, scroll inside)
    → folded polities */
-.menu.pv { display: flex; flex-direction: column; height: min(680px, calc(100vh - 220px)); padding: 4px 0 0; overflow: hidden; }
+.menu.pv { display: flex; flex-direction: column; height: calc(var(--bc-t, 760px) - 76px); padding: 4px 0 0; overflow: hidden; }
 .pv .view-body { display: flex; flex-direction: column; }
 .pv-sec { flex: none; padding: 10px 0; }
 .pv-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
@@ -754,10 +753,10 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 .rd-meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: var(--t-xs); color: var(--ink-3); margin-bottom: 10px; }
 .rd-body p { font-size: var(--t-m); line-height: 1.85; margin: 0 0 12px; color: var(--ink-2); }
 .rd-body a { color: var(--link); }
-.rd-body .toc { font-size: var(--t-xs); font-weight: 600; color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; margin: 18px 0 6px; }
-.rd-body details.lv3, .rd-body details.lv4 { margin-left: 14px; }
-.rd-body summary { padding: 9px 0; font-weight: 600; font-size: var(--t-m); cursor: pointer; color: var(--ink); }
-.rd-body summary::marker { color: var(--zhu); }
+/* sections read straight through: headings and paragraphs, nothing folded */
+.rd-body h3 { margin: 24px 0 8px; font-size: var(--t-l); font-weight: 700; color: var(--ink); }
+.rd-body h3::before { content: ''; display: inline-block; width: 3px; height: .9em; margin-right: 8px; vertical-align: -1px; background: var(--zhu); }
+.rd-body h4 { margin: 16px 0 6px; font-size: var(--t-m); font-weight: 600; color: var(--ink); }
 .rd-foot { margin: 16px 0 8px; }
 .rd-note { font-size: var(--t-xs) !important; color: var(--ink-3) !important; }
 .rd-lic { font-size: var(--t-2xs) !important; color: var(--ink-3) !important; }
@@ -846,11 +845,12 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 
 /* ================================================================ timeline bar (bottom centre): transport row over the track
    The track, top to bottom: territorial-area curve, event dots, dynasty bands (with phase hairlines), axis. */
-.tl { position: relative; width: 100%; display: flex; flex-direction: column; padding: 4px 16px 2px; user-select: none; -webkit-user-select: none; }
-.tl-ctl { display: flex; align-items: center; gap: 6px; height: 40px; min-width: 0; }
+/* one row: the transport buttons, then the track; the buttons line up with the dynasty bands */
+.tl { position: relative; width: 100%; display: flex; align-items: flex-start; gap: 18px; padding: 4px 16px 2px; user-select: none; -webkit-user-select: none; }
+.tl-ctl { flex: none; display: flex; align-items: center; gap: 6px; height: 40px; margin-top: 22px; }
+.tl-track { flex: 1 1 auto; min-width: 0; }
 .tl-speed { margin-left: 10px; flex: none; gap: 6px; padding: 0; background: none; }
 .tl-speed button { width: auto; min-width: 34px; padding: 0 8px; font-size: var(--t-xs); font-variant-numeric: tabular-nums; }
-.tl-hint { margin-left: auto; padding-left: 12px; min-width: 0; font-size: var(--t-xs); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tl-curve { position: absolute; left: 0; right: 0; top: 0; height: 20px; pointer-events: none; }
 .tl-curve svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .tl-curve polygon { fill: var(--ink); opacity: 0.08; }
@@ -930,7 +930,6 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 
 @media (max-width: 1180px) {
   :root { --lw: 330px; }
-  .tl-hint { display: none; }
   #app:has(.card.top.reading) .hud-tr { display: none; }
 }
 @media (max-width: 960px) {
@@ -957,7 +956,8 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
   .hud-bot { left: 8px; right: 8px; bottom: 8px; gap: 6px; }
   .amb { font-size: var(--t-s); }
   .tl { padding: 2px 10px 0; }
-  .tl-ctl { height: 34px; }
+  .tl { flex-direction: column; align-items: stretch; gap: 0; }
+  .tl-ctl { height: 34px; margin-top: 0; }
   .tl-speed { display: none; }
   .tl-flag { display: none; }
   .panel-l {
@@ -965,6 +965,7 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
     transform: translateY(calc(100% + var(--tl-b, 120px)));
   }
   .panel-l.on:has(> .card.top.reading) { width: auto; height: 62vh; }
+  .card-main { flex: 1 1 auto; width: auto; }
   .card.reading .card-main { display: none; }
   .story-on .panel { transform: translateY(calc(100% + var(--tl-b, 120px))); visibility: hidden; }
   .info-hero { height: 112px; }

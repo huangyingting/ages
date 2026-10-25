@@ -96,8 +96,9 @@ export class Help {
   render(): void {
     this.el.replaceChildren(h('div', { class: 'modal-box help' },
       h('header', {}, h('h2', { text: t('helpTitle') }), iconBtn('close', t('close'), () => this.toggle(false))),
-      h('ul', {}, ...(['helpControls', 'helpTimeline', 'helpStory', 'helpKeys'] as Key[]).map(k => h('li', { text: t(k) }))),
+      h('ul', {}, ...(['helpControls', 'helpTimeline', 'tlHint', 'helpStory', 'helpKeys'] as Key[]).map(k => h('li', { text: t(k) }))),
       h('div', { class: 'legend' }, ...(['politics', 'war', 'reform', 'culture', 'science', 'economy', 'diplomacy', 'revolution'] as const).map(k => h('span', { class: `lg k-${k}` }, h('i'), h('span', { text: kindName(k) })))),
+      h('p', { class: 'small', text: t('disclaimer') }),
       h('p', { class: 'small', text: t('credits') }),
       h('p', { class: 'small', text: t('creditsJsm') }),
       h('p', { class: 'small', text: t('phase2') })));

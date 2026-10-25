@@ -28,7 +28,6 @@ export class Timeline {
   private rulerEl: HTMLElement;
   private playBtn: HTMLButtonElement;
   private speedSeg: HTMLElement;
-  private hint: HTMLElement;
   /** playback rate: 1× crosses the whole axis in ~100 s */
   private speed = 1;
   private tip: HTMLElement;
@@ -56,7 +55,6 @@ export class Timeline {
         for (const b of this.speedSeg.children as HTMLCollectionOf<HTMLElement>) { const on = Number(b.dataset.speed) === v; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }
       },
     })));
-    this.hint = h('span', { class: 'tl-hint', text: t('tlHint') });
     this.yearEl = h('div', { class: 'tl-year', 'aria-live': 'polite' });
     this.eraEl = h('button', { type: 'button', class: 'tl-era', onclick: () => { const e = eraAt(this.year); if (e) this.onEra(e.id); } });
     this.rulerEl = h('div', { class: 'tl-ruler' });
@@ -72,7 +70,7 @@ export class Timeline {
     this.head = h('div', { class: 'tl-head' }, this.eraEl, this.yearEl, this.rulerEl);
     const ctl = h('div', { class: 'tl-ctl' },
       iconBtn('prev', t('prevStop'), () => this.step(-1), 'tl-prev'), this.playBtn, iconBtn('next', t('nextStop'), () => this.step(1), 'tl-next'),
-      this.speedSeg, this.hint);
+      this.speedSeg);
     this.el = h('div', { class: 'tl' }, ctl, this.track);
     this.build();
     this.bind();
@@ -242,7 +240,6 @@ export class Timeline {
     for (const [c, k] of [['.tl-prev', 'prevStop'], ['.tl-next', 'nextStop']] as const) { const b = this.el.querySelector<HTMLElement>(c)!; b.title = t(k); b.setAttribute('aria-label', t(k)); }
     this.playBtn.title = this.playBtn.ariaLabel = t(this.playing ? 'pause' : 'play');
     this.speedSeg.setAttribute('aria-label', t('speed'));
-    this.hint.textContent = t('tlHint');
     this.build();
     this.select(this.selected);
   }

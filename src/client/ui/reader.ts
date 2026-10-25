@@ -6,7 +6,7 @@ import { h, icon, iconBtn } from './dom.ts';
 /**
  * Background reading: the Wikipedia article for the card's subject, in Chinese or English (switchable independently of
  * the UI language, so students can compare). It unfolds beside the card, widening the side panel, and folds back into
- * it. Shows the lead first, then collapsible sections.
+ * it. Shows the lead, then every section as plain headings and paragraphs.
  */
 export class Reader {
   readonly el: HTMLElement;
@@ -105,13 +105,7 @@ export class Reader {
       ...lead.map(p => h('p', { text: p })),
       ...restLead.map(p => h('p', { text: p })),
     );
-    if (secs.length) {
-      body.append(h('h3', { class: 'toc', text: t('contents') }));
-      for (const s of secs) {
-        const d = h('details', { class: `lv${s.level}` }, h('summary', { text: s.title }), ...s.paras.map(p => h('p', { text: p })));
-        body.append(d);
-      }
-    }
+    for (const s of secs) body.append(h('section', { class: `rd-sec lv${s.level}` }, h(s.level <= 2 ? 'h3' : 'h4', { text: s.title }), ...s.paras.map(p => h('p', { text: p }))));
     body.append(
       h('div', { class: 'rd-foot' }, this.link(a.url)),
       h('p', { class: 'rd-note', text: t('wikiNote') }),

@@ -201,7 +201,7 @@ The interface has three levels; the map is always in view and is never covered b
 
 | Level | Where | Contents |
 |---|---|---|
-| 1 · Map overlay | text straight on the map over soft edge scrims, no boxes | top left: brand kicker, era (click → era card), the year in large light type (a readout, not an input), reign; top right: one grouped toolbar plate — find (search · 时期详情) \| study hall · settings — that never moves, then under it the period's figures (realm area, the four largest other polities, number of coexisting polities); bottom left: line key and disclaimer; bottom centre: the phase title (click → 时期详情) and the timeline bar |
+| 1 · Map overlay | text straight on the map over soft edge scrims, no boxes | top left: brand kicker, era (click → era card), the year in large light type (a readout, not an input), reign; top right: one grouped toolbar plate — find (search · 时期详情) \| study hall · settings — that never moves, then under it the period's figures (realm area, the four largest other polities, number of coexisting polities); bottom left: the line key (the border disclaimer lives in the help dialog, keeping the corner free for the side panel); bottom centre to the right edge: the phase title (click → 时期详情), then one row — the transport buttons (‹ ▶ › and speed) in line with the timeline bar |
 | 2 · Side panel | one floating slab on the left (360 px, 330 px under 1180 px) from under the headline, hugging its content, never lower than the line key; there is no right-hand drawer. Reading, it widens (up to 360 + 580 px) and runs down to just above the phase line. On phones a bottom sheet above the timeline, where the article takes the card's place | what is studied: the lesson, the quiz, the card with its 3D view. Its views stack; only the latest is drawn and closing it reveals the one beneath. The card's W button unfolds the Wikipedia article to the card's right, as in pocket-planet; the button (now 收起阅读) or the ‹ in the reader's header folds it back, Esc folds it first, and the article follows the card to its next subject |
 | 3 · Popovers & dialogs | under the toolbar, one at a time — opening one closes the others, a click elsewhere or Esc closes it; dialogs centred | 时期详情 (see below), study hall (tabs: 学习 — 历史课堂 with ✓ n/31, 历史小测验; 人物行迹 — the journeys), settings in numbered sections (01 地图风格, 02 图层, 03 声音与显示, 04 语言; 使用说明 at the foot); the course picker and help dialogs |
 
@@ -211,7 +211,7 @@ lesson is its own scene: the course picker closes, the lesson runs in the left c
 aside until it ends. During a story the panel and the figures step aside and the caption takes the phase line's place.
 The camera's view inset follows the panel (and its reading width), so the subject is never under it.
 
-**时期详情** — a popover under the 时期详情 button (or the phase line), same width as the study hall and settings — **by priority.** (1) Overview: the phase span in vermilion with the phase stepper, the phase title, a
+**时期详情** — a popover under the 时期详情 button (or the phase line), same width as the study hall and settings, running down to just above the phase line — **by priority.** (1) Overview: the phase span in vermilion with the phase stepper, the phase title, a
 three-cell strip — dynasty (click → era card) · capital · area — and the note. (2) 本时期大事 fills the remaining height
 and scrolls within, keeping the current entry in view. (3) A folded section, closed by default and staying as left
 while the year changes: 并存政权 (every polity with its area). Checks live in the course (历史课堂, see

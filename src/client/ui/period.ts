@@ -26,7 +26,7 @@ function areaParts(k: number, l: Lang): [string, string] {
  * - `btn` (the top-right toolbar): the 时期详情 toggle;
  * - `stats` (map, top right, under the toolbar): the realm's area in large type and the largest coexisting polities;
  * - `line` (map, bottom centre): the phase title as an ambient caption;
- * - `key` (map, bottom left): the line legend and the border disclaimer;
+ * - `key` (map, bottom left): the line legend (the border disclaimer is in the help dialog);
  * - `view` (the 时期详情 popover under the toolbar, like the study hall and settings), by priority: the overview (span, phase stepper, title, dynasty · capital ·
  *   area, note) and the chronicle (mounted by the app, fills the rest), then a folded section: every polity with its area.
  *   (The course's 随堂检测 lives in the lesson player, ui/lesson.ts.)
@@ -123,8 +123,7 @@ export class Period {
         h('span', { class: 'mk mk-ghost' }, h('i'), h('span', { text: t('roleGhost') })),
         h('span', { class: 'mk mk-cap' }, h('i'), h('span', { text: t('capitalNow') })),
         ...works.map(k => h('span', { class: `mk mk-line k-${k}`, style: `--c:${WORK_COLOR[k] ?? '#888'}` }, h('i'), h('span', { text: t(WORK_KEY[k] ?? 'works') })))),
-      h('div', { class: 'mk-row' }, h('span', { class: 'mk mk-ev' }, h('i'), h('span', { text: t('keyEvent') }))),
-      h('p', { class: 'mk-disc', text: t('disclaimer') }));
+      h('div', { class: 'mk-row' }, h('span', { class: 'mk mk-ev' }, h('i'), h('span', { text: t('keyEvent') }))));
   }
 
   // ------------------------------------------------------------ the 时期详情 popover

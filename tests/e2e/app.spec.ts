@@ -39,6 +39,13 @@ test.describe('Ages atlas', () => {
     await page.mouse.move(400, 400);
     await expect(page.locator('.uitip')).toBeHidden();
 
+    // the timeline's transport buttons share one row with the track
+    const ctl = (await page.locator('.tl-ctl').boundingBox())!;
+    const track = (await page.locator('.tl-track').boundingBox())!;
+    expect(ctl.x + ctl.width).toBeLessThanOrEqual(track.x);
+    expect(ctl.y).toBeGreaterThanOrEqual(track.y);
+    expect(ctl.y + ctl.height).toBeLessThanOrEqual(track.y + track.height);
+
     // 时期详情, the study hall and settings are popovers, one at a time
     await details.click();
     await expect(page.locator('.pv')).toBeVisible();
@@ -162,6 +169,9 @@ test.describe('Ages atlas', () => {
     expect(await page.locator('.panel-r').count()).toBe(0);
     await expect(reader).toContainText('is a mock article used in tests.');
     await expect(reader).toContainText('Background');
+    // sections read straight through: headings and paragraphs, nothing folded
+    await expect(reader.locator('details')).toHaveCount(0);
+    await expect(reader.locator('h3', { hasText: 'Background' })).toBeVisible();
     await expect(reader).not.toContainText('Should not be shown');
     await expect(reader).toContainText('CC BY-SA');
     await expect(reader.locator('a[href^="https://en.wikipedia.org/wiki/"]').first()).toBeVisible();
@@ -576,6 +586,7 @@ test.describe('Ages atlas', () => {
     const cb = (await card.boundingBox())!;
     const tb = (await page.locator('.tl').boundingBox())!;
     expect(cb.y).toBeGreaterThan(vp.height * 0.4);
+    expect((await page.locator('.card-main').boundingBox())!.width).toBeGreaterThanOrEqual(vp.width - 1); // sheet spans the full width
     expect(cb.y + cb.height).toBeLessThanOrEqual(tb.y + 1);
     expect(tb.y + tb.height).toBeLessThanOrEqual(vp.height);
     // the selected place is framed above the bottom sheet

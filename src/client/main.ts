@@ -520,6 +520,8 @@ class App {
     this.root.style.setProperty('--lb', `${Math.round(H - foot + 14)}px`);
     // reading, the widened panel reaches over the foot's centre: stop above the phase line too
     const line = this.hudBc.getBoundingClientRect().top - top;
+    // 时期详情 runs from under the toolbar down to just above the foot's centre
+    this.root.style.setProperty('--bc-t', `${Math.round(line)}px`);
     this.root.style.setProperty('--lb-read', `${Math.round(H - Math.min(foot, line) + 14)}px`);
     if (this.root.classList.contains('story-on')) return this.atlas.view.setInset(0, 0, 0);
     if (matchMedia('(max-width: 720px)').matches) {
