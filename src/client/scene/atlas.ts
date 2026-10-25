@@ -470,6 +470,9 @@ export class Atlas {
 
   private bindPointer(canvas: HTMLCanvasElement): void {
     let down: { x: number; y: number; t: number } | null = null;
+    // after a click opens something the tooltip stays away until the pointer really moves (a hover queued before the click must not bring it back)
+    let mutedAt: { x: number; y: number } | null = null;
+    const mute = (e: PointerEvent) => { mutedAt = { x: e.clientX, y: e.clientY }; this.setHover(null); };
     canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
     canvas.addEventListener('pointerup', e => {
       if (!down) return;
@@ -482,9 +485,9 @@ export class Atlas {
       if (this.pickHandler) { this.pickHandler(ll[0], ll[1]); return; }
       // a model under the pointer opens its card; otherwise a click near a pin selects it (pins are small on touch)
       const mark = this.pickMark(e.clientX, e.clientY);
-      if (mark) { this.setHover(null); mark.open(); return; }
+      if (mark) { mute(e); mark.open(); return; }
       const near = this.nearestPin(e.clientX, e.clientY);
-      if (near) { this.setHover(null); near.open(); }
+      if (near) { mute(e); near.open(); }
     });
     let pending = false;
     let last = { x: 0, y: 0 };
@@ -493,11 +496,13 @@ export class Atlas {
       this.overCanvas = true;
       if (e.buttons || e.pointerType === 'touch') { if (this.hover) this.setHover(null); return; }
       last = { x: e.clientX, y: e.clientY };
+      if (mutedAt && Math.hypot(last.x - mutedAt.x, last.y - mutedAt.y) < 4) return;
+      mutedAt = null;
       if (pending) return;
       pending = true;
       requestAnimationFrame(() => {
         pending = false;
-        if (!this.overCanvas) return;
+        if (!this.overCanvas || mutedAt) return;
         const m = this.pickMark(last.x, last.y);
         if (m) return this.setHover({ target: m });
         // over open land: the same tooltip names the administrative area (admin layer) or the polity under the pointer

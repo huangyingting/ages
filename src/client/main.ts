@@ -190,8 +190,8 @@ class App {
     this.period.mount(this.chronicle.el);
     this.timeline.onRender = y => { this.chronicle.update(y); this.period.setYear(y); };
 
-    // Level 1 — the map overlay: headline (brand · era · year · reign) top left, tools and the period's figures top
-    // right, the line key bottom left, the phase line / story caption and the timeline bottom centre.
+    // Level 1 — the map overlay: headline (brand · era · year · reign) top left, one toolbar row (search · 时期详情 ·
+    // study hall · settings · language) fixed top right with the period's figures under it, the line key bottom left, the phase line / story caption and the timeline bottom centre.
     // Level 2 — one right-hand drawer of stacked views (period details at the base; card, textbook, reader, quiz).
     // Level 3 — popovers under the tools (study hall, settings) and the help dialog.
     this.langBtn = h('button', { type: 'button', class: 'ib lang', 'data-act': 'lang', onclick: () => setLang(lang === 'zh' ? 'en' : 'zh') });
@@ -202,11 +202,13 @@ class App {
     document.addEventListener('fullscreenchange', () => fullBtn.classList.toggle('on', !!document.fullscreenElement));
     this.settings.extra = h('div', { class: 'set-extra' }, this.music.el, fullBtn);
     this.settings.render();
-    const tools = h('div', { class: 'tools' }, this.search.el, hubBtn, setBtn, this.langBtn);
+    const tools = h('div', { class: 'tools' }, this.search.el, this.period.btn, hubBtn, setBtn, this.langBtn);
+    // the toolbar stays in the top-right corner; the drawer opens below it and the map overlay shrinks beside it
+    const bar = h('div', { class: 'bar' }, tools, this.hub.el, this.settings.el);
     this.brand = h('div', { class: 'brand' }, h('span', { class: 'logo', 'aria-hidden': 'true' }), h('b', { text: 'Ages' }), h('span', { class: 'brand-k' }));
     const hud = h('div', { class: 'hud' },
       h('div', { class: 'hud-tl' }, this.brand, this.timeline.head),
-      h('div', { class: 'hud-tr' }, tools, this.hub.el, this.settings.el, this.period.stats),
+      h('div', { class: 'hud-tr' }, this.period.stats),
       h('div', { class: 'hud-bot' },
         h('div', { class: 'hud-bl' }, this.period.key),
         h('div', { class: 'hud-bc' }, this.period.line, this.caption.el, this.timeline.el)));
@@ -222,7 +224,7 @@ class App {
       if ((!this.hub.el.hidden || !this.settings.el.hidden) && !tools.contains(n) && !this.hub.el.contains(n) && !this.settings.el.contains(n)) this.pop(null);
     });
 
-    this.root.append(hud, this.panel.el, this.help.el);
+    this.root.append(hud, this.panel.el, bar, this.help.el);
     this.relabel();
     onLang(l => this.onLang(l));
 

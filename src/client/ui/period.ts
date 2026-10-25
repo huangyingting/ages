@@ -10,7 +10,7 @@ import { periodQuestion } from '../../shared/lib/quiz.ts';
 import { eraAt, formatYear } from '../../shared/lib/timeline.ts';
 import { lang, t, type Key } from '../lib/i18n.ts';
 import { load, save } from '../lib/storage.ts';
-import { fill, h, icon, iconBtn } from './dom.ts';
+import { fill, h, iconBtn } from './dom.ts';
 
 const ROLE_ORDER: Polity['role'][] = ['main', 'rival', 'occupied', 'protectorate', 'neighbor'];
 const WORK_COLOR: Record<string, string> = { wall: '#a8916a', canal: '#2f7fc4', road: '#8a5a2b', sea: '#1f5f8b' };
@@ -26,7 +26,8 @@ function areaParts(k: number, l: Lang): [string, string] {
 
 /**
  * The territorial period at the timeline's year, shown at three depths:
- * - `stats` (map, top right): the realm's area in large type, the largest coexisting polities and the 时期详情 button;
+ * - `btn` (the top-right toolbar): the 时期详情 toggle;
+ * - `stats` (map, top right, under the toolbar): the realm's area in large type and the largest coexisting polities;
  * - `line` (map, bottom centre): the phase title as an ambient caption;
  * - `key` (map, bottom left): the line legend and the border disclaimer;
  * - `view` (the drawer's base view, 时期详情), by priority: the overview (span, phase stepper, title, dynasty · capital ·
@@ -47,7 +48,7 @@ export class Period {
   private check: HTMLDetailsElement;
   private checkSum: HTMLElement;
   private checkBody: HTMLElement;
-  private moreBtn: HTMLButtonElement;
+  readonly btn: HTMLButtonElement;
   private sig = '';
   private year: Year = 0;
   onYear: (y: Year) => void = () => {};
@@ -59,7 +60,8 @@ export class Period {
   onClose: () => void = () => {};
 
   constructor() {
-    this.moreBtn = h('button', { type: 'button', class: 'st-more', 'aria-expanded': 'false', onclick: () => this.onDetails() }, icon('list'), h('span'));
+    this.btn = iconBtn('list', t('details'), () => this.onDetails(), 'b-details');
+    this.btn.setAttribute('aria-expanded', 'false');
     this.stats = h('div', { class: 'hud-stats' });
     this.line = h('button', { type: 'button', class: 'amb', onclick: () => this.onDetails() });
     this.key = h('div', { class: 'map-key' });
@@ -83,8 +85,8 @@ export class Period {
 
   /** Marks the 时期详情 button pressed while the view is open. */
   pressed(on: boolean): void {
-    this.moreBtn.classList.toggle('on', on);
-    this.moreBtn.setAttribute('aria-expanded', String(on));
+    this.btn.classList.toggle('on', on);
+    this.btn.setAttribute('aria-expanded', String(on));
   }
 
   setYear(y: Year): void {
@@ -108,7 +110,7 @@ export class Period {
   // ------------------------------------------------------------ map overlay
 
   private renderStats(ph: Phase | null): void {
-    if (!ph) { fill(this.stats, this.moreBtn); return; }
+    if (!ph) { fill(this.stats); return; }
     const s = ph.snap, L = lang;
     const list = this.polities(s);
     const main = list.find(p => p.role === 'main') ?? list[0];
@@ -124,8 +126,7 @@ export class Period {
       area ? h('p', { class: 'st-k' }, h('i', { style: `--c:${main?.color ?? era?.color ?? '#888'}` }), h('span', { text: t('realmArea', { p: main?.name ?? (era ? tr(era.short, L) : '') }) })) : null,
       area ? h('p', { class: 'st-n' }, h('b', { text: num }), h('span', { text: unit })) : null,
       others.length ? h('ul', { class: 'st-pols' }, ...others.map(p => h('li', {}, this.polBtn(p, 'st-pol')))) : null,
-      n > 1 ? h('p', { class: 'st-c', text: t('coexistN', { n }) }) : null,
-      this.moreBtn);
+      n > 1 ? h('p', { class: 'st-c', text: t('coexistN', { n }) }) : null);
   }
 
   private renderKey(works: string[]): void {
@@ -246,7 +247,7 @@ export class Period {
     (this.view.querySelector('.view-head h2') as HTMLElement).textContent = t('details');
     const x = this.view.querySelector<HTMLElement>('.pv-x')!;
     x.title = t('close'); x.setAttribute('aria-label', t('close'));
-    (this.moreBtn.querySelector('span') as HTMLElement).textContent = t('details');
+    this.btn.title = t('details'); this.btn.setAttribute('aria-label', t('details'));
     this.key.setAttribute('aria-label', t('legend'));
     this.line.title = t('details');
     this.sig = '';

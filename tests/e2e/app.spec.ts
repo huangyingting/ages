@@ -233,15 +233,18 @@ test.describe('Ages atlas', () => {
     await page.mouse.click(free!.x, free!.y);
     await expect(card.locator('h2')).toHaveText(free!.title);
     await expect(tip).toBeHidden();
-    // event pins are kind badges: hovering one shows its title in the same tooltip
-    const pinId = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.labels .pin[data-id][aria-pressed=false]')].find(el => {
-      const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 3;
-      return r.width > 0 && document.elementFromPoint(x, y)?.closest('.pin') === el;
-    })?.dataset.id);
-    const pin = page.locator(`.labels .pin[data-id="${pinId}"]`);
-    await pin.hover();
-    await expect(tip).toBeVisible();
-    await expect(tip.locator('b')).toHaveText((await pin.getAttribute('aria-label'))!);
+    // event pins are kind badges: hovering one shows its title in the same tooltip (re-picked while the camera settles on the card)
+    await expect.poll(async () => {
+      const pinId = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.labels .pin[data-id][aria-pressed=false]')].find(el => {
+        const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 3;
+        return r.width > 0 && document.elementFromPoint(x, y)?.closest('.pin') === el;
+      })?.dataset.id);
+      if (!pinId) return false;
+      const pin = page.locator(`.labels .pin[data-id="${pinId}"]`);
+      if (!await pin.hover({ timeout: 2000 }).then(() => true, () => false)) return false;
+      await page.waitForTimeout(300);
+      return await tip.isVisible() && (await tip.locator('b').textContent()) === await pin.getAttribute('aria-label');
+    }, { timeout: 30_000 }).toBe(true);
     expect(errs).toEqual([]);
   });
 

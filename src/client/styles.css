@@ -46,6 +46,7 @@
   --ease-out: cubic-bezier(.2, .8, .2, 1);
   --gap: 12px;
   --pw: 340px;
+  --bar-h: 66px; /* the toolbar row and its margins: the drawer and the period figures start below it */
   --scrim: rgba(246, 241, 231, 0.88);
   --k-prehistory: #8a6f52; --k-politics: #c08a1e; --k-war: #c8372d; --k-reform: #2f8a57; --k-culture: #2f6fb0;
   --k-science: #1c8c7c; --k-economy: #c06a24; --k-diplomacy: #7b55a8; --k-revolution: #d23f2f;
@@ -374,7 +375,9 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .tl-ruler:empty { display: none; }
 
 /* tools (top right): search · study hall · settings · language, with their popovers below */
-.hud-tr { top: 16px; right: 20px; width: 340px; display: flex; flex-direction: column; align-items: flex-end; }
+/* the toolbar: one row fixed in the top-right corner over the map and the drawer; its popovers drop below it */
+.bar { position: absolute; top: 16px; right: 20px; z-index: 9; }
+.hud-tr { top: var(--bar-h); right: 20px; width: 340px; display: flex; flex-direction: column; align-items: flex-end; }
 .tools { display: flex; align-items: center; gap: 6px; }
 .tools > .ib { width: 34px; height: 34px; background: var(--panel); border: 1px solid var(--rule-2); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); }
 .tools > .ib:hover { background: var(--panel-solid); }
@@ -408,7 +411,7 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .hits .yr { color: var(--ink-3); font-size: var(--t-2xs); font-variant-numeric: tabular-nums; }
 
 /* the period's figures (top right, under the tools): realm area in large light type, the largest coexisting polities */
-.hud-stats { margin-top: 20px; display: flex; flex-direction: column; align-items: flex-end; text-align: right; transition: opacity .4s; }
+.hud-stats { display: flex; flex-direction: column; align-items: flex-end; text-align: right; transition: opacity .4s; }
 .st-k { margin: 0; display: flex; align-items: center; gap: 7px; font-size: var(--t-s); color: var(--ink-2); }
 .st-k i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
 .st-n { margin: 4px 0 0; display: flex; align-items: baseline; gap: 6px; }
@@ -420,12 +423,6 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .st-pol small { min-width: 7.5em; text-align: right; font-size: var(--t-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .st-pol:hover span { color: var(--zhu); }
 .st-c { margin: 6px 0 0; font-size: var(--t-xs); color: var(--ink-3); }
-.st-more {
-  margin-top: 14px; display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border: 1px solid var(--rule-2);
-  background: var(--panel); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); font-size: var(--t-s); font-weight: 600; color: var(--ink);
-}
-.st-more .ic { width: 15px; height: 15px; fill: currentColor; }
-.st-more:hover, .st-more.on { color: var(--zhu); background: var(--panel-solid); --edge: var(--zhu); }
 
 /* the foot: line key (left) and the phase line / story caption over the timeline (centre) */
 .hud-bot { left: 24px; right: 24px; bottom: 16px; display: grid; grid-template-columns: 230px minmax(0, 1fr) 230px; gap: 24px; align-items: end; }
@@ -511,8 +508,8 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
    details at the base, then whatever was opened last on top (card, textbook, reader, quiz); only the top view is drawn,
    so closing it reveals the one beneath. */
 .panel {
-  position: absolute; top: 0; right: 0; bottom: 0; width: var(--pw); z-index: 8; background: var(--panel); color: var(--ink);
-  -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); border-left: 1px solid var(--rule-2);
+  position: absolute; top: var(--bar-h); right: 0; bottom: 0; width: var(--pw); z-index: 8; background: var(--panel); color: var(--ink);
+  -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); border-left: 1px solid var(--rule-2); border-top: 1px solid var(--rule-2);
   transform: translateX(100%); visibility: hidden; transition: transform .35s var(--ease-out), visibility 0s .35s;
 }
 .panel.on { transform: none; visibility: visible; transition: transform .35s var(--ease-out); }
@@ -855,11 +852,11 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 /* ================================================================ narrower screens */
 /* ================================================================ small cut-corner slabs: buttons, chips, map labels
    (after the component rules so their background shorthands don't drop the cut lines) */
-.btn, .chip, .type-chip, .badge, .tag, .tl-play, .ib, .hub-card, .opt, .qz-mode, .sw, .stats > div, .seg, .seg button, .tabs, .tabs button, .st-more, .pq-opt {
+.btn, .chip, .type-chip, .badge, .tag, .tl-play, .ib, .hub-card, .opt, .qz-mode, .sw, .stats > div, .seg, .seg button, .tabs, .tabs button, .pq-opt {
   --cut: 6px; border-radius: 0 !important; clip-path: var(--pp-clip);
 }
 .ib, .seg button, .tabs button { --cut: 5px; }
-.btn, .hub-card, .opt, .qz-mode, .sw, .chip, .tools > .ib, .st-more { background-image: var(--pp-cuts); --edge: var(--rule-2); }
+.btn, .hub-card, .opt, .qz-mode, .sw, .chip, .tools > .ib { background-image: var(--pp-cuts); --edge: var(--rule-2); }
 .btn:focus-visible, .chip:focus-visible, .ib:focus-visible, .hub-card:focus-visible, .opt:focus-visible, .seg button:focus-visible, .tabs button:focus-visible { outline-offset: -2px; }
 .btn.primary, .sw.on, .qz-mode.on, .opt.no, .chip.link:hover { --edge: var(--zhu); }
 .opt.ok { --edge: var(--ok); }
@@ -869,7 +866,7 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
   .tl-hint { display: none; }
   #app.panel-on:not(.story-on) .hud-bot { grid-template-columns: minmax(0, 1fr); }
   #app.panel-on .hud-bl { display: none; }
-  #app.panel-on .hud-stats > :not(.st-more) { display: none; }
+  #app.panel-on .hud-stats { display: none; }
 }
 @media (max-width: 960px) {
   .hud-bot, #app.panel-on:not(.story-on) .hud-bot { grid-template-columns: minmax(0, 1fr); }
@@ -888,13 +885,11 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
   .tl-era { font-size: var(--t-m); }
   .tl-year { font-size: var(--t-2xl); }
   .tl-ruler { font-size: var(--t-xs); }
-  .hud-tr { top: 12px; right: 10px; width: auto; }
+  .bar { top: 12px; right: 10px; }
   .tools { gap: 4px; }
-  .search, .search:focus-within { width: 132px; }
+  .search, .search:focus-within { width: 112px; }
   .hits, .menu { position: fixed; top: 56px; left: 8px; right: 8px; width: auto; max-height: calc(100% - var(--tl-b, 120px) - 64px); }
-  .hud-stats { margin-top: 12px; }
-  .hud-stats > :not(.st-more) { display: none; }
-  .st-more { margin-top: 0; }
+  .hud-tr { display: none; }
   .hud-bot { left: 8px; right: 8px; bottom: 8px; gap: 6px; }
   .amb { font-size: var(--t-s); }
   .tl { padding: 2px 10px 0; }

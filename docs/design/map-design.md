@@ -200,8 +200,8 @@ The interface has three levels; the map is always in view and is never covered b
 
 | Level | Where | Contents |
 |---|---|---|
-| 1 · Map overlay | text straight on the map over soft edge scrims, no boxes | top left: brand kicker, era (click → era card), the year in large light type (a readout, not an input), reign; top right: search · hub · settings · language, then the period's figures (realm area, the four largest other polities, number of coexisting polities) and the 时期详情 button; bottom left: line key and disclaimer; bottom centre: the phase title (click → 时期详情) and the timeline bar |
-| 2 · Drawer | one full-height panel on the right (340 px; 320 px under 1180 px; a bottom sheet above the timeline on phones) | stacked views: 时期详情 at the base, then the card, textbook, reader or quiz — only the latest is drawn; closing a view reveals the one beneath |
+| 1 · Map overlay | text straight on the map over soft edge scrims, no boxes | top left: brand kicker, era (click → era card), the year in large light type (a readout, not an input), reign; top right: one fixed toolbar row — search · 时期详情 · hub · settings · language — that never moves (the drawer opens below it), then under it the period's figures (realm area, the four largest other polities, number of coexisting polities), which shift left beside the drawer; bottom left: line key and disclaimer; bottom centre: the phase title (click → 时期详情) and the timeline bar |
+| 2 · Drawer | one panel on the right from under the toolbar to the bottom edge (340 px; 320 px under 1180 px; a bottom sheet above the timeline on phones) | stacked views: 时期详情 at the base, then the card, textbook, reader or quiz — only the latest is drawn; closing a view reveals the one beneath |
 | 3 · Popovers | under the tool row | hub (learn, quiz, help, journeys), settings (map style, layers, music, full screen); help dialog |
 
 Trade-offs: the first screen carries only what answers "when, who, how big" — the year, dynasty, reign, realm area and
