@@ -6,13 +6,14 @@ import { packModel, unpackModel } from '../../src/client/models/pack.ts';
 import { loadPack, parseHero } from '../../src/client/models/heroes/index.ts';
 import { LIFE } from '../../src/shared/data/life.ts';
 import { ERAS } from '../../src/shared/data/eras.ts';
+import { PLACES } from '../../src/shared/data/places.ts';
 import { PEOPLE } from '../../src/shared/data/jiangshan.ts';
 import * as HEROES from '../../src/shared/data/heroes.ts';
 import { personLook } from '../../src/client/models/costume.ts';
 import { EVENTS } from '../../src/shared/data/events.ts';
 import { STORIES, TRAVELLER } from '../../src/shared/data/stories.ts';
 
-const { capitalModel, personModel } = HEROES;
+const { capitalModel, placeModel, personModel } = HEROES;
 
 const stats = (o: THREE.Object3D) => {
   let meshes = 0, tris = 0;
@@ -80,13 +81,23 @@ describe('hero models', () => {
 });
 
 describe('period capitals', () => {
-  it('gives each capital city its own palace, built from an existing hero', async () => {
+  it('gives each capital city its own palace, built from an existing hero, with no duplicates across eras', async () => {
     const at = (id: string) => capitalModel(ERAS.find(e => e.id === id)!);
     expect(at('shang').hero).toBe('capitals/cap_yinxu');
     expect(at('whan').hero).toBe('capitals/cap_qinhan');
+    expect(at('xin').hero).toBe('capitals/cap_xin');
+    expect(at('sui').hero).toBe('capitals/cap_sui');
+    expect(at('wudai').hero).toBe('capitals/cap_wudai');
+    expect(at('jin').hero).toBe('capitals/cap_jin');
     expect(at('nsong').hero).toBe('capitals/cap_linan');
+    expect(at('ming').hero).toBe('capitals/cap_ming');
     expect(at('qing').hero).toBe('asia/forbidden');
     expect(at('prc')).toEqual({ kind: 'monument' });
+    const capKeys = ERAS.map(e => {
+      const m = capitalModel(e);
+      return `${m.hero ?? m.kind}:${m.style ?? ''}`;
+    });
+    expect(new Set(capKeys).size).toBe(ERAS.length);
     for (const e of ERAS) {
       const ref = parseHero(capitalModel(e).hero);
       if (!ref) continue;
@@ -94,6 +105,28 @@ describe('period capitals', () => {
       expect(stats(buildFresh(capitalModel(e))).tris, e.id).toBeLessThan(130_000);
     }
   }, 120_000);
+});
+
+describe('place landmark models', () => {
+  it('gives every place in PLACES its own unique 3D landmark model with zero duplicates', async () => {
+    const keys = new Map<string, string>();
+    for (const p of PLACES) {
+      const r = placeModel(p);
+      const k = `${r.hero ?? r.kind}:${r.style ?? ''}`;
+      expect(keys.get(k), `${p.id} (${p.name.zh}) shares model ${k}`).toBeUndefined();
+      keys.set(k, p.id);
+      const ref = parseHero(r.hero);
+      expect(ref, `${p.id} (${p.name.zh}) must have a hero builder`).not.toBeNull();
+      expect((await loadPack(ref!.pack))[ref!.name], `${p.id} → ${r.hero}`).toBeTypeOf('function');
+      const g = buildFresh(r);
+      const s = stats(g);
+      expect(s.tris, p.id).toBeGreaterThan(80);
+      expect(s.tris, p.id).toBeLessThan(130_000);
+      expect(g.userData.height as number, p.id).toBeGreaterThan(0.05);
+      expect(g.userData.height as number, p.id).toBeLessThan(2.2);
+    }
+    expect(keys.size).toBe(PLACES.length);
+  }, 180_000);
 });
 
 describe('period-dressed figures', () => {

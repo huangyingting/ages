@@ -1286,6 +1286,293 @@ const cap_nanjing_roc: Builder = root => {
   figure(gp, 0.02, y0, 0.12, 0.027, '#2e3440', { pose: 'walk', ry: Math.PI, phase: 0.5 });
 };
 
+/**
+ * 战国高台宫室 · 齐都临淄桓公台与稷下学宫 (475–221 BC): Warring States capitals competed in stepped rammed-earth high terraces
+ * (层台累榭), twin triple-tiered gate-towers (子母双阙) outside the gate, elevated flying galleries (复道飞阁) bridging halls,
+ * and open lecture courts where scholars of the Hundred Schools (稷下先生) debated beside bronze bianzhong racks.
+ */
+const cap_zhanguo: Builder = root => {
+  const [gp, y0] = site(root, SITE.loess, 0.86);
+  const E = '#9e8159', TOP = '#b5986d', TILE = '#56595e', RED = '#983228', WD = '#4a3322', PL = '#dfd5be', BRZ = '#8a6d3b';
+  band(gp, 0.28, 0.42, y0, 0.002, '#b6a88c', 0.018);
+  // Twin triple-tiered子母阙 gate-towers flanking the south approach
+  for (const sx of [-1, 1]) {
+    const qx = sx * 0.2, qz = 0.24;
+    const q1 = earth(gp, qx, y0, qz, 0.09, 0.07, 0.08, 0.062, 0.055, E, 3, TOP);
+    const e1 = body(gp, qx, q1, qz, 0.074, 0.056, 0.032, { wall: PL, col: RED, bracket: WD, sp: 0.035, cr: 0.0035 });
+    roof(gp, qx, e1, qz, 0.105, 0.085, 0.026, { tile: TILE, k: 0.28, lift: 0.15 });
+    // Subsidiary sub-tower (子阙) on the inner side
+    const zx = qx - sx * 0.052;
+    const q2 = earth(gp, zx, y0, qz + 0.005, 0.048, 0.048, 0.042, 0.042, 0.038, E, 2, TOP);
+    const e2 = body(gp, zx, q2, qz + 0.005, 0.038, 0.038, 0.022, { wall: PL, col: RED, sp: 0.03, cr: 0.003 });
+    roof(gp, zx, e2, qz + 0.005, 0.06, 0.058, 0.018, { tile: TILE, k: 0.28, lift: 0.12 });
+  }
+  // Stepped 3-tier rammed-earth high terrace (桓公台 / 章华高台) at north-center
+  const hz = -0.1;
+  const t1 = earth(gp, 0, y0, hz, 0.48, 0.34, 0.44, 0.31, 0.052, E, 3, TOP);
+  const t2 = earth(gp, 0, t1, hz - 0.01, 0.36, 0.24, 0.33, 0.22, 0.048, shade(E, 0.96), 3, TOP);
+  const t3 = earth(gp, 0, t2, hz - 0.015, 0.25, 0.16, 0.23, 0.145, 0.042, shade(E, 0.92), 2, TOP);
+  steps(gp, 0, y0, hz + 0.17 + 0.075, 0.085, t1 + t2 - 2 * y0, 0.09, '#9f9684', 8);
+  steps(gp, 0, t2, hz - 0.015 + 0.08 + 0.03, 0.065, t3 - t2, 0.035, '#9f9684', 4);
+  // Main high-terrace hall with lacquer-red columns and grey tubed tiles
+  const eh = body(gp, 0, t3, hz - 0.015, 0.21, 0.12, 0.048, { wall: PL, col: RED, beam: WD, bracket: RED, door: '#5a261e', doorN: 3, sp: 0.04, cr: 0.0042 });
+  roof(gp, 0, eh, hz - 0.015, 0.26, 0.165, 0.044, { tile: TILE, k: 0.3, lift: 0.18, chi: BRZ, chiH: 0.022 });
+  // East & West side pavilions on tier 1 linked by elevated flying bridges (复道飞阁)
+  for (const sx of [-1, 1]) {
+    const px = sx * 0.29, pz = -0.06;
+    const pt = earth(gp, px, y0, pz, 0.14, 0.14, 0.12, 0.12, 0.072, E, 3, TOP);
+    const ep = body(gp, px, pt, pz, 0.1, 0.1, 0.038, { wall: PL, col: RED, bracket: WD, sp: 0.035, cr: 0.0036 });
+    roof(gp, px, ep, pz, 0.135, 0.135, 0.034, { tile: TILE, k: 0.32, lift: 0.2 });
+    // Flying bridge (飞阁) spanning between main tier-2 terrace and side pavilion
+    const bx = sx * 0.2, bw = 0.09;
+    box(gp, RED, bx, pt - 0.008, pz, bw, 0.008, 0.036);
+    corridor(gp, sx * 0.155, pz, sx * 0.24, pz, pt, 0.024, 0.03, TILE, RED);
+  }
+  // Bronze bianzhong rack & Jixia debate mats in the forecourt
+  box(gp, WD, -0.09, y0 + 0.028, 0.13, 0.065, 0.005, 0.006);
+  for (const dx of [-0.026, 0.026]) cyl(gp, WD, -0.09 + dx, y0, 0.13, 0.003, 0.03, 5);
+  for (let i = 0; i < 5; i++) cone(gp, BRZ, -0.11 + i * 0.01, y0 + 0.014, 0.13, 0.0035, 0.012, 6);
+  for (const [x, z, ry, c] of [[0.06, 0.12, -0.5, '#3b4d5e'], [0.11, 0.14, 2.4, '#6e3b32'], [0.08, 0.17, 1.8, '#4e5d42'], [-0.03, 0.26, 0, '#7a342a']] as [number, number, number, string][]) {
+    figure(gp, x, y0, z, 0.028, c, { hat: 'cap', ry });
+  }
+  for (const [x, z] of [[-0.36, 0.18], [0.36, 0.18], [-0.35, -0.26], [0.35, -0.26]] as [number, number][]) tree(gp, x, y0, z, 0.062, '#697a46');
+};
+
+/**
+ * 新朝王莽明堂辟雍与九庙礼制建筑 (9–23 AD, 汉长安城南郊): excavated in southern Xi'an — a circular Biyong ritual water moat
+ * (辟雍环水, 直径360米缩微) enclosing a square pounded-earth terrace (天圆地方), crossed by four ceremonial stone bridges at the
+ * cardinal directions, with a cruciform Twelve-Hall Mingtang (明堂四面十二室) crowned by a circular thatched-and-tiled upper drum
+ * and a gilded bronze phoenix finial (铜凤立顶).
+ */
+const cap_xin: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.88);
+  const WATER = '#3a6f78', STONE = '#cfc7b4', RED = '#9c3127', TILE = '#4e5258', PL = '#e6decb', GOLD = '#d8a93e';
+  // Outer circular Biyong ring moat (辟雍圆水) and inner circular island
+  cyl(gp, STONE, 0, y0, 0, 0.39, 0.008, 36);
+  cyl(gp, WATER, 0, y0 + 0.002, 0, 0.365, 0.008, 36);
+  cyl(gp, '#8a9460', 0, y0 + 0.004, 0, 0.255, 0.01, 32);
+  // Four cardinal stone bridges (四方跨水石桥) and four ceremonial gatehouses (四门塾)
+  for (let k = 0; k < 4; k++) {
+    const a = (k * Math.PI) / 2, G = grp(gp, 0, 0, a, y0);
+    box(G, STONE, 0, 0.004, 0.31, 0.068, 0.016, 0.12);
+    railRun(G, -0.032, -0.032, 0.02, 0.31, STONE);
+    const eg = body(G, 0, 0.014, 0.375, 0.088, 0.044, 0.026, { wall: PL, col: RED, door: '#5a241c', doorN: 1, sp: 0.03, cr: 0.0032 });
+    roof(G, 0, eg, 0.375, 0.115, 0.068, 0.022, { tile: TILE, k: 0.3, lift: 0.15 });
+  }
+  // Square central ritual platform (方台: 天圆地方)
+  const t1 = earth(gp, 0, y0 + 0.014, 0, 0.32, 0.32, 0.3, 0.3, 0.038, '#b59b72', 3, STONE);
+  rail(gp, 0, t1, 0, 0.295, 0.295, STONE, 0.065, 0.014);
+  for (let k = 0; k < 4; k++) steps(grp(gp, 0, 0, (k * Math.PI) / 2, 0), 0, y0 + 0.014, 0.185, 0.058, 0.038, 0.035, STONE, 4);
+  // Cruciform four-directional halls (四面堂: 青阳、明堂、总章、玄堂)
+  const e0 = body(gp, 0, t1, 0, 0.18, 0.18, 0.045, { wall: PL, col: RED, bracket: RED, door: '#5a241c', doorN: 3, sp: 0.038, cr: 0.004 });
+  for (const [dx, dz, w, d] of [[0, 0.095, 0.11, 0.06], [0, -0.095, 0.11, 0.06], [0.095, 0, 0.06, 0.11], [-0.095, 0, 0.06, 0.11]] as [number, number, number, number][]) {
+    const ew = body(gp, dx, t1, dz, w, d, 0.04, { wall: PL, col: RED, sp: 0.035, cr: 0.0035 });
+    roof(gp, dx, ew, dz, w + 0.036, d + 0.036, 0.026, { tile: TILE, k: 0.32, lift: 0.18 });
+  }
+  const r1 = roof(gp, 0, e0, 0, 0.23, 0.23, 0.032, { tile: TILE, k: 0.3, lift: 0.18, inner: [0.13, 0.13] });
+  // Upper circular ritual drum (太室圆顶: 上圆下方) and gilded bronze phoenix finial (金凤立顶)
+  cyl(gp, PL, 0, r1 - 0.004, 0, 0.068, 0.034, 16);
+  for (let i = 0; i < 12; i++) {
+    const a = (i * Math.PI) / 6;
+    cyl(gp, RED, Math.cos(a) * 0.068, r1 - 0.004, Math.sin(a) * 0.068, 0.0032, 0.034, 5);
+  }
+  cone(gp, TILE, 0, r1 + 0.028, 0, 0.098, 0.048, 20);
+  cyl(gp, GOLD, 0, r1 + 0.074, 0, 0.008, 0.016, 8);
+  ellip(gp, GOLD, 0, r1 + 0.096, 0, 0.014, 0.009, 0.02);
+  cone(gp, GOLD, 0, r1 + 0.098, -0.012, 0.008, 0.018, 5);
+  // Ritual figures in Xin court dress on the south bridge and plaza
+  figure(gp, -0.02, y0 + 0.02, 0.29, 0.027, '#262428', { hat: 'peaked', hatC: '#1f1d20' });
+  figure(gp, 0.025, y0 + 0.02, 0.31, 0.026, '#8c2d25', { hat: 'cap' });
+  for (const [x, z] of [[-0.31, 0.28], [0.31, 0.28], [-0.31, -0.28], [0.31, -0.28]] as [number, number][]) tree(gp, x, y0, z, 0.056, '#5c7244');
+};
+
+/**
+ * 隋大兴城太极宫 / 东都洛阳乾阳殿与天津桥 (581–618): Emperor Wen and Emperor Yang built the grand axial capital spanning the
+ * Luo / Grand Canal waters via the arched stone Tianjin Bridge (天津桥), a Sui dragon barge (龙舟) gliding past willows,
+ * the five-passage vermilion gate (则天门/朱雀门) flanked by twin watchtowers (东西朵楼), and the soaring Qianyuan Hall (乾阳殿) behind.
+ */
+const cap_sui: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.88);
+  const WATER = '#3f6e78', WALL = '#ddd4c0', RED = '#9e3328', TILE = '#4c5258', GLAZE = '#3b7d63', STONE = '#cbc2ae', GOLD = '#d6a840';
+  // Luo River / Sui Grand Canal across the foreground
+  band(gp, 0.16, 0.32, y0, 0.004, WATER, 0.014);
+  band(gp, 0.145, 0.162, y0, 0.008, STONE, 0.014);
+  band(gp, 0.318, 0.335, y0, 0.008, STONE, 0.014);
+  // Arched stone Tianjin Bridge (天津桥) on the central imperial axis
+  box(gp, STONE, 0, y0 + 0.004, 0.24, 0.095, 0.022, 0.19);
+  for (const dz of [-0.055, 0, 0.055]) cyl(grp(gp, 0, 0.24 + dz, 0, y0 + 0.004), '#284850', 0, 0, 0, 0.02, 0.098, 10).rotation.z = Math.PI / 2;
+  for (const sx of [-1, 1]) box(gp, shade(STONE, 1.06), sx * 0.044, y0 + 0.026, 0.24, 0.006, 0.012, 0.19);
+  // Sui Emperor's double-decked Dragon Boat (隋炀帝龙舟) on the east canal reach
+  const bx = 0.21, bz = 0.24;
+  rbox(gp, '#5c3822', bx, y0 + 0.005, bz, 0.15, 0.014, 0.044, 0.006);
+  box(gp, RED, bx, y0 + 0.019, bz, 0.095, 0.018, 0.032);
+  roof(grp(gp, bx, bz, Math.PI / 2, 0), 0, y0 + 0.037, 0, 0.048, 0.115, 0.018, { tile: GOLD, k: 0.35, lift: 0.25 });
+  cyl(gp, GOLD, bx - 0.08, y0 + 0.016, bz, 0.006, 0.022, 6).rotation.z = 0.45;
+  // Battered white-plastered Sui palace rampart with 5-passage Zetian/Zhuque Gate and twin Duolou watchtowers
+  const wz = 0.04;
+  earth(gp, 0, y0, wz, 0.56, 0.095, 0.52, 0.082, 0.068, WALL, 4, '#bfb6a2');
+  for (const dx of [-0.09, -0.045, 0, 0.045, 0.09]) box(gp, '#4f201a', dx, y0, wz + 0.043, 0.024, 0.042, 0.012);
+  const eg = body(gp, 0, y0 + 0.068, wz, 0.24, 0.068, 0.036, { wall: WALL, col: RED, bracket: RED, door: '#5a221a', doorN: 5, sp: 0.038, cr: 0.0038 });
+  roof(gp, 0, eg, wz, 0.29, 0.105, 0.036, { tile: TILE, edge: GLAZE, k: 0.34, lift: 0.22, chi: GOLD, chiH: 0.024 });
+  for (const sx of [-1, 1]) {
+    const dx = sx * 0.21;
+    const ed = body(gp, dx, y0 + 0.068, wz + 0.006, 0.075, 0.062, 0.028, { wall: WALL, col: RED, sp: 0.03, cr: 0.0032 });
+    roof(gp, dx, ed, wz + 0.006, 0.105, 0.09, 0.026, { tile: TILE, edge: GLAZE, k: 0.34, lift: 0.2 });
+  }
+  // Soaring Qianyuan / Taiji Hall (乾阳殿) on a double stepped platform in the north court
+  const hz = -0.22;
+  const ht1 = earth(gp, 0, y0, hz, 0.38, 0.21, 0.35, 0.19, 0.038, STONE, 2, STONE);
+  const ht2 = earth(gp, 0, ht1, hz, 0.31, 0.16, 0.29, 0.15, 0.032, STONE, 2, STONE);
+  steps(gp, 0, y0, hz + 0.105 + 0.045, 0.075, 0.07, 0.055, STONE, 6);
+  const eh = body(gp, 0, ht2, hz, 0.26, 0.13, 0.052, { wall: WALL, col: RED, bracket: RED, door: '#5a221a', doorN: 5, sp: 0.04, cr: 0.0045 });
+  const er = roof(gp, 0, eh, hz, 0.32, 0.18, 0.024, { tile: TILE, edge: GLAZE, k: 0.32, lift: 0.18, inner: [0.22, 0.105] });
+  const eh2 = body(gp, 0, er, hz, 0.22, 0.105, 0.032, { wall: WALL, col: RED, bracket: RED, sp: 0.04, cr: 0.004 });
+  roof(gp, 0, eh2, hz, 0.28, 0.155, 0.042, { tile: TILE, edge: GLAZE, k: 0.36, lift: 0.24, chi: GOLD, chiH: 0.028 });
+  for (const [x, z] of [[-0.28, 0.35], [-0.14, 0.36], [0.14, 0.36], [0.29, 0.35]] as [number, number][]) tree(gp, x, y0, z, 0.058, '#658048');
+  figure(gp, -0.02, y0 + 0.026, 0.24, 0.027, '#c88a2e', { hat: 'cap' });
+  figure(gp, 0.025, y0 + 0.026, 0.26, 0.026, '#7a2e28', { hat: 'cap' });
+};
+
+/**
+ * 五代十国 · 汴梁宫城周桥水门与南唐澄心堂 (907–960): Five Dynasties Bianliang (Kaifeng) and Southern Tang Jinling combined
+ * fortified brick water-gates spanning the busy Bian Canal (汴河水门与周桥), grain barges passing beneath, and refined
+ * multi-eaved court halls (澄心堂) where scholar-officials in wide-winged 幞头 caps gathered.
+ */
+const cap_wudai: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.88);
+  const BRICK = '#6d6f74', WALL = '#e2dac8', RED = '#943228', TILE = '#4a4f55', WATER = '#426b72', STONE = '#c8bfa9', WD = '#523824';
+  // Bian Canal (汴河) curving front-to-east with stone embankment and Zhou Bridge (周桥)
+  band(gp, 0.15, 0.29, y0, 0.004, WATER, 0.015);
+  box(gp, STONE, -0.04, y0 + 0.004, 0.22, 0.088, 0.02, 0.16);
+  railRun(gp, -0.08, -0.08, y0 + 0.024, 0.22, STONE);
+  // Canal tribute barge passing along the Bian River
+  rbox(gp, WD, 0.17, y0 + 0.005, 0.22, 0.14, 0.014, 0.042, 0.005);
+  box(gp, '#b99e6b', 0.17, y0 + 0.019, 0.22, 0.08, 0.016, 0.03);
+  // Fortified brick barbican wall (五代瓮城与水门) with arched water-gate and main portal
+  const wz = 0.02;
+  earth(gp, 0, y0, wz, 0.54, 0.09, 0.5, 0.078, 0.065, BRICK, 4, '#8b8880');
+  // Semicircular barbican (月城/瓮城) projecting forward around the central gate
+  for (const sx of [-1, 1]) box(gp, BRICK, sx * 0.1, y0, wz + 0.055, 0.024, 0.052, 0.06);
+  box(gp, '#3f1d18', -0.04, y0, wz + 0.042, 0.034, 0.042, 0.014);
+  cyl(grp(gp, 0.14, wz, 0, y0), '#28454a', 0, 0, 0, 0.026, 0.095, 10).rotation.x = Math.PI / 2;
+  const eg = body(gp, -0.04, y0 + 0.065, wz, 0.2, 0.064, 0.036, { wall: WALL, col: RED, bracket: RED, door: '#5a221a', doorN: 3, sp: 0.038, cr: 0.0038 });
+  roof(gp, -0.04, eg, wz, 0.25, 0.1, 0.036, { tile: TILE, k: 0.36, lift: 0.26, xie: 0.68, chi: '#c9a042', chiH: 0.022 });
+  // Main palace hall (汴梁崇元殿 / 南唐澄心堂) with east-west side galleries and scholar pavilion
+  const hz = -0.21;
+  const ht = earth(gp, -0.03, y0, hz, 0.34, 0.18, 0.32, 0.16, 0.042, STONE, 2, STONE);
+  steps(gp, -0.03, y0, hz + 0.09 + 0.035, 0.07, 0.042, 0.04, STONE, 5);
+  const eh = body(gp, -0.03, ht, hz, 0.26, 0.13, 0.048, { wall: WALL, col: RED, bracket: RED, door: '#5a221a', doorN: 5, sp: 0.04, cr: 0.0042 });
+  roof(gp, -0.03, eh, hz, 0.31, 0.175, 0.045, { tile: TILE, k: 0.38, lift: 0.28, xie: 0.66, chi: '#c9a042', chiH: 0.026 });
+  // Waterside garden pavilion (澄心堂水榭) on the east
+  const px = 0.22, pz = -0.15;
+  const ep = body(gp, px, y0 + 0.012, pz, 0.095, 0.085, 0.036, { wall: WALL, col: RED, sp: 0.032, cr: 0.0035 });
+  rbox(gp, STONE, px, y0, pz, 0.115, 0.012, 0.105, 0.003);
+  roof(gp, px, ep, pz, 0.13, 0.12, 0.034, { tile: TILE, k: 0.4, lift: 0.3, xie: 0.65 });
+  for (const [x, z] of [[-0.28, 0.34], [0.28, 0.34], [0.28, -0.28], [-0.28, -0.26]] as [number, number][]) tree(gp, x, y0, z, 0.06, '#647b47');
+  figure(gp, -0.04, y0 + 0.024, 0.22, 0.027, '#584468', { hat: 'cap' });
+  figure(gp, 0.01, y0 + 0.024, 0.24, 0.027, '#8a332a', { hat: 'cap' });
+};
+
+/**
+ * 金上京会宁府 / 金中都大安殿 (1115–1234): Jurchen Jin imperial palace combining Northern Song structural grandeur with Jurchen
+ * gold-and-green glazed tile trim (黄心绿剪边琉璃瓦), a three-tiered white marble 须弥座 terrace with dragon-carved royal ramps,
+ * flanking corner pavilions (东西角楼) on high masonry bastions, and the iconic gilt-bronze seated dragon (金上京铜坐龙) in the court.
+ */
+const cap_jin: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.88);
+  const MARBLE = '#e2dcd0', WALL = '#e4dccb', RED = '#9c2f25', GOLD = '#cfa13a', GREEN = '#2f7a58', TILE = '#3d6e54';
+  band(gp, 0.29, 0.41, y0, 0.002, '#b8b09e', 0.018);
+  // Three-tiered white marble 须弥座 terrace in I-shaped (工字殿) imperial plan
+  const hz = -0.1;
+  const t1 = earth(gp, 0, y0, hz, 0.48, 0.26, 0.46, 0.24, 0.026, MARBLE, 2, MARBLE);
+  const t2 = earth(gp, 0, t1, hz, 0.41, 0.21, 0.39, 0.195, 0.024, shade(MARBLE, 0.98), 2, MARBLE);
+  const t3 = earth(gp, 0, t2, hz, 0.34, 0.165, 0.33, 0.155, 0.022, shade(MARBLE, 0.96), 2, MARBLE);
+  rail(gp, 0, t1, hz, 0.45, 0.23, MARBLE, 0.1, 0.013);
+  rail(gp, 0, t3, hz, 0.32, 0.15, MARBLE, 0.085, 0.013);
+  // Triple staircase with central carved dragon royal ramp (御路丹陛)
+  for (const dx of [-0.032, 0.032]) steps(gp, dx, y0, hz + 0.12 + 0.065, 0.024, t3 - y0, 0.075, MARBLE, 7);
+  ramp(gp, 0, y0, hz + 0.12 + 0.065, 0.036, t3 - y0, 0.075, shade(MARBLE, 0.92));
+  // Daan Hall (大安殿): double-eaved hip-and-gable roof with golden center and emerald-green trim (绿剪边)
+  const eh1 = body(gp, 0, t3, hz, 0.29, 0.135, 0.044, { wall: WALL, col: RED, bracket: GOLD, door: '#5a2018', doorN: 5, sp: 0.036, cr: 0.0042 });
+  const er1 = roof(gp, 0, eh1, hz, 0.35, 0.185, 0.022, { tile: GOLD, edge: GREEN, k: 0.34, lift: 0.22, inner: [0.24, 0.11] });
+  const eh2 = body(gp, 0, er1, hz, 0.24, 0.11, 0.03, { wall: WALL, col: RED, bracket: GOLD, sp: 0.036, cr: 0.0038 });
+  roof(gp, 0, eh2, hz, 0.31, 0.165, 0.044, { tile: GOLD, edge: GREEN, k: 0.38, lift: 0.28, xie: 0.68, chi: GOLD, chiH: 0.028 });
+  // East & West elevated corner towers (应天门东西朵楼/角楼) connected by crimson perimeter walls
+  for (const sx of [-1, 1]) {
+    const cx = sx * 0.27, cz = 0.16;
+    box(gp, RED, sx * 0.16, y0, cz, 0.14, 0.042, 0.026);
+    const ct = earth(gp, cx, y0, cz, 0.11, 0.11, 0.096, 0.096, 0.056, '#7a756c', 3, MARBLE);
+    const ec = body(gp, cx, ct, cz, 0.082, 0.082, 0.034, { wall: WALL, col: RED, bracket: GREEN, sp: 0.03, cr: 0.0035 });
+    roof(gp, cx, ec, cz, 0.12, 0.12, 0.034, { tile: TILE, edge: GOLD, k: 0.38, lift: 0.28, xie: 0.65 });
+  }
+  // Iconic Gilt-Bronze Seated Dragon of Jin Shangjing (金上京铜坐龙) on a white marble pedestal in the forecourt
+  box(gp, MARBLE, -0.1, y0, 0.15, 0.044, 0.022, 0.044);
+  cyl(gp, GOLD, -0.1, y0 + 0.022, 0.15, 0.012, 0.028, 8);
+  ellip(gp, GOLD, -0.1, y0 + 0.054, 0.155, 0.011, 0.009, 0.015);
+  cone(gp, GOLD, -0.1, y0 + 0.045, 0.138, 0.006, 0.022, 5);
+  // Jurchen emperor and guards in Jin attire
+  figure(gp, 0, y0, 0.18, 0.028, '#c89632', { hat: 'peaked', hatC: GOLD });
+  for (const sx of [-1, 1]) figure(gp, sx * 0.055, y0, 0.22, 0.027, '#7a2c24', { hat: 'helmet', armor: '#4a4640' });
+  for (const [x, z] of [[-0.36, -0.25], [0.36, -0.25]] as [number, number][]) tree(gp, x, y0, z, 0.062, '#4f6842');
+};
+
+/**
+ * 明代两京皇城 · 承天门外金水桥华表与奉天殿 (1368–1644): Ming imperial axial ensemble founded at Nanjing (应天府) and Beijing
+ * (顺天府) — the curved Outer Golden Water River (外金水河) spanned by five white marble bridges (五座金水桥), a pair of carved
+ * cloud-dragon Huabiao pillars (汉白玉华表) and gilt bronze lions, the crimson five-passage Chengtian Gate (承天门), and behind
+ * it the towering Fengtian Hall (奉天殿) on its three-tiered white marble terrace.
+ */
+const cap_ming: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.88);
+  const MARBLE = '#ece6da', RED = '#9e2b22', GOLD = '#da9e28', WALL = '#e8dfd0', WATER = '#3c6d78', BRZ = '#b88c32';
+  // Outer Golden Water River (外金水河) and five arched white marble bridges (外金水桥)
+  band(gp, 0.22, 0.31, y0, 0.004, WATER, 0.016);
+  for (const sz of [0.215, 0.315]) band(gp, sz - 0.006, sz + 0.006, y0, 0.008, MARBLE, 0.016);
+  for (const [dx, w] of [[-0.14, 0.032], [-0.07, 0.036], [0, 0.046], [0.07, 0.036], [0.14, 0.032]] as [number, number][]) {
+    box(gp, MARBLE, dx, y0 + 0.004, 0.265, w, 0.018, 0.115);
+    for (const sx of [-1, 1]) box(gp, MARBLE, dx + sx * (w / 2 - 0.003), y0 + 0.022, 0.265, 0.005, 0.01, 0.115);
+  }
+  // Twin carved white marble Huabiao (云龙华表) and bronze lions flanking the approach
+  for (const sx of [-1, 1]) {
+    const hx = sx * 0.21, hz = 0.35;
+    box(gp, MARBLE, hx, y0, hz, 0.028, 0.012, 0.028);
+    cyl(gp, MARBLE, hx, y0 + 0.012, hz, 0.007, 0.068, 8);
+    box(gp, MARBLE, hx, y0 + 0.072, hz, 0.026, 0.005, 0.01);
+    cyl(gp, MARBLE, hx, y0 + 0.08, hz, 0.01, 0.006, 8);
+    ellip(gp, BRZ, hx, y0 + 0.09, hz, 0.006, 0.008, 0.006);
+    // Bronze guardian lion (铜狮)
+    box(gp, MARBLE, sx * 0.055, y0, 0.175, 0.02, 0.012, 0.02);
+    ellip(gp, BRZ, sx * 0.055, y0 + 0.02, 0.175, 0.008, 0.011, 0.01);
+  }
+  // Crimson battered Chengtian Gate (承天门) with five arched portals
+  const wz = 0.09;
+  earth(gp, 0, y0, wz, 0.5, 0.095, 0.46, 0.082, 0.068, RED, 4, MARBLE);
+  rail(gp, 0, y0 + 0.068, wz, 0.45, 0.078, MARBLE, 0, 0.012);
+  for (const [dx, r] of [[-0.12, 0.013], [-0.06, 0.014], [0, 0.017], [0.06, 0.014], [0.12, 0.013]] as [number, number][]) {
+    box(gp, '#3c1410', dx, y0, wz + 0.042, r * 1.8, 0.04, 0.012);
+  }
+  const eg = body(gp, 0, y0 + 0.068, wz, 0.28, 0.068, 0.036, { wall: RED, col: RED, bracket: GOLD, door: '#5a1e16', doorN: 5, sp: 0.038, cr: 0.004 });
+  roof(gp, 0, eg, wz, 0.34, 0.11, 0.038, { tile: GOLD, k: 0.36, lift: 0.24, xie: 0.68, chi: GOLD, chiH: 0.024 });
+  // Towering Ming Fengtian Hall (奉天殿) on a 3-tiered white marble Sumeru terrace in the north court
+  const fz = -0.2;
+  const ft1 = earth(gp, 0, y0, fz, 0.44, 0.22, 0.42, 0.2, 0.026, MARBLE, 2, MARBLE);
+  const ft2 = earth(gp, 0, ft1, fz, 0.38, 0.18, 0.36, 0.17, 0.024, MARBLE, 2, MARBLE);
+  const ft3 = earth(gp, 0, ft2, fz, 0.32, 0.145, 0.31, 0.138, 0.022, MARBLE, 2, MARBLE);
+  rail(gp, 0, ft1, fz, 0.41, 0.195, MARBLE, 0.09, 0.012);
+  rail(gp, 0, ft3, fz, 0.3, 0.135, MARBLE, 0.08, 0.012);
+  for (const dx of [-0.028, 0.028]) steps(gp, dx, y0, fz + 0.11 + 0.055, 0.022, ft3 - y0, 0.065, MARBLE, 6);
+  ramp(gp, 0, y0, fz + 0.11 + 0.055, 0.032, ft3 - y0, 0.065, shade(MARBLE, 0.94));
+  const fh1 = body(gp, 0, ft3, fz, 0.28, 0.125, 0.044, { wall: WALL, col: RED, bracket: GOLD, door: '#5a1e16', doorN: 5, sp: 0.036, cr: 0.0042 });
+  const fr1 = roof(gp, 0, fh1, fz, 0.34, 0.175, 0.022, { tile: GOLD, k: 0.34, lift: 0.22, inner: [0.23, 0.1] });
+  const fh2 = body(gp, 0, fr1, fz, 0.23, 0.1, 0.03, { wall: WALL, col: RED, bracket: GOLD, sp: 0.036, cr: 0.0038 });
+  roof(gp, 0, fh2, fz, 0.3, 0.155, 0.044, { tile: GOLD, k: 0.38, lift: 0.26, chi: GOLD, chiH: 0.028 });
+  // Ming court officials in 乌纱帽 and crimson robes on the Golden Water Bridges
+  figure(gp, 0, y0 + 0.022, 0.265, 0.027, '#9e2620', { hat: 'cap', hatC: '#1e1c1a' });
+  figure(gp, -0.07, y0 + 0.022, 0.275, 0.026, '#2b4562', { hat: 'cap', hatC: '#1e1c1a' });
+  for (const [x, z] of [[-0.36, -0.04], [0.36, -0.04]] as [number, number][]) tree(gp, x, y0, z, 0.06, '#48643e');
+};
+
 export const H_CAPITALS: Record<string, Builder> = {
-  cap_erlitou, cap_yinxu, cap_zhou, cap_luoyi, cap_xianyang, cap_qinhan, cap_luoyang, cap_taiji, cap_jiankang, cap_tang, cap_song, cap_linan, cap_yuan, cap_nanjing_roc,
+  cap_erlitou, cap_yinxu, cap_zhou, cap_luoyi, cap_zhanguo, cap_xianyang, cap_qinhan, cap_xin, cap_luoyang, cap_taiji, cap_jiankang,
+  cap_sui, cap_tang, cap_wudai, cap_song, cap_jin, cap_linan, cap_yuan, cap_ming, cap_nanjing_roc,
 };

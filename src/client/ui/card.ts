@@ -201,7 +201,7 @@ export class Card {
     const modern = p.modern && p.modern.zh !== now.zh ? p.modern : now.zh !== p.name.zh ? p.name : undefined;
     const wikiName = p.modern?.zh ? p.modern : p.name;
     const capYears = (p.capital ?? []).reduce((s, [a, b]) => s + Math.max(1, Math.min(b, 1949) - a), 0);
-    this.setHero(life?.model ?? placeModel(p, year), t(p.kind === 'pass' ? 'pass' : 'place'), '#c9a45c', null);
+    this.setHero(placeModel(p, year), t(p.kind === 'pass' ? 'pass' : 'place'), '#c9a45c', null);
     const showNames = names.length > 1 || (names.length === 1 && names[0].name.zh !== now.zh);
     fill(this.body,
       this.title(modern ? this.eyebrow(`${t('today')} ${tr(modern, L)}`) : null, tr(now, L), null,

@@ -7,7 +7,7 @@ import type { Builder } from '../prims.ts';
  */
 type Pack = Record<string, Builder>;
 const LOADERS = import.meta.glob<Record<string, unknown>>(['./*.ts', '!./index.ts']);
-const packPath = (id: string) => `./${id}.ts`;
+const packPath = (id: string): string => `./${id}.ts`;
 
 const loaded = new Map<string, Pack>();
 const loading = new Map<string, Promise<Pack>>();
