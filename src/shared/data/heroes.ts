@@ -395,7 +395,10 @@ export type PersonRole = 'ruler' | 'general' | 'monk' | 'woman' | 'scholar';
 
 /** Explicit role, period costume year, and prop overrides for historical figures whose honorifics or life spans cross dynasty boundaries. */
 const PERSON_OVERRIDE: Record<string, { role?: PersonRole; year?: number; prop?: string; female?: boolean; eth?: string }> = {
-  // Pre-Qin
+  // Prehistory & Pre-Qin
+  北京人: { role: 'scholar', year: -500_000, prop: 'torch' },
+  黄帝: { role: 'ruler', year: -2600 },
+  晋文公: { role: 'ruler', year: -636, prop: 'sword' },
   大禹: { role: 'ruler', year: -2100, prop: 'spade' },
   妇好: { role: 'general', year: -1200, prop: 'axe', female: true },
   周公: { role: 'scholar', year: -1040, prop: 'bamboo_scroll' },
@@ -448,6 +451,7 @@ const PERSON_OVERRIDE: Record<string, { role?: PersonRole; year?: number; prop?:
   陶渊明: { role: 'scholar', prop: 'chrysanthemum' },
   顾恺之: { role: 'scholar', year: 380, prop: 'brush' },
   法显: { role: 'monk', year: 410, prop: 'staff' },
+  王濬: { role: 'general', year: 280, prop: 'sword' },
   桓温: { role: 'general' },
   苻坚: { role: 'ruler' },
   谢玄: { role: 'general', prop: 'sword' },
@@ -501,6 +505,7 @@ const PERSON_OVERRIDE: Record<string, { role?: PersonRole; year?: number; prop?:
   李元昊: { role: 'ruler', year: 1038, eth: 'steppe' },
   野利仁荣: { role: 'scholar', year: 1038, prop: 'scroll', eth: 'steppe' },
   完颜阿骨打: { role: 'ruler', year: 1115, eth: 'steppe' },
+  丘处机: { role: 'scholar', year: 1222, prop: 'staff' },
   元好问: { role: 'scholar', year: 1230, prop: 'brush' },
   // Yuan
   成吉思汗: { role: 'ruler', year: 1271, prop: 'bow' },

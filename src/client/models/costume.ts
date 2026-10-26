@@ -101,6 +101,8 @@ const WOMAN: Record<Era, Look> = {
  */
 const PERSON_LOOK: Record<string, Partial<Look>> = {
   // ---- Pre-Qin (先秦) ----
+  北京人: { top: '#7a5a3c', bottom: '#5c4330', accent: '#3f2e20', outfit: 'tunic', pattern: undefined, bixi: undefined, wideSleeves: false, sleeve: 0.3, skin: '#a8754f', hat: 'none', hairStyle: 'wild', hair: '#2a1f17', beardColor: '#2a1f17', beard: 'full', stance: 'wide' },
+  晋文公: { top: '#211a1e', bottom: '#8a3a1c', accent: '#d6a848', bixi: '#7c2d12', hat: 'mianguan', hatColor: '#1c1917', hair: '#4b5563', beardColor: '#6b7280', beard: 'long' },
   黄帝: { top: '#1c1917', bottom: '#b45309', accent: '#eab308', bixi: '#b45309', hat: 'mianguan', beard: 'long' },
   大禹: { top: '#786248', bottom: '#4a3c2c', accent: '#9a7b56', outfit: 'tunic', pattern: undefined, bixi: undefined, wideSleeves: false, sleeve: 0.45, skin: '#d49e7a', hat: 'douli', hatColor: '#b8945a', beard: 'full', stance: 'wide' },
   妇好: { top: '#8c1d1d', bottom: '#2b2420', accent: '#2dd4bf', armor: '#8a6838', armorStyle: 'bronze', hat: 'none', hairStyle: 'highbun', cape: '#991b1b' },
@@ -155,6 +157,7 @@ const PERSON_LOOK: Record<string, Partial<Look>> = {
   谢安: { top: '#e7e5e4', bottom: '#44403c', accent: '#57534e', hat: 'fujin', hatColor: '#44403c', beard: 'long' },
   陶渊明: { top: '#d6cfc2', bottom: '#6b6356', accent: '#847968', hat: 'fujin', hatColor: '#78716c', beard: 'long' },
   顾恺之: { top: '#dcc7aa', bottom: '#5c4738', accent: '#9a3412', hat: 'fujin', hatColor: '#5c4738', beard: 'goatee' },
+  王濬: { top: '#1e3a5f', bottom: '#1c1917', armor: '#646970', armorStyle: 'mingguang', discs: true, hat: 'plume', hatColor: '#475569', cape: '#1e40af', hair: '#9ca3af', beardColor: '#d1d5db', beard: 'long' },
   法显: { top: '#b45309', bottom: '#78350f', accent: '#92400e', hat: 'douli', hatColor: '#b8945a', hairStyle: 'bald' },
   桓温: { top: '#7c2d12', bottom: '#292524', armor: '#6b5b45', armorStyle: 'mingguang', discs: true, hat: 'plume', hatColor: '#574838', cape: '#7f1d1d', beard: 'full' },
   苻坚: { top: '#7f1d1d', bottom: '#1c1917', accent: '#eab308', piling: '#451a03', hat: 'tongtian', beard: 'full' },
@@ -211,6 +214,7 @@ const PERSON_LOOK: Record<string, Partial<Look>> = {
   李元昊: { top: '#f5f5f4', bottom: '#292524', accent: '#eab308', outfit: 'deel', pattern: 'yuan', piling: '#b91c1c', hat: 'khitan', hatColor: '#f5f5f4', hatBadge: '#dc2626', beard: 'moustache' },
   野利仁荣: { top: '#78350f', bottom: '#292524', accent: '#eab308', outfit: 'deel', pattern: 'yuan', hat: 'khitan', hatColor: '#3f2e21', beard: 'long' },
   完颜阿骨打: { top: '#4a3525', bottom: '#1c1917', accent: '#eab308', outfit: 'deel', pattern: 'yuan', armor: '#5c4028', armorStyle: 'yuan', piling: '#7f1d1d', hat: 'boli', hatColor: '#3b2818', beard: 'full', hairStyle: 'braid' },
+  丘处机: { top: '#4b5d70', bottom: '#2f3a44', accent: '#1e293b', outfit: 'robe', pattern: undefined, wideSleeves: true, hat: 'fujin', hatColor: '#1e293b', hairStyle: 'topknot', hair: '#9ca3af', beardColor: '#e5e7eb', beard: 'long' },
   元好问: { top: '#44403c', bottom: '#292524', accent: '#a8a29e', hat: 'dongpo', hatColor: '#1c1917', beard: 'long' },
 
   // ---- Yuan (元) ----

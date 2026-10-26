@@ -11,7 +11,7 @@ import { TRAVELLER } from '../shared/data/stories.ts';
 // the production build. `troop:<spear|archer|horse|chariot|gun>@<era>` shows instanced troops, `person:<role>@<year>[+prop][+female]` a costumed person,
 // `traveller:<journey>@<year>` a journey's traveller (e.g. traveller:xuanzang@630).
 const q = new URLSearchParams(location.search);
-const journey = (k: string): ModelRecipe => { const [id, y] = k.slice(10).split('@'), t = TRAVELLER[id]; return { kind: 'traveller', year: Number(y ?? 1000), ...(typeof t === 'object' ? t : {}), label: k }; };
+const journey = (k: string): ModelRecipe => { const [id, y] = k.slice(10).split('@'), t = TRAVELLER[id]; return { kind: 'traveller', year: Number(y ?? 1000), ...(typeof t === 'object' && !('army' in t) ? t : {}), label: k }; };
 /** `person:<role>@<year>+<prop>+female` */
 const person = (k: string): ModelRecipe => {
   const [head, ...flags] = k.slice(7).split('+'), [role, y] = head.split('@');

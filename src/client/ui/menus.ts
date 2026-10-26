@@ -1,6 +1,7 @@
 import type { Layers } from '../scene/atlas.ts';
 import { SURFACES, type Surface } from '../scene/terrain.ts';
-import { JOURNEYS, type Journey } from '../../shared/data/jiangshan.ts';
+import { ERAS } from '../../shared/data/eras.ts';
+import { JOURNEYS, eraIdOfDyn, type Journey } from '../../shared/data/jiangshan.ts';
 import { tr } from '../../shared/data/i18n.ts';
 import type { Lang } from '../../shared/data/types.ts';
 import { kindName, lang, t, type Key } from '../lib/i18n.ts';
@@ -78,8 +79,12 @@ export class HubMenu {
       : h('div', { class: 'hub-list journeys' }, ...JOURNEYS.map((j, i) => h('button', {
         type: 'button', class: 'jn', 'data-journey': j.id, style: `--c:${j.color}`,
         onclick: () => { this.toggle(false); this.onPlay(j); },
-      }, h('i', { text: String(i + 1).padStart(2, '0') }), h('b', { text: tr(j.title, lang) }), h('small', { text: tr(j.span, lang).replace(/（.*）|\(.*\)/, '') }))));
+      }, h('i', { text: String(i + 1).padStart(2, '0') }), h('b', { text: tr(j.title, lang) }), h('small', { text: this.era(j) + tr(j.span, lang).replace(/（.*）|\(.*\)/, '') }))));
     this.el.replaceChildren(tabs, body);
+  }
+  private era(j: Journey): string {
+    const e = ERAS.find(x => x.id === eraIdOfDyn(j.dyn));
+    return e ? tr(e.short, lang) + ' · ' : '';
   }
   /** Shows the tab (and re-reads the course's progress). */
   show(tab?: HubTab): void { if (tab) this.tab = tab; this.render(); this.toggle(true); }

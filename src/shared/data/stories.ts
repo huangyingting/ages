@@ -1480,7 +1480,7 @@ export function autoStory(e: {
  * a pack camel, Xuanzang as a pilgrim monk on foot under a bamboo 笈, Li Bai in 软脚幞头 with sword and wine gourd, Su
  * Shi in a tall 东坡巾 on a donkey, Wang Yangming in a Ming scholar's 四方平定巾.
  */
-export const TRAVELLER: Record<string, 'army' | Omit<ModelRecipe, 'kind'>> = {
+export const TRAVELLER: Record<string, 'army' | { army: Troops } | Omit<ModelRecipe, 'kind'>> = {
   qinshihuang: { role: 'ruler', mount: 'horse', coat: '#1e1c1a', robe: '#1c1b20', trim: '#b83226', gear: 'sword' },
   zhugeliang: 'army',
   zhangqian: { role: 'scholar', mount: 'horse', coat: '#8a5a32', gear: 'jie', pack: true },
@@ -1488,6 +1488,44 @@ export const TRAVELLER: Record<string, 'army' | Omit<ModelRecipe, 'kind'>> = {
   libai: { role: 'scholar', mount: 'horse', coat: '#e6dccb', robe: '#ece6d6', trim: '#5b6472', gear: 'sword' },
   sushi: { role: 'scholar', mount: 'donkey', robe: '#5a4a3a', trim: '#2f3b45', hat: 'fangjin', gear: 'scroll' },
   wangyangming: { role: 'scholar', mount: 'horse', coat: '#5a3a22', robe: '#2f4a6b', trim: '#1f2937', hat: 'fangjin' },
+  // curated journeys (journeys.ts): Peking Man with a firebrand, Yu with his spade, Fu Hao's war chariot with the 钺,
+  // Liu Xiu on the ox he first rode to war, Jianzhen's ship, Marco Polo's camel, the Long March's rifle columns …
+  paleo_trail: { role: 'scholar', mount: 'foot', gear: 'torch', person: '北京人', year: -500_000 },
+  huangdi: { role: 'ruler', mount: 'chariot', gear: 'axe', person: '黄帝', year: -2600 },
+  dayu: { role: 'ruler', mount: 'foot', gear: 'spade', person: '大禹', year: -2100 },
+  fuhao: { role: 'general', mount: 'chariot', gear: 'axe', person: '妇好', female: true, year: -1200 },
+  zhougong: { role: 'scholar', mount: 'chariot', gear: 'scroll', person: '周公', year: -1040 },
+  kongzi: { role: 'scholar', mount: 'chariot', coat: '#7a5a3c', person: '孔子', year: -500 },
+  chonger: { role: 'ruler', mount: 'chariot', gear: 'spear', person: '晋文公', year: -636 },
+  quyuan: { role: 'scholar', mount: 'foot', robe: '#2f4f3a', trim: '#a3b18a', hat: 'tongtian', person: '屈原' },
+  qinshihuang_east: { role: 'ruler', mount: 'chariot', coat: '#1e1c1a', trim: '#b83226', person: '秦始皇' },
+  huoqubing: { army: 'horse' },
+  simaqian: { role: 'scholar', mount: 'horse', gear: 'scroll', person: '司马迁', year: -110 },
+  liuxiu: { role: 'ruler', mount: 'ox', person: '刘秀', year: 23 },
+  banchao: { role: 'general', mount: 'horse', gear: 'jie', person: '班超' },
+  caocao: { role: 'ruler', mount: 'horse', gear: 'sword', person: '曹操', year: 200 },
+  wangjun: { role: 'general', mount: 'boat', gear: 'sword', person: '王濬' },
+  faxian: { role: 'monk', mount: 'foot', gear: 'ji', robe: '#8a5a2e', person: '法显' },
+  xiaowendi: { role: 'ruler', mount: 'horse', person: '北魏孝文帝', year: 494 },
+  yangdi: { role: 'ruler', mount: 'boat', person: '隋炀帝' },
+  jianzhen: { role: 'monk', mount: 'boat', person: '鉴真' },
+  chairong: { role: 'ruler', mount: 'horse', gear: 'sword', person: '柴荣' },
+  fanzhongyan: { role: 'scholar', mount: 'horse', gear: 'scroll', person: '范仲淹' },
+  yuefei: { role: 'general', mount: 'horse', gear: 'spear', person: '岳飞' },
+  wentianxiang: { role: 'scholar', mount: 'horse', gear: 'sword', person: '文天祥', year: 1270 },
+  abaoji: { role: 'ruler', mount: 'horse', gear: 'sword', eth: 'steppe', person: '耶律阿保机' },
+  xiaochuo: { role: 'ruler', mount: 'horse', female: true, eth: 'steppe', person: '萧绰' },
+  yuanhao: { role: 'ruler', mount: 'camel', person: '李元昊' },
+  aguda: { role: 'ruler', mount: 'horse', gear: 'spear', person: '完颜阿骨打' },
+  qiuchuji: { role: 'scholar', mount: 'horse', coat: '#d6cfc2', person: '丘处机', year: 1222 },
+  marcopolo: { role: 'scholar', mount: 'camel', hat: 'beret', robe: '#7f1d1d', trim: '#d6b25e', pack: true, person: '马可·波罗' },
+  zhenghe: { role: 'scholar', mount: 'boat', person: '郑和' },
+  xuxiake: { role: 'scholar', mount: 'foot', person: '徐霞客' },
+  linzexu: { role: 'scholar', mount: 'horse', gear: 'scroll', person: '林则徐' },
+  zuozongtang: { role: 'general', mount: 'horse', gear: 'sword', person: '左宗棠' },
+  sunzhongshan: { role: 'ruler', mount: 'foot', person: '孙中山', year: 1912 },
+  changzheng: { army: 'gun' },
+  dengxiaoping_south: { role: 'ruler', mount: 'foot', person: '邓小平', year: 1992 },
 };
 
 /**
@@ -1513,8 +1551,8 @@ export function journeyStory(j: Journey): StoryStep[] {
       steps.push({ do: 'fly', lon: (Math.min(...lons) + Math.max(...lons)) / 2, lat: (Math.min(...lats) + Math.max(...lats)) / 2 - span * 0.12,
         dist: Math.min(56, Math.max(16, span * 2.2 + 10)), tilt: 0.85, dur: 2, par: true });
       if (s.year !== prev.year) steps.push({ do: 'year', year: s.year });
-      steps.push(who === 'army'
-        ? { do: 'army', pts, color: j.color, dur, count: 26, unit: 'mixed', keep: true, trail: true, ...(i === 1 ? { label: j.short } : {}) }
+      steps.push(who === 'army' || 'army' in who
+        ? { do: 'army', pts, color: j.color, dur, count: 26, unit: who === 'army' ? 'mixed' : who.army as Troops, keep: true, trail: true, ...(i === 1 ? { label: j.short } : {}) }
         : { do: 'route', pts, color: j.color, dur, keep: true, trail: true, model: { kind: 'traveller', year: s.year, ...who }, ...(i === 1 ? { label: j.short } : {}) });
     }
     steps.push(

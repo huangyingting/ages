@@ -1,5 +1,6 @@
 import RAW from './gen/jiangshan.json' with { type: 'json' };
 import type { EventKind, HistEvent, I18n, LonLat, ModelRecipe, Place, Polity, Snapshot, Year } from './types.ts';
+import { EXTRA_JOURNEYS, EXTRA_PEOPLE } from './journeys.ts';
 
 /**
  * Content imported from DeanChensj/jiangshan-map (GPL-3.0, see NOTICE.md) by scripts/import-jiangshan.ts:
@@ -35,17 +36,24 @@ export interface JourneyStop {
   year: Year; era: I18n; name: I18n; modern: I18n; lon: number; lat: number; via?: LonLat[]; from?: LonLat;
   title: I18n; desc: I18n; quote?: I18n;
 }
-/** A historical journey (秦始皇东巡, 张骞通西域, 玄奘西行 …) told stop by stop. */
-export interface Journey { id: string; dyn: string; color: string; short: I18n; title: I18n; span: I18n; stops: JourneyStop[] }
+/** A historical journey (秦始皇东巡, 张骞通西域, 玄奘西行 …) told stop by stop; `person` (default: `id`) is its traveller. */
+export interface Journey { id: string; dyn: string; color: string; short: I18n; title: I18n; span: I18n; stops: JourneyStop[]; person?: string }
 /** A great work: wall, canal, road or route, drawn as a line through its active years. */
 export interface Work { id: string; kind: 'wall' | 'canal' | 'road' | 'route' | 'sea' | string; name: I18n; span: [Year, Year]; summary: I18n; label: LonLat | null; lines: LonLat[][] }
 export interface Person { id: string; name: I18n; title: I18n; dyn: string; span: [Year, Year]; aliases: string[]; tokens: string[] }
 export interface Dynasty { id: string; name: I18n; short: I18n; start: Year; end: Year; color: string; seat: I18n; summary: I18n }
 
 export const DYNASTIES: Dynasty[] = J.dynasties;
-export const JOURNEYS: Journey[] = J.journeys;
+/** Imported dynasty ids that differ from the app's era ids. */
+const DYN_ERA: Record<string, string> = { xihan: 'whan', donghan: 'ehan', xijin: 'wjin', dongjin: 'ejin', beisong: 'bsong', nansong: 'nsong' };
+/** The era band (ERAS id) a person's or journey's `dyn` belongs to. */
+export const eraIdOfDyn = (dyn: string): string => DYN_ERA[dyn] ?? dyn;
+/** Imported and curated journeys, oldest first. */
+export const JOURNEYS: Journey[] = [...J.journeys, ...EXTRA_JOURNEYS].sort((a, b) => a.stops[0].year - b.stops[0].year);
+export const journeysOf = (personId: string): Journey[] => JOURNEYS.filter(j => (j.person ?? j.id) === personId);
 export const WORKS: Work[] = J.works;
-export const PEOPLE: Person[] = J.people;
+// 王莽 founded his own dynasty, the 新 era band
+export const PEOPLE: Person[] = [...J.people.map(p => p.id === 'wangmang' ? { ...p, dyn: 'xin' } : p), ...EXTRA_PEOPLE];
 /** A river or lake name on the map; `from` / `to` bound the years its course or water existed. */
 export interface RiverLabel { name: I18n; lon: number; lat: number; kind: string; from?: Year; to?: Year }
 export const RIVER_LABELS: RiverLabel[] = J.rivers;

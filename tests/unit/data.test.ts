@@ -4,13 +4,13 @@ import { ERAS, RULERS } from '../../src/shared/data/eras.ts';
 import { MODEL_KINDS } from '../../src/shared/data/event-kit.ts';
 import { EVENTS, hasStory, storyOf } from '../../src/shared/data/events.ts';
 import { PLACE, PLACES, isCapital, mapName, placeExists, placeName, riverName } from '../../src/shared/data/places.ts';
-import { JOURNEYS, RIVER_LABELS, WORKS, reignAt } from '../../src/shared/data/jiangshan.ts';
+import { JOURNEYS, PERSON, RIVER_LABELS, WORKS, eraIdOfDyn, reignAt } from '../../src/shared/data/jiangshan.ts';
 import { POLITY, POLITIES, polityMatches } from '../../src/shared/data/polities.ts';
 import { STAGES } from '../../src/shared/data/stage.ts';
 import { lifePlace, MAX_KEY, sceneryOf } from '../../src/shared/data/scenery.ts';
 import { LIFE, lifeOf } from '../../src/shared/data/life.ts';
 import { capitalModel } from '../../src/shared/data/heroes.ts';
-import { STORIES, journeyStory } from '../../src/shared/data/stories.ts';
+import { STORIES, TRAVELLER, journeyStory } from '../../src/shared/data/stories.ts';
 import { SNAPSHOTS, snapshotAt } from '../../src/shared/data/territories.ts';
 import { formatArea, realmArea } from '../../src/shared/data/areas.ts';
 import { decodeRing } from '../../src/shared/lib/rings.ts';
@@ -219,14 +219,23 @@ describe('stories', () => {
     for (const e of EVENTS) expect(storyOf(e).length, e.id).toBeGreaterThan(0);
   });
   it('turn every journey into an on-stage story', () => {
-    expect(JOURNEYS.length).toBe(7);
+    expect(JOURNEYS.length).toBe(43);
+    expect(new Set(JOURNEYS.map(j => j.id)).size).toBe(JOURNEYS.length);
     for (const j of JOURNEYS) {
+      expect(PERSON.has(j.person ?? j.id), `${j.id} traveller`).toBe(true);
+      expect(TRAVELLER[j.id], `${j.id} costume`).toBeDefined();
+      for (let i = 1; i < j.stops.length; i++) expect(j.stops[i].year, `${j.id} stop ${i}`).toBeGreaterThanOrEqual(j.stops[i - 1].year);
       const steps = journeyStory(j);
       expect(steps.filter(s => s.do === 'banner').length, j.id).toBe(j.stops.length);
       for (const s of steps) for (const [lon, lat] of points(s)) expect(inStage(lon, lat), `${j.id} ${s.do} ${lon},${lat}`).toBe(true);
     }
   });
-  it('open with a title, and unscripted wars stage a battle', () => {
+  it('follow at least one traveller through every era band', () => {
+    for (const e of ERAS.filter(x => x.scope === 'china')) {
+      expect(JOURNEYS.some(j => eraIdOfDyn(j.dyn) === e.id), e.id).toBe(true);
+    }
+  });
+    it('open with a title, and unscripted wars stage a battle', () => {
     for (const [id, steps] of Object.entries(STORIES)) expect(steps.some(s => s.do === 'title'), id).toBe(true);
     const war = EVENTS.find(e => e.kind === 'war' && !e.story)!;
     const auto = storyOf(war);

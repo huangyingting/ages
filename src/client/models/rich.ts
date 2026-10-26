@@ -3716,23 +3716,25 @@ const statue: Builder = (gp, r) => {
  * A journey traveller dressed for their period (`r.year`) and role (`r.role`, see `costume`): a Han envoy in 进贤冠
  * holding the 节 staff of his mission, a Tang pilgrim monk on foot under a bamboo 笈 book-frame, a Tang poet in 软脚幞头
  * with sword and wine gourd, a Song scholar in a tall 东坡巾 on a donkey, a Ming official in 乌纱帽 …
- * `r.mount`: 'horse' | 'donkey' | 'camel' | 'foot'; `r.gear`: 'jie' | 'ji' | 'sword' | 'scroll'; `r.hat` overrides the
- * period headwear; `r.pack` adds a laden pack camel behind.
+ * `r.mount`: 'horse' | 'donkey' | 'ox' | 'camel' | 'foot' | 'chariot' | 'boat'; `r.gear`: 'jie' | 'ji' | 'sword' | 'scroll' |
+ * 'spear' | 'axe' | 'torch' | 'spade'; `r.person` applies that figure's portrait dress and features (see `personLook`);
+ * `r.hat` overrides the period headwear; `r.pack` adds a laden pack camel behind.
  */
 const traveller: Builder = (gp, r) => {
   const role = str(r.role, 'scholar') as PersonRole;
   const era = eraOf(typeof r.year === 'number' ? r.year : 1000);
-  const look = costume(role, era);
+  const person = typeof r.person === 'string' ? r.person : undefined;
+  const look = personLook(role, era, { person, female: Boolean(r.female), eth: typeof r.eth === 'string' ? r.eth : undefined });
   const robe = str(r.robe, look.top), trim = str(r.trim, look.accent ?? shade(robe, 0.6));
   const hat = str(r.hat, look.hat ?? 'none') as Hat, hatC = look.hatColor ?? '#1c1917';
-  const mount = str(r.mount, 'horse'), gear = str(r.gear, ''), monk = role === 'monk';
-  const skin = '#dcae86', hair = monk ? null : '#1c1714';
+  const mount = str(r.mount, 'horse'), gear = str(r.gear, ''), monk = role === 'monk' || look.hairStyle === 'bald';
+  const flesh = look.skin ?? '#dcae86', hair = monk ? null : (look.hair ?? '#1c1714');
 
   if (mount === 'foot') {
     // walking pilgrim: robe, staff in hand and (for 'ji') a bamboo book-frame with a canopy over the head
     const h = 0.78;
     const a = figure(gp, {
-      ...look, h, top: robe, accent: trim, skin, hair: hair ?? undefined, beardColor: '#2a2420', stance: 'walk', lean: 0.06,
+      ...look, h, top: robe, accent: trim, skin: flesh, hair: hair ?? undefined, beardColor: '#2a2420', stance: 'walk', lean: 0.06,
       armR: { fwd: 0.45, side: 0.12, bend: 0.7 }, armL: { fwd: -0.2, bend: 0.4 }, hat: monk ? 'none' : hat, hatColor: hatC,
     });
     const [hx, hy, hz] = a.handR;
@@ -3740,6 +3742,15 @@ const traveller: Builder = (gp, r) => {
     if (monk) { // 锡杖 rings
       const ring = add(gp, g('rich:ring', () => new THREE.TorusGeometry(1, 0.14, 5, 12)), mat('#c9a24a', { metal: 0.6 }), hx, hy + 0.33, hz - 0.01, 0.03, 0.03, 0.03);
       ring.rotation.y = Math.PI / 2;
+    }
+    if (gear === 'torch') {
+      cone(gp, '#f97316', hx, hy + 0.3, hz - 0.01, 0.032, 0.09, 6);
+      cone(gp, '#fde047', hx, hy + 0.33, hz - 0.01, 0.018, 0.055, 6);
+    } else if (gear === 'spade') {
+      box(gp, P.wood, hx, 0.13, hz + 0.04, 0.055, 0.012, 0.016);
+      for (const sx of [-1, 1]) rod(gp, [hx + sx * 0.016, 0.01, hz + 0.05], [hx + sx * 0.014, 0.13, hz + 0.04], 0.005, P.bronze, 4);
+    } else if (gear === 'scroll') {
+      cyl(gp, P.paper, a.handL[0], a.handL[1], a.handL[2] + 0.02, 0.014, 0.1, 8).rotation.z = Math.PI / 2;
     }
     if (gear === 'ji') {
       const bz = -0.11 * h / 0.62, top = h * 1.12;
@@ -3757,22 +3768,79 @@ const traveller: Builder = (gp, r) => {
     return;
   }
 
-  // mounted: a horse, a small long-eared donkey or a Bactrian camel, all facing +z
+  if (mount === 'boat') {
+    // a flat-bottomed river boat with an arched mat cabin aft and a battened lug sail forward; the traveller stands amidships
+    const b = anim(gp, 'bob', 0, 0, 0, { amp: 0.4 });
+    const { zt, wAt, sAt } = riverHull(b, 0.92, 0.17, 0.03, '#7a5a3a', 0.08, 0.05);
+    const arcs: V3[][] = [];
+    const [t0, t1] = [0.1, 0.34], w = wAt(0.22) + 0.008, y0 = sAt(0.22);
+    for (let i = 0; i <= 8; i++) {
+      const q = Math.PI * (i / 8);
+      arcs.push([[-Math.cos(q) * w, y0 + Math.sin(q) * 0.16, zt(t0)], [-Math.cos(q) * w, y0 + Math.sin(q) * 0.16, zt(t1)]]);
+    }
+    skin(b, [arcs.map(q => q[0]), arcs.map(q => q[1])], '#3a3028', { caps: false, closed: false, flat: true, paint: (x, y) => (Math.floor((x + y) * 90) % 3 ? null : '#4a4034') });
+    const tm = 0.8, ym = sAt(tm), zm = zt(tm);
+    rod(b, [0, ym, zm], [0, ym + 0.62, zm], 0.008, P.darkwood, 6);
+    lugSail(b, 0, ym + 0.1, zm, 0.46, 0.24, 0.45, '#b89a6a', 6);
+    const a = figure(b, {
+      ...look, y: sAt(0.52), z: zt(0.52), h: 0.48, top: robe, accent: trim, skin: flesh, hair: hair ?? undefined,
+      hat: monk ? 'none' : hat, hatColor: hatC, armR: { fwd: 0.35, side: 0.1, bend: 0.5 },
+    });
+    if (gear === 'scroll') cyl(b, P.paper, a.handR[0], a.handR[1], a.handR[2] + 0.01, 0.012, 0.09, 8).rotation.z = Math.PI / 2;
+    else if (gear === 'sword') rod(b, [-0.06, a.handR[1], zt(0.52) + 0.02], [-0.08, a.handR[1] - 0.12, zt(0.52) - 0.12], 0.005, '#2a2420', 4);
+    return;
+  }
+
+  if (mount === 'chariot') {
+    const M = grp(gp, 0, 0, 0.25);
+    M.scale.setScalar(0.78);
+    const coat = str(r.coat, '#6e472b');
+    horse(M, coat, '#2a1f18', { cloth: shade(trim, 0.9), saddle: '#3b2414' });
+    for (const sx of [-1, 1]) {
+      rod(gp, [sx * 0.11, 0.2, -0.18], [sx * 0.08, 0.26, 0.24], 0.007, P.darkwood, 4);
+      const w = cyl(gp, P.bronze, sx * 0.17, 0.14, -0.18, 0.14, 0.016, 12);
+      w.rotation.z = Math.PI / 2;
+      const hub = cyl(gp, P.gold, sx * 0.18, 0.14, -0.18, 0.032, 0.028, 8);
+      hub.rotation.z = Math.PI / 2;
+    }
+    rbox(gp, P.darkwood, 0, 0.2, -0.18, 0.28, 0.12, 0.26, 0.012);
+    box(gp, trim, 0, 0.268, -0.18, 0.3, 0.02, 0.28);
+    cyl(gp, P.darkwood, 0, 0.2, -0.24, 0.008, 0.52, 6);
+    cone(gp, trim, 0, 0.7, -0.24, 0.2, 0.065, 12);
+    const a = figure(gp, {
+      ...look, y: 0.15, z: -0.16, h: 0.5, top: robe, accent: trim, skin: flesh, hair: hair ?? undefined,
+      hat: monk ? 'none' : hat, hatColor: hatC, armR: { fwd: 0.4, side: 0.1, bend: 0.55 },
+    });
+    if (gear === 'scroll') cyl(gp, P.paper, a.handR[0], a.handR[1], a.handR[2] + 0.01, 0.012, 0.09, 8).rotation.z = Math.PI / 2;
+    else if (gear === 'axe' || gear === 'spear') {
+      rod(gp, [a.handR[0], 0.2, a.handR[2]], [a.handR[0], 0.68, a.handR[2]], 0.006, P.darkwood, 5);
+      box(gp, P.bronze, a.handR[0] + 0.02, 0.63, a.handR[2], 0.045, 0.035, 0.008);
+    }
+    return;
+  }
+
+  // mounted: a horse, a horned ox, a small long-eared donkey or a Bactrian camel, all facing +z
   let seat: number;
   if (mount === 'camel') {
     const C = grp(gp, 0, 0.0, 0);
     camelFigure(C, { kind: 'camel', rider: false, driver: false, color: '#b48a5a' });
     seat = 0.55;
   } else {
-    const donkey = mount === 'donkey', M = grp(gp, 0, 0, 0);
-    const k = donkey ? 0.8 : 1;
+    const donkey = mount === 'donkey', ox = mount === 'ox', M = grp(gp, 0, 0, 0);
+    const k = donkey ? 0.8 : ox ? 0.92 : 1;
     M.scale.setScalar(k);
-    const coat = str(r.coat, donkey ? '#7d746a' : '#f1ece2');
-    seat = horse(M, coat, donkey ? '#3a332c' : '#cfc6b6', { cloth: shade(trim, 0.9), saddle: '#3b2414', donkey }) * k;
+    const coat = str(r.coat, ox ? '#525b66' : donkey ? '#7d746a' : '#f1ece2');
+    seat = horse(M, coat, ox ? '#27272a' : donkey ? '#3a332c' : '#cfc6b6', { cloth: shade(trim, 0.9), saddle: '#3b2414', donkey }) * k;
+    if (ox) {
+      for (const sx of [-1, 1]) {
+        rod(M, [sx * 0.04, 0.56, 0.34], [sx * 0.13, 0.64, 0.38], 0.012, '#d6cfc2', 5);
+        rod(M, [sx * 0.13, 0.64, 0.38], [sx * 0.1, 0.7, 0.43], 0.008, '#e5e0d5', 4);
+      }
+    }
   }
   const h = 0.5;
   const rg = human(gp, 0, seat - h * 0.45, -0.02, {
-    h, pose: 'sit', top: robe, bottom: '#2f2a25', skin, hair, shoes: '#1c1714', detail: 'hi',
+    h, pose: 'sit', top: robe, bottom: '#2f2a25', skin: flesh, hair, shoes: '#1c1714', detail: 'hi',
     feet: [[-0.2, 0.05, 0.12], [0.2, 0.05, 0.12]], hands: gear === 'jie' ? [[-0.1, 0.42, 0.3], [0.13, 0.5, 0.18]] : [[-0.1, 0.42, 0.3], [0.1, 0.42, 0.3]],
   });
   // a sash in the trim colour and the period headwear
@@ -3799,6 +3867,10 @@ const traveller: Builder = (gp, r) => {
     gourd(gp, 0.1, seat - 0.13, -0.1, 0.035, '#d9a441');
   } else if (gear === 'scroll') {
     cyl(gp, P.paper, hx, hy, hz + 0.01, 0.012, 0.1, 8).rotation.z = Math.PI / 2;
+  } else if (gear === 'spear') {
+    rod(gp, [hx, hy - 0.22, hz], [hx, hy + 0.52, hz + 0.04], 0.006, P.darkwood, 5);
+    cone(gp, P.iron, hx, hy + 0.52, hz + 0.04, 0.014, 0.08, 6);
+    cone(gp, '#dc2626', hx, hy + 0.46, hz + 0.035, 0.024, 0.05, 6);
   }
   if (r.pack) {
     // a laden pack camel following behind
@@ -3914,6 +3986,13 @@ function holdProp(gp: THREE.Group, prop: string, R: V3, L: V3): void {
       rod(gp, [x, y - 0.01, z + 0.01], [x + 0.01, y + 0.08, z + 0.02], 0.0035, '#5a3a22', 4);
       cone(gp, '#1c1917', x - 0.001, y - 0.022, z + 0.009, 0.005, 0.02, 5).rotation.x = Math.PI;
       cyl(gp, P.paper, L[0], L[1], L[2] + 0.01, 0.012, 0.11, 8).rotation.z = Math.PI / 2;
+      break;
+    }
+    case 'torch': { // a burning brand: a stick wrapped at the head, flame above
+      rod(gp, [x, y - 0.06, z + 0.01], [x, y + 0.12, z + 0.02], 0.006, '#5a3a22', 5);
+      cyl(gp, '#3f2a1a', x, y + 0.12, z + 0.02, 0.011, 0.03, 6);
+      cone(gp, '#f97316', x, y + 0.135, z + 0.02, 0.022, 0.07, 6);
+      cone(gp, '#fde047', x, y + 0.14, z + 0.02, 0.012, 0.045, 6);
       break;
     }
     case 'book': box(gp, '#3a5a7a', x, y - 0.035, z + 0.012, 0.05, 0.07, 0.014); box(gp, '#f1ece0', x, y - 0.033, z + 0.02, 0.046, 0.066, 0.004); break;

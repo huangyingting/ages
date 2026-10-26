@@ -120,8 +120,8 @@ test.describe('Ages atlas', () => {
     // Crowded scenery returns when zooming in, rather than overlapping the selected event or territory name.
     await setMapPose(page, { lon: 111.25, lat: 32.2, dist: 8, tilt: 0.8 });
     await expect.poll(async () => (await markPoints(page)).some(m => m.title === '秦始皇')).toBe(true);
-    await page.goto('/?lowfx=1#e=confucius&lang=zh');
-    await expect(page.locator('.card h2')).toHaveText(/孔子/);
+    await page.goto('/?lowfx=1#e=houmuwu&lang=zh');
+    await expect(page.locator('.card h2')).toHaveText(/后母戊鼎/);
     await expect(page.locator('.card [data-act=play]')).toHaveCount(0);
     expect(errs).toEqual([]);
   });
@@ -240,7 +240,7 @@ test.describe('Ages atlas', () => {
     await expect(page.locator('.tl-ruler')).toHaveText('北宋神宗 · 元丰八年');
     await page.locator('.b-hub').click();
     await page.locator('.hub-tabs [data-tab=journeys]').click();
-    await expect(page.locator('.journeys .jn')).toHaveCount(7);
+    await expect(page.locator('.journeys .jn')).toHaveCount(43);
     await page.locator('[data-journey=sushi]').click();
     await expect(page.locator('.caption')).toBeVisible();
     await expect.poll(() => page.evaluate(() => (window as any).__atlas.player.state)).toBe('playing');

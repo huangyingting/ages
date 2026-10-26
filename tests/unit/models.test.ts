@@ -7,7 +7,7 @@ import { loadPack, PACK_IDS, parseHero } from '../../src/client/models/heroes/in
 import { LIFE } from '../../src/shared/data/life.ts';
 import { ERAS } from '../../src/shared/data/eras.ts';
 import { PLACES } from '../../src/shared/data/places.ts';
-import { PEOPLE } from '../../src/shared/data/jiangshan.ts';
+import { JOURNEYS, PEOPLE } from '../../src/shared/data/jiangshan.ts';
 import * as HEROES from '../../src/shared/data/heroes.ts';
 import { personLook } from '../../src/client/models/costume.ts';
 import { EVENTS } from '../../src/shared/data/events.ts';
@@ -132,6 +132,20 @@ describe('zero model reuse across events, life items, and travellers', () => {
     const travKeys = new Set(Object.values(TRAVELLER).map(v => JSON.stringify(v)));
     expect(travKeys.size).toBe(Object.keys(TRAVELLER).length);
   });
+});
+
+describe('journey travellers', () => {
+  it('builds every journey traveller (foot, horse, ox, donkey, camel, chariot, boat) at each end of the journey', () => {
+    for (const j of JOURNEYS) {
+      const who = TRAVELLER[j.id];
+      if (who === 'army' || 'army' in who) continue;
+      for (const s of [j.stops[0], j.stops[j.stops.length - 1]]) {
+        const t = stats(buildFresh({ kind: 'traveller', year: s.year, ...who })).tris;
+        expect(t, `${j.id}@${s.year}`).toBeGreaterThan(200);
+        expect(t, `${j.id}@${s.year}`).toBeLessThan(60_000);
+      }
+    }
+  }, 120_000);
 });
 
 describe('place landmark models', () => {

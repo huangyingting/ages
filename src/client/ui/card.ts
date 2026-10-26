@@ -2,7 +2,7 @@ import { BOOKS, unitOf } from '../../shared/data/curriculum.ts';
 import { ERAS } from '../../shared/data/eras.ts';
 import { EVENTS, hasStory } from '../../shared/data/events.ts';
 import { tr } from '../../shared/data/i18n.ts';
-import { JOURNEYS, PEOPLE, dynastyOfEra, personNamed, type Journey, type Person } from '../../shared/data/jiangshan.ts';
+import { JOURNEYS, PEOPLE, dynastyOfEra, eraIdOfDyn, journeysOf, personNamed, type Journey, type Person } from '../../shared/data/jiangshan.ts';
 import { PLACE, isCapital, placeName } from '../../shared/data/places.ts';
 import type { Era, EventKind, HistEvent, I18n, ModelRecipe, Place, Wiki, Year } from '../../shared/data/types.ts';
 import { eraAt, formatYear } from '../../shared/lib/timeline.ts';
@@ -232,9 +232,11 @@ export class Card {
     return EVENTS.filter(e => e.people?.some(n => n.zh === p.name.zh) || p.tokens.some(tk => tk.length > 1 && e.title.zh.includes(tk)))
       .sort((a, b) => a.year - b.year).slice(0, 16);
   }
-  private journeyBtn(p: Person): HTMLElement | null {
-    const j = JOURNEYS.find(x => x.id === p.id);
-    return j ? h('button', { type: 'button', class: 'btn primary', 'data-act': 'journey', onclick: () => this.hooks.journey(j) }, icon('play'), h('span', { text: tr(j.title, lang) })) : null;
+  private journeyBtn(p: Person): HTMLElement[] {
+    return journeysOf(p.id).map(j => this.playJourneyBtn(j));
+  }
+  private playJourneyBtn(j: Journey): HTMLElement {
+    return h('button', { type: 'button', class: 'btn primary', 'data-act': 'journey', onclick: () => this.hooks.journey(j) }, icon('play'), h('span', { text: tr(j.title, lang) }));
   }
   private lifespan(p: Person): [string, string] {
     return [t('lifespan'), `${formatYear(p.span[0], lang, { short: true })} – ${formatYear(p.span[1], lang, { short: true })}`];
@@ -243,7 +245,7 @@ export class Card {
   private renderPerson(p: Person): void {
     const L = lang;
     const evs = this.personEvents(p);
-    const era = ERAS.find(e => e.scope === 'china' && dynastyOfEra(e.name.zh)?.id === p.dyn);
+    const era = ERAS.find(e => e.scope === 'china' && e.id === eraIdOfDyn(p.dyn));
     const i = PEOPLE.indexOf(p);
     this.setHero(personModel(p), t('person'), '#b8322a', i >= 0 ? [i + 1, PEOPLE.length] : null);
     fill(this.body,
@@ -251,7 +253,7 @@ export class Card {
       this.stats(this.lifespan(p), era ? [t('dynasty'), this.eraLink(era)] : null),
       p.aliases.length && L === 'zh' ? h('p', { class: 'sum', text: '又称 ' + p.aliases.join('、') }) : null,
       h('div', { class: 'acts' },
-        this.journeyBtn(p),
+        ...this.journeyBtn(p),
         this.wikiBtn({ zh: p.name.zh, en: p.name.en }, tr(p.name, L))),
       evs.length ? this.sec(t('events'), true, this.evList(evs)) : null,
     );
@@ -274,7 +276,7 @@ export class Card {
       this.title(null, tr(l.name, L), p ? tr(p.title, L) : null),
       this.stats(p ? this.lifespan(p) : null, era ? [t('dynasty'), this.eraLink(era)] : null),
       tr(l.desc, L) ? h('p', { class: 'sum', text: tr(l.desc, L) }) : null,
-      h('div', { class: 'acts' }, p ? this.journeyBtn(p) : null, this.wikiBtn(l.wiki, tr(l.name, L))),
+      h('div', { class: 'acts' }, ...(p ? this.journeyBtn(p) : []), this.wikiBtn(l.wiki, tr(l.name, L))),
       evs.length ? this.sec(t(p ? 'events' : 'relEvent'), true, this.evList(evs)) : null,
       others.length ? this.sec(t('sameEra'), true, h('div', { class: 'people' }, ...others.map(x =>
         h('button', { type: 'button', class: `chip link life-chip k-${x.kind}`, onclick: () => this.hooks.life(x) }, tr(x.name, L))))) : null,
@@ -325,7 +327,8 @@ export class Card {
     const cap = era.capital ? PLACE.get(era.capital) : undefined;
     const i = ERAS.indexOf(era);
     const dy = dynastyOfEra(era.name.zh);
-    const figures = dy ? PEOPLE.filter(p => p.dyn === dy.id) : [];
+    const figures = PEOPLE.filter(p => eraIdOfDyn(p.dyn) === era.id);
+    const journeys = JOURNEYS.filter(j => eraIdOfDyn(j.dyn) === era.id);
     const life = lifeOf(era.id).filter(x => x.kind !== 'person');
     const seat = cap ? tr(placeName(cap, era.start), L) : dy?.seat.zh ? tr(dy.seat, L) : '';
     const model: ModelRecipe = capitalModel(era);
@@ -337,6 +340,7 @@ export class Card {
       h('p', { class: 'sum', text: tr(era.summary, L) }),
       era.wiki ? h('div', { class: 'acts' }, this.wikiBtn(era.wiki, tr(era.name, L))) : null,
       dy?.summary.zh ? this.sec(t('overview'), true, h('p', { class: 'sum', text: tr(dy.summary, L) })) : null,
+      journeys.length ? this.sec(t('journeys'), true, h('div', { class: 'acts' }, ...journeys.map(j => this.playJourneyBtn(j)))) : null,
       figures.length ? this.sec(t('figures'), true, h('div', { class: 'people' }, ...figures.map(p => this.personChip(p.name)))) : null,
       life.length ? this.sec(t('lifeOf'), true, h('div', { class: 'people' }, ...life.map(x =>
         h('button', { type: 'button', class: `chip link life-chip k-${x.kind}`, onclick: () => this.hooks.life(x) }, tr(x.name, L))))) : null,
