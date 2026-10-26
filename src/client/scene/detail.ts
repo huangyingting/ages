@@ -33,6 +33,8 @@ export class TerrainDetail {
     u.uDet.value = t;
     this.baseKm = ((geo.stage.bounds.north - geo.stage.bounds.south) / geo.h) * 111;
     this.worker.onmessage = (ev: MessageEvent<DetailResult>) => this.done(ev.data);
+    // a worker that cannot load or crashes: keep the base relief and stop asking for detail
+    this.worker.onerror = ev => { ev.preventDefault(); this.worker.terminate(); this.busy = -1; };
     view.onFrame(dt => this.tick(dt));
   }
 

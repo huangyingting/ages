@@ -76,3 +76,29 @@ export function setIcon(b: HTMLElement, name: IconName): void {
 export function fill(el: Element, ...kids: Child[]): void {
   el.replaceChildren(...(kids.filter(Boolean) as (Node | string)[]));
 }
+
+/**
+ * Focus for a modal dialog: opening moves focus to its first control (remembering the opener), Tab cycles inside it,
+ * closing hands focus back to the opener.
+ */
+export class ModalFocus {
+  private opener: HTMLElement | null = null;
+  constructor(private readonly el: HTMLElement) {}
+  opened(): void {
+    if (!this.el.contains(document.activeElement)) this.opener = document.activeElement as HTMLElement | null;
+    this.el.querySelector<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])')?.focus();
+  }
+  closed(): void {
+    if (this.el.contains(document.activeElement) || document.activeElement === document.body) this.opener?.focus({ preventScroll: true });
+    this.opener = null;
+  }
+  trap(e: KeyboardEvent): void {
+    if (e.key !== 'Tab' || this.el.hidden) return;
+    const f = [...this.el.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(x => !x.hidden && x.offsetParent);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1], at = document.activeElement;
+    if (!this.el.contains(at)) { first.focus(); e.preventDefault(); }
+    else if (e.shiftKey && at === first) { last.focus(); e.preventDefault(); }
+    else if (!e.shiftKey && at === last) { first.focus(); e.preventDefault(); }
+  }
+}

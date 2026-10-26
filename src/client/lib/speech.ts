@@ -6,13 +6,18 @@ export const canSpeak = (): boolean => typeof window !== 'undefined' && 'speechS
 export function speak(text: string, lang: Lang): Promise<void> {
   if (!canSpeak()) return Promise.resolve();
   return new Promise(done => {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
-    const v = speechSynthesis.getVoices().find(v => v.lang.replace('_', '-').startsWith(u.lang.slice(0, 2)));
-    if (v) u.voice = v;
-    u.rate = lang === 'zh' ? 1.05 : 1;
-    const t = setTimeout(done, 20000);
-    u.onend = u.onerror = () => { clearTimeout(t); done(); };
-    speechSynthesis.speak(u);
+    // partial implementations (some WebViews, private modes) throw instead of failing quietly
+    try {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
+      const v = speechSynthesis.getVoices().find(v => v.lang.replace('_', '-').startsWith(u.lang.slice(0, 2)));
+      if (v) u.voice = v;
+      u.rate = lang === 'zh' ? 1.05 : 1;
+      const t = setTimeout(done, 20000);
+      u.onend = u.onerror = () => { clearTimeout(t); done(); };
+      speechSynthesis.speak(u);
+    } catch {
+      done();
+    }
   });
 }

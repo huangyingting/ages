@@ -16,8 +16,8 @@ It is an original 3D re-imagining inspired by [jiangshan-map](https://github.com
 * **Full-screen map**: the 3D terrain fills the window and every panel floats over it.
 * **907 events**: 151 curriculum events plus 756 chronicle entries from jiangshan-map. Each curriculum event has a bilingual summary, key points (考点), people, location and its units in the textbooks (七年级上/下, 八年级上/下, 高中《中外历史纲要（上）》), plus a procedural 3D model.
 * **41 scripted story animations, acted out in 3D**: sand-table miniatures act it out on the map — foot and horse formations led by a mounted general march and clash under their standards (troop types — chariots, archers, cavalry, firearms — equipped by era, and named formations such as 锋矢阵 wedge, 鹤翼阵 wings and 圆阵 circle on a battlefield with camps, arrow volleys, trebuchets or cannon), people dressed in their era's costume, cinematic camera shots (low, push-in, crane, shake), defenders hold the gate in sieges and the victor's flag goes up over it, fleets sail with wakes, conquests spread across the map as a glowing front, banners rise over captured cities, and the camera follows, orbits and cuts to cinematic title cards. Walls, canals, railways and fireworks round them out. They have bilingual captions, optional narration (Web Speech), pause / skip / speed controls, and the playhead drives the timeline. All other events get an automatic mini-story staged by kind (a battle for wars, a model and orbit otherwise).
-* **7 journeys** (秦始皇统一, 张骞通西域, 诸葛亮北伐, 玄奘西行, 李白, 苏轼, 王阳明): the traveller crosses the map stop by stop, with what happened there and a quote from the sources.
-* **Places and people**: click a place for its names through the ages, capital years, lore and nearby events. 113 historical figures have cards linking to their events and journeys, and each period card has an overview and key figures. Search finds old names (汴梁 → 开封), aliases (苏东坡) and journeys.
+* **43 journeys**, at least one in each of the 28 periods (from 北京人 and 黄帝 through 秦始皇东巡, 张骞通西域, 玄奘西行, 鉴真东渡, 郑和下西洋 and 徐霞客 to 长征): the traveller, dressed for their period, crosses the map stop by stop on foot, horseback, chariot, ox cart or boat, with what happened there and a quote from the sources. Period cards list their journeys and person cards list everyone's own.
+* **Places and people**: click a place for its names through the ages, capital years, lore and nearby events. 129 historical figures have cards linking to their events and journeys, and each period card has an overview and key figures. Search finds old names (汴梁 → 开封), aliases (苏东坡) and journeys.
 * **Hover and select on the map**: the dynasty's people, buildings, customs and foods, the capital and event models stand on the map without name plates, and events show as small kind-glyph badges. Point at any of them for a tooltip (name and subtitle), a 3D grow and a glowing ground ring; click to open its card; the map flies there and a ring marks what is selected. With the administrative layer on, pointing at open land names the prefecture in the same tooltip. That is all: one behaviour for every object, no duplicate badge where a model already stands for an event, and one card per person (a figure standing on the map carries their lifespan, journey and events on that card). Routes, trails and rings are painted on the map as unbroken lines and perfect circles that hills never cut.
 * **41 procedural 3D models** built from primitives in Web Workers, with simple rigs (flags flap, wheels spin, smoke rises).
 * **Wikipedia reader** in Chinese (简体) or English, unfolding beside the card: lead and every section as plain paragraphs (nothing folded), image, reading time and a link to the full article. It falls back through interlanguage links and works offline gracefully.
@@ -37,11 +37,11 @@ It is an original 3D re-imagining inspired by [jiangshan-map](https://github.com
 ## Quick start
 ```bash
 npm install
-npm run dev            # http://localhost:5173
+npm run dev            # http://localhost:5174
 npm run build          # typecheck + production build → dist/
 npm run preview        # serve dist/ on http://localhost:4173
 ```
-The app is fully static: deploy `dist/` to any static host. Pushes to `main` publish to GitHub Pages via `.github/workflows/pages.yml` (built with `BASE_PATH=/ages/`). Only the Wikipedia reader needs network access, and it calls the public MediaWiki API directly from the browser.
+The app is fully static: deploy `dist/` to any static host. Pushes to `main` publish to GitHub Pages via `.github/workflows/pages.yml` (built with `BASE_PATH=/ages/`); `.github/workflows/ci.yml` typechecks, unit-tests, builds and runs the Playwright suite on every push and pull request. Only the Wikipedia reader needs network access, and it calls the public MediaWiki API directly from the browser.
 
 ## URL flags
 | Flag | Effect |

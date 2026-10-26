@@ -576,6 +576,40 @@ test.describe('Ages atlas', () => {
     await expect(ls).toBeHidden();
   });
 
+  test('reports load and GPU failures, and keeps keyboard focus in menus', async ({ page }) => {
+    // the heightmap is missing (offline, wrong base path): the boot screen gives way to a message and a reload button
+    await page.route('**/data/terrain/**', r => r.fulfill({ status: 404, body: '' }));
+    await page.goto('/?lowfx=1#lang=zh');
+    await expect(page.locator('.nogl[role=alert]')).toContainText('地图数据加载失败');
+    await expect(page.locator('.nogl button')).toHaveText('重新加载');
+    await expect(page.locator('#boot')).toHaveCount(0);
+    await page.unroute('**/data/terrain/**');
+
+    await page.goto('about:blank');
+    await openApp(page, 'lang=zh');
+    // keyboard users land inside a menu they open and return to its button when Escape closes it
+    await page.locator('.b-hub').focus();
+    await page.keyboard.press('Enter');
+    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('.hub'))).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.b-hub')).toBeFocused();
+    // the help dialog takes focus and gives it back
+    await page.locator('.b-settings').click();
+    await page.locator('.b-help2').click();
+    await expect(page.locator('.modal .help header button')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('.modal'))).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.modal:has(.help)')).toBeHidden();
+
+    // a lost GPU context is announced, and the note goes once three.js restores it
+    await page.evaluate(() => { (window as any).__lose = (window as any).__atlas.atlas.view.renderer.getContext().getExtension('WEBGL_lose_context'); (window as any).__lose.loseContext(); });
+    await expect(page.locator('.gl-lost')).toContainText('显卡');
+    await page.evaluate(() => (window as any).__lose.restoreContext());
+    await expect(page.locator('.gl-lost')).toHaveCount(0);
+    await expect.poll(async () => (await state(page)).frames, { timeout: 30_000 }).toBeGreaterThan(5);
+  });
+
   test('mobile layout keeps the map in focus @mobile', async ({ page }) => {
     const errs = watchErrors(page);
     await openApp(page, 'e=chibi&lang=zh');

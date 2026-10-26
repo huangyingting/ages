@@ -162,6 +162,9 @@ const S = {
   creditsJsm: { zh: '疆域、政区、事件、地名与人物数据导入自 江山图 jiangshan-map（DeanChensj，GPL-3.0），其底图源自 CHGIS、Hartwell 等学术数据集（仅限非商业用途）。', en: 'Territories, divisions, events, places and people imported from jiangshan-map by DeanChensj (GPL-3.0), whose base data derive from CHGIS, Hartwell and other academic datasets (non-commercial use).' },
   phase2: { zh: '即将推出：世界历史。', en: 'Coming next: world history.' },
   webgl: { zh: '你的浏览器不支持 WebGL，无法显示 3D 地图。', en: 'Your browser does not support WebGL, so the 3D map cannot be shown.' },
+  loadFail: { zh: '地图数据加载失败，请检查网络连接后重试。', en: 'The map data could not be loaded. Please check your connection and try again.' },
+  glLost: { zh: '显卡绘图上下文已丢失，正在尝试恢复…', en: 'The graphics context was lost; trying to recover…' },
+  reload: { zh: '重新加载', en: 'Reload' },
   loadingMap: { zh: '正在加载长河…', en: 'Loading the map…' },
   // HUD
   hub: { zh: '学习中心', en: 'Study hall' },

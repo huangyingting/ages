@@ -4,7 +4,9 @@ import { INK } from './ink.ts';
 
 /** Loads the stage heightmap PNG as raw bytes (no colour-space conversion or premultiplication). */
 export async function loadHeightmap(url: string): Promise<{ rgba: Uint8Array; w: number; h: number }> {
-  const blob = await (await fetch(url)).blob();
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+  const blob = await r.blob();
   const bmp = await createImageBitmap(blob, { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
   const c = document.createElement('canvas');
   c.width = bmp.width;

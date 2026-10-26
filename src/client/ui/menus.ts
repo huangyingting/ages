@@ -6,7 +6,7 @@ import { tr } from '../../shared/data/i18n.ts';
 import type { Lang } from '../../shared/data/types.ts';
 import { kindName, lang, t, type Key } from '../lib/i18n.ts';
 import { load, save } from '../lib/storage.ts';
-import { h, icon, iconBtn, type IconName } from './dom.ts';
+import { ModalFocus, h, icon, iconBtn, type IconName } from './dom.ts';
 
 const sec = (n: number, title: string) => h('h3', {}, h('i', { text: String(n).padStart(2, '0') }), h('span', { text: title }));
 
@@ -95,7 +95,8 @@ export class HubMenu {
 export class Help {
   readonly el: HTMLElement;
   constructor() {
-    this.el = h('div', { class: 'modal', hidden: true, role: 'dialog', 'aria-modal': 'true', onclick: (e: Event) => { if (e.target === this.el) this.toggle(false); } });
+    this.el = h('div', { class: 'modal', hidden: true, role: 'dialog', 'aria-modal': 'true', 'aria-label': t('helpTitle'), onclick: (e: Event) => { if (e.target === this.el) this.toggle(false); } });
+    this.focus = new ModalFocus(this.el);
     this.render();
   }
   render(): void {
@@ -108,5 +109,10 @@ export class Help {
       h('p', { class: 'small', text: t('creditsJsm') }),
       h('p', { class: 'small', text: t('phase2') })));
   }
-  toggle(on = this.el.hidden): void { this.el.hidden = !on; }
+  readonly focus: ModalFocus;
+  toggle(on = this.el.hidden): void {
+    if (on === !this.el.hidden) return;
+    this.el.hidden = !on;
+    if (on) this.focus.opened(); else this.focus.closed();
+  }
 }

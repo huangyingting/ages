@@ -4,7 +4,7 @@ import { LESSONS, unitLessons } from '../../shared/data/lessons/index.ts';
 import type { Book, Lesson } from '../../shared/data/types.ts';
 import { lang, t } from '../lib/i18n.ts';
 import { load, save, type Progress } from '../lib/storage.ts';
-import { h, iconBtn } from './dom.ts';
+import { ModalFocus, h, iconBtn } from './dom.ts';
 import { bookShort } from './lesson.ts';
 
 const PASS = 0.6;
@@ -23,10 +23,16 @@ export class Learn {
   constructor(private progress: Progress) {
     this.box = h('div', { class: 'modal-box course' });
     this.el = h('div', { class: 'modal', hidden: true, role: 'dialog', 'aria-modal': 'true', 'aria-label': t('learnTitle'), onclick: (e: Event) => { if (e.target === this.el) this.toggle(false); } }, this.box);
+    this.focus = new ModalFocus(this.el);
   }
 
   get open(): boolean { return !this.el.hidden; }
-  toggle(on = this.el.hidden): void { this.el.hidden = !on; if (on) this.render(); }
+  readonly focus: ModalFocus;
+  toggle(on = this.el.hidden): void {
+    if (on === !this.el.hidden) return;
+    this.el.hidden = !on;
+    if (on) { this.render(); this.focus.opened(); } else this.focus.closed();
+  }
 
   /** Lessons passed, out of all. */
   done(): [number, number] {

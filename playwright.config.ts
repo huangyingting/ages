@@ -9,7 +9,8 @@ export default defineConfig({
   timeout: 240_000,
   expect: { timeout: 30_000 },
   workers: 1,
-  retries: 0,
+  // shared CI runners render WebGL in software: one retry absorbs timing hiccups there
+  retries: process.env.CI ? 1 : 0,
   reporter: [['list']],
   use: {
     baseURL: `http://localhost:${PORT}`,

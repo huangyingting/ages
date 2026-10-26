@@ -392,7 +392,7 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .search .q { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: inherit; font-size: var(--t-s); color: var(--ink); }
 .search .q::placeholder { color: var(--ink-3); }
 .search .q::-webkit-search-cancel-button { display: none; }
-.hits { position: absolute; top: calc(100% + 8px); right: 0; width: 340px; margin: 0; padding: 6px; list-style: none; max-height: 60vh; overflow: auto; z-index: 12; }
+.hits { position: absolute; top: calc(100% + 8px); right: 0; width: min(340px, calc(100vw - 16px)); margin: 0; padding: 6px; list-style: none; max-height: 60vh; overflow: auto; z-index: 12; }
 .hits li { display: flex; gap: 9px; align-items: center; padding: 8px 10px; font-size: var(--t-s); cursor: pointer; }
 .hits li.cur, .hits li:hover { background: var(--well); }
 .hits li.cur .lb, .hits li:hover .lb { color: var(--zhu); }
@@ -448,7 +448,7 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 @keyframes beat { 50% { transform: scale(1.15) rotate(-6deg); } }
 
 /* level 3 — popovers under the tools */
-.menu { position: absolute; top: 46px; right: 0; width: 340px; max-height: calc(100vh - 220px); overflow: auto; z-index: 12; padding: 14px 16px 16px; animation: drop .2s var(--ease-out); }
+.menu { position: absolute; top: 46px; right: 0; width: min(340px, calc(100vw - 16px)); max-height: calc(100vh - 220px); overflow: auto; z-index: 12; padding: 14px 16px 16px; animation: drop .2s var(--ease-out); }
 @keyframes drop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
 .menu h3 { display: flex; align-items: baseline; gap: 8px; font-size: var(--t-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin: 2px 2px 8px; }
 .menu h3 i { font-style: normal; font-weight: 700; color: var(--zhu); font-variant-numeric: tabular-nums; }
@@ -1053,7 +1053,8 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 @keyframes boot-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes boot-spin-rev { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
 @keyframes boot-pulse { from { transform: scale(0.94); opacity: 0.75; } to { transform: scale(1.08); opacity: 1; } }
-.nogl { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; font-size: var(--t-m); color: #e6e8eb; }
+.nogl { position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; padding: 24px; text-align: center; font-size: var(--t-m); color: #e6e8eb; background: rgba(12, 14, 18, 0.88); }
+.nogl p { max-width: 36em; margin: 0; }
 
 /* ================================================================ narrower screens */
 /* ================================================================ small cut-corner slabs: buttons, chips, tags

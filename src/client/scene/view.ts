@@ -23,12 +23,18 @@ export class View {
   /** screen-space shift of the projection centre so subjects stay clear of side panels / bottom sheets */
   private inset = { x: 0, y: 0, sx: 0, sy: 0, tx: 0, ty: 0, t: 1 };
   frames = 0;
+  /** dynamic resolution: the render scale drops on slow GPUs and climbs back when frames are cheap again */
+  private maxRatio: number;
+  private ratio: number;
+  private perf = { t: 0, n: 0, good: 0 };
   /** Increments whenever the projection matrix (resize or view-offset inset) changes. */
   projVersion = 0;
 
   constructor(readonly canvas: HTMLCanvasElement, readonly geo: Geo, readonly lowfx: boolean) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !lowfx, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: false });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowfx ? 1 : 2));
+    this.maxRatio = Math.min(window.devicePixelRatio || 1, lowfx ? 1 : 2);
+    this.ratio = this.maxRatio;
+    this.renderer.setPixelRatio(this.ratio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.setClearColor(0x000000, 0);
     this.camera = new THREE.PerspectiveCamera(36, 1, 0.1, 600);
@@ -242,6 +248,8 @@ export class View {
     while (to.heading - from.heading < -Math.PI) to.heading += Math.PI * 2;
     this.apply(from);
     this.constrainDirty = true;
+    // users who ask for less motion get a brief cut instead of a long sweep across the map
+    if (reducedMotion.matches) dur = Math.min(dur, 0.3);
     return new Promise(done => { this.flight = { from, to, t: 0, dur: Math.max(0.01, dur), done }; });
   }
 
@@ -307,8 +315,33 @@ export class View {
     this.sky.position.copy(this.camera.position);
     this.renderer.render(this.scene, this.camera);
     this.frames++;
+    this.adapt(dt);
+  }
+
+  /**
+   * Every two seconds of rendering, compares the average frame time with the budget: under ~28 fps the canvas renders
+   * at a lower pixel ratio (never under 0.6 of a CSS pixel); after a few smooth windows it steps back up. Automated
+   * browsers keep a fixed scale so screenshots stay comparable.
+   */
+  private adapt(dt: number): void {
+    if (dt <= 0 || dt > 0.2 || document.hidden || navigator.webdriver) return;
+    const p = this.perf;
+    p.t += dt; p.n++;
+    if (p.t < 2) return;
+    const avg = p.t / p.n;
+    p.t = 0; p.n = 0;
+    const floor = Math.min(0.6, this.maxRatio);
+    let next = this.ratio;
+    if (avg > 1 / 28) { next = Math.max(floor, this.ratio - 0.25); p.good = 0; }
+    else if (avg < 1 / 50 && ++p.good >= 3) { next = Math.min(this.maxRatio, this.ratio + 0.25); p.good = 0; }
+    if (next !== this.ratio) {
+      this.ratio = next;
+      this.renderer.setPixelRatio(next);
+    }
   }
 }
+
+const reducedMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
 /** A gradient sky around the camera: haze at the horizon (matching the terrain's aerial perspective), soft blue above. */
 function skyDome(): THREE.Mesh {

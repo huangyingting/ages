@@ -88,6 +88,7 @@ class App {
     const intro = new BootIntro(year, lang, lowfx);
     this.atlas.onEraProgress = (era, done, total) => intro.setProgress(era, done, total);
     await this.atlas.init(year, lang);
+    this.watchContext(this.atlas.view.canvas);
     this.player = new StoryPlayer(this.atlas, {
       onCaption: (text, i, n) => this.caption.say(text, i, n),
       onYear: y => this.timeline.set(y, false, false),
@@ -292,12 +293,19 @@ class App {
 
   /** Opens one toolbar popover (or none): 时期详情, the study hall and settings are mutually exclusive. */
   private pop(which: 'details' | 'hub' | 'settings' | null): void {
+    // focus goes into an opened menu and back to its toolbar button when the menu closes under it
+    const was = !this.hub.el.hidden ? 'hub' : !this.settings.el.hidden ? 'settings' : null;
+    const inside = was && (was === 'hub' ? this.hub.el : this.settings.el).contains(document.activeElement);
     this.period.view.hidden = which !== 'details';
     this.period.pressed(which === 'details');
     if (which === 'hub') this.hub.show(); else this.hub.toggle(false);
     this.settings.toggle(which === 'settings');
     this.root.querySelector('.b-hub')?.classList.toggle('on', which === 'hub');
     this.root.querySelector('.b-settings')?.classList.toggle('on', which === 'settings');
+    if (which === 'hub' || which === 'settings') {
+      const menu = which === 'hub' ? this.hub.el : this.settings.el;
+      if (!menu.contains(document.activeElement)) menu.querySelector<HTMLElement>('button, input')?.focus({ preventScroll: true });
+    } else if (inside && which === null) this.root.querySelector<HTMLElement>(was === 'hub' ? '.b-hub' : '.b-settings')?.focus({ preventScroll: true });
   }
 
   private toggle(which: 'learn' | 'quiz'): void {
@@ -458,6 +466,22 @@ class App {
     }
   }
 
+  /** A lost GPU context (driver reset, too many tabs): say so, and offer a reload if three.js cannot restore it. */
+  private watchContext(canvas: HTMLCanvasElement): void {
+    let note: HTMLElement | null = null, timer = 0;
+    canvas.addEventListener('webglcontextlost', () => {
+      note?.remove();
+      note = h('div', { class: 'nogl gl-lost', role: 'alert' }, h('p', { text: t('glLost') }));
+      this.root.append(note);
+      timer = window.setTimeout(() => note?.append(h('button', { type: 'button', class: 'btn primary', text: t('reload'), onclick: () => location.reload() })), 4000);
+    });
+    canvas.addEventListener('webglcontextrestored', () => {
+      clearTimeout(timer);
+      note?.remove();
+      note = null;
+    });
+  }
+
   /** The card's W button: unfolds its article beside the card, or folds it back. */
   read(w: Wiki, title: string): void {
     const cur = this.reader.current;
@@ -466,6 +490,8 @@ class App {
   }
 
   private key(e: KeyboardEvent): void {
+    this.help.focus.trap(e);
+    this.learn.focus.trap(e);
     const tag = (e.target as HTMLElement).tagName;
     if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
     if (e.key === '/') { this.search.input.focus(); e.preventDefault(); return; }
@@ -584,17 +610,31 @@ function webgl(): boolean {
   try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; }
 }
 
+/** Replaces the boot screen with a message (and a reload button when retrying can help). */
+function fatal(msg: string, retry: boolean): void {
+  document.getElementById('boot')?.remove();
+  root.querySelector('.nogl')?.remove();
+  root.append(h('div', { class: 'nogl', role: 'alert' },
+    h('p', { text: msg }),
+    retry ? h('button', { type: 'button', class: 'btn primary', text: t('reload'), onclick: () => location.reload() }) : null));
+}
+
 const root = document.getElementById('app')!;
 setLang(readLink().lang ?? lang);
 initTips();
 if (!webgl()) {
-  document.getElementById('boot')?.remove();
-  root.append(h('div', { class: 'nogl', text: t('webgl') }));
+  fatal(t('webgl'), false);
 } else {
-  const app = new App(root, document.getElementById('stage')!);
-  (window as unknown as { __atlas: unknown }).__atlas = app;
-  app.start().catch(err => {
+  try {
+    const app = new App(root, document.getElementById('stage')!);
+    (window as unknown as { __atlas: unknown }).__atlas = app;
+    app.start().catch(err => {
+      console.error(err);
+      fatal(/webgl/i.test(String(err)) ? t('webgl') : t('loadFail'), true);
+    });
+  } catch (err) {
+    // the renderer itself could not start (GPU blocklisted, context limit reached)
     console.error(err);
-    root.append(h('div', { class: 'nogl', text: String(err) }));
-  });
+    fatal(t('webgl'), true);
+  }
 }
