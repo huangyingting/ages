@@ -36,6 +36,10 @@ function chamfer(d: Float32Array, w: number, h: number): void {
   }
 }
 
+let dScratch: Float32Array | null = null;
+let edgeScratch: Float32Array | null = null;
+let histScratch = new Uint32Array(2048);
+
 /**
  * The border morph between two territory maps (RGBA, same size): for every cell whose fill changes, the normalised
  * time (0–1) at which it switches. A cell taken over by a polity switches in order of its distance from where that
@@ -57,12 +61,14 @@ export function growthField(a: Uint8ClampedArray, b: Uint8ClampedArray, w: numbe
     if (g) g.push(i); else groups.set(k, [i]);
   }
   if (!changed) return out;
-  const d = new Float32Array(n);
+  if (!dScratch || dScratch.length !== n) dScratch = new Float32Array(n);
+  const d = dScratch;
   // new ground and the thin leftovers (border lines, antialiased edges) fill in from the edges of the change
   let edge: Float32Array | null = null;
   const fromEdge = (): Float32Array => {
     if (edge) return edge;
-    edge = new Float32Array(n);
+    if (!edgeScratch || edgeScratch.length !== n) edgeScratch = new Float32Array(n);
+    edge = edgeScratch;
     for (let i = 0; i < n; i++) edge[i] = close(a, i * 4, b, i * 4) ? 0 : Infinity;
     chamfer(edge, w, h);
     return edge;
@@ -71,6 +77,7 @@ export function growthField(a: Uint8ClampedArray, b: Uint8ClampedArray, w: numbe
   const minCells = Math.max(4, changed * 0.004);
   const big = [...groups].filter(([k, c]) => k >= 0 && c.length >= minCells).sort((x, y) => y[1].length - x[1].length).slice(0, MAX_GROUPS);
   const own = new Set(big.map(([k]) => k));
+  let maxVal = 0;
   for (const [k, cells] of groups) {
     let field: Float32Array;
     const seed = cells[0] * 4;
@@ -84,14 +91,24 @@ export function growthField(a: Uint8ClampedArray, b: Uint8ClampedArray, w: numbe
       }
       if (sources) { chamfer(d, w, h); field = d; } else field = fromEdge();
     }
-    for (const i of cells) out[i] = Number.isFinite(field[i]) ? field[i] : 0;
+    for (const i of cells) {
+      const v = Number.isFinite(field[i]) ? field[i] : 0;
+      out[i] = v;
+      if (v > maxVal) maxVal = v;
+    }
   }
-  // normalise by a high percentile, so a few far-flung cells don't leave the bulk of the change switching at once
-  const vals: number[] = [];
-  for (const cells of groups.values()) for (const i of cells) vals.push(out[i]);
-  vals.sort((x, y) => x - y);
-  const max = Math.max(1, vals[Math.floor(vals.length * 0.97)]);
-  for (let i = 0; i < n; i++) out[i] = Math.min(1, out[i] / max);
+  // normalise by the 97th percentile via O(N) integer histogram (chamfer distances are exact integers)
+  const cap = Math.ceil(maxVal);
+  if (histScratch.length <= cap) histScratch = new Uint32Array(cap + 256);
+  else histScratch.fill(0, 0, cap + 1);
+  for (const cells of groups.values()) for (const i of cells) histScratch[out[i] | 0]++;
+  const target = Math.floor(changed * 0.97);
+  let acc = 0, p97 = 1;
+  for (let v = 0; v <= cap; v++) {
+    acc += histScratch[v];
+    if (acc > target) { p97 = Math.max(1, v); break; }
+  }
+  for (let i = 0; i < n; i++) out[i] = Math.min(1, out[i] / p97);
   return out;
 }
 

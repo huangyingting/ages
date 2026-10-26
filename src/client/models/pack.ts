@@ -40,8 +40,11 @@ function packMat(m: THREE.Material): PackedMat {
 }
 
 /** Serialises a model tree. `sent` remembers geometry ids already shipped (shared cached geometries are sent once). */
-export function packModel(root: THREE.Object3D, sent?: Set<string>): { model: PackedModel; transfer: ArrayBuffer[] } {
-  const geos: PackedGeo[] = [], mats: PackedMat[] = [], transfer: ArrayBuffer[] = [];
+export function packModel(root: THREE.Object3D, sent?: Set<string>, copy = true): { model: PackedModel; transfer: ArrayBuffer[] } {
+  const geos: PackedGeo[] = [], mats: PackedMat[] = [], transfer: ArrayBuffer[] = [], transferred = new Set<ArrayBuffer>();
+  const pushTransfer = (buf: ArrayBuffer) => {
+    if (!transferred.has(buf)) { transferred.add(buf); transfer.push(buf); }
+  };
   const gi = new Map<THREE.BufferGeometry, number>(), mi = new Map<THREE.Material, number>();
   const geoIdx = (g: THREE.BufferGeometry) => {
     let i = gi.get(g);
@@ -50,18 +53,28 @@ export function packModel(root: THREE.Object3D, sent?: Set<string>): { model: Pa
     gi.set(g, i);
     if (sent?.has(g.uuid)) { geos.push({ id: g.uuid }); return i; }
     if (Object.keys(g.morphAttributes).length) throw new Error('morph attributes');
+    const canMove = !copy && !!g.userData.fresh;
     const attrs: PackedAttr[] = [];
     for (const [name, a] of Object.entries(g.attributes)) {
       if ((a as THREE.InterleavedBufferAttribute).isInterleavedBufferAttribute) throw new Error('interleaved attribute');
       const ba = a as THREE.BufferAttribute;
-      const array = (ba.array as PackedAttr['array']).slice();
-      transfer.push(array.buffer as ArrayBuffer);
+      const src = ba.array as PackedAttr['array'];
+      const array = canMove && src.byteOffset === 0 && src.byteLength === src.buffer.byteLength ? src : src.slice();
+      pushTransfer(array.buffer as ArrayBuffer);
       attrs.push({ name, array, itemSize: ba.itemSize, normalized: ba.normalized });
     }
     const pg: PackedGeo = { id: g.uuid, attrs };
-    if (g.index) { pg.index = (g.index.array as Uint16Array | Uint32Array).slice(); transfer.push(pg.index.buffer as ArrayBuffer); }
+    if (g.index) {
+      const idx = g.index.array as Uint16Array | Uint32Array;
+      pg.index = canMove && idx.byteOffset === 0 && idx.byteLength === idx.buffer.byteLength ? idx : idx.slice();
+      pushTransfer(pg.index.buffer as ArrayBuffer);
+    }
     if (g.groups.length) pg.groups = g.groups.map(x => ({ ...x }));
-    if (Object.keys(g.userData).length) pg.ud = { ...g.userData };
+    if (Object.keys(g.userData).length) {
+      const ud = { ...g.userData };
+      delete ud.fresh;
+      if (Object.keys(ud).length) pg.ud = ud;
+    }
     if (g.drawRange.start || Number.isFinite(g.drawRange.count)) pg.dr = [g.drawRange.start, g.drawRange.count];
     geos.push(pg);
     sent?.add(g.uuid);
@@ -131,6 +144,7 @@ function unpackGeo(pg: PackedGeo): THREE.BufferGeometry {
   if (pg.groups) for (const x of pg.groups) g.addGroup(x.start, x.count, x.materialIndex);
   if (pg.ud) g.userData = pg.ud;
   if (pg.dr) g.setDrawRange(pg.dr[0], pg.dr[1]);
+  g.computeBoundingBox();
   g.computeBoundingSphere();
   geoCache.set(pg.id, g);
   return g;

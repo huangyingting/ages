@@ -40,7 +40,26 @@ interface Arrow {
 }
 
 /** Live state of a spawned model (in its group's userData), read by the atlas for hover picking and highlights. */
-export interface SpawnState { boost: number; k: number; top: number; rad: number; shown: boolean }
+export interface SpawnState {
+  boost: number;
+  k: number;
+  top: number;
+  rad: number;
+  shown: boolean;
+  model?: THREE.Object3D;
+  baseR?: number;
+  z?: number;
+}
+
+function setModelLod(obj: THREE.Object3D, far: boolean): void {
+  obj.traverse(o => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const ud = mesh.geometry.userData as { lod?: [number, number]; near?: [number, number] };
+    const range = far ? ud.lod : ud.near;
+    if (range) mesh.geometry.setDrawRange(range[0], range[1]);
+  });
+}
 
 interface Item {
   layer: Layer;
@@ -106,6 +125,9 @@ export class Fx {
   s = 1;
   /** camera distance to the orbit target (drives `s` and models' `maxD`) */
   dist = 30;
+  /** true when any spawned model changed its scale/rise/visibility on the most recent frame */
+  boundsDirty = true;
+  private farLod = false;
   private clock = 0;
   /** the journey traveller currently on the map (one per journey, handed from leg to leg) */
   private traveller: THREE.Object3D | null = null;
@@ -121,6 +143,14 @@ export class Fx {
   private frame(dt: number, t: number): void {
     this.dist = this.view.camera.position.distanceTo(this.view.controls.target);
     this.s = scaleFor(this.dist);
+    const far = this.dist > 32;
+    if (far !== this.farLod) {
+      this.farLod = far;
+      for (const it of this.items) {
+        const mdl = (it.obj.userData as SpawnState | undefined)?.model;
+        if (mdl) setModelLod(mdl, far);
+      }
+    }
     const sdt = this.paused ? 0 : dt * this.speed;
     this.clock += sdt;
     for (const tw of this.tweens.slice()) {
@@ -1031,29 +1061,42 @@ export class Fx {
     if (!this.items.includes(it)) return null;
     g.visible = !this.hidden.has(layer);
     m.rotation.y = o.yaw ?? (Math.random() - 0.5) * 0.6;
+    if (this.farLod) setModelLod(m, true);
     g.add(m);
     const rigs = rig(m);
     const seed = Math.random() * 10;
     const r = (m.userData.radius as number | undefined) ?? 0.5, h = (m.userData.height as number | undefined) ?? 1;
-    let grow = 0;
+    const baseR = Math.max(r * 1.3, base0 ? THREE.MathUtils.clamp(r, 0.22, 0.5) * 1.15 : 0);
+    let grow = 0, lastZ = -1, lastGrow = -1, lastVis = true;
     const k0 = o.scale ?? 1;
     // hover / pick state shared with the atlas: `boost` is the wanted size bump (1 = none), `top` and `rad` the model's
     // current height and footprint radius in world units, `shown` whether it is standing at this zoom
     const ud = g.userData as SpawnState;
-    ud.boost = 1; ud.k = 1; ud.top = 0; ud.rad = 0; ud.shown = true;
+    ud.boost = 1; ud.k = 1; ud.top = 0; ud.rad = 0; ud.shown = true; ud.model = m; ud.baseR = baseR; ud.z = 1;
+    this.boundsDirty = true;
     it.update = (dt, t, sc) => {
-      ud.k += (ud.boost - ud.k) * Math.min(1, dt * 14);
+      if (Math.abs(ud.boost - ud.k) > 1e-4) {
+        ud.k += (ud.boost - ud.k) * Math.min(1, dt * 14);
+        if (Math.abs(ud.boost - ud.k) <= 1e-4) ud.k = ud.boost;
+      }
       const z = (layer === 'story' ? sc : mapScale(this.dist)) * k0 * (layer === 'base' || layer === 'scenery' ? 0.7 : 1) * ud.k;
-      const e = easeBack(grow);
-      m.scale.setScalar(Math.max(0.001, z * e));
-      sh.scale.setScalar(Math.max(0.001, z * r * 2.6 * Math.min(1, grow * 2)));
-      if (base0) base0.scale.setScalar(Math.max(0.001, z * THREE.MathUtils.clamp(r, 0.22, 0.5) * 1.15 * Math.min(1, grow * 2)));
-      m.visible = sh.visible = o.maxD === undefined || this.dist <= o.maxD;
-      if (base0) base0.visible = m.visible;
-      ud.top = h * z * e; ud.rad = r * z; ud.shown = m.visible;
-      animate(rigs, t, seed);
-      // the name clears the model's far rim too (wide dioramas would otherwise wear it on their back half)
-      if (it.label) { it.label.pos.set(base.x, base.y + (h * e + r * 0.5 + 0.05) * z, base.z); it.label.off = !g.visible || !m.visible; }
+      const vis = o.maxD === undefined || this.dist <= o.maxD;
+      if (Math.abs(z - lastZ) > 1e-5 || grow !== lastGrow || vis !== lastVis) {
+        lastZ = z; lastGrow = grow; lastVis = vis;
+        this.boundsDirty = true;
+        const e = easeBack(grow);
+        m.scale.setScalar(Math.max(0.001, z * e));
+        sh.scale.setScalar(Math.max(0.001, z * r * 2.6 * Math.min(1, grow * 2)));
+        if (base0) base0.scale.setScalar(Math.max(0.001, z * THREE.MathUtils.clamp(r, 0.22, 0.5) * 1.15 * Math.min(1, grow * 2)));
+        m.visible = sh.visible = vis;
+        if (base0) base0.visible = vis;
+        ud.top = h * z * e; ud.rad = r * z; ud.shown = vis; ud.z = z;
+        // the name clears the model's far rim too (wide dioramas would otherwise wear it on their back half)
+        if (it.label) { it.label.pos.set(base.x, base.y + (h * e + r * 0.5 + 0.05) * z, base.z); it.label.off = !g.visible || !vis; }
+      } else if (it.label) {
+        it.label.off = !g.visible || !vis;
+      }
+      if (rigs.length && vis && g.visible) animate(rigs, t, seed);
     };
     it.update(0, 0, this.s);
     // the rise uses real time when paused so selected-event models still appear

@@ -107,6 +107,7 @@ export class View {
     const { x, y } = this.inset;
     if (Math.abs(x) < 0.5 && Math.abs(y) < 0.5) this.camera.clearViewOffset();
     else this.camera.setViewOffset(w, h, x, y, w, h);
+    this.constrainDirty = true;
   }
 
   private stepInset(dt: number): void {
@@ -121,9 +122,14 @@ export class View {
 
   private readonly sky = skyDome();
   private ndc = [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1], [0, 1]] as const;
+  private ndcVec = new THREE.Vector2();
   private hit = new THREE.Vector3();
   private tmp = new THREE.Vector3();
   private sph = new THREE.Spherical();
+  private lastCamPos = new THREE.Vector3(Infinity, Infinity, Infinity);
+  private lastCamQuat = new THREE.Quaternion();
+  private lastTarget = new THREE.Vector3(Infinity, Infinity, Infinity);
+  private constrainDirty = true;
 
   /**
    * Keeps the map filling the screen: the ground under every screen corner must lie inside the stage. Too wide a view
@@ -132,6 +138,13 @@ export class View {
    */
   constrain(): void {
     const t = this.controls.target, cam = this.camera, g = this.geo;
+    if (
+      !this.constrainDirty &&
+      cam.position.distanceToSquared(this.lastCamPos) < 1e-8 &&
+      t.distanceToSquared(this.lastTarget) < 1e-8 &&
+      Math.abs(cam.quaternion.dot(this.lastCamQuat)) > 1 - 1e-8
+    ) return;
+    this.constrainDirty = false;
     const W = g.width / 2, D = g.depth / 2;
     cam.updateMatrixWorld();
     for (let iter = 0; iter < 4; iter++) {
@@ -139,7 +152,7 @@ export class View {
       let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
       const dist = cam.position.distanceTo(t);
       for (const [nx, ny] of this.ndc) {
-        this.raycaster.setFromCamera(new THREE.Vector2(nx, ny), cam);
+        this.raycaster.setFromCamera(this.ndcVec.set(nx, ny), cam);
         const r = this.raycaster.ray;
         if (r.direction.y > -1e-3) continue;
         const k = -r.origin.y / r.direction.y;
@@ -148,7 +161,7 @@ export class View {
         x0 = Math.min(x0, this.hit.x); x1 = Math.max(x1, this.hit.x);
         z0 = Math.min(z0, this.hit.z); z1 = Math.max(z1, this.hit.z);
       }
-      if (!isFinite(x0)) return;
+      if (!isFinite(x0)) break;
       const fit = Math.min(1, (2 * W) / (x1 - x0), (2 * D) / (z1 - z0));
       if (fit < 0.999) {
         cam.position.sub(t).multiplyScalar(fit * 0.995).add(t);
@@ -156,7 +169,7 @@ export class View {
       }
       const dx = x0 < -W ? -W - x0 : x1 > W ? W - x1 : 0;
       const dz = z0 < -D ? -D - z0 : z1 > D ? D - z1 : 0;
-      if (Math.abs(dx) < 1e-4 && Math.abs(dz) < 1e-4) return;
+      if (Math.abs(dx) < 1e-4 && Math.abs(dz) < 1e-4) break;
       // the top of the view runs past the northern edge: look down a little rather than sliding the subject away
       if (dz > 0.05 && iter < 3) {
         this.sph.setFromVector3(this.tmp.copy(cam.position).sub(t));
@@ -170,6 +183,9 @@ export class View {
       t.x += dx; t.z += dz;
       cam.position.x += dx; cam.position.z += dz;
     }
+    this.lastCamPos.copy(cam.position);
+    this.lastCamQuat.copy(cam.quaternion);
+    this.lastTarget.copy(t);
   }
 
   /** Current pose as lon/lat/dist/tilt/heading. */

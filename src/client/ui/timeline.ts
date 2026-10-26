@@ -172,19 +172,26 @@ export class Timeline {
       if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { this.set(this.year + step * (e.shiftKey ? 10 : 1), true); e.preventDefault(); e.stopPropagation(); }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { this.set(this.year - step * (e.shiftKey ? 10 : 1), true); e.preventDefault(); e.stopPropagation(); }
     });
-    let last = 0;
+    let last = 0, raf = 0;
     const tick = (now: number) => {
+      raf = 0;
+      if (!this.playing) return;
       const dt = Math.min(0.1, (now - (last || now)) / 1000);
       last = now;
-      if (this.playing) {
-        // ~100 s for the whole axis; slower inside dense periods because the axis is non-linear
-        const tt = yearToT(this.year) + (dt * this.speed) / 100;
-        if (tt >= 1) { this.set(tToYear(1), true); this.setPlaying(false); } else this.set(tToYear(tt), false);
+      // ~100 s for the whole axis; slower inside dense periods because the axis is non-linear
+      const tt = yearToT(this.year) + (dt * this.speed) / 100;
+      if (tt >= 1) { this.set(tToYear(1), true); this.setPlaying(false); } else {
+        this.set(tToYear(tt), false);
+        if (this.playing) raf = requestAnimationFrame(tick);
       }
-      requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
+    this.startTick = () => {
+      if (!raf && this.playing) { last = 0; raf = requestAnimationFrame(tick); }
+    };
   }
+
+  private startTick = () => {};
+  private lastEraId: string | undefined = '__init__';
 
   /** Jumps to the next/previous chronicle entry or territorial phase. */
   step(dir: 1 | -1): void {
@@ -199,6 +206,7 @@ export class Timeline {
     setIcon(this.playBtn, on ? 'pause' : 'play');
     this.playBtn.title = this.playBtn.ariaLabel = t(on ? 'pause' : 'play');
     this.el.classList.toggle('playing', on);
+    if (on) this.startTick();
     if (!on) this.onYear(this.year, true);
     this.onPlay(on);
   }
@@ -222,20 +230,24 @@ export class Timeline {
     this.thumb.style.left = `${yearToT(y) * 100}%`;
     this.yearEl.textContent = formatYear(y, lang);
     const era = eraAt(y);
-    this.eraEl.textContent = era ? tr(era.name, lang) : '';
-    this.eraEl.style.setProperty('--c', era?.color ?? '#888');
-    this.eraEl.hidden = !era;
+    if (era?.id !== this.lastEraId) {
+      this.lastEraId = era?.id;
+      this.eraEl.textContent = era ? tr(era.name, lang) : '';
+      this.eraEl.style.setProperty('--c', era?.color ?? '#888');
+      this.eraEl.hidden = !era;
+      for (const b of this.bands.children as HTMLCollectionOf<HTMLElement>) b.classList.toggle('cur', b.dataset.era === era?.id);
+    }
     // the orthodox reign era (年号) when known, else the curated ruler; rival regimes' eras in the tooltip
     const r = rulerAt(y), reign = reignAt(y);
     this.rulerEl.textContent = reign ? tr(reign.label, lang) : r ? tr(r.name, lang) : '';
     this.flag.textContent = `${formatYear(y, lang)}${reign ? ' · ' + tr(reign.label, lang).replace(/^.*· /, '') : ''}`;
     this.rulerEl.title = [this.rulerEl.textContent, ...regionalReignsAt(y).map(x => `${tr(x.regime, lang)}${lang === 'zh' ? '：' : ': '}${tr(x.reign.label, lang)}`)].filter(Boolean).join('\n');
     this.track.setAttribute('aria-valuetext', `${formatYear(y, lang)} ${era ? tr(era.name, lang) : ''}`);
-    for (const b of this.bands.children as HTMLCollectionOf<HTMLElement>) b.classList.toggle('cur', b.dataset.era === era?.id);
     this.onRender(y);
   }
 
   relabel(): void {
+    this.lastEraId = '__init__';
     this.track.setAttribute('aria-label', t('era'));
     for (const [c, k] of [['.tl-prev', 'prevStop'], ['.tl-next', 'nextStop']] as const) { const b = this.el.querySelector<HTMLElement>(c)!; b.title = t(k); b.setAttribute('aria-label', t(k)); }
     this.playBtn.title = this.playBtn.ariaLabel = t(this.playing ? 'pause' : 'play');

@@ -186,8 +186,22 @@ export function buildFresh(recipe: ModelRecipe): THREE.Group {
   gradeModel(root);
   root.updateMatrixWorld(true);
   const box3 = new THREE.Box3().setFromObject(root);
+  const obb = new THREE.Box3(), pt = new THREE.Vector3();
+  root.traverse(o => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    const b = mesh.geometry.boundingBox!;
+    for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) {
+      obb.expandByPoint(pt.set(x, y, z).applyMatrix4(mesh.matrixWorld));
+    }
+  });
   root.userData.height = box3.max.y;
   root.userData.radius = Math.max(box3.max.x - box3.min.x, box3.max.z - box3.min.z) / 2;
+  if (!obb.isEmpty()) {
+    root.userData.min = [obb.min.x, obb.min.y, obb.min.z];
+    root.userData.max = [obb.max.x, obb.max.y, obb.max.z];
+  }
   root.userData.kind = recipe.kind;
   return root;
 }

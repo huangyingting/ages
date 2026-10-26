@@ -50,9 +50,11 @@ export class TerritoryDetail {
     const covers = c && c.key === this.src.key && c.dist / p.dist < 1.6 && p.dist / c.dist < 1.6
       && c.box[0] <= p.lon - half / cos && c.box[1] >= p.lon + half / cos && c.box[2] <= p.lat - half && c.box[3] >= p.lat + half;
     if (covers) return;
-    const box: PaintFrame['box'] = [p.lon - R / cos, p.lon + R / cos, p.lat - R, p.lat + R];
+      const box: PaintFrame['box'] = [p.lon - R / cos, p.lon + R / cos, p.lat - R, p.lat + R];
     const canvas = this.painter.paint(this.src.snap, this.src.opts, { box, w: SIZE, h: SIZE });
     const tex = texture(canvas);
+    tex.generateMipmaps = false;
+    tex.minFilter = THREE.LinearFilter;
     tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
     this.tex?.dispose();
     this.tex = tex;

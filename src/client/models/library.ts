@@ -56,7 +56,7 @@ function enqueue(job: Job): void {
 
 function pool() {
   if (slots) return slots;
-  const n = Math.max(1, Math.min(2, (navigator.hardwareConcurrency || 2) - 1));
+  const n = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1));
   slots = [];
   for (let i = 0; i < n; i++) {
     const slot = { w: new Worker(new URL('./build.worker.ts', import.meta.url), { type: 'module' }), busy: null as Job | null };

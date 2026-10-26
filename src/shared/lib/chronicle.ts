@@ -10,10 +10,20 @@ export const CHRONICLE: HistEvent[] = EVENTS.filter(e => e.scope === 'china');
 /** Lane-0 eras of Chinese history, in order (the chronicle's chapters). */
 export const CHAPTERS: Era[] = ERAS.filter(e => e.scope === 'china' && (e.lane ?? 0) === 0).sort((a, b) => a.start - b.start);
 
+const chapterCache = new Map<string, HistEvent[]>();
+
 /** The chapter for a year and the chronicle entries inside it. */
 export function chapterAt(y: Year, list: HistEvent[] = CHRONICLE): { era: Era | undefined; events: HistEvent[] } {
   const era = eraAt(y, CHAPTERS);
   if (!era) return { era, events: [] };
+  if (list === CHRONICLE) {
+    let events = chapterCache.get(era.id);
+    if (!events) {
+      events = list.filter(e => eraAt(e.year, CHAPTERS)?.id === era.id);
+      chapterCache.set(era.id, events);
+    }
+    return { era, events };
+  }
   return { era, events: list.filter(e => eraAt(e.year, CHAPTERS)?.id === era.id) };
 }
 
@@ -41,6 +51,8 @@ export function snapEnd(s: Snapshot, list: Snapshot[] = SNAPSHOTS): Year {
   return Math.min(s.end ?? Infinity, next ? next.year - 1 : 2025);
 }
 
+const phaseCache = new Map<string, Phase>();
+
 /** The territorial phase shown in `y`: the snapshot, its siblings in the same dynasty and its position among them. */
 export function phaseAt(y: Year, list: Snapshot[] = SNAPSHOTS): Phase | null {
   if (y < -2070) return null;
@@ -48,6 +60,16 @@ export function phaseAt(y: Year, list: Snapshot[] = SNAPSHOTS): Phase | null {
   for (const s of list) if (s.year <= y && (!snap || s.year > snap.year)) snap = s;
   snap ??= list[0] ?? null;
   if (!snap) return null;
+  if (list === SNAPSHOTS) {
+    let p = phaseCache.get(snap.id);
+    if (!p) {
+      const k = groupKey(snap);
+      const group = list.filter(s => groupKey(s) === k);
+      p = { snap, group, index: group.indexOf(snap), from: snap.year, to: snapEnd(snap, list) };
+      phaseCache.set(snap.id, p);
+    }
+    return p;
+  }
   const k = groupKey(snap);
   const group = list.filter(s => groupKey(s) === k);
   return { snap, group, index: group.indexOf(snap), from: snap.year, to: snapEnd(snap, list) };

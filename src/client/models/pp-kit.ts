@@ -1285,7 +1285,10 @@ export function bakeStaticMeshes(gp: THREE.Group): void {
     if (withPbr) geo.setAttribute(PBR_ATTR, new THREE.BufferAttribute(Uint8Array.from(cat('pbr'), v => Math.round(Math.min(1, Math.max(0, v)) * 255)), 2, true));
     if (useFar) geo.userData.lod = [near / 3, far.pos.length / 3];
     else if (detail.pos.length && main.pos.length) geo.userData.lod = [0, main.pos.length / 3];
+    geo.userData.near = [0, near / 3];
+    geo.userData.fresh = true;
     geo.setDrawRange(0, near / 3);
+    geo.computeBoundingBox();
     geo.computeBoundingSphere();
     return geo;
   };

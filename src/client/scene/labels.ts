@@ -32,6 +32,10 @@ export interface Label {
   /** Transparent, keyboard-accessible model target; it uses the model's projected bounds. */
   modelHit?: boolean;
   screen?: { x: number; y: number };
+  tx?: number;
+  ty?: number;
+  tw?: number;
+  th?: number;
 }
 
 export class Labels {
@@ -119,10 +123,18 @@ export class Labels {
       const show = !!item?.shown;
       if (show) {
         const b = item!.bounds;
-        l.el.style.transform = `translate3d(${b.left.toFixed(1)}px, ${b.top.toFixed(1)}px, 0)`;
+        const lx = Math.round(b.left * 10) / 10, ly = Math.round(b.top * 10) / 10;
+        if (l.tx !== lx || l.ty !== ly) {
+          l.tx = lx; l.ty = ly;
+          l.el.style.transform = `translate3d(${lx.toFixed(1)}px, ${ly.toFixed(1)}px, 0)`;
+        }
         if (l.modelHit) {
-          l.el.style.width = `${b.right - b.left}px`;
-          l.el.style.height = `${b.bottom - b.top}px`;
+          const lw = b.right - b.left, lh = b.bottom - b.top;
+          if (l.tw !== lw || l.th !== lh) {
+            l.tw = lw; l.th = lh;
+            l.el.style.width = `${lw}px`;
+            l.el.style.height = `${lh}px`;
+          }
         }
       }
       if (show !== l.shown) {

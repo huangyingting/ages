@@ -108,12 +108,14 @@ export class Atlas {
   private polityLabels: Label[] = [];
   private fade: { t: number; tex: THREE.Texture; src: TexSource; wipe?: { dur: number; r: number }; morph?: THREE.Texture } | null = null;
   private texA: THREE.Texture | null = null;
+  private texCache = new Map<string, THREE.CanvasTexture>();
   private morphTex: THREE.Texture | null = null;
   private capitalKey = '';
   private sceneryKey = '';
   private lastSceneryEra = '';
   private prefetchTimer = 0;
   private storyMode = false;
+  private layoutDirty = true;
   private marks: Mark[] = [];
   private hover: Hover | null = null;
   /** the map object whose card is open (gets the selection ring), and where to ring it while it has no model up */
@@ -202,8 +204,12 @@ export class Atlas {
       u.uHiAmt.value = Math.max(0, (0.55 + 0.35 * Math.sin(this.hiT * 5)) * Math.min(1, this.hiT * 3) * (1 - fadeOut / 0.6));
       if (fadeOut >= 0.6) { this.hiT = -1; u.uHiAmt.value = 0; }
     }
-    this.layoutMarks();
     this.frameMarks(dt);
+    if (this.layoutDirty || this.fx.boundsDirty || this.labels.dirtySize || this.camStill <= 1 || this.marks.some(m => !m.g.parent)) {
+      this.layoutDirty = false;
+      this.fx.boundsDirty = false;
+      this.layoutMarks();
+    }
   }
 
   // ------------------------------------------------------------ hover & selection of map objects
@@ -259,26 +265,55 @@ export class Atlas {
     });
   }
 
+  private boundVec = new THREE.Vector3();
+
   private modelBounds(m: Mark): ScreenBox | null {
     const ud = m.g.userData as SpawnState;
     // Include rotated scenery, its base and shadow, reserving hover growth without moving neighbours.
     const boost = 1.06 / ud.k;
     const b: ScreenBox = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
-    const v = new THREE.Vector3();
+    const v = this.boundVec;
     let clipped = false;
-    m.g.updateWorldMatrix(true, true);
-    m.g.traverse(o => {
-      if (!(o instanceof THREE.Mesh)) return;
-      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
-      const box = o.geometry.boundingBox!;
-      for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) {
-        v.set(x, y, z).applyMatrix4(o.matrixWorld).sub(m.g.position).multiplyScalar(boost).add(m.g.position);
-        this.view.project(v, v);
-        if (v.z < -1 || v.z > 1) clipped = true;
-        b.left = Math.min(b.left, v.x); b.right = Math.max(b.right, v.x);
-        b.top = Math.min(b.top, v.y); b.bottom = Math.max(b.bottom, v.y);
+    const addPt = () => {
+      v.sub(m.g.position).multiplyScalar(boost).add(m.g.position);
+      this.view.project(v, v);
+      if (v.z < -1 || v.z > 1) clipped = true;
+      if (v.x < b.left) b.left = v.x;
+      if (v.x > b.right) b.right = v.x;
+      if (v.y < b.top) b.top = v.y;
+      if (v.y > b.bottom) b.bottom = v.y;
+    };
+    const mdl = ud.model;
+    const min = mdl?.userData.min as [number, number, number] | undefined;
+    const max = mdl?.userData.max as [number, number, number] | undefined;
+    if (mdl && min && max) {
+      m.g.updateWorldMatrix(true, false);
+      mdl.updateWorldMatrix(false, false);
+      const mw = mdl.matrixWorld;
+      for (let i = 0; i < 8; i++) {
+        v.set(i & 1 ? max[0] : min[0], i & 2 ? max[1] : min[1], i & 4 ? max[2] : min[2]).applyMatrix4(mw);
+        addPt();
       }
-    });
+      const br = (ud.baseR ?? 0) * (ud.z ?? 1);
+      if (br > 0) {
+        const gp = m.g.position;
+        for (let i = 0; i < 8; i++) {
+          v.set(gp.x + (i & 1 ? br : -br), gp.y + (i & 2 ? 0.006 : 0), gp.z + (i & 4 ? br : -br));
+          addPt();
+        }
+      }
+    } else {
+      m.g.updateWorldMatrix(true, true);
+      m.g.traverse(o => {
+        if (!(o instanceof THREE.Mesh)) return;
+        if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+        const box = o.geometry.boundingBox!;
+        for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) {
+          v.set(x, y, z).applyMatrix4(o.matrixWorld);
+          addPt();
+        }
+      });
+    }
     const canvas = this.view.canvas;
     return clipped || b.right < 0 || b.bottom < 0 || b.left > canvas.clientWidth || b.top > canvas.clientHeight ? null : b;
   }
@@ -286,9 +321,8 @@ export class Atlas {
   private layoutMarks(): void {
     for (const m of this.marks) if (!m.g.parent) this.labels.remove(m.label);
     this.marks = this.marks.filter(m => m.g.parent);
-    for (const [id, target] of this.places) {
-      const l = target.label, p = PLACE.get(id)!;
-      this.geo.pos(p.lon, p.lat, 0.05, l.pos);
+    for (const target of this.places.values()) {
+      const l = target.label;
       l.model = undefined; l.screen = undefined; l.anchor = 'beside';
       l.pinned = this.isSelected(target);
     }
@@ -296,9 +330,11 @@ export class Atlas {
     const represented = new Set<string>();
     const available = (m: Mark) => this.layers.models && !this.pickHandler && (!this.storyMode || m.layer === 'base') &&
       (!m.place || !!mapName(m.place, this.year)) && (this.isSelected(m) || this.fx.dist <= m.maxD);
+    const sceneryEvents = new Set<string>();
+    for (const m of this.marks) if (m.layer === 'scenery' && m.event && available(m)) sceneryEvents.add(m.event);
     for (const m of this.marks) {
       const l = m.label, selected = this.isSelected(m);
-      const replaced = m.layer === 'event' && this.marks.some(other => other.layer === 'scenery' && other.event === m.event && available(other));
+      const replaced = m.layer === 'event' && !!m.event && sceneryEvents.has(m.event);
       const active = available(m) && !replaced;
       const wasModel = !!l.modelHit;
       if (m.modelForm === undefined) m.modelForm = this.fx.dist <= m.modelMaxD;
@@ -310,12 +346,13 @@ export class Atlas {
       l.pinned = selected;
       l.off = !active || (!model && !!m.place);
       l.pos.copy(m.g.position);
-      l.el.classList.toggle('model-hit', model);
-      l.el.setAttribute('aria-pressed', String(selected));
       if (model !== wasModel) {
+        l.el.classList.toggle('model-hit', model);
         l.el.style.width = ''; l.el.style.height = '';
+        l.tw = undefined; l.th = undefined;
         this.labels.remeasure();
       }
+      setAttr(l.el, 'aria-pressed', selected ? 'true' : 'false');
       m.g.visible = false;
       if (active && m.event) represented.add(m.event);
       if (model) {
@@ -336,7 +373,7 @@ export class Atlas {
     for (const [id, target] of this.pins) {
       target.label.off = represented.has(id) || this.storyMode;
       target.label.pinned = this.isSelected(target);
-      target.label.el.setAttribute('aria-pressed', String(target.label.pinned));
+      setAttr(target.label.el, 'aria-pressed', target.label.pinned ? 'true' : 'false');
     }
     for (const target of this.places.values()) {
       const l = target.label, modeled = !!l.model;
@@ -346,13 +383,15 @@ export class Atlas {
       }
     }
     this.labels.layout(models);
+    const placeTi = this.pickHandler || this.storyMode ? -1 : 0;
     for (const m of this.marks) {
       m.g.visible = !!m.layout?.shown;
-      m.label.el.tabIndex = this.storyMode || this.pickHandler || m.nameLabel?.shown ? -1 : 0;
+      const ti = placeTi < 0 || m.nameLabel?.shown ? -1 : 0;
+      if (m.label.el.tabIndex !== ti) m.label.el.tabIndex = ti;
     }
     for (const target of this.places.values()) {
-      target.label.el.tabIndex = this.pickHandler || this.storyMode ? -1 : 0;
-      target.label.el.setAttribute('aria-pressed', String(!!target.label.pinned));
+      if (target.label.el.tabIndex !== placeTi) target.label.el.tabIndex = placeTi;
+      setAttr(target.label.el, 'aria-pressed', target.label.pinned ? 'true' : 'false');
     }
   }
 
@@ -472,12 +511,21 @@ export class Atlas {
     return `${formatYear(e.year, this.lang, { short: true })} · ${kindName(e.kind)}`;
   }
 
+  private pickVec = new THREE.Vector2();
+
   /** Hit the actual model, including wide, low landmarks rather than just their upright centre line. */
   private pickMark(cx: number, cy: number): Mark | null {
     if (this.storyMode || this.pickHandler || !this.layers.models) return null;
     const r = this.view.canvas.getBoundingClientRect();
-    this.raycaster.setFromCamera(new THREE.Vector2((cx - r.left) / r.width * 2 - 1, 1 - (cy - r.top) / r.height * 2), this.view.camera);
-    const marks = this.marks.filter(m => Atlas.live(m));
+    const x = cx - r.left, y = cy - r.top;
+    const marks = this.marks.filter(m => {
+      if (!Atlas.live(m)) return false;
+      const b = m.layout?.bounds;
+      return !b || (x >= b.left - 8 && x <= b.right + 8 && y >= b.top - 8 && y <= b.bottom + 8);
+    });
+    if (!marks.length) return null;
+    for (const m of marks) m.g.updateWorldMatrix(true, true);
+    this.raycaster.setFromCamera(this.pickVec.set((x / r.width) * 2 - 1, 1 - (y / r.height) * 2), this.view.camera);
     const hit = this.raycaster.intersectObjects(marks.map(m => m.g), true)[0];
     for (let o: THREE.Object3D | null = hit?.object ?? null; o; o = o.parent) {
       const mark = marks.find(m => m.g === o);
@@ -491,6 +539,7 @@ export class Atlas {
     m.nameLabel = m.place ? this.places.get(m.place.id)?.label : undefined;
     this.marks.push(m);
     this.bindTarget(m);
+    this.layoutDirty = true;
   }
 
   private badge(key: string, icon: string, pos: THREE.Vector3, prio: number, group: string, maxD = Infinity): Label {
@@ -506,6 +555,7 @@ export class Atlas {
   focus(key: string | null, at: LonLat | null = null): void {
     this.selKey = key;
     this.selAt = at;
+    this.layoutDirty = true;
   }
 
   // ------------------------------------------------------------ input
@@ -606,10 +656,32 @@ export class Atlas {
 
   // ------------------------------------------------------------ time
 
+  private getTerritoryTexture(key: string, snap: Snapshot | null, opts: PaintOpts): THREE.CanvasTexture {
+    const hit = this.texCache.get(key);
+    if (hit) {
+      this.texCache.delete(key);
+      this.texCache.set(key, hit);
+      return hit;
+    }
+    const tex = texture(this.painter.paint(snap, opts));
+    this.texCache.set(key, tex);
+    if (this.texCache.size > 6) {
+      for (const [k, old] of this.texCache) {
+        if (old !== this.texA && old !== this.fade?.tex) {
+          this.texCache.delete(k);
+          old.dispose();
+          break;
+        }
+      }
+    }
+    return tex;
+  }
+
   /** Moves the map to a year: territory snapshot, period names, capital and the events of the period. */
   setYear(y: Year, instant = false): void {
     this.year = y;
     this.fx.year = y;
+    this.layoutDirty = true;
     const snap = snapshotAt(y);
     this.shapes?.hydrate(snap);
     const lakes = this.shapes?.lakes(y) ?? [];
@@ -623,9 +695,8 @@ export class Atlas {
       this.snapshot = snap;
       const opts: PaintOpts = { admin: this.layers.admin, provinces: this.layers.modern ? this.shapes?.provinces() : null, lakes, ghost };
       const src: TexSource = { key, snap, opts };
-      const tex = texture(this.painter.paint(snap, opts));
+      const tex = this.getTerritoryTexture(key, snap, opts);
       if (instant || !this.texA) {
-        this.texA?.dispose();
         this.texA = tex;
         this.terrain.uniforms.uTerrA.value = tex;
         this.terrain.uniforms.uMix.value = 0;
@@ -681,7 +752,6 @@ export class Atlas {
     if (!this.fade) return;
     (this.terrain.uniforms.uWipe.value as THREE.Vector4).set(0, 0, 0, 0);
     this.terrain.uniforms.uMorphOn.value = 0;
-    this.texA?.dispose();
     this.texA = this.fade.tex;
     this.terrain.uniforms.uTerrA.value = this.texA;
     this.terrain.uniforms.uMix.value = 0;
@@ -1005,6 +1075,7 @@ export class Atlas {
   setStoryMode(on: boolean): void {
     if (on === this.storyMode) return;
     this.storyMode = on;
+    this.layoutDirty = true;
     if (on) this.setHover(null);
     this.fx.showLayer('scenery', !on);
     this.labels.setGroupVisible('badges', !on && !this.pickHandler);
@@ -1016,6 +1087,7 @@ export class Atlas {
   select(e: HistEvent | null, fly = true): void {
     const prev = this.selected;
     this.selected = e;
+    this.layoutDirty = true;
     this.focus(e ? `event:${e.id}` : null, e ? [e.lon, e.lat] : null);
     this.setHover(null);
     this.fx.clear('event');
@@ -1041,6 +1113,7 @@ export class Atlas {
   setLang(l: Lang): void {
     this.setHover(null);
     this.lang = l;
+    this.layoutDirty = true;
     for (const [id, target] of this.pins) {
       const e = EVENTS.find(x => x.id === id);
       if (e) target.label.el.setAttribute('aria-label', tr(e.title, l));
@@ -1058,6 +1131,7 @@ export class Atlas {
 
   setLayer(k: keyof Layers, on: boolean): void {
     this.layers[k] = on;
+    this.layoutDirty = true;
     if (k === 'territory') {
       this.terrain.uniforms.uTerrOn.value = on ? 1 : 0;
       this.labels.setGroupVisible('polity', on);
@@ -1087,6 +1161,7 @@ export class Atlas {
   /** Routes the next map click to `fn`; `blind` also hides place names so they cannot give the answer away. */
   setPickMode(fn: ((lon: number, lat: number) => void) | null, blind = false): void {
     this.pickHandler = fn;
+    this.layoutDirty = true;
     if (fn) this.setHover(null);
     this.labels.setGroupVisible('pins', this.layers.events && !fn);
     this.labels.setGroupVisible('badges', !fn && !this.storyMode);
@@ -1118,10 +1193,35 @@ const KIND_COLOR: Record<string, string> = {
   capital: '#b8322a', person: '#b8322a', building: '#7d5a32', landmark: '#7d5a32', custom: '#2c6e5c', food: '#b4652a',
 };
 
+function setAttr(el: HTMLElement, name: string, val: string): void {
+  if (el.getAttribute(name) !== val) el.setAttribute(name, val);
+}
+
+const ringBoxes = new WeakMap<LonLat[], [number, number, number, number]>();
+
+function ringBox(r: LonLat[]): [number, number, number, number] {
+  let b = ringBoxes.get(r);
+  if (!b) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (let i = 0; i < r.length; i++) {
+      const [x, y] = r[i];
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    b = [minX, minY, maxX, maxY];
+    ringBoxes.set(r, b);
+  }
+  return b;
+}
+
 /** Even-odd point-in-polygon over all rings (holes included). */
 function inside(rings: LonLat[][], x: number, y: number): boolean {
   let c = false;
   for (const r of rings) {
+    const b = ringBox(r);
+    if (x < b[0] || x > b[2] || y < b[1] || y > b[3]) continue;
     for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
       const [xi, yi] = r[i], [xj, yj] = r[j];
       if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;

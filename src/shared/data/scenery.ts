@@ -34,11 +34,15 @@ export type Level = 1 | 2 | 3;
 /** key items per dynasty (the capital comes on top), so the period reads at a glance */
 export const MAX_KEY = 6;
 
+const lifePlaces = new WeakMap<LifeItem, Place | undefined>();
 /** A curated landmark and its geographical entry are one map object, not two nearby click targets. */
 export function lifePlace(l: LifeItem): Place | undefined {
   if (l.kind !== 'building') return undefined;
-  return PLACES.find(p => p.kind !== 'city' && Math.hypot(l.lon - p.lon, l.lat - p.lat) < 0.5 &&
+  if (lifePlaces.has(l)) return lifePlaces.get(l);
+  const found = PLACES.find(p => p.kind !== 'city' && Math.hypot(l.lon - p.lon, l.lat - p.lat) < 0.5 &&
     (l.name.zh.startsWith(p.name.zh) || l.wiki.zh === p.name.zh));
+  lifePlaces.set(l, found);
+  return found;
 }
 
 const MAX_LANDMARKS = 6;
@@ -89,12 +93,18 @@ const EVENT_ERA: Record<string, string | string[]> = {
   li_zicheng: 'ming', roc_found: 'roc', dujiang: 'roc', founding: 'prc',
 };
 
+const sceneryCache = new Map<string, SceneryItem[]>();
+
 /**
  * The scenery for a dynasty: landmarks of its key (non-war) textbook events — buildings, works, ships, inventions — and
  * its famous people in period dress standing beside them. Most important events first; nothing piles up on the capital
  * (which has its own palace) or on another landmark.
  */
 export function sceneryOf(era: Era, events: HistEvent[] = EVENTS): SceneryItem[] {
+  if (events === EVENTS) {
+    const hit = sceneryCache.get(era.id);
+    if (hit) return hit;
+  }
   const inEra = (e: HistEvent) => {
     const pin = EVENT_ERA[e.id];
     if (pin) return Array.isArray(pin) ? pin.includes(era.id) : pin === era.id;
@@ -149,6 +159,7 @@ export function sceneryOf(era: Era, events: HistEvent[] = EVENTS): SceneryItem[]
   }
   const all = [...life, ...marks, ...people];
   keyItems(all, list);
+  if (events === EVENTS) sceneryCache.set(era.id, all);
   return all;
 }
 

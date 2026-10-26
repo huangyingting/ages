@@ -121,17 +121,21 @@ void main() {
 
   float hp = max(h, 0.0);
   vec3 col = (ink ? hypsoInk(hp) : plain ? hypsoPlain(hp) : hypso(hp)) * shade * tint;
-  // ocean: depth tint, gentle moving sheen
-  float depth = smoothstep(0.0, 1.0, sqrt(clamp(-h / 4.5, 0.0, 1.0)));
-  vec3 sea = ink ? mix(hex(34.0, 52.0, 60.0), hex(14.0, 24.0, 32.0), depth)
-    : plain ? mix(hex(214.0, 222.0, 222.0), hex(190.0, 204.0, 210.0), depth)
-    : mix(hex(172.0, 203.0, 205.0), hex(104.0, 144.0, 168.0), depth);
-  float wave = sin(vWorld.x * 3.1 + uTime * 0.6) * sin(vWorld.z * 2.7 - uTime * 0.45);
-  sea += (ink ? 0.012 : 0.018) * wave;
-  col = mix(sea, col, land);
+  // ocean: depth tint, gentle moving sheen (skipped on solid land pixels)
+  if (land < 0.999) {
+    float depth = smoothstep(0.0, 1.0, sqrt(clamp(-h / 4.5, 0.0, 1.0)));
+    vec3 sea = ink ? mix(hex(34.0, 52.0, 60.0), hex(14.0, 24.0, 32.0), depth)
+      : plain ? mix(hex(214.0, 222.0, 222.0), hex(190.0, 204.0, 210.0), depth)
+      : mix(hex(172.0, 203.0, 205.0), hex(104.0, 144.0, 168.0), depth);
+    float wave = sin(vWorld.x * 3.1 + uTime * 0.6) * sin(vWorld.z * 2.7 - uTime * 0.45);
+    sea += (ink ? 0.012 : 0.018) * wave;
+    col = mix(sea, col, land);
+  }
 
   // rivers
-  col = mix(col, ink ? hex(96.0, 150.0, 170.0) : hex(88.0, 138.0, 172.0), clamp(m.r * 1.4, 0.0, 0.9) * land);
+  if (land > 0.001 && m.r > 0.004) {
+    col = mix(col, ink ? hex(96.0, 150.0, 170.0) : hex(88.0, 138.0, 172.0), clamp(m.r * 1.4, 0.0, 0.9) * land);
+  }
 
   // territories (cross-faded snapshots), land-masked
   vec4 ta = texture2D(uTerrA, vUv);
@@ -157,25 +161,39 @@ void main() {
       ta = mix(ta, td, k);
     }
   }
-  vec4 tb = texture2D(uTerrB, vUv);
-  float wd = distance(vWorld.xz, uWipe.xy) - uWipe.z;
-  float mixK = uMix;
-  if (uWipe.w > 0.5) mixK = 1.0 - smoothstep(-0.6, 0.0, wd);
-  else if (uMorphOn > 0.5) {
-    // borders advance: each texel switches at its own time, with a short soft edge
-    float g = texture2D(uMorph, vUv).r * 0.85;
-    mixK = smoothstep(g, g + 0.15, uMix);
+  vec4 t = ta;
+  if (uWipe.w > 0.5) {
+    vec4 tb = texture2D(uTerrB, vUv);
+    float wd = distance(vWorld.xz, uWipe.xy) - uWipe.z;
+    float mixK = 1.0 - smoothstep(-0.6, 0.0, wd);
+    t = mix(ta, tb, mixK);
+    vec3 lit = t.rgb * (ink ? 0.9 + 1.0 * rel : plain ? 1.0 + 0.35 * rel : 0.99 + 0.5 * rel) * tint;
+    col = mix(col, lit, t.a * land * uTerrOn * (ink ? 0.92 : 1.0));
+    // the conquest front: a glowing ink edge sweeping outwards
+    col = mix(col, uWipeColor, (1.0 - smoothstep(0.0, 0.5, abs(wd + 0.25))) * 0.75 * land * smoothstep(0.0, 1.0, uWipe.z));
+  } else {
+    if (uMix > 0.001) {
+      vec4 tb = texture2D(uTerrB, vUv);
+      float mixK = uMix;
+      if (uMorphOn > 0.5) {
+        // borders advance: each texel switches at its own time, with a short soft edge
+        float g = texture2D(uMorph, vUv).r * 0.85;
+        mixK = smoothstep(g, g + 0.15, uMix);
+      }
+      t = mix(ta, tb, mixK);
+    }
+    if (t.a > 0.001 && land > 0.001 && uTerrOn > 0.001) {
+      // the polity colour is lit like the ground beneath it, so mountains read through the fill
+      vec3 lit = t.rgb * (ink ? 0.9 + 1.0 * rel : plain ? 1.0 + 0.35 * rel : 0.99 + 0.5 * rel) * tint;
+      col = mix(col, lit, t.a * land * uTerrOn * (ink ? 0.92 : 1.0));
+    }
   }
-  vec4 t = mix(ta, tb, mixK);
-  // the polity colour is lit like the ground beneath it, so mountains read through the fill
-  vec3 lit = t.rgb * (ink ? 0.9 + 1.0 * rel : plain ? 1.0 + 0.35 * rel : 0.99 + 0.5 * rel) * tint;
-  col = mix(col, lit, t.a * land * uTerrOn * (ink ? 0.92 : 1.0));
-  // the conquest front: a glowing ink edge sweeping outwards
-  if (uWipe.w > 0.5) col = mix(col, uWipeColor, (1.0 - smoothstep(0.0, 0.5, abs(wd + 0.25))) * 0.75 * land * smoothstep(0.0, 1.0, uWipe.z));
 
   // highlighted polity pulse
-  float hi = texture2D(uHi, vUv).a;
-  col = mix(col, uHiColor, hi * uHiAmt * land);
+  if (uHiAmt > 0.001 && land > 0.001) {
+    float hi = texture2D(uHi, vUv).a;
+    col = mix(col, uHiColor, hi * uHiAmt * land);
+  }
 
   // ink coastline
   float coast = 1.0 - smoothstep(0.0, 0.2, abs(m.g - 0.5));
@@ -216,7 +234,7 @@ export const SURFACE: Record<Surface, { style: number; haze: THREE.Color; top: T
 
 /** Builds the relief mesh and its shader. It fills the screen: the camera never shows its edges (see View.constrain). */
 export function buildTerrain(geo: Geo, lowfx: boolean): Terrain {
-  const sx = lowfx ? 450 : 900, sz = Math.round(sx * (geo.depth / geo.width));
+  const sx = lowfx ? 320 : 540, sz = Math.round(sx * (geo.depth / geo.width));
   const pg = new THREE.PlaneGeometry(geo.width, geo.depth, sx, sz);
   pg.rotateX(-Math.PI / 2);
   const pos = pg.getAttribute('position') as THREE.BufferAttribute;
@@ -260,6 +278,8 @@ export function buildTerrain(geo: Geo, lowfx: boolean): Terrain {
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms, extensions: { derivatives: true } as never });
   const mesh = new THREE.Mesh(pg, mat);
   mesh.name = 'terrain';
+  mesh.matrixAutoUpdate = false;
+  mesh.updateMatrix();
   // drawn first so map ink (routes, rings) can paint over it without depth testing
   mesh.renderOrder = INK.terrain;
 

@@ -28,7 +28,19 @@ export class Preview {
   private introAt = Infinity;
   private last = 0;
   private dirty = true;
-  active = false;
+  private _active = false;
+  get active(): boolean { return this._active; }
+  set active(on: boolean) {
+    if (on === this._active) return;
+    this._active = on;
+    if (on) {
+      this.dirty = true;
+      this.last = 0;
+      this.renderer?.setAnimationLoop(t => this.frame(t));
+    } else {
+      this.renderer?.setAnimationLoop(null);
+    }
+  }
 
   constructor(private still: boolean) {
     this.canvas = document.createElement('canvas');
@@ -68,7 +80,7 @@ export class Preview {
       this.scene.environment = outdoorEnvironment(r);
       this.scene.environmentIntensity = 0.55;
       this.renderer = r;
-      r.setAnimationLoop(t => this.frame(t));
+      if (this._active) r.setAnimationLoop(t => this.frame(t));
     } catch { this.renderer = null; }
     return this.renderer;
   }
@@ -86,6 +98,15 @@ export class Preview {
     let g: THREE.Group;
     try { g = await instance(recipe, true); } catch { return; }
     if (id !== this.req) return;
+    g.traverse(o => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const near = mesh.geometry.userData.near as [number, number] | undefined;
+      if (near && mesh.geometry.userData.lod) {
+        mesh.geometry = mesh.geometry.clone();
+        mesh.geometry.setDrawRange(near[0], near[1]);
+      }
+    });
     // frame the model: normalise its footprint and aim the camera at its middle
     const box = new THREE.Box3().setFromObject(g);
     const size = box.getSize(new THREE.Vector3());
