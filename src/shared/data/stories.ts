@@ -625,7 +625,7 @@ export function autoStory(e: {
  * Shi in a tall 东坡巾 on a donkey, Wang Yangming in a Ming scholar's 四方平定巾.
  */
 export const TRAVELLER: Record<string, 'army' | Omit<ModelRecipe, 'kind'>> = {
-  qinshihuang: 'army',
+  qinshihuang: { role: 'ruler', mount: 'horse', coat: '#1e1c1a', robe: '#1c1b20', trim: '#b83226', gear: 'sword' },
   zhugeliang: 'army',
   zhangqian: { role: 'scholar', mount: 'horse', coat: '#8a5a32', gear: 'jie', pack: true },
   xuanzang: { role: 'monk', mount: 'foot', gear: 'ji', robe: '#7a5c3e', trim: '#9b3a22' },

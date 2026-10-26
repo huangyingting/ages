@@ -1572,7 +1572,331 @@ const cap_ming: Builder = root => {
   for (const [x, z] of [[-0.36, -0.04], [0.36, -0.04]] as [number, number][]) tree(gp, x, y0, z, 0.06, '#48643e');
 };
 
+/**
+ * 远古人类 · 周口店龙骨山猿人洞与圣火营地 (c. 1.7M–10,000 BC): Limestone karst cavern of Dragon Bone Hill (周口店龙骨山第一地点猿人洞),
+ * stratified ash-and-fossil layers, persistent hearth fire ringed by river cobbles, chipped quartz choppers (打制砾石石器),
+ * charred deer antlers, and early hominins tending the sacred fire.
+ */
+const cap_paleo: Builder = root => {
+  const [gp, y0] = site(root, SITE.loess, 0.88);
+  const ROCK = '#7e786c', DARK = '#28231e', ASH = '#58524a', OCHRE = '#b67848', WATER = '#4a6e74';
+  band(gp, 0.24, 0.38, y0, 0.004, WATER, 0.015);
+  // Dragon Bone Hill limestone karst massif (龙骨山石灰岩洞穴穹隆) at north
+  hill(gp, -0.04, y0, -0.16, 0.34, 0.22, 0.19, ROCK);
+  hill(gp, 0.22, y0, -0.12, 0.18, 0.16, 0.14, shade(ROCK, 0.92));
+  // Cavern arch mouth & stratified ash layers (北京人遗址灰烬层)
+  box(gp, DARK, -0.04, y0 + 0.012, -0.02, 0.16, 0.088, 0.08);
+  box(gp, OCHRE, -0.04, y0, 0.05, 0.28, 0.014, 0.12);
+  box(gp, ASH, -0.04, y0 + 0.014, 0.05, 0.22, 0.008, 0.09);
+  // Sacred hearth fire ringed by boulders & stone-knapping anvil
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    ellip(gp, '#645e54', -0.04 + Math.cos(a) * 0.042, y0 + 0.026, 0.07 + Math.sin(a) * 0.042, 0.012, 0.009, 0.012);
+  }
+  cone(gp, '#e86420', -0.04, y0 + 0.024, 0.07, 0.024, 0.052, 7);
+  cone(gp, '#f6bc38', -0.04, y0 + 0.03, 0.07, 0.014, 0.036, 6);
+  // Chipped quartz cores, bone tools & hominins in hide wraps
+  for (const [x, z] of [[-0.18, 0.12], [0.1, 0.11], [0.16, 0.04]] as [number, number][]) {
+    ellip(gp, '#c8bfa8', x, y0 + 0.01, z, 0.014, 0.008, 0.011);
+  }
+  figure(gp, -0.11, y0 + 0.02, 0.08, 0.028, '#6e4c2e', { ry: 0.8 });
+  figure(gp, 0.05, y0 + 0.02, 0.09, 0.027, '#583c24', { ry: -0.9 });
+  tree(gp, -0.32, y0, 0.06, 0.068, '#546b3e');
+  tree(gp, 0.3, y0, 0.1, 0.062, '#5c7444');
+};
+
+/**
+ * 新石器时代 · 仰韶半坡环壕聚落大房子与红山祭坛 (c. 10,000–2070 BC): Oval defensive moat (环壕聚落), central communal assembly
+ * hall (半坡F1大型半地穴式大房子) surrounded by round thatched pit-houses, Hemudu-style stilt granary (河姆渡干栏式建筑),
+ * painted pottery kiln, and three-tiered circular stone altar (红山文化三层圆坛).
+ */
+const cap_neo: Builder = root => {
+  const [gp, y0] = site(root, SITE.loess, 0.88);
+  const LOESS = '#b29464', TH = '#7c643e', WALL = '#cbb892', STONE = '#9a9282', CLAY = '#bc5838';
+  // Protective defensive ditch (仰韶环壕) along the south
+  band(gp, 0.24, 0.33, y0, 0.004, '#5a6e68', 0.015);
+  box(gp, LOESS, 0, y0 + 0.003, 0.285, 0.08, 0.012, 0.11);
+  // Central communal F1 Great House (半坡F1大房子) with wide eaves & front porch
+  const hx = -0.06, hz = -0.06;
+  earth(gp, hx, y0, hz, 0.24, 0.2, 0.22, 0.18, 0.018, LOESS, 2, LOESS);
+  const eh = body(gp, hx, y0 + 0.018, hz, 0.18, 0.14, 0.038, { wall: WALL, col: '#684428', door: '#3a2618', doorN: 1, sp: 0.036, cr: 0.004 });
+  roof(gp, hx, eh, hz, 0.25, 0.21, 0.056, { tile: TH, thatch: true, k: 0.06, ridge: shade(TH, 0.78) });
+  // Surrounding round semi-subterranean thatched huts (圆形半地穴式茅屋)
+  for (const [x, z, r] of [[-0.26, 0.06, 0.062], [-0.24, -0.16, 0.056], [0.14, -0.2, 0.058]] as [number, number, number][]) {
+    cyl(gp, WALL, x, y0, z, r * 0.82, 0.032, 12);
+    cone(gp, TH, x, y0 + 0.028, z, r, 0.058, 12);
+    box(gp, TH, x, y0 + 0.016, z + r * 0.78, 0.026, 0.028, 0.024);
+  }
+  // Raised Hemudu timber stilt house (河姆渡干栏式长屋) on the east
+  const sx = 0.21, sz = 0.06;
+  for (const dx of [-0.055, 0, 0.055]) for (const dz of [-0.035, 0.035]) cyl(gp, '#5c3c22', sx + dx, y0, sz + dz, 0.004, 0.032, 6);
+  box(gp, '#8a623c', sx, y0 + 0.032, sz, 0.14, 0.032, 0.09);
+  gable(gp, 0.17, 0.048, 0.12, TH, sx, y0 + 0.064, sz);
+  // Hongshan three-tiered circular stone altar (红山三层圆坛) & painted pottery jars (人面鱼纹彩陶盆/尖底瓶)
+  for (const [i, r] of [[0, 0.058], [1, 0.042], [2, 0.026]] as [number, number][]) {
+    cyl(gp, STONE, -0.22, y0 + i * 0.012, 0.2, r, 0.012, 16);
+  }
+  for (const [x, z] of [[0.06, 0.14], [0.1, 0.16]] as [number, number][]) ellip(gp, CLAY, x, y0 + 0.014, z, 0.012, 0.015, 0.012);
+  figure(gp, -0.02, y0, 0.14, 0.028, '#8a6a44', { ry: 0.3 });
+  figure(gp, 0.06, y0, 0.18, 0.027, '#6e5236', { ry: -0.6 });
+};
+
+/**
+ * 三国鼎立 · 魏洛阳金墉铜雀台、蜀成都锦官城与吴建业石头城 (220–280): Tripartite Three Kingdoms capital synthesis — Cao Wei's
+ * towering rammed-earth terrace and flying bridge (曹魏洛阳金墉城/邺城铜雀三台飞阁) at north, Shu Han's Chengdu Jinguan Palace
+ * (蜀汉成都皇城) at southwest, and Eastern Wu's Jianye Stone Fortress & naval tower-ship (东吴建业石头城与长江水军) at southeast.
+ */
+const cap_sanguo: Builder = root => {
+  const [gp, y0] = site(root, SITE.loess, 0.88);
+  const RAM = '#a88c62', WALL = '#e0d6c2', RED = '#8e2c22', TILE = '#464a50', WATER = '#3a6872', BRZ = '#c89b38';
+  // Yangtze & Yellow River divide band across the south-east
+  band(gp, 0.16, 0.3, y0, 0.004, WATER, 0.015);
+  // 1. Cao Wei North Terrace: Main Tongque/Jinyong Terrace + flanking Ice-Well/Golden-Phoenix terraces linked by flying bridges (飞阁)
+  const wz = -0.16;
+  const tMain = earth(gp, 0, y0, wz, 0.24, 0.16, 0.21, 0.14, 0.072, RAM, 4, '#b89c72');
+  const eh = body(gp, 0, tMain, wz, 0.17, 0.1, 0.044, { wall: WALL, col: RED, bracket: RED, door: '#4a1e18', doorN: 3, sp: 0.036, cr: 0.004 });
+  roof(gp, 0, eh, wz, 0.22, 0.145, 0.042, { tile: TILE, k: 0.32, lift: 0.2, xie: 0.68, chi: BRZ, chiH: 0.024 });
+  for (const sx of [-1, 1]) {
+    const tx = sx * 0.24, tz = -0.14;
+    const ts = earth(gp, tx, y0, tz, 0.13, 0.12, 0.11, 0.1, 0.056, RAM, 3, '#b89c72');
+    const es = body(gp, tx, ts, tz, 0.09, 0.08, 0.034, { wall: WALL, col: RED, sp: 0.03, cr: 0.0035 });
+    roof(gp, tx, es, tz, 0.13, 0.115, 0.032, { tile: TILE, k: 0.3, lift: 0.18 });
+    // Elevated timber flying bridge (飞阁复道)
+    corridor(gp, sx * 0.1, wz, sx * 0.18, tz, y0 + 0.052, 0.024, 0.032, TILE, RED, { wall: WALL });
+  }
+  // 2. Shu Han Southwest Courtyard Hall (蜀汉成都宫城与武侯祠柏树)
+  const st = earth(gp, -0.18, y0, 0.08, 0.18, 0.13, 0.17, 0.12, 0.024, '#8c7e68', 2);
+  const esh = body(gp, -0.18, st, 0.08, 0.14, 0.095, 0.036, { wall: WALL, col: RED, door: '#4a1e18', doorN: 3, sp: 0.034, cr: 0.0038 });
+  roof(gp, -0.18, esh, 0.08, 0.18, 0.13, 0.036, { tile: TILE, k: 0.34, lift: 0.22, xie: 0.68 });
+  // 3. Eastern Wu Southeast Stone Fortress (东吴建业石头城赤壁城垣) & Yangtze樓船 warship
+  const wt = earth(gp, 0.18, y0, 0.06, 0.18, 0.12, 0.16, 0.1, 0.042, '#9e5842', 3, '#884a36');
+  const ewu = body(gp, 0.18, wt, 0.06, 0.12, 0.08, 0.034, { wall: WALL, col: RED, sp: 0.032, cr: 0.0035 });
+  roof(gp, 0.18, ewu, 0.06, 0.16, 0.11, 0.034, { tile: TILE, k: 0.36, lift: 0.24 });
+  rbox(gp, '#5a3a22', 0.12, y0 + 0.005, 0.23, 0.14, 0.016, 0.044, 0.005);
+  box(gp, WALL, 0.12, y0 + 0.021, 0.23, 0.075, 0.022, 0.032);
+  figure(gp, 0, y0, 0.04, 0.028, '#28262a', { hat: 'peaked', hatC: BRZ });
+  tree(gp, -0.32, y0, 0.12, 0.062, '#3e6238');
+};
+
+/**
+ * 南北朝 · 北魏洛阳永宁寺九层木塔与南朝建康千寺瓦官阁 (420–589): Northern Wei Luoyang's towering 9-storey Yongning Temple
+ * timber pagoda (北魏洛阳永宁寺九层百尺木塔，朱柱金刹) on a white stone Sumeru terrace at northwest, paired with Southern
+ * Dynasties Jiankang's misty monastery pavilion (南朝四百八十寺楼台烟雨) and rock-cut Buddhist grotto niches at southeast.
+ */
+const cap_nanbei: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.88);
+  const STONE = '#d8d0be', WALL = '#e6decb', RED = '#982e24', TILE = '#484d54', GOLD = '#d8a634', WATER = '#426d74';
+  band(gp, 0.16, 0.29, y0, 0.004, WATER, 0.015);
+  // Northern Wei Luoyang Yongning Temple 9-storey timber pagoda (北魏洛阳永宁寺九层木塔) on square Sumeru platform
+  const px = -0.13, pz = -0.1;
+  const pt = earth(gp, px, y0, pz, 0.22, 0.22, 0.2, 0.2, 0.032, STONE, 2, STONE);
+  steps(gp, px, y0, pz + 0.11 + 0.03, 0.05, 0.032, 0.035, STONE, 4);
+  let py = pt;
+  for (let i = 0; i < 9; i++) {
+    const k = 1 - i * 0.078, w = 0.145 * k, h = (i === 0 ? 0.032 : 0.021) * (1 - i * 0.03);
+    box(gp, WALL, px, py, pz, w * 0.84, h, w * 0.84);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) cyl(gp, RED, px + sx * w * 0.42, py, pz + sz * w * 0.42, 0.003, h, 5);
+    roof(gp, px, py + h, pz, w + 0.032, w + 0.032, 0.015, { tile: TILE, k: 0.34, lift: 0.22 });
+    py += h + 0.012;
+  }
+  cyl(gp, GOLD, px, py, pz, 0.005, 0.048, 8);
+  ellip(gp, GOLD, px, py + 0.024, pz, 0.009, 0.014, 0.009);
+  // Southern Dynasties Jiankang monastery hall & waterside pavilion (南朝建康同泰寺/瓦官寺阁)
+  const sx = 0.17, sz = -0.06;
+  const st = earth(gp, sx, y0, sz, 0.22, 0.15, 0.2, 0.135, 0.024, STONE, 2, STONE);
+  const eh = body(gp, sx, st, sz, 0.17, 0.105, 0.042, { wall: WALL, col: RED, bracket: RED, door: '#4a1e18', doorN: 3, sp: 0.036, cr: 0.0038 });
+  roof(gp, sx, eh, sz, 0.22, 0.15, 0.04, { tile: TILE, k: 0.4, lift: 0.3, xie: 0.66, chi: GOLD, chiH: 0.022 });
+  // Carved Buddhist grotto cliff niche (北朝石窟大佛龛) on the northeast
+  tbox(gp, 0.14, 0.08, 0.12, 0.065, 0.095, '#b8a47e', 0.06, y0, -0.26);
+  box(gp, '#342c24', 0.06, y0 + 0.01, -0.22, 0.052, 0.064, 0.016);
+  figure(gp, 0.06, y0 + 0.012, -0.215, 0.046, GOLD, { hat: 'knot', hatC: GOLD });
+  figure(gp, -0.02, y0, 0.08, 0.028, '#8a2e26', { hat: 'cap' });
+  figure(gp, 0.12, y0, 0.09, 0.027, '#4c6278', { hat: 'cap' });
+  tree(gp, -0.32, y0, 0.12, 0.062, '#587444');
+  tree(gp, 0.31, y0, 0.1, 0.06, '#587444');
+};
+
+/**
+ * 辽上京临潢府 · 大内开皇殿、南北双城与契丹四时捺钵金帐 (916–1125): Khitan Liao Supreme Capital combining the northern Imperial
+ * Palace (大内开皇殿), octagonal brick dense-eave Liao pagoda (辽上京八角密檐砖塔), and the nomadic Imperial Nabo Golden Yurt
+ * (契丹四时捺钵大金帐) with camel-drawn felt wagon (毡车) and golden wolf-head banner.
+ */
+const cap_liao: Builder = root => {
+  const [gp, y0] = site(root, SITE.grass, 0.88);
+  const RAM = '#a89068', WALL = '#e4dcc8', RED = '#942e24', TILE = '#464c52', GREEN = '#2e7654', GOLD = '#d8a632', FELT = '#f0eadc';
+  // Battered rammed-earth dividing wall between Northern Imperial City (皇城) and Southern Han City (汉城)
+  earth(gp, 0, y0, 0.06, 0.56, 0.068, 0.52, 0.056, 0.048, RAM, 3, '#b8a078');
+  box(gp, '#321c16', 0, y0, 0.06, 0.044, 0.038, 0.072);
+  // Kaihuang Hall (辽上京大内开皇殿) with bold Liao timber frame & green-edged glazed roof
+  const hz = -0.16;
+  const ht = earth(gp, -0.08, y0, hz, 0.28, 0.16, 0.26, 0.145, 0.032, '#cfc6b2', 2);
+  steps(gp, -0.08, y0, hz + 0.08 + 0.03, 0.055, 0.032, 0.035, '#cfc6b2', 4);
+  const eh = body(gp, -0.08, ht, hz, 0.22, 0.115, 0.044, { wall: WALL, col: RED, bracket: RED, door: '#4e1e18', doorN: 3, sp: 0.038, cr: 0.0042 });
+  roof(gp, -0.08, eh, hz, 0.27, 0.16, 0.042, { tile: TILE, edge: GREEN, k: 0.34, lift: 0.22, xie: 0.68, chi: GOLD, chiH: 0.024 });
+  // Octagonal 7-tier dense-eave brick Liao pagoda (辽代八角密檐砖塔) at northeast
+  const px = 0.21, pz = -0.16;
+  cyl(gp, '#d4cab6', px, y0, pz, 0.056, 0.026, 8);
+  cyl(gp, '#dfd6c4', px, y0 + 0.026, pz, 0.044, 0.048, 8);
+  let py = y0 + 0.074;
+  for (let i = 0; i < 7; i++) {
+    const r = 0.048 * (1 - i * 0.075);
+    cone(gp, '#585c62', px, py, pz, r, 0.011, 8);
+    cyl(gp, '#d4cab6', px, py + 0.01, pz, r * 0.76, 0.01, 8);
+    py += 0.017;
+  }
+  cone(gp, GOLD, px, py, pz, 0.012, 0.03, 8);
+  // Khitan Imperial Nabo Golden Yurt (契丹捺钵大金帐) & felt wagon in the southern steppe forecourt
+  const yx = -0.14, yz = 0.2;
+  cyl(gp, '#b89658', yx, y0, yz, 0.095, 0.012, 16);
+  cyl(gp, FELT, yx, y0 + 0.012, yz, 0.082, 0.044, 16);
+  box(gp, RED, yx, y0 + 0.034, yz, 0.168, 0.008, 0.168);
+  cone(gp, FELT, yx, y0 + 0.056, yz, 0.086, 0.042, 16);
+  cone(gp, GOLD, yx, y0 + 0.092, yz, 0.024, 0.018, 12);
+  // Golden banner standard & Khitan figures
+  cyl(gp, GOLD, yx + 0.11, y0, yz - 0.02, 0.003, 0.11, 6);
+  ellip(gp, GOLD, yx + 0.11, y0 + 0.115, yz - 0.02, 0.008, 0.01, 0.008);
+  figure(gp, 0.06, y0, 0.2, 0.028, '#8e2c24', { hat: 'peaked', hatC: GOLD });
+  figure(gp, 0.12, y0, 0.22, 0.027, '#3c4e62', { hat: 'fur' });
+};
+
+/**
+ * 西夏兴庆府 · 大内绿琉璃宫殿、贺兰山拜寺口双塔与西夏文御碑 (1038–1227): Western Xia capital Xingqing (Yinchuan) backed by the
+ * Helan Mountains (贺兰山), imperial palace crowned with emerald-green glazed tiles and towering glazed owl-tail finials
+ * (绿琉璃瓦与琉璃鸱尾), Baisikou twin Buddhist pagodas (拜寺口双塔), and Tangut-script royal stele pavilion (西夏文碑亭).
+ */
+const cap_xixia: Builder = root => {
+  const [gp, y0] = site(root, SITE.sand, 0.88);
+  const MTN = '#7a6c58', WALL = '#e6dec8', RED = '#982c22', GREEN = '#1f7a52', GOLD = '#da9e28', BRICK = '#c4a878';
+  // Helan Mountain ridges (贺兰山脉) along the north-west horizon & Yellow River irrigation channel in front
+  hill(gp, -0.24, y0, -0.24, 0.18, 0.12, 0.15, MTN);
+  hill(gp, 0.22, y0, -0.25, 0.16, 0.11, 0.13, shade(MTN, 0.92));
+  band(gp, 0.24, 0.35, y0, 0.004, '#3c6e76', 0.015);
+  // Xingqing Imperial Palace (兴庆府大内宫殿) with Western Xia emerald-green glazed roof & tall Kalavinka/Chiwei finials
+  const hz = -0.08;
+  const ht1 = earth(gp, 0, y0, hz, 0.34, 0.19, 0.32, 0.175, 0.026, '#d6ccb8', 2);
+  const ht2 = earth(gp, 0, ht1, hz, 0.28, 0.15, 0.26, 0.14, 0.022, '#e2d9c6', 2);
+  steps(gp, 0, y0, hz + 0.095 + 0.035, 0.06, 0.048, 0.045, '#d6ccb8', 5);
+  const eh = body(gp, 0, ht2, hz, 0.23, 0.115, 0.046, { wall: WALL, col: RED, bracket: GOLD, door: '#521e16', doorN: 5, sp: 0.038, cr: 0.0042 });
+  roof(gp, 0, eh, hz, 0.29, 0.165, 0.046, { tile: GREEN, edge: GOLD, k: 0.38, lift: 0.28, xie: 0.66, chi: GREEN, chiH: 0.032 });
+  // Baisikou-style octagonal multi-tier Western Xia brick pagodas (西夏佛塔) flanking the court
+  for (const sx of [-1, 1]) {
+    const px = sx * 0.25, pz = 0.04;
+    cyl(gp, BRICK, px, y0, pz, 0.042, 0.032, 8);
+    let py = y0 + 0.032;
+    for (let i = 0; i < 7; i++) {
+      const r = 0.042 * (1 - i * 0.08);
+      cone(gp, GREEN, px, py, pz, r * 1.12, 0.01, 8);
+      cyl(gp, BRICK, px, py + 0.009, pz, r * 0.78, 0.011, 8);
+      py += 0.017;
+    }
+    cone(gp, GOLD, px, py, pz, 0.011, 0.026, 8);
+  }
+  // Tangut-script royal stele on tortoise Bixi pedestal (西夏文重修护国寺感应塔碑)
+  ellip(gp, '#8a8274', -0.12, y0 + 0.008, 0.14, 0.016, 0.008, 0.022);
+  box(gp, '#cfc6b2', -0.12, y0 + 0.014, 0.14, 0.024, 0.048, 0.008);
+  figure(gp, 0.02, y0, 0.15, 0.028, '#ebe4d4', { hat: 'peaked', hatC: GOLD });
+  figure(gp, 0.08, y0, 0.17, 0.027, '#982c22', { hat: 'cap' });
+};
+
+/**
+ * 清京师顺天府 · 紫禁城太和殿、乾清门丹陛铜鹤日晷与天坛祈年殿 (1644–1912): Qing Beijing imperial synthesis pairing the Hall of
+ * Supreme Harmony (紫禁城太和殿) on its three-tiered white marble Sumeru terrace with sundial, grain measure, bronze crane and
+ * gilt water vats, alongside the iconic triple-eaved cobalt-blue circular Hall of Prayer for Good Harvests (天坛祈年殿).
+ */
+const cap_qing: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.88);
+  const MARBLE = '#f0ebe0', RED = '#9c2820', GOLD = '#e0a424', BLUE = '#1f4488', BRZ = '#c49630';
+  // 1. Hall of Supreme Harmony (太和殿) on three-tiered white marble Sumeru terrace at north-west
+  const hx = -0.11, hz = -0.12;
+  const t1 = earth(gp, hx, y0, hz, 0.38, 0.21, 0.36, 0.195, 0.024, MARBLE, 2, MARBLE);
+  const t2 = earth(gp, hx, t1, hz, 0.33, 0.175, 0.31, 0.16, 0.022, MARBLE, 2, MARBLE);
+  const t3 = earth(gp, hx, t2, hz, 0.28, 0.14, 0.27, 0.132, 0.02, MARBLE, 2, MARBLE);
+  rail(gp, hx, t1, hz, 0.35, 0.19, MARBLE, 0.08, 0.012);
+  rail(gp, hx, t3, hz, 0.26, 0.128, MARBLE, 0.07, 0.012);
+  for (const dx of [-0.024, 0.024]) steps(gp, hx + dx, y0, hz + 0.105 + 0.05, 0.02, t3 - y0, 0.06, MARBLE, 6);
+  ramp(gp, hx, y0, hz + 0.105 + 0.05, 0.028, t3 - y0, 0.06, shade(MARBLE, 0.94));
+  const eh1 = body(gp, hx, t3, hz, 0.24, 0.11, 0.042, { wall: RED, col: RED, bracket: GOLD, door: '#561a14', doorN: 5, sp: 0.034, cr: 0.004 });
+  const er1 = roof(gp, hx, eh1, hz, 0.29, 0.155, 0.02, { tile: GOLD, k: 0.34, lift: 0.2, inner: [0.2, 0.09] });
+  const eh2 = body(gp, hx, er1, hz, 0.2, 0.09, 0.028, { wall: RED, col: RED, bracket: GOLD, sp: 0.034, cr: 0.0036 });
+  roof(gp, hx, eh2, hz, 0.26, 0.14, 0.042, { tile: GOLD, k: 0.38, lift: 0.26, chi: GOLD, chiH: 0.026 });
+  // Manchu-Han bilingual plaque (满汉合璧太和殿匾), sundial (日晷), grain measure (嘉量) & gilt bronze vats (门海铜缸)
+  box(gp, '#1e2c48', hx, er1 + 0.018, hz + 0.048, 0.024, 0.016, 0.005);
+  for (const sx of [-1, 1]) {
+    box(gp, MARBLE, hx + sx * 0.095, t3, hz + 0.055, 0.014, 0.018, 0.014);
+    cyl(gp, BRZ, hx + sx * 0.14, y0, hz + 0.14, 0.014, 0.02, 10);
+  }
+  // 2. Temple of Heaven Qiniandian (天坛祈年殿三重蓝琉璃瓦圆攒尖大殿) on three-tiered marble circular altar at east
+  const tx = 0.21, tz = 0.06;
+  for (const [i, r] of [[0, 0.135], [1, 0.108], [2, 0.084]] as [number, number][]) {
+    cyl(gp, MARBLE, tx, y0 + i * 0.018, tz, r, 0.018, 20);
+  }
+  const ty = y0 + 0.054;
+  cyl(gp, RED, tx, ty, tz, 0.064, 0.046, 16);
+  for (const [dy, r, h] of [[0.038, 0.082, 0.024], [0.062, 0.068, 0.024], [0.086, 0.054, 0.038]] as [number, number, number][]) {
+    cyl(gp, RED, tx, ty + dy - 0.012, tz, r * 0.72, 0.016, 16);
+    cone(gp, BLUE, tx, ty + dy, tz, r, h, 18);
+  }
+  ellip(gp, GOLD, tx, ty + 0.128, tz, 0.009, 0.014, 0.009);
+  // Qing court officials in peacock-plumed 顶戴花翎 hats and 补服 robes
+  figure(gp, -0.11, y0, 0.14, 0.028, '#1e2a44', { hat: 'peaked', hatC: '#262220' });
+  figure(gp, -0.05, y0, 0.16, 0.027, '#243452', { hat: 'peaked', hatC: '#262220' });
+  for (const [x, z] of [[-0.32, 0.22], [0.02, 0.28]] as [number, number][]) tree(gp, x, y0, z, 0.06, '#3e5e38');
+};
+
+/**
+ * 中华人民共和国首都北京 · 天安门城楼、金水桥华表、五星红旗与人民英雄纪念碑 (1949–present): Tiananmen Gatehouse with golden glazed
+ * double roof, eight red festival lanterns, Golden Water Bridges and Huabiao pillars at north, facing the Five-Star Red Flag
+ * and the Monument to the People's Heroes (人民英雄纪念碑) on Tiananmen Square.
+ */
+const cap_prc: Builder = root => {
+  const [gp, y0] = site(root, SITE.paving, 0.88);
+  const MARBLE = '#f2ede2', RED = '#aa241c', FLAG = '#d81e18', GOLD = '#eab026', WATER = '#3a6e78', GRANITE = '#dfd6c4';
+  // Outer Golden Water River (外金水河) & five arched white marble bridges in front of Tiananmen
+  band(gp, -0.04, 0.04, y0, 0.004, WATER, 0.015);
+  for (const [dx, w] of [[-0.14, 0.028], [-0.07, 0.032], [0, 0.042], [0.07, 0.032], [0.14, 0.028]] as [number, number][]) {
+    box(gp, MARBLE, dx, y0 + 0.004, 0, w, 0.016, 0.095);
+  }
+  // Twin carved white marble Huabiao pillars (汉白玉云龙华表)
+  for (const sx of [-1, 1]) {
+    const hx = sx * 0.22, hz = 0.055;
+    box(gp, MARBLE, hx, y0, hz, 0.026, 0.012, 0.026);
+    cyl(gp, MARBLE, hx, y0 + 0.012, hz, 0.007, 0.068, 8);
+    box(gp, MARBLE, hx, y0 + 0.072, hz, 0.024, 0.005, 0.009);
+    ellip(gp, MARBLE, hx, y0 + 0.086, hz, 0.006, 0.008, 0.006);
+  }
+  // Tiananmen Gatehouse (天安门城楼) at north with five arched portals, slogans, red lanterns & golden double-eave roof
+  const tz = -0.15;
+  earth(gp, 0, y0, tz, 0.54, 0.12, 0.5, 0.105, 0.078, RED, 4, MARBLE);
+  rail(gp, 0, y0 + 0.078, tz, 0.49, 0.1, MARBLE, 0, 0.012);
+  for (const [dx, r] of [[-0.13, 0.013], [-0.065, 0.014], [0, 0.018], [0.065, 0.014], [0.13, 0.013]] as [number, number][]) {
+    box(gp, '#38120e', dx, y0, tz + 0.054, r * 1.8, 0.044, 0.012);
+  }
+  // Flanking white-letter red slogan plaques & central emblem
+  for (const sx of [-1, 1]) box(gp, FLAG, sx * 0.11, y0 + 0.052, tz + 0.056, 0.11, 0.014, 0.004);
+  cyl(gp, GOLD, 0, y0 + 0.062, tz + 0.057, 0.011, 0.004, 10).rotation.x = Math.PI / 2;
+  const eh1 = body(gp, 0, y0 + 0.078, tz, 0.34, 0.082, 0.036, { wall: RED, col: RED, bracket: GOLD, door: '#561812', doorN: 5, sp: 0.036, cr: 0.004 });
+  // Eight red lanterns under the eaves
+  for (let i = -3.5; i <= 3.5; i += 1) ellip(gp, FLAG, i * 0.042, y0 + 0.106, tz + 0.044, 0.006, 0.008, 0.006);
+  const er1 = roof(gp, 0, eh1, tz, 0.4, 0.125, 0.02, { tile: GOLD, k: 0.34, lift: 0.2, inner: [0.3, 0.07] });
+  const eh2 = body(gp, 0, er1, tz, 0.3, 0.07, 0.026, { wall: RED, col: RED, bracket: GOLD, sp: 0.036, cr: 0.0036 });
+  roof(gp, 0, eh2, tz, 0.36, 0.115, 0.04, { tile: GOLD, k: 0.38, lift: 0.26, xie: 0.68, chi: GOLD, chiH: 0.026 });
+  // National Flagpole & Five-Star Red Flag (国旗杆与五星红旗) at center of square
+  box(gp, MARBLE, -0.1, y0, 0.14, 0.064, 0.014, 0.064);
+  cyl(gp, '#d8dde2', -0.1, y0 + 0.014, 0.14, 0.0035, 0.16, 8);
+  box(gp, FLAG, -0.07, y0 + 0.145, 0.14, 0.056, 0.038, 0.003);
+  ellip(gp, GOLD, -0.088, y0 + 0.156, 0.142, 0.005, 0.005, 0.003);
+  // Monument to the People's Heroes (人民英雄纪念碑) on double marble terrace at south-east
+  const mx = 0.08, mz = 0.2;
+  box(gp, MARBLE, mx, y0, mz, 0.14, 0.016, 0.12);
+  box(gp, MARBLE, mx, y0 + 0.016, mz, 0.105, 0.016, 0.09);
+  box(gp, GRANITE, mx, y0 + 0.032, mz, 0.056, 0.026, 0.044);
+  tbox(gp, 0.038, 0.028, 0.03, 0.022, 0.135, GRANITE, mx, y0 + 0.058, mz);
+  gable(gp, 0.034, 0.016, 0.026, GRANITE, mx, y0 + 0.193, mz);
+  for (const sx of [-0.28, 0.28]) tree(gp, sx, y0, 0.18, 0.064, '#365e34');
+};
+
 export const H_CAPITALS: Record<string, Builder> = {
-  cap_erlitou, cap_yinxu, cap_zhou, cap_luoyi, cap_zhanguo, cap_xianyang, cap_qinhan, cap_xin, cap_luoyang, cap_taiji, cap_jiankang,
-  cap_sui, cap_tang, cap_wudai, cap_song, cap_jin, cap_linan, cap_yuan, cap_ming, cap_nanjing_roc,
+  cap_paleo, cap_neo, cap_erlitou, cap_yinxu, cap_zhou, cap_luoyi, cap_zhanguo, cap_xianyang, cap_qinhan, cap_xin, cap_luoyang,
+  cap_sanguo, cap_taiji, cap_jiankang, cap_nanbei, cap_sui, cap_tang, cap_wudai, cap_song, cap_liao, cap_xixia, cap_jin,
+  cap_linan, cap_yuan, cap_ming, cap_qing, cap_nanjing_roc, cap_prc,
 };

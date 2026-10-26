@@ -91,8 +91,8 @@ describe('period capitals', () => {
     expect(at('jin').hero).toBe('capitals/cap_jin');
     expect(at('nsong').hero).toBe('capitals/cap_linan');
     expect(at('ming').hero).toBe('capitals/cap_ming');
-    expect(at('qing').hero).toBe('asia/forbidden');
-    expect(at('prc')).toEqual({ kind: 'monument' });
+    expect(at('qing').hero).toBe('capitals/cap_qing');
+    expect(at('prc').hero).toBe('capitals/cap_prc');
     const capKeys = ERAS.map(e => {
       const m = capitalModel(e);
       return `${m.hero ?? m.kind}:${m.style ?? ''}`;
@@ -105,6 +105,31 @@ describe('period capitals', () => {
       expect(stats(buildFresh(capitalModel(e))).tris, e.id).toBeLessThan(130_000);
     }
   }, 120_000);
+});
+
+describe('zero model reuse across events, life items, and travellers', () => {
+  it('gives every event in EVENTS, every item in LIFE, and every traveller in TRAVELLER a unique model recipe', () => {
+    const evKeys = new Map<string, string>();
+    for (const e of EVENTS) {
+      const m = e.model!;
+      const k = `${m.hero ?? m.kind}:${m.style ?? ''}`;
+      expect(evKeys.get(k), `${e.id} shares event model key ${k}`).toBeUndefined();
+      evKeys.set(k, e.id);
+    }
+    expect(evKeys.size).toBe(EVENTS.length);
+
+    const lifeKeys = new Map<string, string>();
+    for (const l of LIFE) {
+      const m = l.model;
+      const k = `${m.hero ?? m.kind}:${m.style ?? ''}:${m.person ?? ''}:${m.year ?? ''}:${m.role ?? ''}`;
+      expect(lifeKeys.get(k), `${l.id} shares life model key ${k}`).toBeUndefined();
+      lifeKeys.set(k, l.id);
+    }
+    expect(lifeKeys.size).toBe(LIFE.length);
+
+    const travKeys = new Set(Object.values(TRAVELLER).map(v => JSON.stringify(v)));
+    expect(travKeys.size).toBe(Object.keys(TRAVELLER).length);
+  });
 });
 
 describe('place landmark models', () => {

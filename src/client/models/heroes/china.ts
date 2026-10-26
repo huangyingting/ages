@@ -604,7 +604,7 @@ const cn_yellowcrane: Builder = gp => {
 
 // ---------------------------------------------------------------------------------------------------------
 // Mogao Caves, Dunhuang — the Nine-Storey Pavilion against a cliff honeycombed with cave doorways
-const cn_mogao: Builder = gp => {
+const cn_mogao: Builder = (gp, r) => {
   // Ref: Mogao Caves, Dunhuang (UNESCO 440; Dunhuang Academy): Cave 96 'Nine-Storey' facade ~45 m, eaves 1-6 single-face, 7 three-face, 8 four-face, octagonal 攒尖 top.
   // Photo: Commons "Dunhuang Mogao Ku 2013.12.31 12-30-18.jpg" — red columns with cream infill under grey eaves, grey-tan conglomerate cliff.
   const h: HFn = rimFade((x, z) => 0.008 * fbm(x * 9, 1, z * 9, 2));
@@ -713,6 +713,14 @@ const cn_mogao: Builder = gp => {
     lathe(gp, [[0, 0], [0.005, 0], [0.003, 0.03], [0, 0.034]], shade(E, 0.92), sx0, Y0 + 0.05, sz0, 8);
   }
   for (const [dx, dz, c] of [[-0.03, 0.12, DRESS[0]], [0.02, 0.16, DRESS[1]], [0.05, 0.08, DRESS[2]], [-0.06, 0.26, DRESS[3]]] as const) person(gp, dx, Y0, dz, c, 1.0);
+  if (r?.style === 'cangjingdong') {
+    // 1900 Cave 17 Library Cave discovery: wooden reading table and stacked bundles of Dunhuang scrolls
+    box(gp, '#6e4726', 0.11, Y0, 0.2, 0.09, 0.022, 0.055);
+    for (let k = 0; k < 5; k++) {
+      cyl(gp, k % 2 ? '#e5d2a8' : '#d4bc8b', 0.085 + (k % 3) * 0.024, Y0 + 0.026 + Math.floor(k / 3) * 0.012, 0.2, 0.008, 0.036, 8).rotation.z = Math.PI / 2;
+    }
+    box(gp, '#8f3326', 0.17, Y0, 0.18, 0.028, 0.048, 0.012);
+  }
 };
 
 // ---------------------------------------------------------------------------------------------------------
@@ -1087,9 +1095,10 @@ const cn_hangingtemple: Builder = gp => {
 
 // ---------------------------------------------------------------------------------------------------------
 // Mount Tai — the steep stone stairway climbing a gully to the red South Gate of Heaven
-const cn_taishan: Builder = gp => {
-  // Ref: Tai Shan (Wikipedia/Baike 南天门): granite Eighteen Bends stairway up to the Qing-rebuilt South Gate of Heaven — red-walled stone
-  // arch gate under the three-bay double-eave Mokong Pavilion (yellow glazed tile); Jade Emperor Temple and the Wordless Stele on the summit.
+const cn_taishan: Builder = (gp, r) => {
+  // Ref: Tai Shan (Wikipedia/Baike 南天门): granite Eighteen Bends stairway up to the South Gate of Heaven — with period-specific
+  // feng-shan monuments for Qin (`qin`), Western Han (`whan`), Tang (`tang`), and Northern Song (`bsong`).
+  const style = typeof r?.style === 'string' ? r.style : '';
   const gs = (x: number, z: number, cx: number, cz: number, s: number) => Math.exp(-((x - cx) ** 2 + (z - cz) ** 2) / s);
   const h0 = (x: number, z: number) => Math.max(
     0.5 * gs(x, z * 1.1, 0.2, -0.24, 0.03), 0.4 * gs(x, z, -0.3, -0.2, 0.025), 0.32 * Math.exp(-((z + 0.12) ** 2) / 0.016) * sstep(0.5, 0.3, Math.abs(x)),
@@ -1113,9 +1122,9 @@ const cn_taishan: Builder = gp => {
     box(gp, i % 2 ? '#b9b2a4' : '#aaa395', x, y - 0.01, z, 0.03, y2 - y + 0.01, L / N + 0.002, ry);
     if (i % 2 === 0) for (const sd of [-1, 1]) box(gp, '#8f897e', x + Math.cos(ry) * sd * 0.017, y, z - Math.sin(ry) * sd * 0.017, 0.004, 0.009, L / N * 2, ry);
   }
-  // South Gate of Heaven: stone-arched red gate block with flanking red walls, Mokong Pavilion above (double eaves, yellow glaze)
+  // South Gate of Heaven: stone-arched red gate block with flanking red walls, Mokong Pavilion above
   const gx = S1[0], gz = S1[1] - 0.03, gy = Y0 + ph(1) - 0.008, gr = grp(gp, gx, gz, ry, gy);
-  const RED = '#94382c', GLZ = '#bc9442';
+  const RED = '#94382c', GLZ = style === 'qin' || style === 'whan' ? '#4a4e54' : '#bc9442';
   box(gr, '#8e8678', 0, -0.034, 0, 0.1, 0.006, 0.054);
   box(gr, RED, 0, -0.028, 0, 0.09, 0.07, 0.05);
   for (const sd of [-1, 1]) {
@@ -1133,19 +1142,48 @@ const cn_taishan: Builder = gp => {
   hall(gr, 0, 0.046, 0, hw, hd, ht, GLZ, 0, '#8a3026', { rh: 0.022, lift: 0.35, ov: 1.3 });
   const ov2 = 1.55, R2 = ((hd / 2) * ov2) / Math.SQRT1_2;
   proof(gr, 0, 0.046 + ht * 0.5, 0, { n: 4, R0: R2, R1: R2 * 0.62, h: 0.007, lift: 0.3, tile: GLZ, sx: (hw + hd * (ov2 - 1)) / (hd * ov2) });
-  // Summit: Jade Emperor Temple compound (stone wall, grey-tiled halls) and the Wordless Stele in front
+  // Summit & foot monuments branched by dynasty style (`qin`, `whan`, `tang`, `bsong`)
   const sx = 0.2, sz = -0.24, sy = Y0 + h(sx, sz);
-  for (const [dx, dz, w, d] of [[0, -0.04, 0.12, 0.006], [0, 0.04, 0.12, 0.006], [-0.06, 0, 0.006, 0.086], [0.06, 0, 0.006, 0.086]] as const) box(gp, '#8a8072', sx + dx, sy - 0.012, sz + dz, w, 0.026, d);
-  box(gp, '#8a8072', sx, sy - 0.012, sz + 0.04, 0.026, 0.03, 0.008);
-  hall(gp, sx, sy + 0.004, sz - 0.012, 0.062, 0.03, 0.026, '#5a5e5c', 0, '#86382c', { rh: 0.018 });
-  for (const sd of [-1, 1]) hall(gp, sx + sd * 0.04, sy + 0.002, sz + 0.012, 0.022, 0.03, 0.018, '#5a5e5c', Math.PI / 2, '#86382c', { rh: 0.012 });
-  box(gp, '#a39b8a', sx - 0.02, sy - 0.004, sz + 0.07, 0.016, 0.004, 0.012);
-  box(gp, '#b2aa98', sx - 0.02, sy, sz + 0.07, 0.012, 0.034, 0.008);
-  box(gp, '#5a5e5c', sx - 0.02, sy + 0.034, sz + 0.07, 0.015, 0.004, 0.011);
-  // Inscribed granite boulder (cliff carving in faded red), pines and pilgrims
+  if (style === 'qin') {
+    // 秦始皇封禅：山巅三层方坛与李斯小篆《泰山刻石》+ 五大夫松
+    box(gp, '#a89a82', sx, sy - 0.008, sz, 0.11, 0.014, 0.11);
+    box(gp, '#bab09a', sx, sy + 0.006, sz, 0.082, 0.014, 0.082);
+    box(gp, '#ccc2ac', sx, sy + 0.02, sz, 0.054, 0.012, 0.054);
+    box(gp, '#585652', sx, sy + 0.032, sz, 0.02, 0.046, 0.016);
+  } else if (style === 'whan') {
+    // 汉武帝封禅：汉代明堂辟雍环水圆坛与立石无字碑
+    cyl(gp, '#3c6e76', 0.14, Y0 + h(0.14, 0.26) - 0.004, 0.26, 0.068, 0.008, 16);
+    cyl(gp, '#c8bfa8', 0.14, Y0 + h(0.14, 0.26) + 0.002, 0.26, 0.046, 0.014, 16);
+    hall(gp, 0.14, Y0 + h(0.14, 0.26) + 0.016, 0.26, 0.052, 0.052, 0.024, '#7a623c', 0, '#8a3026', { rh: 0.022 });
+    box(gp, '#b8b09c', sx, sy - 0.004, sz + 0.04, 0.022, 0.056, 0.014);
+  } else if (style === 'tang') {
+    // 唐玄宗封禅：大观峰摩崖《纪泰山铭》朱红描金巨碑与山巅行宫
+    hall(gp, sx, sy + 0.004, sz - 0.012, 0.068, 0.034, 0.028, '#4a5056', 0, '#942e24', { rh: 0.02 });
+    const bx = 0.11, bz = 0.28, by = Y0 + h(bx, bz);
+    box(gp, '#948a78', bx, by, bz, 0.068, 0.065, 0.022, 0.25);
+    box(gp, '#982c22', bx, by + 0.008, bz + 0.012, 0.052, 0.048, 0.004, 0.25);
+    box(gp, '#e0ac32', bx, by + 0.046, bz + 0.014, 0.044, 0.008, 0.004, 0.25);
+  } else if (style === 'bsong') {
+    // 宋真宗封禅：山下岱庙天贶殿重檐黄琉璃庑殿与山巅玉皇宫
+    const dx = 0.14, dz = 0.27, dy = Y0 + h(dx, dz);
+    box(gp, '#dfd6c4', dx, dy - 0.004, dz, 0.11, 0.014, 0.068);
+    hall(gp, dx, dy + 0.01, dz, 0.088, 0.048, 0.03, '#d8a22c', 0, '#982c22', { rh: 0.024, lift: 0.32, ov: 1.3 });
+    hall(gp, sx, sy + 0.004, sz - 0.012, 0.062, 0.03, 0.026, '#5a5e5c', 0, '#86382c', { rh: 0.018 });
+  } else {
+    for (const [dx, dz, w, d] of [[0, -0.04, 0.12, 0.006], [0, 0.04, 0.12, 0.006], [-0.06, 0, 0.006, 0.086], [0.06, 0, 0.006, 0.086]] as const) box(gp, '#8a8072', sx + dx, sy - 0.012, sz + dz, w, 0.026, d);
+    box(gp, '#8a8072', sx, sy - 0.012, sz + 0.04, 0.026, 0.03, 0.008);
+    hall(gp, sx, sy + 0.004, sz - 0.012, 0.062, 0.03, 0.026, '#5a5e5c', 0, '#86382c', { rh: 0.018 });
+    for (const sd of [-1, 1]) hall(gp, sx + sd * 0.04, sy + 0.002, sz + 0.012, 0.022, 0.03, 0.018, '#5a5e5c', Math.PI / 2, '#86382c', { rh: 0.012 });
+    box(gp, '#a39b8a', sx - 0.02, sy - 0.004, sz + 0.07, 0.016, 0.004, 0.012);
+    box(gp, '#b2aa98', sx - 0.02, sy, sz + 0.07, 0.012, 0.034, 0.008);
+    box(gp, '#5a5e5c', sx - 0.02, sy + 0.034, sz + 0.07, 0.015, 0.004, 0.011);
+  }
+  // Inscribed granite boulder, pines and pilgrims
   const bx = 0.1, bz = 0.3;
-  blob(gp, '#9a9284', bx, Y0 + h(bx, bz) + 0.014, bz, 0.036, 0.03, 0.026, 0.3);
-  for (let k = 0; k < 3; k++) box(gp, '#8a3a2e', bx - 0.008 + k * 0.008, Y0 + h(bx, bz) + 0.016, bz + 0.025, 0.005, 0.014, 0.0015, 0.3);
+  if (style !== 'tang' && style !== 'bsong' && style !== 'whan') {
+    blob(gp, '#9a9284', bx, Y0 + h(bx, bz) + 0.014, bz, 0.036, 0.03, 0.026, 0.3);
+    for (let k = 0; k < 3; k++) box(gp, '#8a3a2e', bx - 0.008 + k * 0.008, Y0 + h(bx, bz) + 0.016, bz + 0.025, 0.005, 0.014, 0.0015, 0.3);
+  }
   for (let i = 0; i < 90; i++) {
     const x = -0.45 + hash3(i, 1, 5) * 0.9, z = -0.45 + hash3(i, 2, 5) * 0.9;
     if (Math.hypot(x, z) > 0.43 || pd(x, z) < 0.05 || Math.hypot(x - sx, z - sz) < 0.08 || Math.hypot(x - gx, z - gz) < 0.1) continue;

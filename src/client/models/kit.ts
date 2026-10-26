@@ -94,6 +94,71 @@ function gradeModel(root: THREE.Object3D): void {
 /** Loads whatever `buildFresh(recipe)` needs (the recipe's lazy hero pack, if any). */
 export const whenModelReady = (recipe: ModelRecipe): Promise<void> => whenHeroReady(recipe.hero);
 
+const KNOWN_RICH_STYLES = new Set([
+  'gallop', 'heavy', 'nomad', 'qing', 'plough', 'modern', 'ming', 'tiananmen',
+  'early', 'han', 'tang', 'grotto', 'tibet', 'siyang', 'mao', 'simuwu',
+  'slips', 'handscroll', 'siku', 'codex', 'movable', 'press', 'farm', 'humen',
+  'hongqiao', 'lugou', 'field', 'zunyi', 'shikumen', 'seawall', 'crh',
+  'soviet', 'faw', 'oil', 'daqing', 'jiangnan', 'yangwu', 'joint', 'dasheng',
+  'launch', 'cz2f', 'shenzhou', 'shenzhen',
+]);
+
+function hashEventStyle(s: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0;
+  return h >>> 0;
+}
+
+function addEventAccent(gp: THREE.Group, recipe: ModelRecipe, rawStyle: string): void {
+  if (rawStyle === 'nanxun') {
+    // 1992 Southern Tour: gilded Guomao Revolving Restaurant crown & reform arch
+    box(gp, '#d6a840', 0.04, 0.49, -0.04, 0.08, 0.022, 0.08);
+    box(gp, '#b91c1c', 0, 0.04, 0.34, 0.16, 0.035, 0.014);
+  } else if (rawStyle === 'muye') {
+    // -1046 Battle of Muye: King Wu's white-feathered command standard (白旄) & bronze battle-axe
+    box(gp, '#4a3222', -0.24, 0.02, 0.18, 0.01, 0.38, 0.01);
+    cone(gp, '#f3efe6', -0.24, 0.38, 0.18, 0.032, 0.09, 8);
+  } else if (rawStyle === 'dujiang') {
+    // 1949 Yangtze Crossing Campaign: red PLA assault banner & sandbag breastwork at bow
+    box(gp, '#4a3222', 0, 0.08, 0.06, 0.01, 0.34, 0.01);
+    box(gp, '#c81e1e', 0.055, 0.36, 0.06, 0.1, 0.065, 0.006);
+    box(gp, '#bfa980', 0, 0.09, 0.24, 0.14, 0.032, 0.045);
+  } else if (rawStyle === 'wto') {
+    // 2001 WTO accession: intermodal shipping containers on deck
+    box(gp, '#1d4ed8', -0.04, 0.14, 0.02, 0.06, 0.045, 0.11);
+    box(gp, '#b91c1c', 0.03, 0.14, 0.02, 0.06, 0.045, 0.11);
+    box(gp, '#d97706', -0.005, 0.185, 0.02, 0.06, 0.045, 0.11);
+  } else if (rawStyle === 'qijiguang') {
+    // 1561 Qi Jiguang anti-wokou flagship: golden Qi banner & bamboo langxian rack
+    box(gp, '#d6a840', -0.06, 0.32, -0.04, 0.085, 0.06, 0.006);
+    box(gp, '#8a6a3a', 0.08, 0.14, 0.08, 0.02, 0.16, 0.09);
+  } else if (rawStyle === 'zheng_chenggong') {
+    // 1662 Koxinga recovery of Taiwan: crimson Zheng standard & bronze bow cannon
+    box(gp, '#991b1b', 0.06, 0.34, -0.02, 0.09, 0.07, 0.006);
+    box(gp, '#7a5c32', 0, 0.13, 0.24, 0.026, 0.026, 0.09);
+  } else if (rawStyle === 'opium_war') {
+    // 1840 Opium War: coastal stone fort parapet & iron cannon
+    box(gp, '#78716c', -0.26, 0.03, 0.2, 0.12, 0.055, 0.08);
+    box(gp, '#27272a', -0.26, 0.085, 0.22, 0.024, 0.024, 0.08);
+  } else if (rawStyle === 'jiawu') {
+    // 1894 Beiyang Fleet ironclad: twin ochre steam funnels
+    box(gp, '#d97706', 0, 0.2, 0.04, 0.042, 0.14, 0.042);
+    box(gp, '#d97706', 0, 0.2, -0.05, 0.042, 0.14, 0.042);
+  }
+  const h = hashEventStyle(`${rawStyle}:${recipe.year ?? 0}:${recipe.kind}`);
+  const ang = ((h & 0x3ff) / 1024) * Math.PI * 2;
+  const rad = 0.22 + (((h >>> 10) & 0xff) / 255) * 0.12;
+  const x = Math.cos(ang) * rad, z = Math.sin(ang) * rad;
+  const w = 0.024 + (((h >>> 18) & 0x3f) / 63) * 0.026;
+  const ht = 0.038 + (((h >>> 24) & 0x3f) / 63) * 0.055;
+  const d = 0.014 + (((h >>> 6) & 0x1f) / 31) * 0.018;
+  const palette = ['#8f3326', '#6e5838', '#4f6858', '#5c5449', '#9a6b32', '#3f5668', '#7a2e24', '#85765c'];
+  const col = palette[h % palette.length];
+  const capCol = palette[(h >>> 3) % palette.length];
+  box(gp, col, x, 0.02, z, w, ht, d);
+  cone(gp, capCol, x, 0.02 + ht, z, w * 0.65, 0.018 + (h % 7) * 0.003, 4 + (h % 4));
+}
+
 /**
  * Builds and bakes a model (no caching; the worker and the main-thread fallback both use this). Hero recipes
  * (`hero: 'pack/name'`) need `whenModelReady` first, otherwise the kind's generic model is built.
@@ -105,7 +170,15 @@ export function buildFresh(recipe: ModelRecipe): THREE.Group {
   const hero = heroBuilder(recipe.hero);
   const rich = hero ?? (recipe.kind === 'person' ? personModel : RICH[recipe.kind]);
   if (rich) {
-    rich(inner, hero ? { color: '#cccccc', ...recipe } : recipe);
+    if (hero) {
+      rich(inner, { color: '#cccccc', ...recipe });
+    } else {
+      const rawStyle = typeof recipe.style === 'string' ? recipe.style : '';
+      const head = rawStyle.split('__')[0];
+      const baseStyle = head === 'nanxun' ? 'shenzhen' : KNOWN_RICH_STYLES.has(head) ? head : undefined;
+      rich(inner, { ...recipe, style: baseStyle });
+      if (rawStyle && !KNOWN_RICH_STYLES.has(rawStyle)) addEventAccent(inner, recipe, rawStyle);
+    }
     inner.scale.setScalar(KIT_SCALE * (typeof recipe.scale === 'number' ? recipe.scale : 1));
   } else (BUILDERS[recipe.kind] as LiteBuilder ?? FALLBACK)(inner, recipe);
   bakeAnimated(root);

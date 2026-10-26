@@ -21,66 +21,60 @@ const TITLE_HERO: [RegExp, string][] = [
   [/兵马俑/, 'asia3/terracotta'], [/紫禁城|故宫/, 'asia/forbidden'], [/长城/, 'asia/greatwall'], [/青藏铁路/, 'routes2/vh_qinghaitibet'],
 ];
 
-/** Explicit 1-to-1 landmark model per place ID (zero duplicates across all 180 named places). */
+/** Explicit 1-to-1 landmark model per place ID (zero duplicates across all named & imported places). */
 export const PLACE_ID_HERO: Record<string, ModelRecipe> = {
   // Prehistoric & Archaeological Sites
   yuanmou: { kind: 'cave', hero: 'places-sites/pl_yuanmou' },
-  zhoukoudian: { kind: 'cave', hero: 'life-custom1/lf_pekingman' },
+  zhoukoudian: { kind: 'cave', hero: 'places-sites/pl_zhoukoudian' },
   hemudu: { kind: 'hut', hero: 'places-sites/pl_hemudu' },
-  banpo: { kind: 'hut', hero: 'life-arch1/lf_banpo' },
+  banpo: { kind: 'hut', hero: 'places-sites/pl_banpo' },
   liangzhu: { kind: 'ding', hero: 'places-sites/pl_liangzhu' },
   dawenkou: { kind: 'ding', hero: 'places-sites/pl_dawenkou' },
-  taosi: { kind: 'monument', hero: 'places-sites/pl_taosi' },
-  shimao: { kind: 'wall', hero: 'places-sites/pl_shimao' },
-  erlitou: { kind: 'palace', hero: 'capitals/cap_erlitou' },
-  yin: { kind: 'palace', hero: 'capitals/cap_yinxu' },
+  erlitou: { kind: 'palace', hero: 'places-sites/pl_erlitou' },
   anyang: { kind: 'ding', hero: 'places-sites/pl_anyang' },
-  sanxingdui: { kind: 'ding', hero: 'archaeology/ar_sanxingdui' },
-  haojing: { kind: 'palace', hero: 'capitals/cap_zhou' },
-  xianyang: { kind: 'palace', hero: 'capitals/cap_xianyang' },
+  sanxingdui: { kind: 'ding', hero: 'places-sites/pl_sanxingdui' },
+  xianyang: { kind: 'palace', hero: 'places-cities/pl_xianyang' },
   dujiangyan: { kind: 'bridge', hero: 'places-sites/pl_dujiangyan' },
-  lingqu: { kind: 'bridge', hero: 'life-arch1/lf_lingqu' },
-  zhaozhou: { kind: 'bridge', hero: 'life-arch1/lf_zhaozhou' },
+  lingqu: { kind: 'bridge', hero: 'places-sites/pl_lingqu' },
+  zhaozhou: { kind: 'bridge', hero: 'places-sites/pl_zhaozhou' },
   yungang: { kind: 'statue', hero: 'places-sites/pl_yungang' },
-  longmen: { kind: 'statue', hero: 'life-arch1/lf_grotto' },
+  longmen: { kind: 'statue', hero: 'places-sites/pl_longmen' },
   dunhuang: { kind: 'gate', hero: 'places-sites/pl_dunhuang' },
-  mogao: { kind: 'temple', hero: 'china/cn_mogao' },
+  mogao: { kind: 'temple', hero: 'places-sites/pl_mogao' },
   // Ancient & Modern Capitals / Major Cities
-  xian: { kind: 'pagoda', hero: 'life-arch1/lf_dayan' },
-  luoyang: { kind: 'palace', hero: 'capitals/cap_luoyang' },
-  kaifeng: { kind: 'palace', hero: 'capitals/cap_song' },
-  nanjing: { kind: 'palace', hero: 'capitals/cap_ming' },
-  hangzhou: { kind: 'pagoda', hero: 'china/cn_westlake' },
-  beijing: { kind: 'palace', hero: 'asia/forbidden' },
-  shangjing: { kind: 'yurt', hero: 'sites-a/st_khitan' },
-  xingqing: { kind: 'monument', hero: 'sites-a/st_xixia' },
-  huining: { kind: 'palace', hero: 'capitals/cap_jin' },
+  xian: { kind: 'pagoda', hero: 'places-cities/pl_xian' },
+  luoyang: { kind: 'palace', hero: 'places-cities/pl_luoyang' },
+  kaifeng: { kind: 'palace', hero: 'places-cities/pl_kaifeng' },
+  nanjing: { kind: 'palace', hero: 'places-cities/pl_nanjing' },
+  hangzhou: { kind: 'pagoda', hero: 'places-cities/pl_hangzhou' },
+  beijing: { kind: 'palace', hero: 'places-cities/pl_beijing' },
+  shangjing: { kind: 'yurt', hero: 'places-sites/pl_shangjing' },
+  xingqing: { kind: 'monument', hero: 'places-cities/pl_xingqing' },
+  huining: { kind: 'palace', hero: 'places-sites/pl_huining' },
   // Curated Chinese Cities
   zhengzhou: { kind: 'pagoda', hero: 'places-cities/pl_zhengzhou' },
   shenyang: { kind: 'palace', hero: 'places-cities/pl_shenyang' },
   dali: { kind: 'pagoda', hero: 'places-cities/pl_dali' },
-  lhasa: { kind: 'temple', hero: 'asia2/potala' },
+  lhasa: { kind: 'temple', hero: 'places-cities/pl_lhasa' },
   chengdu: { kind: 'temple', hero: 'places-cities/pl_chengdu' },
   chongqing: { kind: 'palace', hero: 'places-cities/pl_chongqing' },
-  wuhan: { kind: 'pagoda', hero: 'china/cn_yellowcrane' },
-  wuchang: { kind: 'palace', hero: 'sites-b/st_wuchang' },
-  changsha: { kind: 'ding', hero: 'archaeology/ar_mawangdui' },
-  nanchang: { kind: 'palace', hero: 'sites-b/st_nanchang' },
-  guangzhou: { kind: 'palace', hero: 'sites-b/st_canton' },
+  wuhan: { kind: 'pagoda', hero: 'places-cities/pl_wuhan' },
+  changsha: { kind: 'ding', hero: 'places-cities/pl_changsha' },
+  nanchang: { kind: 'palace', hero: 'places-cities/pl_nanchang' },
+  guangzhou: { kind: 'palace', hero: 'places-cities/pl_guangzhou' },
   quanzhou: { kind: 'pagoda', hero: 'places-cities/pl_quanzhou' },
-  suzhou: { kind: 'pagoda', hero: 'life-arch2/lf_huqiu' },
+  suzhou: { kind: 'pagoda', hero: 'places-cities/pl_suzhou' },
   yangzhou: { kind: 'bridge', hero: 'places-cities/pl_yangzhou' },
-  shanghai: { kind: 'skyline', hero: 'china/cn_bund' },
+  shanghai: { kind: 'skyline', hero: 'places-cities/pl_shanghai' },
   tianjin: { kind: 'bridge', hero: 'places-cities/pl_tianjin' },
   jinan: { kind: 'temple', hero: 'places-cities/pl_jinan' },
   qufu: { kind: 'temple', hero: 'places-cities/pl_qufu' },
   linzi: { kind: 'palace', hero: 'places-cities/pl_linzi' },
   handan: { kind: 'palace', hero: 'places-cities/pl_handan' },
   ying: { kind: 'palace', hero: 'places-cities/pl_ying' },
-  kuaiji: { kind: 'temple', hero: 'life-custom2/lf_lanting' },
   fuzhou: { kind: 'pagoda', hero: 'places-cities/pl_fuzhou' },
   kunming: { kind: 'gate', hero: 'places-cities/pl_kunming' },
-  datong: { kind: 'temple', hero: 'china/cn_hangingtemple' },
+  datong: { kind: 'temple', hero: 'places-cities/pl_datong' },
   lanzhou: { kind: 'bridge', hero: 'places-cities/pl_lanzhou' },
   xining: { kind: 'temple', hero: 'places-cities/pl_xining' },
   urumqi: { kind: 'pagoda', hero: 'places-cities/pl_urumqi' },
@@ -92,19 +86,18 @@ export const PLACE_ID_HERO: Record<string, ModelRecipe> = {
   harbin: { kind: 'temple', hero: 'places-cities/pl_harbin' },
   changchun: { kind: 'palace', hero: 'places-cities/pl_changchun' },
   dalian: { kind: 'monument', hero: 'places-cities/pl_dalian' },
-  taipei: { kind: 'skyline', hero: 'asia/taipei101' },
+  taipei: { kind: 'skyline', hero: 'places-cities/pl_taipei' },
   tainan: { kind: 'gate', hero: 'places-cities/pl_tainan' },
   hongkong: { kind: 'skyline', hero: 'places-cities/pl_hongkong' },
   macao: { kind: 'gate', hero: 'places-cities/pl_macao' },
   haikou: { kind: 'gate', hero: 'places-cities/pl_haikou' },
-  shenzhen: { kind: 'skyline', hero: 'sites-b/st_shenzhen79' },
-  xiongan: { kind: 'skyline', hero: 'places-sites/pl_xiongan' },
+  shenzhen: { kind: 'skyline', hero: 'places-cities/pl_shenzhen' },
   // Passes & Great Wall
   yumenguan: { kind: 'gate', hero: 'places-sites/pl_yumenguan' },
-  jiayuguan: { kind: 'gate', hero: 'sites-b/st_jiayuguan' },
+  jiayuguan: { kind: 'gate', hero: 'places-sites/pl_jiayuguan' },
   hanguguan: { kind: 'gate', hero: 'places-sites/pl_hanguguan' },
   tongguan: { kind: 'gate', hero: 'places-sites/pl_tongguan' },
-  shanhaiguan: { kind: 'gate', hero: 'sites-b/st_shanhaiguan' },
+  shanhaiguan: { kind: 'gate', hero: 'places-sites/pl_shanhaiguan' },
   jianmenguan: { kind: 'gate', hero: 'places-sites/pl_jianmenguan' },
   pingxingguan: { kind: 'gate', hero: 'places-sites/pl_pingxingguan' },
   'pass-wuguan': { kind: 'gate', hero: 'places-sites/pl_pass_wuguan' },
@@ -113,7 +106,7 @@ export const PLACE_ID_HERO: Record<string, ModelRecipe> = {
   'pass-hulaoguan': { kind: 'gate', hero: 'places-sites/pl_pass_hulao' },
   'pass-yangpingguan': { kind: 'gate', hero: 'places-sites/pl_pass_yangping' },
   'pass-yanmenguan': { kind: 'gate', hero: 'places-sites/pl_pass_yanmen' },
-  'pass-juyongguan': { kind: 'wall', hero: 'asia/greatwall' },
+  'pass-juyongguan': { kind: 'wall', hero: 'places-sites/pl_pass_juyong' },
   'pass-zijingguan': { kind: 'gate', hero: 'places-sites/pl_pass_zijing' },
   'pass-niangziguan': { kind: 'gate', hero: 'places-sites/pl_pass_niangzi' },
   'pass-gubeikou': { kind: 'gate', hero: 'places-sites/pl_pass_gubeikou' },
@@ -136,7 +129,6 @@ export const PLACE_ID_HERO: Record<string, ModelRecipe> = {
   jinggangshan: { kind: 'monument', hero: 'places-sites/pl_jinggangshan' },
   ruijin: { kind: 'temple', hero: 'places-sites/pl_ruijin' },
   zunyi: { kind: 'palace', hero: 'places-sites/pl_zunyi' },
-  luding: { kind: 'bridge', hero: 'places-sites/pl_luding' },
   yanan: { kind: 'pagoda', hero: 'places-sites/pl_yanan' },
   xibaipo: { kind: 'hut', hero: 'places-sites/pl_xibaipo' },
   lugouqiao: { kind: 'bridge', hero: 'places-sites/pl_lugouqiao' },
@@ -144,87 +136,96 @@ export const PLACE_ID_HERO: Record<string, ModelRecipe> = {
   humen: { kind: 'cannon', hero: 'places-sites/pl_humen' },
   weihai: { kind: 'ship', hero: 'places-sites/pl_weihai' },
   xiaogang: { kind: 'hut', hero: 'places-sites/pl_xiaogang' },
-  lop_nur: { kind: 'monument', hero: 'sites-b/st_lopnur' },
+  lop_nur: { kind: 'monument', hero: 'places-sites/pl_lop_nur' },
   jiuquan_lc: { kind: 'rocket', hero: 'places-sites/pl_jiuquan_lc' },
-  wenchang: { kind: 'rocket', hero: 'places-sites/pl_wenchang' },
   dandong: { kind: 'bridge', hero: 'places-sites/pl_dandong' },
   // Mountains & Maritime Islands
-  taishan: { kind: 'temple', hero: 'china/cn_taishan' },
+  taishan: { kind: 'temple', hero: 'places-sites/pl_taishan' },
   everest: { kind: 'mountain', hero: 'places-sites/pl_everest' },
   diaoyu: { kind: 'boat', hero: 'places-sites/pl_diaoyu' },
   nanhai: { kind: 'boat', hero: 'places-sites/pl_nanhai' },
   xisha: { kind: 'boat', hero: 'places-sites/pl_xisha' },
   nansha: { kind: 'boat', hero: 'places-sites/pl_nansha' },
   // Foreign Cities
-  nara: { kind: 'temple', hero: 'sites-a/st_toshodaiji' },
-  kyoto: { kind: 'temple', hero: 'asia/kinkakuji' },
-  tokyo: { kind: 'skyline', hero: 'asia2/skytree' },
-  seoul: { kind: 'palace', hero: 'asia/gyeongbok' },
+  nara: { kind: 'temple', hero: 'places-cities/pl_nara' },
+  kyoto: { kind: 'temple', hero: 'places-cities/pl_kyoto' },
+  tokyo: { kind: 'skyline', hero: 'places-cities/pl_tokyo' },
+  seoul: { kind: 'palace', hero: 'places-cities/pl_seoul' },
   pyongyang: { kind: 'gate', hero: 'places-cities/pl_pyongyang' },
   albazin: { kind: 'wall', hero: 'places-cities/pl_albazin' },
   nerchinsk: { kind: 'hut', hero: 'places-cities/pl_nerchinsk' },
   vladivostok: { kind: 'ship', hero: 'places-cities/pl_vladivostok' },
   talas: { kind: 'wall', hero: 'places-cities/pl_talas' },
   samarkand: { kind: 'temple', hero: 'places-cities/pl_samarkand' },
-  nalanda: { kind: 'temple', hero: 'sites-a/st_nalanda' },
+  nalanda: { kind: 'temple', hero: 'places-cities/pl_nalanda' },
   calicut: { kind: 'ship', hero: 'places-cities/pl_calicut' },
   malacca: { kind: 'gate', hero: 'places-cities/pl_malacca' },
   hanoi: { kind: 'pagoda', hero: 'places-cities/pl_hanoi' },
-  // Famous Imported Cities (j* and settlement-*)
-  j4: { kind: 'ding', hero: 'places-atlas/pl_baoji' },
-  j12: { kind: 'ding', hero: 'places-atlas/pl_xinzheng' },
-  j21: { kind: 'temple', hero: 'places-atlas/pl_taiyuan' },
-  j31: { kind: 'gate', hero: 'places-atlas/pl_shouxian' },
-  j34: { kind: 'warrior', hero: 'asia3/terracotta' },
-  j36: { kind: 'wall', hero: 'sites-a/st_qinwall' },
-  j46: { kind: 'temple', hero: 'places-atlas/pl_hotan' },
-  j48: { kind: 'statue', hero: 'places-atlas/pl_wuwei' },
-  j54: { kind: 'palace', hero: 'places-atlas/pl_xuzhou' },
-  j58: { kind: 'monument', hero: 'places-atlas/pl_jian' },
-  j64: { kind: 'palace', hero: 'life-arch1/lf_tongque' },
-  j67: { kind: 'temple', hero: 'places-atlas/pl_fengjie' },
-  j70: { kind: 'temple', hero: 'places-atlas/pl_kuqa' },
-  j86: { kind: 'statue', hero: 'places-atlas/pl_tianshui' },
-  j92: { kind: 'palace', hero: 'places-atlas/pl_shannan' },
-  j97: { kind: 'temple', hero: 'life-arch1/lf_foguang' },
-  j98: { kind: 'temple', hero: 'places-atlas/pl_zhengding' },
-  j106: { kind: 'palace', hero: 'places-atlas/pl_ningan' },
-  j108: { kind: 'statue', hero: 'asia3/leshan' },
-  j114: { kind: 'temple', hero: 'life-arch2/lf_academy' },
-  j118: { kind: 'pagoda', hero: 'life-arch2/lf_baisikou' },
-  j119: { kind: 'pagoda', hero: 'life-arch2/lf_yingxian' },
-  j121: { kind: 'temple', hero: 'places-atlas/pl_sakya' },
-  j125: { kind: 'yurt', hero: 'places-atlas/pl_karakorum' },
-  j129: { kind: 'gate', hero: 'places-atlas/pl_hechuan' },
-  j135: { kind: 'monument', hero: 'life-arch2/lf_guanxing' },
-  j148: { kind: 'temple', hero: 'life-arch2/lf_pavilion' },
-  j149: { kind: 'hut', hero: 'life-custom2/lf_kiln' },
-  j150: { kind: 'palace', hero: 'places-atlas/pl_ningbo' },
-  j152: { kind: 'mountain', hero: 'china/cn_jiuzhaigou' },
-  j154: { kind: 'mountain', hero: 'china/cn_danxia' },
-  j155: { kind: 'boat', hero: 'china/cn_guilin' },
-  j156: { kind: 'pagoda', hero: 'china/cn_huangshan' },
-  j159: { kind: 'gate', hero: 'places-atlas/pl_xiangyang' },
-  j160: { kind: 'mountain', hero: 'china/cn_yuanyang' },
-  j161: { kind: 'pagoda', hero: 'places-atlas/pl_yueyang' },
-  j165: { kind: 'palace', hero: 'places-atlas/pl_xiamen' },
-  j169: { kind: 'pagoda', hero: 'places-atlas/pl_qingdao' },
-  j170: { kind: 'temple', hero: 'places-atlas/pl_chengde' },
+  // Famous Imported Cities (exact j* and settlement-* IDs)
+  j0: { kind: 'ding', hero: 'places-atlas/pl_xinzheng' },
+  j1: { kind: 'ding', hero: 'places-atlas/pl_baoji' },
+  j3: { kind: 'temple', hero: 'places-atlas/pl_taiyuan' },
+  j23: { kind: 'bridge', hero: 'places-atlas/pl_shaoxing' },
+  j28: { kind: 'mountain', hero: 'places-atlas/pl_guilin' },
+  j33: { kind: 'statue', hero: 'places-atlas/pl_wuwei' },
+  j34: { kind: 'wall', hero: 'places-atlas/pl_shuofang' },
+  j35: { kind: 'palace', hero: 'places-atlas/pl_xuzhou' },
+  j36: { kind: 'temple', hero: 'places-atlas/pl_zhangye' },
+  j54: { kind: 'temple', hero: 'places-atlas/pl_kuqa' },
+  j55: { kind: 'temple', hero: 'places-atlas/pl_hotan' },
+  j57: { kind: 'gate', hero: 'places-atlas/pl_xiangyang' },
+  j63: { kind: 'monument', hero: 'places-atlas/pl_jian' },
+  j64: { kind: 'temple', hero: 'places-atlas/pl_hefei' },
+  j65: { kind: 'temple', hero: 'places-atlas/pl_ezhou' },
+  j68: { kind: 'temple', hero: 'places-atlas/pl_fengjie' },
+  j72: { kind: 'palace', hero: 'places-atlas/pl_linfen' },
+  j73: { kind: 'statue', hero: 'places-atlas/pl_tianshui' },
+  j74: { kind: 'pagoda', hero: 'places-atlas/pl_yueyang' },
+  j79: { kind: 'wall', hero: 'places-atlas/pl_tongwan' },
+  j97: { kind: 'temple', hero: 'places-atlas/pl_beiting' },
+  j106: { kind: 'gate', hero: 'places-atlas/pl_huizhou' },
+  j108: { kind: 'statue', hero: 'places-atlas/pl_leshan' },
+  j114: { kind: 'temple', hero: 'places-atlas/pl_wudang' },
+  j118: { kind: 'mountain', hero: 'places-atlas/pl_sanya' },
+  j119: { kind: 'pagoda', hero: 'places-atlas/pl_daixian' },
+  j120: { kind: 'palace', hero: 'places-atlas/pl_ningan' },
+  j121: { kind: 'palace', hero: 'places-atlas/pl_shannan' },
+  j127: { kind: 'temple', hero: 'places-atlas/pl_zhengding' },
+  j130: { kind: 'hut', hero: 'places-atlas/pl_jingdezhen' },
+  j135: { kind: 'gate', hero: 'places-atlas/pl_hechuan' },
+  j137: { kind: 'yurt', hero: 'places-atlas/pl_karakorum' },
+  j142: { kind: 'temple', hero: 'places-atlas/pl_sakya' },
+  j148: { kind: 'pagoda', hero: 'places-atlas/pl_xuanhua' },
+  j149: { kind: 'wall', hero: 'places-atlas/pl_yulin' },
+  j152: { kind: 'palace', hero: 'places-atlas/pl_hetuala' },
+  j154: { kind: 'mountain', hero: 'places-atlas/pl_chongzuo' },
+  j155: { kind: 'monument', hero: 'places-atlas/pl_khorgos' },
+  j156: { kind: 'pagoda', hero: 'places-atlas/pl_qingdao' },
+  j157: { kind: 'temple', hero: 'places-atlas/pl_chengde' },
+  j160: { kind: 'pagoda', hero: 'places-atlas/pl_heihe' },
+  j172: { kind: 'palace', hero: 'places-atlas/pl_xiamen' },
   'settlement-117.12-36.19': { kind: 'temple', hero: 'places-cities/pl_taian' },
   'settlement-112.2-30.35': { kind: 'gate', hero: 'places-atlas/pl_jingzhou' },
+  'settlement-116.78-32.58': { kind: 'gate', hero: 'places-atlas/pl_shouxian' },
+  'settlement-121.55-29.87': { kind: 'palace', hero: 'places-atlas/pl_ningbo' },
 };
 
 /** Landmark model per place (modern name fallback). */
 const PLACE_HERO: Record<string, ModelRecipe> = {
-  拉萨: { kind: 'temple', hero: 'asia2/potala' }, 敦煌: { kind: 'temple', hero: 'china/cn_mogao' },
-  杭州: { kind: 'pagoda', hero: 'china/cn_westlake' }, 武汉: { kind: 'pagoda', hero: 'china/cn_yellowcrane' },
-  泰安: { kind: 'temple', hero: 'places-cities/pl_taian' }, 泰山: { kind: 'temple', hero: 'china/cn_taishan' },
-  乐山: { kind: 'statue', hero: 'asia3/leshan' }, 桂林: { kind: 'boat', hero: 'china/cn_guilin' },
-  北京: { kind: 'palace', hero: 'asia/forbidden' }, 西安: { kind: 'pagoda', hero: 'life-arch1/lf_dayan' },
-  广汉: { kind: 'ding', hero: 'archaeology/ar_sanxingdui' }, 长沙: { kind: 'ding', hero: 'archaeology/ar_mawangdui' },
-  大同: { kind: 'temple', hero: 'china/cn_hangingtemple' }, 黄山: { kind: 'pagoda', hero: 'china/cn_huangshan' },
-  上海: { kind: 'skyline', hero: 'china/cn_bund' }, 山海关: { kind: 'gate', hero: 'sites-b/st_shanhaiguan' },
-  嘉峪关: { kind: 'gate', hero: 'sites-b/st_jiayuguan' }, 八达岭: { kind: 'wall', hero: 'asia/greatwall' },
+  拉萨: { kind: 'temple', hero: 'places-cities/pl_lhasa' }, 敦煌: { kind: 'gate', hero: 'places-sites/pl_dunhuang' },
+  杭州: { kind: 'pagoda', hero: 'places-cities/pl_hangzhou' }, 武汉: { kind: 'pagoda', hero: 'places-cities/pl_wuhan' },
+  泰安: { kind: 'temple', hero: 'places-cities/pl_taian' }, 泰山: { kind: 'temple', hero: 'places-sites/pl_taishan' },
+  乐山: { kind: 'statue', hero: 'places-atlas/pl_leshan' }, 桂林: { kind: 'mountain', hero: 'places-atlas/pl_guilin' },
+  北京: { kind: 'palace', hero: 'places-cities/pl_beijing' }, 西安: { kind: 'pagoda', hero: 'places-cities/pl_xian' },
+  广汉: { kind: 'ding', hero: 'places-sites/pl_sanxingdui' }, 长沙: { kind: 'ding', hero: 'places-cities/pl_changsha' },
+  大同: { kind: 'temple', hero: 'places-cities/pl_datong' }, 黄山: { kind: 'gate', hero: 'places-atlas/pl_huizhou' },
+  上海: { kind: 'skyline', hero: 'places-cities/pl_shanghai' }, 山海关: { kind: 'gate', hero: 'places-sites/pl_shanhaiguan' },
+  嘉峪关: { kind: 'gate', hero: 'places-sites/pl_jiayuguan' }, 八达岭: { kind: 'wall', hero: 'places-sites/pl_pass_juyong' },
+  陶寺: { kind: 'monument', hero: 'places-sites/pl_taosi' }, 石峁: { kind: 'wall', hero: 'places-sites/pl_shimao' },
+  殷: { kind: 'palace', hero: 'capitals/cap_yinxu' }, 镐京: { kind: 'palace', hero: 'capitals/cap_zhou' },
+  武昌: { kind: 'temple', hero: 'places-atlas/pl_ezhou' }, 会稽: { kind: 'bridge', hero: 'places-atlas/pl_shaoxing' },
+  雄安: { kind: 'skyline', hero: 'places-sites/pl_xiongan' }, 泸定: { kind: 'bridge', hero: 'places-sites/pl_luding' },
+  文昌: { kind: 'rocket', hero: 'places-sites/pl_wenchang' },
 };
 
 /** People with their own detailed figure. */
@@ -234,11 +235,27 @@ const PERSON_HERO: Record<string, string> = {
   郑和: 'people-c/pp_zhenghe', 玄奘: 'people-c/pp_xuanzang', 华佗: 'people-c/pp_huatuo', 马可·波罗: 'people-c/pp_marcopolo',
 };
 
-/** Adds the hero landmark to an event's model recipe when one fits. */
+const SPECIAL_CURATED_EVENT_STYLES = new Set(['tibet1951', 'nanxun', 'muye', 'dujiang', 'wto']);
+const SHARED_CURATED_EVENT_KINDS = new Set(['flag', 'palace', 'army', 'scroll', 'warship', 'rider']);
+
+/** Adds the hero landmark and a unique event style to an event's model recipe. */
 export function withHero(e: HistEvent): HistEvent {
   const hero = EVENT_HERO[e.id] ?? TITLE_HERO.find(([re]) => re.test(e.title.zh))?.[1];
-  if (!hero || (e.model && typeof e.model.hero === 'string')) return e;
-  return { ...e, model: { kind: 'monument', ...e.model, hero } };
+  const base: ModelRecipe = e.model
+    ? (hero && typeof e.model.hero !== 'string' ? { ...e.model, hero } : { ...e.model })
+    : { kind: hero ? 'monument' : 'flag', year: e.year, ...(hero ? { hero } : {}) };
+  let style = base.style;
+  if (base.hero === 'china/cn_taishan' && !style) {
+    style = e.year < -200 ? 'qin' : e.year < 200 ? 'whan' : e.year < 900 ? 'tang' : 'bsong';
+  } else if (base.hero === 'china/cn_mogao' && !style) {
+    style = e.year >= 1800 ? 'cangjingdong' : 'early';
+  } else if (SPECIAL_CURATED_EVENT_STYLES.has(e.id)) {
+    style = e.id;
+  } else if (e.source || (!base.hero && !style && SHARED_CURATED_EVENT_KINDS.has(base.kind))) {
+    style = style ? `${style}__${e.id}` : e.id;
+  }
+  if (style === base.style && base === e.model) return e;
+  return { ...e, model: { ...base, ...(style !== undefined ? { style } : {}) } };
 }
 
 /**
@@ -249,24 +266,18 @@ export function withHero(e: HistEvent): HistEvent {
  */
 export function capitalModel(era: { id: string; start: number }): ModelRecipe {
   const by: Record<string, string> = {
-    xia: 'cap_erlitou', shang: 'cap_yinxu', wzhou: 'cap_zhou', chunqiu: 'cap_luoyi', zhanguo: 'cap_zhanguo',
-    qin: 'cap_xianyang', whan: 'cap_qinhan', xin: 'cap_xin', ehan: 'cap_luoyang', wjin: 'cap_taiji',
-    ejin: 'cap_jiankang', sui: 'cap_sui', tang: 'cap_tang', wudai: 'cap_wudai', bsong: 'cap_song',
-    jin: 'cap_jin', nsong: 'cap_linan', yuan: 'cap_yuan', ming: 'cap_ming', roc: 'cap_nanjing_roc',
+    paleo: 'cap_paleo', neo: 'cap_neo', xia: 'cap_erlitou', shang: 'cap_yinxu', wzhou: 'cap_zhou',
+    chunqiu: 'cap_luoyi', zhanguo: 'cap_zhanguo', qin: 'cap_xianyang', whan: 'cap_qinhan', xin: 'cap_xin',
+    ehan: 'cap_luoyang', sanguo: 'cap_sanguo', wjin: 'cap_taiji', ejin: 'cap_jiankang', nanbei: 'cap_nanbei',
+    sui: 'cap_sui', tang: 'cap_tang', wudai: 'cap_wudai', bsong: 'cap_song', nsong: 'cap_linan',
+    liao: 'cap_liao', xixia: 'cap_xixia', jin: 'cap_jin', yuan: 'cap_yuan', ming: 'cap_ming',
+    qing: 'cap_qing', roc: 'cap_nanjing_roc', prc: 'cap_prc',
   };
   const h = by[era.id];
   if (h) return { kind: 'palace', hero: 'capitals/' + h };
-  const eraHero: Record<string, ModelRecipe> = {
-    paleo: { kind: 'cave' },
-    neo: { kind: 'hut' },
-    sanguo: { kind: 'palace', hero: 'life-arch1/lf_tongque' },
-    nanbei: { kind: 'pagoda', hero: 'life-arch1/lf_songyue' },
-    liao: { kind: 'yurt', hero: 'sites-a/st_khitan' },
-    xixia: { kind: 'monument', hero: 'sites-a/st_xixia' },
-  };
-  if (eraHero[era.id]) return eraHero[era.id];
-  if (era.start >= 1949) return { kind: 'monument' };
-  if (era.start >= 1368) return { kind: 'palace', hero: 'asia/forbidden' };
+  if (era.start >= 1949) return { kind: 'monument', hero: 'capitals/cap_prc' };
+  if (era.start >= 1644) return { kind: 'palace', hero: 'capitals/cap_qing' };
+  if (era.start >= 1368) return { kind: 'palace', hero: 'capitals/cap_ming' };
   return { kind: 'palace', style: era.start < 581 ? 'han' : 'tang', year: era.start };
 }
 
@@ -297,7 +308,11 @@ export function placeModel(p: Place, year?: number): ModelRecipe {
     }
     if (p.id === 'hangzhou' && year >= 1127 && year <= 1279) return { kind: 'palace', hero: 'capitals/cap_linan' };
     if (p.id === 'beijing') {
+      if (year >= 1949) return { kind: 'palace', hero: 'capitals/cap_prc' };
+      if (year >= 1644) return { kind: 'palace', hero: 'capitals/cap_qing' };
+      if (year >= 1368) return { kind: 'palace', hero: 'capitals/cap_ming' };
       if (year >= 1260 && year < 1368) return { kind: 'palace', hero: 'capitals/cap_yuan' };
+      if (year >= 1153 && year < 1260) return { kind: 'palace', hero: 'capitals/cap_jin' };
     }
     if (p.name.zh === '上海' && year < 1949) return { kind: 'skyline', hero: 'china/cn_bund', style: 'roc' };
   }
@@ -312,9 +327,10 @@ export function placeModel(p: Place, year?: number): ModelRecipe {
       : /书院|文庙|学|儒|祠|阁|楼|亭/.test(text) ? 4
       : p.capital?.length ? 5
       : /陵|墓|冢|遗址|故城/.test(text) ? 6 : 7;
+    const key = 'pl_' + p.id.replace(/[^a-z0-9]/gi, '_');
     return {
       kind: p.capital?.length ? 'palace' : p.kind === 'pass' ? 'gate' : p.kind === 'site' ? 'ding' : p.kind === 'water' ? 'boat' : p.kind === 'mountain' ? 'temple' : 'gate',
-      hero: 'places-atlas/pl_gazetteer',
+      hero: 'places-atlas/' + key,
       style: `${p.id}|${p.lon.toFixed(1)}|${p.lat.toFixed(1)}|${p.capital?.length ? 1 : 0}|${arch}|${p.name.zh}`,
     };
   }

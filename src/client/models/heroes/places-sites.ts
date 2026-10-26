@@ -466,7 +466,7 @@ const pl_pingxingguan: Builder = root => {
 /** Helper for the 13 distinct historical passes (`pass-*`) so each pass has its own mountain/river/wall layout. */
 function makePass(
   ground: string, wallC: string, roofC: string, mtnC: string,
-  opts: { water?: 'front' | 'under' | 'waterfall' | 'oasis'; twin?: boolean; plum?: boolean; bamboo?: boolean; tunnel?: boolean; beacon?: boolean; triArch?: boolean; curveWall?: boolean }
+  opts: { water?: 'front' | 'under' | 'waterfall' | 'oasis'; twin?: boolean; plum?: boolean; bamboo?: boolean; tunnel?: boolean; beacon?: boolean; triArch?: boolean; curveWall?: boolean; plankRoad?: boolean; watchtower?: boolean }
 ): Builder {
   return root => {
     const [gp, y0] = site(root, ground, 0.88);
@@ -494,6 +494,13 @@ function makePass(
       const h1 = hall(gp, 0, y0 + 0.078, wz, 0.17, 0.088, 0.042, '#e4dcc8', '#982c22', roofC, 0.036);
       if (opts.curveWall) hall(gp, 0, h1 - 0.01, wz, 0.12, 0.068, 0.028, '#e4dcc8', '#982c22', roofC, 0.026);
     }
+    if (opts.plankRoad) {
+      box(gp, '#6e4a2a', -0.22, y0 + 0.036, 0.16, 0.16, 0.01, 0.042);
+      for (const px of [-0.28, -0.22, -0.16]) cyl(gp, '#52361c', px, y0, 0.17, 0.005, 0.038, 5);
+    }
+    if (opts.watchtower) {
+      tbox(gp, 0.075, 0.075, 0.065, 0.065, 0.085, wallC, 0.28, y0 + 0.14, -0.08);
+    }
     if (opts.plum) for (const x of [-0.18, 0.18, 0.12]) tree(gp, x, y0, 0.18, 0.065, '#c84a62');
     if (opts.bamboo) for (let i = -3; i <= 3; i++) cyl(gp, '#4e7c3e', i * 0.045, y0, 0.22, 0.005, 0.11, 5);
     if (opts.tunnel) {
@@ -507,11 +514,11 @@ const pl_pass_wuguan = makePass('#6b7c4e', '#72757a', '#484e54', '#4e6b42', { wa
 const pl_pass_dasanguan = makePass('#8c7d58', '#68645e', '#464a50', '#5e6a46', { twin: true, water: 'front' });
 const pl_pass_xiaoguan = makePass('#a88856', '#9e7c4c', '#584838', '#8c7046', { curveWall: true });
 const pl_pass_hulao = makePass('#a48454', '#8e382c', '#4a4e54', '#947448', { triArch: true, water: 'front' });
-const pl_pass_yangping = makePass('#5e764a', '#6e6a62', '#4c5258', '#48683e', { water: 'under' });
+const pl_pass_yangping = makePass('#5e764a', '#6e6a62', '#4c5258', '#48683e', { water: 'under', plankRoad: true });
 const pl_pass_yanmen = makePass('#8e8264', '#666a70', '#3f6e54', '#6e6858', { curveWall: true, triArch: true });
 const pl_pass_zijing = makePass('#747e54', '#6e7278', '#484e54', '#586848', { water: 'front', plum: true });
 const pl_pass_niangzi = makePass('#687c52', '#747068', '#4a5056', '#4e6844', { water: 'waterfall' });
-const pl_pass_gubeikou = makePass('#7e7860', '#6a6e74', '#484c52', '#646258', { twin: true, water: 'under' });
+const pl_pass_gubeikou = makePass('#7e7860', '#6a6e74', '#484c52', '#646258', { twin: true, water: 'under', watchtower: true });
 const pl_pass_yangguan = makePass('#cfa868', '#b88852', '#524638', '#c49654', { beacon: true, water: 'oasis' });
 const pl_pass_wusheng = makePass('#64784c', '#76787e', '#4a5056', '#4c6640', { tunnel: true });
 const pl_pass_xianxia = makePass('#587446', '#848078', '#484e54', '#3f6238', { bamboo: true });
@@ -1006,6 +1013,263 @@ const pl_xiongan: Builder = root => {
   }
 };
 
+// ============================================================================
+// 6. DEDICATED SITE, PASS & MOUNTAIN LANDMARKS (15 SITES)
+// ============================================================================
+
+/** 二里头: Erlitou Grid-Road Excavation Trenches, Rammed-Earth Foundation No. 1 & Turquoise Dragon-Shaped Scepter Altar (二里头绿松石龙形器与铜爵探方). */
+const pl_erlitou: Builder = root => {
+  const [gp, y0] = site(root, SITE.loess, 0.88);
+  const EARTH = '#a88856', TURQ = '#1ea89a', BRZ = '#487a62';
+  // Criss-crossing Wheel-Rut Grid Roads & Excavation Trenches of Erlitou (二里头井字形大道车辙与考古探方)
+  for (const dz of [-0.14, 0.14]) box(gp, '#8a6c42', 0, y0, dz, 0.62, 0.012, 0.055);
+  for (const dx of [-0.16, 0.16]) box(gp, '#8a6c42', dx, y0, 0, 0.055, 0.012, 0.56);
+  // Central Rammed-Earth Altar Displaying the IconicErlitou Turquoise Dragon & Bronze Jue Tripod (绿松石龙形器与网格纹铜鼎铜爵)
+  tbox(gp, 0.28, 0.22, 0.24, 0.19, 0.048, EARTH, 0, y0, 0);
+  for (let i = -3; i <= 3; i++) {
+    ellip(gp, TURQ, -0.05 + i * 0.022, y0 + 0.058, Math.sin(i * 0.9) * 0.032, 0.018, 0.012, 0.018);
+  }
+  box(gp, TURQ, -0.13, y0 + 0.056, 0, 0.038, 0.024, 0.032);
+  cyl(gp, BRZ, 0.08, y0 + 0.048, 0, 0.028, 0.058, 8);
+  rod(gp, [0.05, y0 + 0.106, 0], [0.12, y0 + 0.122, 0], 0.008, BRZ, 5);
+};
+
+/** 辽上京: Liao Supreme Capital Linhuangfu Rammed-Earth Imperial Gate & Octagonal South Pagoda (辽上京临潢府乾德门遗址与南塔). */
+const pl_shangjing: Builder = root => {
+  const [gp, y0] = site(root, '#788852', 0.88);
+  const EARTH = '#a88e60', BRICK = '#b89c72', GOLD = '#dca428', WHITE = '#f2eee4';
+  // Rammed-Earth Semicircular Barbican of Liao Shangjing Qiande Gate (辽上京皇城乾德门瓮城夯土遗址)
+  tbox(gp, 0.44, 0.14, 0.38, 0.11, 0.068, EARTH, 0.06, y0, -0.1);
+  box(gp, '#5c6c3e', 0.06, y0, -0.1, 0.065, 0.068, 0.15);
+  for (const sx of [-0.08, 0.2]) tbox(gp, 0.09, 0.14, 0.075, 0.12, 0.058, EARTH, sx, y0, 0.02);
+  // Liao Dynasty Octagonal Dense-Eave South Pagoda (巴林左旗辽上京南塔八角密檐砖塔) on the West
+  box(gp, '#cfc6b4', -0.2, y0, 0.04, 0.14, 0.024, 0.14);
+  cyl(gp, BRICK, -0.2, y0 + 0.024, 0.04, 0.052, 0.065, 8);
+  for (let i = 0; i < 7; i++) {
+    const r = 0.056 * (1 - i * 0.07);
+    cone(gp, '#58524a', -0.2, y0 + 0.089 + i * 0.018, 0.04, r * 1.15, 0.012, 8);
+  }
+  cone(gp, GOLD, -0.2, y0 + 0.215, 0.04, 0.018, 0.036, 8);
+  // Khitan Stone Ancestor Statue (辽上京石人像) in Foreground
+  cyl(gp, WHITE, 0.18, y0, 0.18, 0.022, 0.075, 8);
+};
+
+/** 金上京: Jin Supreme Capital Huiningfu Imperial Mound & Bronze Seated Dragon Pavilion (金上京会宁府遗址与铜坐龙碑亭). */
+const pl_huining: Builder = root => {
+  const [gp, y0] = site(root, '#627c4a', 0.88);
+  const EARTH = '#9c8256', BRZ = '#3c785e', GOLD = '#dca228', RED = '#982a20';
+  // Stepped Rammed-Earth Palace Mound of Jin Huiningfu Five-Phoenix Tower (金上京皇城午门五凤楼高大夯土台基与敌台)
+  tbox(gp, 0.48, 0.2, 0.42, 0.16, 0.068, EARTH, 0, y0, -0.14);
+  for (const sx of [-0.18, 0, 0.18]) tbox(gp, 0.11, 0.12, 0.09, 0.1, 0.036, shade(EARTH, 1.08), sx, y0 + 0.068, -0.14);
+  // Iconic Jin Dynasty Bronze Seated Dragon Sculpture on Stone Pedestal (哈尔滨阿城金上京出土国宝铜坐龙) & Jurchen Stele Pavilion
+  cyl(gp, '#cfc6b4', -0.12, y0, 0.12, 0.078, 0.026, 12);
+  cyl(gp, BRZ, -0.12, y0 + 0.026, 0.12, 0.038, 0.072, 10);
+  ellip(gp, BRZ, -0.12, y0 + 0.112, 0.135, 0.028, 0.032, 0.036);
+  rod(gp, [-0.12, y0 + 0.125, 0.12], [-0.12, y0 + 0.165, 0.08], 0.008, GOLD, 6);
+  hall(gp, 0.16, y0, 0.12, 0.13, 0.13, 0.048, '#e6dec8', RED, '#3c6e54', 0.042);
+};
+
+/** 周口店: Dragon Bone Hill Locality 1 Ape-Man Fissure Cliff, Stratigraphic Grid & Ash Layer Pit (周口店龙骨山第1地点猿人洞高崖与探方). */
+const pl_zhoukoudian: Builder = root => {
+  const [gp, y0] = site(root, '#8e7c60', 0.88);
+  const ROCK = '#787268', ASH = '#3c322c', BONE = '#e8dfc8', RED = '#c84220';
+  // Towering Limestone Fissure Cliff of Dragon Bone Hill Locality 1 (龙骨山石灰岩陡壁与猿人洞裂隙)
+  tbox(gp, 0.52, 0.26, 0.44, 0.2, 0.16, ROCK, 0, y0, -0.12);
+  box(gp, '#221c18', 0, y0, -0.02, 0.16, 0.12, 0.12);
+  for (const [sx, h] of [[-0.2, 0.19], [0.2, 0.18]] as [number, number][]) cone(gp, shade(ROCK, 0.92), sx, y0, -0.1, 0.14, h, 6);
+  // Stratified Archaeological Pit with 6m-Thick Fire Ash Layers, Quartz Flakes & Peking Man Skull Fossil Monument (用火灰烬层与头盖骨纪念石)
+  box(gp, ASH, 0, y0 + 0.004, 0.12, 0.24, 0.018, 0.16);
+  ellip(gp, RED, 0, y0 + 0.028, 0.12, 0.032, 0.022, 0.032);
+  ellip(gp, BONE, -0.18, y0 + 0.048, 0.16, 0.042, 0.038, 0.048);
+  tree(gp, 0.24, y0, 0.14, 0.068, '#4e7242');
+};
+
+/** 半坡: Banpo Moated Neolithic Village, Square Great House F1 & Human-Face Fish-Motif Painted Basin (半坡遗址环壕大房子与人面鱼纹彩陶盆). */
+const pl_banpo: Builder = root => {
+  const [gp, y0] = site(root, SITE.loess, 0.88);
+  const THATCH = '#b89458', CLAY = '#c45838', DARK = '#241c18', EARTH = '#987a4e';
+  // Protective Circular Moat Trench & Large Pyramidal-Roof Communal House F1 (半坡环壕与F1方形大房子复原)
+  tbox(gp, 0.34, 0.28, 0.3, 0.24, 0.032, EARTH, -0.1, y0, -0.08);
+  cone(gp, THATCH, -0.1, y0 + 0.032, -0.08, 0.18, 0.125, 4, Math.PI / 4);
+  box(gp, THATCH, -0.1, y0 + 0.02, 0.06, 0.068, 0.048, 0.065);
+  // Iconic Yangshao Painted Pottery Basin with Human-Face & Twin-Fish Motif on Pedestal (半坡人面鱼纹彩陶盆与尖底瓶)
+  cyl(gp, '#cfc6b4', 0.18, y0, 0.06, 0.1, 0.024, 14);
+  tbox(gp, 0.11, 0.11, 0.16, 0.16, 0.062, CLAY, 0.18, y0 + 0.024, 0.06);
+  cyl(gp, DARK, 0.18, y0 + 0.082, 0.06, 0.082, 0.008, 14);
+  cone(gp, CLAY, -0.22, y0, 0.18, 0.028, 0.068, 10);
+};
+
+/** 三星堆: Sanxingdui Moon Bay Rammed-Earth City Wall, Towering Bronze Sacred Tree & Gold Mask Altar (三星堆青铜神树与金面具祭坛). */
+const pl_sanxingdui: Builder = root => {
+  const [gp, y0] = site(root, '#5c784c', 0.88);
+  const BRZ = '#2e7e68', GOLD = '#f0ba28', EARTH = '#9c8256';
+  // Ancient Shu Moon Bay Rammed-Earth Rampart & Sacrificial Pits (三星堆月亮湾城墙与祭祀坑)
+  tbox(gp, 0.52, 0.14, 0.46, 0.11, 0.055, EARTH, 0, y0, -0.18);
+  // Towering No. 1 Bronze Sacred Tree with Nine Sun-Birds on Three Tiered Branches (一号青铜神树九鸟扶桑) at Center-West
+  cyl(gp, '#cfc6b4', -0.1, y0, 0.04, 0.075, 0.024, 12);
+  cyl(gp, BRZ, -0.1, y0 + 0.024, 0.04, 0.014, 0.22, 8);
+  for (let i = 0; i < 3; i++) {
+    const y = y0 + 0.075 + i * 0.055;
+    for (const a of [0, 2.1, 4.2]) {
+      const bx = -0.1 + Math.cos(a + i) * 0.058, bz = 0.04 + Math.sin(a + i) * 0.058;
+      rod(gp, [-0.1, y, 0.04], [bx, y + 0.018, bz], 0.005, BRZ, 5);
+      ellip(gp, GOLD, bx, y + 0.026, bz, 0.012, 0.01, 0.012);
+    }
+  }
+  // Gold Mask & Protruding-Eye Bronze Mask on East Altar (黄金面具与纵目面具)
+  box(gp, EARTH, 0.16, y0, 0.06, 0.14, 0.036, 0.12);
+  box(gp, GOLD, 0.16, y0 + 0.036, 0.06, 0.088, 0.078, 0.036);
+  for (const sx of [-0.024, 0.024]) cyl(grp(gp, 0.16 + sx, 0.08, 0, y0 + 0.078), BRZ, 0, 0, 0, 0.009, 0.036, 8).rotation.x = Math.PI / 2;
+};
+
+/** 灵渠: Lingqu Ancient Flash-Lock Gates ("Doumen" 灵渠天下第一陡门船闸), Qin Stone Levee & Four Sages Shrine (四贤祠). */
+const pl_lingqu: Builder = root => {
+  const [gp, y0] = site(root, '#32707a', 0.88);
+  const STONE = '#9e988a', WD = '#6b4424', RED = '#982c22', TILE = '#3d4248';
+  // Curved Stone Canal Channel & Ancient Flash-Lock ("Doumen" 半圆石砌陡门与塞木船闸 — 世界船闸之父)
+  for (const sx of [-0.12, 0.12]) {
+    box(gp, STONE, sx, y0, 0.02, 0.068, 0.052, 0.52);
+    cyl(gp, STONE, sx * 0.85, y0, 0.04, 0.048, 0.062, 10);
+  }
+  box(gp, WD, 0, y0 + 0.01, 0.04, 0.11, 0.042, 0.014);
+  // Qin Grain Transport Boat passing through the Lock & Four Sages Temple (四贤祠与飞来石) on the West Bank
+  rbox(gp, '#54361e', 0, y0 + 0.012, -0.14, 0.065, 0.022, 0.15, 0.006);
+  prism(gp, [[-0.4, -0.34], [-0.15, -0.34], [-0.15, 0.28], [-0.4, 0.28]], y0, 0.028, '#58784a');
+  hall(gp, -0.27, y0 + 0.028, -0.06, 0.16, 0.12, 0.044, '#f0ece2', RED, TILE, 0.038);
+};
+
+/** 赵州桥: Anji Bridge Open-Spandrel Arch, Carved Dragon Balustrades & Imperial Stele Pavilion (赵县安济桥双龙戏珠栏板与桥头碑亭). */
+const pl_zhaozhou: Builder = root => {
+  const [gp, y0] = site(root, '#36707a', 0.88);
+  const STONE = '#d8d0c0', RED = '#9c2a20', GOLD = '#dca228', BANK = '#627c4e';
+  for (const sx of [-0.32, 0.32]) box(gp, BANK, sx, y0, 0, 0.18, 0.036, 0.52);
+  // Li Chun's Single-Span Open-Spandrel Stone Arch with 4 Small Shoulder Arches & Carved Balustrade Posts (安济桥敞肩四小拱与望柱)
+  for (let i = -4; i <= 4; i++) {
+    const t = i / 4, y = y0 + 0.028 + (1 - t * t) * 0.068;
+    box(gp, STONE, t * 0.24, y, 0.04, 0.068, 0.022, 0.15);
+    for (const sz of [-0.068, 0.068]) box(gp, '#eae4d6', t * 0.24, y + 0.022, 0.04 + sz, 0.014, 0.024, 0.014);
+  }
+  for (const sx of [-0.16, 0.16]) cyl(grp(gp, sx, 0.04, 0, y0 + 0.052), '#264c54', 0, 0, 0, 0.022, 0.16, 10).rotation.x = Math.PI / 2;
+  // Bridgehead Imperial Stele Pavilion (赵州桥桥头御碑亭) on the Northwest Bank
+  hall(gp, -0.28, y0 + 0.036, -0.14, 0.12, 0.12, 0.046, '#e6dec8', RED, GOLD, 0.04);
+};
+
+/** 龙门石窟: Longmen Grottoes Yi River Canyon, Three-Arch Bridge, Honeycomb Cliff Niches & Xiangshan Temple (龙门伊水两岸石窟与漫水桥). */
+const pl_longmen: Builder = root => {
+  const [gp, y0] = site(root, '#346e78', 0.88);
+  const CLIFF = '#b49e7c', STATUE = '#d4c4a4', BRIDGE = '#cfc6b4', RED = '#982c22';
+  // West Hill Honeycomb Grotto Cliff with Vairocana Niche & East Hill Xiangshan Temple across the Yi River (西山奉先寺万佛龛与东山香山寺)
+  tbox(gp, 0.24, 0.52, 0.18, 0.48, 0.165, CLIFF, -0.24, y0, 0);
+  box(gp, '#322820', -0.15, y0 + 0.02, -0.04, 0.055, 0.12, 0.13);
+  cyl(gp, STATUE, -0.16, y0 + 0.02, -0.04, 0.028, 0.072, 10);
+  ellip(gp, STATUE, -0.16, y0 + 0.105, -0.04, 0.022, 0.026, 0.022);
+  for (const dz of [-0.16, 0.1, 0.18]) box(gp, '#322820', -0.15, y0 + 0.045, dz, 0.035, 0.048, 0.038);
+  // Longmen Three-Arch Stone Bridge spanning the Yi River to East Hill Xiangshan Villa
+  box(gp, BRIDGE, 0, y0 + 0.012, 0.16, 0.34, 0.024, 0.068);
+  tbox(gp, 0.22, 0.44, 0.18, 0.4, 0.075, '#5c784a', 0.25, y0, -0.04);
+  hall(gp, 0.24, y0 + 0.075, -0.08, 0.15, 0.18, 0.044, '#e6dec8', RED, '#42484e', 0.038);
+};
+
+/** 莫高窟: Mogao Caves Sanwei Archway, Dangquan River Bridge & Abbot Wang's Library Cave White Stupa (莫高窟牌坊、宕泉桥与道士塔). */
+const pl_mogao: Builder = root => {
+  const [gp, y0] = site(root, '#d8b882', 0.88);
+  const CLIFF = '#c29a62', RED = '#9e2820', TILE = '#366852', WHITE = '#f4f0e6';
+  // Mingsha Sandstone Cliff with Multi-Tiered Timber Cave Eaves & "Shishi Baoshan" Archway (鸣沙山崖壁飞檐木构窟檐与石室宝山牌坊)
+  tbox(gp, 0.48, 0.18, 0.42, 0.14, 0.15, CLIFF, 0, y0, -0.16);
+  for (let i = 0; i < 3; i++) {
+    const w = 0.2 - i * 0.035, y = y0 + i * 0.044;
+    box(gp, RED, -0.06, y, -0.07, w, 0.034, 0.055);
+    gable(gp, w + 0.03, 0.02, 0.075, TILE, -0.06, y + 0.032, -0.065);
+  }
+  for (const sx of [-0.065, 0.065]) cyl(gp, RED, -0.06 + sx, y0, 0.12, 0.006, 0.078, 6);
+  gable(gp, 0.17, 0.026, 0.04, TILE, -0.06, y0 + 0.072, 0.12);
+  // Iconic White Tibetan-Style Stupa in Front of the Library Cave (藏经洞前王圆箓道士白塔) & Desert Poplars
+  cyl(gp, WHITE, 0.18, y0, 0.1, 0.038, 0.032, 10);
+  ellip(gp, WHITE, 0.18, y0 + 0.058, 0.1, 0.036, 0.038, 0.036);
+  cone(gp, '#dca428', 0.18, y0 + 0.095, 0.1, 0.015, 0.042, 8);
+  tree(gp, 0.24, y0, -0.02, 0.068, '#d89c28');
+};
+
+/** 罗布泊: Lop Nur "Dragon City" Yardang Wind-Carved Ridges & Xiaohe Sun-Grave Concentric Wood Posts (罗布泊雅丹龙城与小河太阳墓). */
+const pl_lop_nur: Builder = root => {
+  const [gp, y0] = site(root, '#d6b67c', 0.88);
+  const YARDANG = '#b88e52', SALT = '#dcd4be', WOOD = '#6e4a28';
+  // Wind-Carved Parallel Yardang Ridge Formations ("白龙堆"雅丹风蚀垄槽与盐壳湖床)
+  band(gp, 0.12, 0.3, y0, 0.005, SALT);
+  for (const [x, z, w, h, d] of [[-0.18, -0.14, 0.12, 0.13, 0.24], [0.02, -0.16, 0.1, 0.15, 0.22], [0.2, -0.1, 0.11, 0.11, 0.2]] as [number, number, number, number, number][]) {
+    tbox(gp, w, d, w * 0.65, d * 0.82, h, YARDANG, x, y0, z);
+    box(gp, SALT, x, y0 + h * 0.45, z, w * 0.88, 0.014, d * 0.92);
+  }
+  // Iconic Xiaohe / Gumugou "Sun Grave" with 7 Concentric Rings of Populus Euphratica Posts (罗布泊太阳墓胡杨木桩圈)
+  for (const r of [0.045, 0.085]) {
+    for (let i = 0; i < 10; i++) {
+      const a = (i * Math.PI) / 5;
+      cyl(gp, WOOD, -0.06 + Math.cos(a) * r, y0, 0.16 + Math.sin(a) * r, 0.005, 0.042, 5);
+    }
+  }
+};
+
+/** 嘉峪关: First Pier of the Ming Great Wall on the Taolai River Gorge Cliff (讨赖河悬崖“万里长城第一墩”烽燧与关城). */
+const pl_jiayuguan: Builder = root => {
+  const [gp, y0] = site(root, '#cba86e', 0.88);
+  const CLIFF = '#8c7250', EARTH = '#b89258', RIVER = '#2e6e78', RED = '#9c2a20';
+  // 56-Meter Vertical Loess Conglomerate Cliff above the Turquoise Taolai River Canyon (讨赖河大峡谷绝壁)
+  band(gp, 0.12, 0.32, y0, 0.006, RIVER);
+  tbox(gp, 0.56, 0.28, 0.5, 0.24, 0.088, CLIFF, 0, y0, -0.06);
+  // Iconic Square Rammed-Earth "First Pier of the Great Wall" Beacon Mound on the Cliff Edge (万里长城第一墩夯土墩台)
+  tbox(gp, 0.16, 0.16, 0.12, 0.12, 0.11, EARTH, -0.14, y0 + 0.088, -0.02);
+  // Winged Great Wall Rampart & Jiayuguan Corner Pavilion on the East
+  box(gp, EARTH, 0.08, y0 + 0.088, -0.08, 0.28, 0.048, 0.042);
+  hall(gp, 0.18, y0 + 0.136, -0.08, 0.13, 0.11, 0.042, '#e6dec8', RED, '#42484e', 0.038);
+};
+
+/** 山海关: Laolongtou ("Old Dragon's Head") Great Wall Entering the Bohai Sea & Chenghai Tower (山海关老龙头入海石城与澄海楼). */
+const pl_shanhaiguan: Builder = root => {
+  const [gp, y0] = site(root, '#1e5c74', 0.88);
+  const GRANITE = '#8c8a84', BRICK = '#686c74', RED = '#9c2820', GOLD = '#dca228';
+  // Coastal headland & Ming Granite Sea-Fortress Pier ("老龙头"入海石城与靖卤台深入渤海)
+  prism(gp, [[-0.4, -0.36], [0.22, -0.36], [0.16, -0.04], [-0.4, 0.02]], y0, 0.042, '#b8a882');
+  tbox(gp, 0.18, 0.38, 0.14, 0.34, 0.068, GRANITE, 0.02, y0, 0.04);
+  cyl(gp, GRANITE, 0.02, y0, 0.22, 0.085, 0.072, 10);
+  // Double-Eaved Chenghai Tower where Emperors Viewed the Sea (澄海楼重檐歇山与御碑亭)
+  const h1 = hall(gp, -0.14, y0 + 0.042, -0.16, 0.24, 0.14, 0.046, '#e6dec8', RED, '#42484e', 0.036);
+  hall(gp, -0.14, h1 - 0.008, -0.16, 0.18, 0.1, 0.036, '#e6dec8', RED, GOLD, 0.034);
+  box(gp, BRICK, -0.04, y0 + 0.042, -0.04, 0.18, 0.038, 0.042);
+};
+
+/** 居庸关: Cloud Platform at Juyongguan (居庸关云台元代汉白玉过街塔券洞) & Mountain Pass Gate Tower. */
+const pl_pass_juyong: Builder = root => {
+  const [gp, y0] = site(root, '#547246', 0.88);
+  const MARBLE = '#ede8dc', BRICK = '#686c74', RED = '#9c2820', TILE = '#3a6852', MTN = '#44623a';
+  for (const sx of [-0.28, 0.28]) cone(gp, MTN, sx, y0, -0.14, 0.16, 0.17, 6);
+  // Iconic Yuan Dynasty White-Marble "Cloud Platform" (居庸关云台：折角梯形汉白玉台基、半八角券洞与石雕栏杆)
+  tbox(gp, 0.32, 0.24, 0.26, 0.2, 0.085, MARBLE, 0, y0, 0.04);
+  box(gp, '#26201c', 0, y0, 0.04, 0.068, 0.058, 0.25);
+  box(gp, '#cfc6b4', 0, y0 + 0.085, 0.04, 0.28, 0.016, 0.22);
+  for (let i = -3; i <= 3; i++) for (const sz of [-0.1, 0.1]) cyl(gp, MARBLE, i * 0.04, y0 + 0.101, 0.04 + sz, 0.005, 0.022, 6);
+  // Juyongguan North Gate Tower Rising Behind on the Ridge (居庸关南北关城楼)
+  tbox(gp, 0.38, 0.11, 0.34, 0.09, 0.068, BRICK, 0, y0, -0.18);
+  hall(gp, 0, y0 + 0.068, -0.18, 0.2, 0.095, 0.042, '#e6dec8', RED, TILE, 0.036);
+};
+
+/** 泰山: Mount Tai Eighteen Bends Heavenly Stairway (泰山十八盘摩天石阶), Nantianmen Gate & Jade Emperor Peak (南天门与玉皇顶). */
+const pl_taishan: Builder = root => {
+  const [gp, y0] = site(root, '#4e6c44', 0.88);
+  const ROCK = '#72767c', STAIR = '#dcd4c2', RED = '#a22820', GOLD = '#e0a828';
+  // Twin Craggy Peaks of Mount Tai flanking the Steep "Eighteen Bends" Stone Staircase (泰山东西摩天岭与十八盘天梯)
+  for (const [sx, h] of [[-0.22, 0.21], [0.22, 0.23]] as [number, number][]) {
+    cone(gp, ROCK, sx, y0, -0.06, 0.17, h, 7);
+    tree(gp, sx * 0.85, y0 + 0.06, 0.08, 0.055, '#2e5834');
+  }
+  for (let i = 0; i < 8; i++) {
+    box(gp, STAIR, 0, y0 + i * 0.018, 0.22 - i * 0.036, 0.095, 0.018, 0.045);
+  }
+  // Vermilion Nantianmen ("South Gate to Heaven") at the Top of the Stairs & Yuhuangding Summit Temple (南天门红墙飞檐与玉皇顶)
+  tbox(gp, 0.24, 0.12, 0.22, 0.1, 0.052, RED, 0, y0 + 0.135, -0.08);
+  box(gp, '#221a16', 0, y0 + 0.135, -0.08, 0.048, 0.038, 0.13);
+  hall(gp, 0, y0 + 0.187, -0.08, 0.18, 0.095, 0.038, RED, RED, GOLD, 0.036);
+};
+
 export const PLACES_SITES: Record<string, Builder> = {
   pl_yuanmou, pl_hemudu, pl_liangzhu, pl_dawenkou, pl_dujiangyan, pl_dunhuang,
   pl_taosi, pl_shimao, pl_anyang, pl_yungang,
@@ -1017,4 +1281,7 @@ export const PLACES_SITES: Record<string, Builder> = {
   pl_jiaxing, pl_jinggangshan, pl_ruijin, pl_zunyi, pl_luding, pl_yanan, pl_xibaipo, pl_lugouqiao,
   pl_taierzhuang, pl_humen, pl_weihai, pl_xiaogang, pl_jiuquan_lc, pl_wenchang, pl_xiongan, pl_dandong,
   pl_everest, pl_diaoyu, pl_nanhai, pl_xisha, pl_nansha,
+  pl_erlitou, pl_shangjing, pl_huining, pl_zhoukoudian, pl_banpo, pl_sanxingdui,
+  pl_lingqu, pl_zhaozhou, pl_longmen, pl_mogao, pl_lop_nur, pl_jiayuguan, pl_shanhaiguan,
+  pl_pass_juyong, pl_taishan,
 };

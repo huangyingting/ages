@@ -50,8 +50,8 @@ function P(zh: string, at: At, o: WhoOpt = {}): void {
   const p = personNamed(zh);
   const base: ModelRecipe = personModel(p ?? { name: { zh }, ...(o.year !== undefined ? { span: [o.year - 40, o.year] } : {}) });
   const model: ModelRecipe = base.hero ? base : {
-    ...base, ...(o.role && !base.role ? { role: o.role } : {}), ...(o.year !== undefined && base.year === undefined ? { year: o.year } : {}),
-    ...(o.prop && !base.prop ? { prop: o.prop } : {}), ...(o.female ? { female: true } : {}), ...(o.eth ? { eth: o.eth } : {}), bare: true,
+    ...base, ...(o.role ? { role: o.role } : {}), ...(o.year !== undefined ? { year: o.year } : {}),
+    ...(o.prop ? { prop: o.prop } : {}), ...(o.female ? { female: true } : {}), ...(o.eth ? { eth: o.eth } : {}), bare: true,
   };
   const name = p?.name ?? { zh, en: o.en ?? zh };
   const desc = o.desc ? { zh: o.desc[0], en: o.desc[1] } : p ? p.title : { zh: '', en: '' };
@@ -170,7 +170,7 @@ B('jixia', ['稷下学宫（百家争鸣）', 'Jixia Academy (Hundred Schools)']
 era('qin');
 B('terracotta-life', ['兵马俑', 'Terracotta Army'], [109.28, 34.38], hero('asia3/terracotta', 'warrior'),
   ['秦始皇陵陪葬坑出土八千余件陶俑陶马，军阵严整、千人千面。', 'Over 8,000 life-sized terracotta warriors and horses guarding the First Emperor\'s mausoleum.'], { wiki: ['兵马俑', 'Terracotta Army'] });
-B('taishan-qin', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple'),
+B('taishan-qin', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple', { style: 'qin' }),
   ['秦始皇东巡登泰山封禅，刻石颂秦德，开历代帝王泰山封禅之先。', 'The First Emperor climbed Mount Tai to perform the feng and shan rites, the first of the imperial sacrifices to Heaven there.'], { wiki: ['封禅', 'Feng Shan'] });
 P('李斯', [108.2, 33.8], { prop: 'brush', desc: ['秦朝丞相，推行小篆“书同文”，统一文字。', 'Qin chancellor who standardised writing in small seal script.'] });
 C('banliang', ['统一度量衡与半两钱', 'Standard measures and coins'], [110.6, 35.2], hero(C1 + 'lf_coins', 'scroll', { style: 'banliang' }),
@@ -184,7 +184,7 @@ C('shuihudi', ['睡虎地秦简（《秦律十八种》）', 'Shuihudi Qin bambo
   ['湖北云梦出土一千一百余枚秦代竹简，记载《秦律十八种》《编年记》，印证《史记》“明法度，定律令”。', 'Over 1,100 Qin bamboo slips from Yunmeng, Hubei, preserving the Eighteen Qin Statutes and administrative laws.'], { wiki: ['睡虎地秦简', 'Shuihudi Qin bamboo texts'], tier: 2 });
 
 era('whan');
-B('taishan-whan', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple'),
+B('taishan-whan', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple', { style: 'whan' }),
   ['汉武帝八次东巡泰山，封禅告成功，泰山成为“五岳独尊”。', 'Emperor Wu came to Mount Tai eight times to report his achievements to Heaven, making it the foremost of the Five Peaks.'], { wiki: ['封禅', 'Feng Shan'] });
 P('张骞', [103.8, 36.06], { prop: 'staff', desc: ['两次出使西域，“凿空”丝绸之路。', 'Envoy who twice crossed to the Western Regions, opening the Silk Road.'] });
 P('霍去病', [108.5, 37.6], { prop: 'spear', desc: ['西汉名将，漠北之战封狼居胥，“匈奴未灭，何以家为”。', 'Young Western Han cavalry commander who routed the Xiongnu and performed the Feng rite at Mount Langjuxu.'] });
@@ -236,7 +236,7 @@ C('caizhi', ['蔡侯造纸坊', 'Cai Lun\'s papermaking workshop'], [112.85, 26.
 era('sanguo');
 P('诸葛亮', [104.07, 30.66], { prop: 'fan', desc: ['蜀汉丞相，羽扇纶巾，鞠躬尽瘁，死而后已。', 'Chancellor of Shu Han with his feather fan — devoted to the last.'] });
 P('关羽', [112.2, 30.35], { prop: 'guandao', desc: ['蜀汉名将，忠义勇武，后世尊为“武圣”。', 'Shu general famed for loyalty and valour, later worshipped as the God of War.'] });
-P('曹操', [114.4, 36.3], {});
+P('曹操', [114.4, 36.3], { year: 216, prop: 'halberd' });
 B('tongque', ['铜雀台', 'Bronze Sparrow Terrace'], [115.6, 35.4], hero(A1 + 'lf_tongque', 'palace'),
   ['曹操在邺城筑三台，铜雀台高十丈，楼顶立铜雀。', 'Cao Cao\'s terrace at Ye, ten zhang high and crowned with a bronze sparrow.'], { wiki: ['铜雀台', 'Bronze Sparrow Terrace'] });
 C('muniu', ['木牛流马', 'Wooden ox'], [106.0, 32.6], hero(C2 + 'lf_muniu', 'chariot'),
@@ -303,7 +303,7 @@ C('youchun', ['展子虔《游春图》', 'Strolling About in Spring (Zhan Ziqia
   ['隋代画家展子虔绘青绿山水手卷，是中国现存最早的传世卷轴山水画。', 'Blue-and-green landscape handscroll by Sui master Zhan Ziqian, the oldest surviving Chinese landscape painting.'], { wiki: ['游春图', 'Zhan Ziqian'], tier: 2 });
 
 era('tang');
-B('taishan-tang', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple'),
+B('taishan-tang', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple', { style: 'tang' }),
   ['725年唐玄宗泰山封禅，御书《纪泰山铭》刻于岱顶石壁。', 'In 725 Emperor Xuanzong held the feng-shan rites and carved his Inscription on Mount Tai into the summit cliff.'], { wiki: ['封禅', 'Feng Shan'] });
 P('武则天', [112.45, 34.62], { role: 'ruler', female: true, desc: ['中国历史上唯一的正统女皇帝，以洛阳为神都。', 'China\'s only reigning empress, who made Luoyang her Divine Capital.'] });
 P('李白', [114.9, 30.5], { prop: 'cup', desc: ['“诗仙”，盛唐浪漫主义诗人，“天生我材必有用”。', 'The Immortal of Poetry, greatest romantic poet of the High Tang.'] });
@@ -337,11 +337,11 @@ C('yeyan', ['韩熙载夜宴', 'Night revels of Han Xizai'], [117.2, 31.0], hero
   ['顾闳中画南唐大臣韩熙载家宴：听琵琶、观舞、清吹、宴散。', 'Gu Hongzhong painted the Southern Tang minister\'s party: pipa, dance, flutes and farewells.'], { wiki: ['韩熙载夜宴图', 'The Night Revels of Han Xizai'] });
 C('print', ['雕版印刷九经', 'Printing the Classics'], [114.36, 34.8], { kind: 'printing' },
   ['后唐宰相冯道主持雕版刊印儒家九经，开官刻书籍之先。', 'Chancellor Feng Dao had the Nine Classics carved on woodblocks — the first official printed books.'], { wiki: ['雕版印刷', 'Woodblock printing'] });
-P('赵匡胤', [114.6, 35.6], { tier: 2 });
+P('赵匡胤', [114.6, 35.6], { tier: 2, role: 'general', year: 959, prop: 'axe' });
 
 // ---------------------------------------------------------------------------------------------- Song
 era('bsong');
-B('taishan-bsong', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple'),
+B('taishan-bsong', ['泰山', 'Mount Tai'], [117.1, 36.25], hero('china/cn_taishan', 'temple', { style: 'bsong' }),
   ['1008年宋真宗封禅泰山，扩建岱庙天贶殿，此后再无帝王封禅。', 'In 1008 Emperor Zhenzong held the last feng-shan rites and enlarged the Temple of Mount Tai (Dai Miao).'], { wiki: ['封禅', 'Feng Shan'] });
 P('苏轼', [114.87, 30.45], { prop: 'brush', desc: ['文学家、书画家，贬黄州作《赤壁赋》，发明东坡肉。', 'Poet, painter and calligrapher; exiled to Huangzhou he wrote the Red Cliff odes.'] });
 P('李清照', [117.0, 36.67], { desc: ['婉约派女词人，“寻寻觅觅，冷冷清清”。', 'Greatest woman poet of the Song: "Searching, seeking, cold and lonely."'] });

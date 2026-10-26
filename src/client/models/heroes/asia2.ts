@@ -200,7 +200,7 @@ const tfront = (o: TBlock, y: number) => o.z + o.d / 2 - (o.bat ?? 0.1) * (y - o
 // east (+x) with its sun-terrace top storey, the Red Palace (Potrang Marpo, 1690–94) in the centre with the black
 // yak-hair curtain and gilt-copper chapel roofs, the yellow building between them, lower white monastic wings to
 // the west, the zig-zag stairways and the walled village of Shol below. Squashed slightly to fit the footprint.
-const potala: Builder = root => {
+const potala: Builder = (root, r) => {
   const gp = grp(root, 0, 0);
   gp.scale.set(0.9, 0.86, 0.9);
   const WH = '#ebe5d8', RED = '#86302a', GOLD = '#c99a3a', YEL = '#c99a45';
@@ -305,6 +305,21 @@ const potala: Builder = root => {
   for (let i = 0; i < 10; i++) {
     const c = ['#5a3a2a', '#3a332c', '#7a2e24', '#6b5a46'][i % 4];
     human(gp, -0.3 + hash3(i, 9, 1) * 0.6, 0.038, 0.41 + hash3(i, 9, 2) * 0.04, { h: 0.024, ry: Math.PI + (hash3(i, 9, 3) - 0.5), pose: i % 3 ? 'walk' : 'stand', phase: i, top: c, bottom: shade(c, 0.8), skin: '#a8785a', hair: '#1d1915', hatStyle: i % 4 === 1 ? 'fur' : undefined, hat: '#4a3d30', dress: 'ankle', shoes: '#2a2420', detail: 'lo' });
+  }
+  if (r?.style === 'tibet1951') {
+    // 1951 Peaceful Liberation celebratory red archway and silk banners before the Shol gate
+    for (const sx of [-0.09, 0.09]) cyl(gp, '#b91c1c', sx, 0.035, 0.43, 0.006, 0.095, 8);
+    box(gp, '#b91c1c', 0, 0.118, 0.43, 0.21, 0.016, 0.014);
+    box(gp, GOLD, 0, 0.132, 0.43, 0.22, 0.006, 0.016);
+    for (const sx of [-0.16, 0.16]) {
+      cyl(gp, GOLD, sx, 0.035, 0.42, 0.004, 0.09, 6);
+      box(gp, '#c81e1e', sx + 0.018, 0.105, 0.42, 0.034, 0.022, 0.003);
+    }
+  } else {
+    // Qing Amban & Golden Urn (金瓶掣签) gilded ceremonial pavilion in the Shol courtyard
+    box(gp, '#d6cbb4', 0, 0.035, 0.42, 0.07, 0.012, 0.07);
+    gild(lathe(gp, [[0, 0], [0.016, 0], [0.022, 0.014], [0.014, 0.028], [0.018, 0.034], [0, 0.036]], GOLD, 0, 0.047, 0.42, 10), GOLD);
+    for (const dx of [-0.005, 0, 0.005]) box(gp, '#f5efe0', dx, 0.082, 0.42, 0.003, 0.018, 0.002);
   }
 };
 
