@@ -1114,7 +1114,12 @@ export class Fx {
       await this.wait(Math.min(dur, 1));
       return;
     }
-    if (o.fx === 'glow') { this.ring(p, o.color ?? '#ffd76a', dur, layer); await this.wait(dur); return; }
+    if (o.fx === 'glow') {
+      this.ring(p, o.color ?? '#ffd76a', dur, layer);
+      this.particles.dustAges(p, Math.max(0.45, this.s), 1.6 * Math.max(0.5, this.s), 0.75);
+      await this.wait(dur);
+      return;
+    }
     const em = this.particles.emitter(o.fx, p, () => this.s, o.color);
     if (o.fx === 'battle') this.ring(p, '#ff5a36', dur, layer, 0.9);
     await this.tween(dur, k => { em.k = k; });

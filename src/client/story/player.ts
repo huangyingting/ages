@@ -70,6 +70,7 @@ export class StoryPlayer {
         this.hooks.onYear(st.year);
         return;
       case 'fly':
+        fx.dustOfAges(st.lon, st.lat, Math.min(18, Math.max(8, (st.dist ?? 24) * 0.45)), 0.5);
         return a.flyTo({ lon: st.lon, lat: st.lat - (st.dist ?? 24) * 0.04, dist: st.dist ?? 24, tilt: st.tilt ?? 0.9 }, (st.dur ?? 2) / sp());
       case 'caption': {
         const text = tr(st.text, L);
