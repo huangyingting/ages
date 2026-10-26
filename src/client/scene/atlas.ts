@@ -126,6 +126,9 @@ export class Atlas {
   private beam!: Beam;
   private tip!: HTMLElement;
   private overCanvas = false;
+  /** where the mouse last really moved: a name sliding under a resting pointer fires pointerenter without it moving */
+  private static ptr = { x: NaN, y: NaN };
+  private static ptrBound = false;
   /** the camera's pose last frame and the frames since it last moved: hover waits until the map holds still */
   private camPos = new THREE.Vector3();
   private camQuat = new THREE.Quaternion();
@@ -245,7 +248,15 @@ export class Atlas {
     const leave = () => {
       if (this.hover && 'target' in this.hover && this.hover.target.key === target.key) this.setHover(null);
     };
-    el.addEventListener('pointerenter', enter);
+    if (!Atlas.ptrBound) {
+      Atlas.ptrBound = true;
+      window.addEventListener('pointermove', e => { Atlas.ptr.x = e.clientX; Atlas.ptr.y = e.clientY; }, { capture: true, passive: true });
+    }
+    // pointerenter precedes the pointermove of a real move, so a resting mouse still sits at the last recorded spot
+    el.addEventListener('pointerenter', e => {
+      if (e.pointerType === 'mouse' && e.clientX === Atlas.ptr.x && e.clientY === Atlas.ptr.y) return;
+      enter();
+    });
     // a name that slid under a resting pointer while the map moved lights up on the next move
     el.addEventListener('pointermove', e => {
       if (!e.buttons && !(this.hover && 'target' in this.hover && this.hover.target.key === target.key)) enter();

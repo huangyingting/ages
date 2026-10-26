@@ -194,7 +194,7 @@ class App {
 
     this.caption.onPause = () => this.player.toggle();
     this.caption.onSkip = () => this.player.skip();
-    this.caption.onStop = () => this.stopStory();
+    this.caption.onStop = () => this.stopStory(true);
     this.caption.onSpeed = v => (this.player.speed = v);
     this.caption.onVoice = on => { this.player.narrate = on; if (!on) speechSynthesis.cancel(); };
 
@@ -441,14 +441,21 @@ class App {
     }, 2500);
   }
 
-  stopStory(): void {
+  /** `back`: the user stopped the story themselves, so the map returns to the card event's own year. */
+  stopStory(back = false): void {
+    back &&= !!this.player && this.player.state !== 'idle' && !!this.player.event && this.player.event === this.card.event;
     this.player?.stop();
     const hadFocus = this.caption.el.contains(document.activeElement);
     this.caption.show(false);
     this.root.classList.remove('story-on');
     if (hadFocus) this.card.el.querySelector<HTMLElement>('[data-act=play]')?.focus({ preventScroll: true });
-    // the selected event's model was cleared by the story; restore it
-    if (this.card.event) this.atlas.select(this.card.event, false);
+    // the selected event's model was cleared by the story; restore it (and, when stopped mid-way, the event's year,
+    // so the map is not left in an earlier/later period than the card)
+    const e = this.card.event;
+    if (e) {
+      if (back && this.timeline.year !== e.year) { this.timeline.set(e.year, true, false); this.atlas.setYear(e.year); }
+      this.atlas.select(e, false);
+    }
   }
 
   /** The card's W button: unfolds its article beside the card, or folds it back. */
@@ -467,7 +474,7 @@ class App {
       else if (!this.help.el.hidden) this.help.toggle(false);
       else if (this.learn.open) this.learn.toggle(false);
       else if (this.reader.open && this.panel.top === this.card.el) this.reader.close();
-      else if (this.player.state !== 'idle') this.stopStory();
+      else if (this.player.state !== 'idle') this.stopStory(true);
       else if (this.quiz.open) this.quiz.toggle(false);
       else if (this.card.open) this.closeCard();
       else if (this.lesson.open) this.lesson.stop();
