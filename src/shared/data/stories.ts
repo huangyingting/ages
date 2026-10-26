@@ -584,7 +584,6 @@ export function autoStory(e: {
       steps.push(
         { do: 'fly', lon: e.lon, lat: e.lat - 0.2, dist: 20, tilt: 0.88, dur: 2 },
         { do: 'army', from, to: [e.lon - Math.cos(r) * 0.25, e.lat + Math.sin(r) * 0.25], color: a, dur: 3, count: 26, unit },
-        { do: 'fly', lon: e.lon, lat: e.lat - 0.1, dist: close - 2, tilt: 0.92, dur: 1.2, par: true },
         { do: 'clash', lon: e.lon, lat: e.lat, a, b, winner: 'a', angle: ang, dur: 5.5, count: 22, units: [unit, foe], formations: forms, ...(/[攻破陷围克]/.test(e.title.zh) ? { siege: true } : {}) },
         { do: 'banner', lon: e.lon, lat: e.lat, text: e.title, color: a, dur: 5 },
         ...model, say,

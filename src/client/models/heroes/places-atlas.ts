@@ -1,24 +1,29 @@
 import * as THREE from 'three';
-import { type Builder, box, rbox, cyl, cone as rawCone, ellip, rod, gable as rawGable, prism, tbox as rawTbox, shade, mix, plinth, tree, SITE } from '../prims.ts';
+import { type Builder, box, rbox, cyl, cone as rawCone, ellip, rod, gable as rawGable, prism, tbox as rawTbox, shade, plinth, tree, SITE } from '../prims.ts';
 import { grp, proof, gourd } from '../timber.ts';
 import { human } from '../human.ts';
 
+let atlasSiteSeq = 0;
 function site(root: THREE.Group, top: string, k = 0.88): [THREE.Group, number] {
   const h = plinth(root, top);
   const p = new THREE.Group();
   p.position.y = h + 0.0015;
   p.scale.setScalar(k);
   root.add(p);
-  // Perimeter landscape trees, scholar rocks, stone lanterns & historical figures (古木景石、石经幢与行人)
-  tree(p, -0.31, 0, 0.16, 0.056, '#44683a');
-  tree(p, 0.31, 0, -0.15, 0.05, '#3b5c34');
-  for (const [rx, rz] of [[-0.28, 0.22], [0.28, -0.21]] as [number, number][]) {
-    ellip(p, '#787268', rx, 0.008, rz, 0.022, 0.012, 0.018);
-    cyl(p, '#cfc6b4', -rx, 0, rz, 0.012, 0.028, 6);
-    rawCone(p, '#525860', -rx, 0.028, rz, 0.017, 0.012, 6);
+  const s = ++atlasSiteSeq;
+  const a1 = 0.65 + (s % 11) * 0.43, a2 = a1 + 2.25 + (s % 7) * 0.27;
+  const tops = ['#785a3c', '#8c3428', '#2e5268', '#4a6240', '#6a485e', '#946834', '#384654', '#7e442c'];
+  const bots = ['#4a3c2e', '#dfd6c4', '#2c343c', '#c8beaa', '#523c32', '#3a483c'];
+  const poses = ['walk', 'point', 'stand', 'relax', 'carry'] as const;
+  const hats = ['brim', 'knot', 'cap', 'turban', 'hood', 'conical'] as const;
+  if (top !== SITE.water && top !== SITE.snow) {
+    tree(p, Math.cos(a1) * 0.34, 0, Math.sin(a1) * 0.31, 0.046 + (s % 4) * 0.005, s & 1 ? '#44683a' : '#3b5c34');
+    human(p, Math.cos(a2) * 0.28, 0, Math.sin(a2) * 0.27, {
+      h: 0.042, ry: -a2, pose: poses[s % poses.length],
+      top: tops[s % tops.length], bottom: bots[(s >> 1) % bots.length],
+      dress: s % 3 === 0 ? 'knee' : 'ankle', hat: '#362c24', hatStyle: hats[s % hats.length], detail: 'hi',
+    });
   }
-  human(p, -0.23, 0, 0.25, { h: 0.044, ry: 0.65, pose: 'walk', top: '#785a3c', bottom: '#4a3c2e', dress: 'ankle', hat: '#3a3028', hatStyle: 'brim', detail: 'hi' });
-  human(p, 0.22, 0, 0.26, { h: 0.042, ry: -0.55, pose: 'point', top: '#8c3428', bottom: '#dfd6c4', dress: 'ankle', detail: 'hi' });
   return [p, 0];
 }
 
@@ -975,10 +980,11 @@ function hashStr(s: string): number {
  */
 function buildGazetteer(root: THREE.Group, r: Record<string, unknown> | undefined, salt = 0): void {
   const raw = typeof r?.style === 'string' ? r.style : 'j0|112.0|34.0|0|7|';
-  const [id = 'j0', lonS = '112', latS = '34', capS = '0', archS = '7', zh = ''] = raw.split('|');
+  const [id = 'j0', lonS = '112', latS = '34', capS = '0', archS = '7', zh = '', anc = '', lore = ''] = raw.split('|');
+  const full = `${zh} ${anc} ${lore}`;
   const mNum = /^j(\d+)$/.exec(id);
   const ord = salt || (mNum ? parseInt(mNum[1], 10) + 1 : (hashStr(id) % 250) + 180);
-  const h = hashStr(raw + ':' + id + ':' + zh + ':' + ord);
+  const h = hashStr(raw + ':' + id + ':' + full + ':' + ord);
   const lon = parseFloat(lonS) || 112, lat = parseFloat(latS) || 34;
   const isCap = capS === '1';
   const hintArch = parseInt(archS, 10);
@@ -986,137 +992,359 @@ function buildGazetteer(root: THREE.Group, r: Record<string, unknown> | undefine
   // 1. Regional terrain & architectural palette from coordinates and historical notes
   const isXiyu = lon < 97 && lat >= 35;
   const isTibet = lon < 102 && lat < 35;
-  const isSteppe = lat > 41.5 && lon < 122;
+  const isSteppe = lat > 41.5 && lon < 123;
   const isJiangnan = lon >= 117 && lat >= 27.5 && lat <= 33;
-  const isLingnan = lat < 27.5 && lon >= 107;
-  const isBashu = lon >= 102 && lon < 110 && lat >= 26 && lat < 33.5;
+  const isLingnan = lat < 26.2 && lon >= 107;
+  const isBashu = lon >= 102 && lon < 110 && lat >= 27 && lat < 33.5;
+  const isSw = lon >= 98 && lon < 108 && lat < 28.5;
 
-  const ground = isXiyu ? '#cfa86a' : isTibet ? '#b49c72' : isSteppe ? '#72864c' : isJiangnan ? '#5c7852' : isLingnan ? '#587c4a' : isBashu ? '#567448' : lat > 34 ? SITE.loess : SITE.paving;
-  const wallC = isXiyu ? '#c89e60' : isTibet ? '#f2eee4' : isJiangnan ? '#f2eee6' : isLingnan ? '#eae2d0' : isSteppe ? '#efe8da' : mix('#dfd6c2', '#b89464', (h & 7) / 10);
-  const roofC = isCap ? ((h & 1) ? '#d49c2e' : '#386e54') : isXiyu ? '#267e8c' : isTibet ? '#d8a228' : isJiangnan ? '#3c4046' : isLingnan ? '#8c3c2a' : mix('#464c52', '#5c4e3e', ((h >> 3) & 7) / 10);
+  const ground = isXiyu ? '#cfa86a' : isTibet ? '#b49c72' : isSteppe ? '#72864c' : isJiangnan ? '#5c7852' : isLingnan ? '#587c4a' : isBashu || isSw ? '#567448' : lat > 34 ? SITE.loess : SITE.paving;
+  const wallPals = ['#dfd6c2', '#d4c4a8', '#c8b08a', '#e8e2d4', '#b89464', '#d8ccb8', '#ccb898', '#e4dcd0'];
+  const roofPals = ['#464c52', '#386e54', '#8c3c2a', '#2e5266', '#5c4e3e', '#b88628', '#3c4046', '#6e3a28'];
+  const wallC = isXiyu ? '#c89e60' : isTibet ? '#f2eee4' : isJiangnan ? '#f2eee6' : isLingnan ? '#eae2d0' : isSteppe ? '#efe8da' : wallPals[(ord + (h & 7)) % wallPals.length];
+  const roofC = isCap ? ((ord & 1) ? '#d49c2e' : '#2e6850') : isXiyu ? '#267e8c' : isTibet ? '#d8a228' : roofPals[(ord + ((h >> 3) & 7)) % roofPals.length];
   const colC = isTibet || isCap ? '#9c2820' : isJiangnan ? '#4e3420' : '#8e2c22';
 
   const [gp, y0] = site(root, ground, 0.88);
-  const rot = (((h >> 6) & 7) - 3.5) * 0.09;
-  gp.rotation.y = rot;
+  gp.rotation.y = (((ord * 5 + (h >> 6)) % 16) - 7.5) * 0.08;
 
-  // 2. Water channel / oasis / river / mountain backdrop based on geography + hash
-  const waterMode = isJiangnan || hintArch === 2 ? ((h >> 9) % 3) + 1 : ((h >> 9) % 5 === 0 ? 1 : 0);
-  if (waterMode === 1) band(gp, 0.16, 0.32, y0, 0.005, '#346c76');
-  else if (waterMode === 2) band(gp, -0.34, -0.18, y0, 0.005, '#346c76');
-  else if (waterMode === 3) prism(gp, [[-0.36, 0.08], [0.08, 0.12], [0.12, 0.32], [-0.32, 0.3]], y0, 0.005, '#346c76');
+  // 2. Select 1 of 20 historically & geographically distinct landmark archetypes
+  let mode = (ord * 7 + (h >> 4)) % 20;
+  if (/盐|夏县|安邑|盐城|盐渎|自贡/.test(full)) mode = 18;
+  else if (/编钟|随州|曾|灵寿|中山|礼器|鼎/.test(full)) mode = 3;
+  else if (/火牛|即墨|当阳|长坂|赤壁|平乡|巨鹿|战场|破|军/.test(full)) mode = 14;
+  else if (/合浦|雷州|徐闻|连云港|海|港|漳州|莆田|新会|潮州|汕头|太仓|温州/.test(full)) mode = 5;
+  else if (/淮安|淮阴|宿州|大名|漕|运河|水闸/.test(full)) mode = 12;
+  else if (/禹州|阳翟|钧|建瓯|建安|宜春|瓷|窑/.test(full)) mode = 13;
+  else if (/永济|蒲坂|鹳雀|九江|柴桑|浔阳|宣城|丹阳|阆中|中天楼|常德|武陵/.test(full)) mode = 1;
+  else if (/双塔|温州|东瓯|正定|定州/.test(full)) mode = 2;
+  else if (/汉中|广元|葭萌|上洛|商洛|栈道|秦皇岛|山海关|怀来|兴城/.test(full) || hintArch === 0) mode = 4;
+  else if (/湖州|乌程|嘉兴|无锡|梅里|金华|衢州|丽水|池州/.test(full)) mode = 6;
+  else if (/邓州|穰|书院|南阳|宛|永州|零陵|柳州|儋州|眉山|抚州|吉安|上饶|赣州|衡阳|滁州|曲靖/.test(full) || hintArch === 4) mode = 7;
+  else if (/楼兰|若羌|额济纳|居延|临洮|灵武|嘉峪关|绥德|上郡|庆阳|义渠/.test(full)) mode = 8;
+  else if (/亳州|谯|长治|上党|蔚县|代|许昌|保定|邢台|汝南/.test(full)) mode = 9;
+  else if (/宜昌|夷陵|三门峡|摩崖|石窟/.test(full)) mode = 10;
+  else if (/淮阳|陈|濮阳|帝丘|陵|墓/.test(full) || hintArch === 6) mode = 11;
+  else if (/保山|永昌|泸州|江阳|宜宾|僰道|峡/.test(full)) mode = 15;
+  else if (isSteppe || /云中|托克托|九原|包头|巴林左旗|辽上京|朝阳/.test(full)) mode = 16;
+  else if (isTibet) mode = 17;
+  else if (isXiyu) mode = 19;
+  else if (isSw || /西昌|邛都|贵阳|建水/.test(full)) mode = 19;
+  else if (isLingnan || /梧州|苍梧|韶关|肇庆|惠州|高州|南宁/.test(full)) mode = 17;
+  else if (/辽阳|襄平|阿城|金上京|吉林|阿尔巴津|白塔/.test(full) || hintArch === 1) mode = 2;
+  else if (isCap) mode = 0;
 
-  const mtnCount = isTibet || isBashu || hintArch === 0 || hintArch === 3 ? 2 : ((h >> 12) & 1);
-  for (let m = 0; m < mtnCount; m++) {
-    const mx = (m === 0 ? -1 : 1) * (0.2 + ((h >> (13 + m)) & 3) * 0.03);
-    const mz = -0.22 - ((h >> (15 + m)) & 3) * 0.02;
-    const mr = 0.11 + ((h >> (17 + m)) & 3) * 0.015;
-    const mh = 0.13 + ((h >> (19 + m)) & 3) * 0.025;
-    const mc = isXiyu ? '#b8683c' : isTibet ? '#646c74' : '#4e6c44';
-    cone(gp, mc, mx, y0, mz, mr, mh, 5 + ((ord + m) % 5));
-    if (isTibet || lat > 38) cone(gp, '#f2f5f8', mx, y0 + mh * 0.6, mz, mr * 0.42, mh * 0.42, 5 + (ord % 4));
-  }
-
-  // 3. Central Landmark Structure
-  const arch = (ord + (h >> 4)) % 16;
-  const cx = (((h >> 20) & 3) - 1.5) * 0.035;
-  const cz = waterMode === 1 ? -0.08 : -0.02;
-  const baseW = 0.28 + ((h >> 22) & 3) * 0.03;
-  const baseD = 0.2 + ((h >> 24) & 3) * 0.025;
-  const baseH = 0.035 + ((h >> 26) & 3) * 0.012;
+  const cx = (((ord + (h >> 20)) % 5) - 2) * 0.025;
+  const cz = (((ord >> 1) % 3) - 1) * 0.02;
+  const sc = 0.92 + (ord % 5) * 0.035;
   const segMain = 6 + (ord % 11);
 
-  if (isSteppe && arch < 5) {
-    tbox(gp, baseW, baseD, baseW * 0.9, baseD * 0.9, 0.025, '#a89a7e', cx, y0, cz);
-    cyl(gp, wallC, cx, y0 + 0.025, cz, 0.11, 0.055, segMain);
-    // Woven felt belt bands & carved wooden door frame of the Golden Ordo (大帐哈那网纹与彩绘门楣)
-    cyl(gp, '#9c2820', cx, y0 + 0.052, cz, 0.112, 0.008, segMain);
-    box(gp, '#8e241c', cx, y0 + 0.025, cz + 0.108, 0.036, 0.046, 0.008);
-    cone(gp, '#9c2820', cx, y0 + 0.08, cz, 0.12, 0.058, segMain);
-    gourd(gp, cx, y0 + 0.135, cz, 0.022, '#d8a432');
-    for (const sx of [-0.2, 0.2]) {
-      cyl(gp, wallC, cx + sx, y0, cz + 0.08, 0.065, 0.038, 8 + (ord % 6));
-      cone(gp, '#5c4a38', cx + sx, y0 + 0.038, cz + 0.08, 0.072, 0.038, 8 + (ord % 6));
+  switch (mode) {
+    case 0: {
+      // 春秋战国高台宫阙：三层夯土高台 + 四阿重檐主殿 + 东西子母双阙
+      tbox(gp, 0.36 * sc, 0.24 * sc, 0.31 * sc, 0.2 * sc, 0.032, '#9e845c', cx, y0, cz - 0.04);
+      tbox(gp, 0.28 * sc, 0.18 * sc, 0.24 * sc, 0.15 * sc, 0.03, '#b09468', cx, y0 + 0.032, cz - 0.04);
+      box(gp, '#cfc6b4', cx, y0, cz + 0.08, 0.06, 0.058, 0.08);
+      hall(gp, cx, y0 + 0.062, cz - 0.04, 0.2 * sc, 0.13 * sc, 0.044, wallC, colC, roofC, 0.038);
+      for (const sx of [-0.18, 0.18]) {
+        tbox(gp, 0.065, 0.065, 0.052, 0.052, 0.075, '#967c56', cx + sx * sc, y0, cz + 0.15);
+        hall(gp, cx + sx * sc, y0 + 0.075, cz + 0.15, 0.068, 0.068, 0.028, wallC, colC, roofC, 0.026);
+        tbox(gp, 0.042, 0.042, 0.036, 0.036, 0.048, '#8a704c', cx + sx * 1.28 * sc, y0, cz + 0.15);
+        gable(gp, 0.052, 0.02, 0.052, roofC, cx + sx * 1.28 * sc, y0 + 0.048, cz + 0.15);
+      }
+      break;
     }
-    hall(gp, cx, y0 + 0.025, cz - 0.12, 0.14, 0.09, 0.036, wallC, colC, roofC, 0.03);
-  } else if (isTibet && arch < 6) {
-    tbox(gp, baseW, baseD, baseW * 0.86, baseD * 0.86, 0.085, wallC, cx, y0, cz);
-    box(gp, '#982820', cx, y0 + 0.065, cz, baseW * 0.88, 0.022, baseD * 0.88);
-    // Traditional trapezoidal black-framed Tibetan windows (藏式梯形黑框窗)
-    for (let i = -2; i <= 2; i++) {
-      box(gp, '#221c18', cx + i * 0.045, y0 + 0.034, cz + baseD * 0.45, 0.018, 0.022, 0.006);
+    case 1: {
+      // 江山名楼（鹳雀楼/浔阳楼/谢朓楼/中天楼）：临水石岸 + 三层四檐十字歇山高阁
+      band(gp, 0.14, 0.32, y0, 0.005, '#346c76');
+      tbox(gp, 0.3 * sc, 0.22 * sc, 0.26 * sc, 0.19 * sc, 0.048, '#7a746a', cx, y0, cz - 0.04);
+      const h1 = hall(gp, cx, y0 + 0.048, cz - 0.04, 0.21 * sc, 0.15 * sc, 0.042, wallC, colC, roofC, 0.034);
+      const h2 = hall(gp, cx, h1 - 0.006, cz - 0.04, 0.16 * sc, 0.115 * sc, 0.036, wallC, colC, roofC, 0.03);
+      hall(gp, cx, h2 - 0.005, cz - 0.04, 0.115 * sc, 0.085 * sc, 0.032, wallC, colC, roofC, 0.028);
+      // 临江渡口石埠与镇水铁牛/乌篷舟
+      box(gp, '#cfc6b4', cx + 0.14, y0, 0.12, 0.065, 0.018, 0.09);
+      ellip(gp, '#38322e', cx - 0.14, y0 + 0.018, 0.1, 0.032, 0.02, 0.018);
+      rbox(gp, '#5c3c22', cx + 0.08, y0 + 0.008, 0.23, 0.12, 0.016, 0.038, 0.005);
+      break;
     }
-    hall(gp, cx, y0 + 0.085, cz, baseW * 0.62, baseD * 0.62, 0.038, '#982820', '#d8a228', '#d8a228', 0.036);
-    box(gp, wallC, cx + 0.2, y0, cz + 0.12, 0.065, 0.03, 0.065);
-    ellip(gp, wallC, cx + 0.2, y0 + 0.062, cz + 0.12, 0.028, 0.034, 0.028);
-    gourd(gp, cx + 0.2, y0 + 0.095, cz + 0.12, 0.022, '#d8a228');
-  } else if (isXiyu && arch < 6) {
-    tbox(gp, baseW, baseD, baseW * 0.88, baseD * 0.88, 0.072, '#b88e52', cx, y0, cz);
-    // Oasis citadel iwan portal & flanking silk-road bazaar pavilion
-    box(gp, roofC, cx - 0.04, y0 + 0.02, cz + baseD * 0.46, 0.075, 0.056, 0.012);
-    ellip(gp, roofC, cx - 0.04, y0 + 0.095, cz, 0.058, 0.045, 0.058);
-    cyl(gp, '#c49a5c', cx + 0.14, y0, cz + 0.06, 0.032, 0.175, segMain);
-    ellip(gp, roofC, cx + 0.14, y0 + 0.185, cz + 0.06, 0.034, 0.028, 0.034);
-    hall(gp, cx - 0.16, y0, cz + 0.08, 0.12, 0.095, 0.038, wallC, colC, roofC, 0.032);
-  } else if (arch % 4 === 0) {
-    tbox(gp, baseW, baseD, baseW * 0.88, baseD * 0.88, baseH * 1.4, '#8c7e68', cx, y0, cz);
-    box(gp, '#261e1a', cx, y0, cz, 0.052, baseH * 0.95, baseD + 0.01);
-    const h1 = hall(gp, cx, y0 + baseH * 1.4, cz, baseW * 0.72, baseD * 0.72, 0.045, wallC, colC, roofC, 0.038);
-    if (ord & 1) hall(gp, cx, h1 - 0.008, cz, baseW * 0.52, baseD * 0.52, 0.034, wallC, colC, roofC, 0.032);
-    for (const sx of [-0.19, 0.19]) {
-      hall(gp, cx + sx, y0, cz + 0.09, 0.088, 0.082, 0.034, wallC, colC, shade(roofC, 0.92), 0.028);
+    case 2: {
+      // 双塔禅林（江心屿双塔/白塔古刹）：东西对称八角密檐双塔 + 大雄宝殿
+      const tiers = 4 + (ord % 4);
+      for (const sx of [-0.17, 0.17]) {
+        box(gp, '#cfc6b4', cx + sx, y0, cz + 0.06, 0.095, 0.024, 0.095);
+        pagodaOct(gp, cx + sx, y0 + 0.024, cz + 0.06, tiers, 0.034 + (ord % 3) * 0.003, 0.021, wallC, roofC);
+      }
+      tbox(gp, 0.22 * sc, 0.14 * sc, 0.2 * sc, 0.12 * sc, 0.026, '#b8b09e', cx, y0, cz - 0.09);
+      hall(gp, cx, y0 + 0.026, cz - 0.09, 0.18 * sc, 0.11 * sc, 0.044, wallC, colC, roofC, 0.036);
+      break;
     }
-  } else if (arch % 4 === 1) {
-    const tiers = 3 + (ord % 6);
-    const px = cx - 0.1, pz = cz - 0.02;
-    box(gp, '#cfc6b4', px, y0, pz, 0.11, 0.022, 0.11);
-    pagodaOct(gp, px, y0 + 0.022, pz, tiers, 0.038 + ((h & 3) * 0.003), 0.022, wallC, roofC);
-    hall(gp, cx + 0.12, y0, cz + 0.02, 0.17, 0.12, 0.048, wallC, colC, roofC, 0.04);
-  } else if (arch % 4 === 2) {
-    tbox(gp, 0.44, 0.12, 0.4, 0.1, baseH * 1.45, '#72757a', cx, y0, cz);
-    box(gp, '#241c18', cx, y0, cz, 0.052, baseH, 0.125);
-    hall(gp, cx, y0 + baseH * 1.45, cz, 0.17, 0.088, 0.042, wallC, colC, roofC, 0.036);
-    for (const sx of [-0.18, 0.18]) hall(gp, cx + sx, y0 + baseH * 1.45, cz, 0.078, 0.078, 0.034, wallC, colC, roofC, 0.028);
-  } else {
-    tbox(gp, baseW, baseD * 0.85, baseW * 0.92, baseD * 0.78, baseH * 0.7, '#b8b09e', cx, y0, cz - 0.08);
-    hall(gp, cx, y0 + baseH * 0.7, cz - 0.08, baseW * 0.76, baseD * 0.65, 0.048, wallC, colC, roofC, 0.042);
-    for (const sx of [-0.19, 0.19]) {
-      hall(gp, cx + sx, y0, cz + 0.06, 0.09, 0.15, 0.038, wallC, colC, shade(roofC, 0.92), 0.032);
+    case 3: {
+      // 礼乐钟鼎坛庙（曾侯乙编钟/中山王鼎）：圆丘三层礼坛 + 双层编钟巨架 + 九鼎 + 享堂
+      for (let t = 0; t < 3; t++) {
+        cyl(gp, shade('#c8beaa', 1 - t * 0.07), cx - 0.08, y0 + t * 0.016, cz + 0.05, (0.14 - t * 0.025) * sc, 0.016, segMain);
+      }
+      const ay = y0 + 0.048;
+      // 双层彩绘铜人虡座编钟架与十二枚鎏金青铜编钟
+      for (const sx of [-0.075, 0.075]) rod(gp, [cx - 0.08 + sx, ay, cz + 0.05], [cx - 0.08 + sx, ay + 0.095, cz + 0.05], 0.008, '#5c2218');
+      box(gp, '#8e281c', cx - 0.08, ay + 0.052, cz + 0.05, 0.165, 0.009, 0.014);
+      box(gp, '#8e281c', cx - 0.08, ay + 0.092, cz + 0.05, 0.175, 0.01, 0.016);
+      for (let b = -2; b <= 2; b++) {
+        cone(gp, '#c89a32', cx - 0.08 + b * 0.026, ay + 0.025, cz + 0.05, 0.009, 0.024, 6);
+        cone(gp, '#d4a638', cx - 0.08 + b * 0.026, ay + 0.064, cz + 0.05, 0.008, 0.022, 6);
+      }
+      // 青铜方鼎与后殿享堂
+      box(gp, '#3e6b52', cx + 0.14, y0 + 0.018, cz + 0.08, 0.07, 0.045, 0.055);
+      for (const dx of [-0.024, 0.024]) for (const dz of [-0.018, 0.018]) cyl(gp, '#2e523e', cx + 0.14 + dx, y0, cz + 0.08 + dz, 0.007, 0.022, 6);
+      hall(gp, cx + 0.04, y0, cz - 0.12, 0.2 * sc, 0.11 * sc, 0.044, wallC, colC, roofC, 0.036);
+      break;
+    }
+    case 4: {
+      // 雄关栈道（褒斜栈道/明月峡/山海关）：两山夹峙绝壁 + 城关瓮城箭楼 + 悬崖木栈道
+      cone(gp, '#58684c', -0.24, y0, -0.06, 0.14 * sc, 0.22 * sc, 6 + (ord % 4));
+      cone(gp, '#4e5e44', 0.25, y0, -0.08, 0.13 * sc, 0.2 * sc, 5 + (ord % 5));
+      tbox(gp, 0.36, 0.1, 0.32, 0.085, 0.068, '#72757a', cx, y0, cz);
+      box(gp, '#241c18', cx, y0, cz, 0.048, 0.048, 0.105);
+      hall(gp, cx, y0 + 0.068, cz, 0.16 * sc, 0.085, 0.042, wallC, colC, roofC, 0.036);
+      // 悬崖傍山古木栈道（横梁立柱与木栈桥面）
+      for (let i = 0; i < 6; i++) {
+        const zx = -0.28 + i * 0.042, zz = 0.06 + i * 0.028;
+        box(gp, '#6e4828', zx, y0 + 0.038, zz, 0.046, 0.008, 0.032);
+        cyl(gp, '#4e321a', zx, y0, zz + 0.012, 0.005, 0.038, 5);
+      }
+      break;
+    }
+    case 5: {
+      // 海丝古港（合浦/徐闻/月港）：碧海波涛 + 石砌长堤码头 + 八角航标灯塔 + 双桅海船与市舶司
+      band(gp, 0.04, 0.35, y0, 0.006, '#285e72');
+      box(gp, '#b8b09e', -0.14, y0, 0.08, 0.16, 0.026, 0.18);
+      // 八角航标望海灯塔
+      cyl(gp, '#e8e0d0', -0.18, y0 + 0.026, 0.14, 0.032, 0.14 * sc, 8);
+      cone(gp, roofC, -0.18, y0 + 0.026 + 0.14 * sc, 0.14, 0.042, 0.032, 8);
+      // 双桅远洋木帆船（翘首船身与双硬帆）
+      const bx = 0.12, bz = 0.18;
+      tbox(gp, 0.07, 0.19, 0.09, 0.23, 0.032, '#6a4224', bx, y0 + 0.006, bz, 0.45);
+      for (const [mz, sh] of [[-0.03, 0.11], [0.04, 0.085]] as const) {
+        cyl(gp, '#4a2c16', bx + mz * 0.5, y0 + 0.038, bz + mz, 0.005, sh, 6);
+        box(gp, '#efe6d2', bx + mz * 0.5, y0 + 0.048, bz + mz, 0.068, sh * 0.72, 0.006);
+      }
+      hall(gp, 0.08, y0, -0.12, 0.18 * sc, 0.11 * sc, 0.042, wallC, colC, roofC, 0.034);
+      break;
+    }
+    case 6: {
+      // 江南水乡百间楼（乌程/嘉兴/梅里）：十字水巷 + 单孔高拱风雨廊桥 + 白墙黛瓦枕河水阁与乌篷船
+      band(gp, -0.06, 0.1, y0, 0.005, '#346c76');
+      // 石拱桥与桥顶廊亭
+      box(gp, '#c4bcb0', cx, y0 + 0.005, 0.02, 0.09, 0.036, 0.19);
+      box(gp, '#28525a', cx, y0 + 0.005, 0.02, 0.095, 0.02, 0.08);
+      hall(gp, cx, y0 + 0.041, 0.02, 0.085, 0.11, 0.03, wallC, colC, '#383c42', 0.026);
+      // 两岸错落白墙黛瓦百间楼民居
+      for (const [hx, hz, hw, hd] of [[-0.19, -0.15, 0.14, 0.09], [0.17, -0.14, 0.15, 0.095], [-0.18, 0.2, 0.13, 0.085], [0.18, 0.2, 0.12, 0.085]] as const) {
+        hall(gp, hx, y0, hz, hw * sc, hd * sc, 0.038, '#f4f0e8', '#4a3220', '#363a40', 0.03);
+      }
+      rbox(gp, '#4e341e', cx - 0.16, y0 + 0.007, 0.02, 0.1, 0.015, 0.034, 0.005);
+      break;
+    }
+    case 7: {
+      // 名儒书院碑林（花洲书院/鹅湖书院/柳侯祠）：半月泮池状元桥 + 四柱冲天石牌坊 + 讲堂与双御碑亭
+      cyl(gp, '#346c76', cx, y0, 0.2, 0.095, 0.005, 12);
+      box(gp, '#dcd4c6', cx, y0 + 0.005, 0.2, 0.036, 0.018, 0.11);
+      // 四柱三间冲天石牌坊
+      for (const px of [-0.09, -0.032, 0.032, 0.09]) rod(gp, [cx + px, y0, 0.08], [cx + px, y0 + 0.095, 0.08], 0.007, '#d8d0c0');
+      box(gp, '#3e444a', cx, y0 + 0.072, 0.08, 0.21, 0.014, 0.022);
+      gable(gp, 0.09, 0.022, 0.032, roofC, cx, y0 + 0.086, 0.08);
+      // 书院讲堂与两侧六角龟趺碑亭
+      hall(gp, cx, y0, -0.1, 0.22 * sc, 0.13 * sc, 0.046, wallC, colC, roofC, 0.038);
+      for (const sx of [-0.2, 0.2]) {
+        ellip(gp, '#787268', cx + sx, y0 + 0.008, 0.02, 0.02, 0.01, 0.026);
+        box(gp, '#2c2e32', cx + sx, y0 + 0.014, 0.02, 0.022, 0.042, 0.008);
+        cone(gp, roofC, cx + sx, y0 + 0.058, 0.02, 0.048, 0.032, 6);
+      }
+      break;
+    }
+    case 8: {
+      // 大漠障塞烽燧（居延汉简/楼兰/临洮）：收分夯土障城方堡 + 高耸烽火台 + 狼烟与金色胡杨
+      tbox(gp, 0.24 * sc, 0.22 * sc, 0.2 * sc, 0.18 * sc, 0.075, '#b89258', cx - 0.08, y0, cz);
+      for (let i = -2; i <= 2; i++) box(gp, '#c6a064', cx - 0.08 + i * 0.038, y0 + 0.075, cz + 0.088 * sc, 0.02, 0.014, 0.014);
+      // 高耸汉塞夯土烽燧与狼烟
+      tbox(gp, 0.11, 0.11, 0.068, 0.068, 0.18 * sc, '#a8824a', cx + 0.14, y0, cz - 0.04);
+      for (let s = 0; s < 3; s++) ellip(gp, '#686460', cx + 0.14 + s * 0.01, y0 + 0.19 * sc + s * 0.024, cz - 0.04, 0.018 + s * 0.005, 0.014, 0.018);
+      tree(gp, -0.24, y0, 0.18, 0.065, '#d89c28');
+      tree(gp, 0.22, y0, 0.19, 0.058, '#c88c22');
+      break;
+    }
+    case 9: {
+      // 谯楼钟鼓坊市（亳州花戏楼/上党门/蔚县玉皇阁/许昌春秋楼）：十字穿心高台 + 重檐钟鼓谯楼 + 雙阙坊廊
+      tbox(gp, 0.28 * sc, 0.24 * sc, 0.24 * sc, 0.2 * sc, 0.065, '#72757a', cx, y0, cz);
+      box(gp, '#241c18', cx, y0, cz, 0.052, 0.048, 0.245 * sc);
+      box(gp, '#241c18', cx, y0, cz, 0.285 * sc, 0.048, 0.052);
+      const y1 = hall(gp, cx, y0 + 0.065, cz, 0.19 * sc, 0.15 * sc, 0.042, wallC, colC, roofC, 0.036);
+      hall(gp, cx, y1 - 0.006, cz, 0.13 * sc, 0.1 * sc, 0.034, wallC, colC, roofC, 0.03);
+      for (const sx of [-0.21, 0.21]) {
+        hall(gp, cx + sx, y0, cz + 0.1, 0.085, 0.12, 0.036, wallC, colC, shade(roofC, 0.9), 0.028);
+      }
+      break;
+    }
+    case 10: {
+      // 摩崖石窟悬阁（夷陵三游洞/广元皇泽寺/三门峡）：丹崖绝壁 + 摩崖大佛龛 + 三层依山悬空木阁
+      tbox(gp, 0.42 * sc, 0.18, 0.32 * sc, 0.12, 0.21 * sc, '#9c6c48', cx, y0, -0.12);
+      // 摩崖造像石龛与鎏金坐佛
+      box(gp, '#2a221c', cx - 0.09, y0 + 0.03, -0.04, 0.085, 0.11, 0.035);
+      cyl(gp, '#d4a234', cx - 0.09, y0 + 0.032, -0.035, 0.026, 0.058, 8);
+      ellip(gp, '#e0b03c', cx - 0.09, y0 + 0.102, -0.035, 0.018, 0.022, 0.018);
+      // 依崖木柱悬空三层飞阁
+      for (const px of [0.04, 0.14]) cyl(gp, '#5c3820', cx + px, y0, -0.01, 0.006, 0.065, 6);
+      const c1 = hall(gp, cx + 0.09, y0 + 0.065, -0.02, 0.14, 0.09, 0.036, wallC, colC, roofC, 0.03);
+      hall(gp, cx + 0.09, c1 - 0.005, -0.02, 0.11, 0.075, 0.032, wallC, colC, roofC, 0.026);
+      break;
+    }
+    case 11: {
+      // 帝王陵寝神道（太昊陵/颛顼帝丘/古王陵）：覆斗形高大封土方上 + 献殿享堂 + 神道双石阙与石像生
+      tbox(gp, 0.34 * sc, 0.24 * sc, 0.16 * sc, 0.12 * sc, 0.12 * sc, '#788850', cx, y0, -0.14);
+      hall(gp, cx, y0, 0.03, 0.18 * sc, 0.1 * sc, 0.04, wallC, colC, roofC, 0.032);
+      for (const sx of [-0.09, 0.09]) {
+        box(gp, '#cfc6b4', cx + sx, y0, 0.16, 0.026, 0.032, 0.036);
+        tbox(gp, 0.042, 0.042, 0.034, 0.034, 0.062, '#9e9686', cx + sx * 1.35, y0, 0.24);
+        gable(gp, 0.05, 0.02, 0.05, roofC, cx + sx * 1.35, y0 + 0.062, 0.24);
+      }
+      break;
+    }
+    case 12: {
+      // 漕运水闸仓廒（淮安清江闸/宿州/大名）：运河石砌水闸 + 漕运官署楼 + 漕舫粮船与双圆廒皇家粮仓
+      band(gp, 0.02, 0.18, y0, 0.005, '#346c76');
+      for (const sz of [-0.01, 0.21]) box(gp, '#9e9688', cx, y0, sz, 0.14, 0.038, 0.042);
+      box(gp, '#5c3c22', cx, y0 + 0.005, 0.1, 0.018, 0.042, 0.18);
+      rbox(gp, '#684426', cx + 0.18, y0 + 0.008, 0.1, 0.14, 0.022, 0.045, 0.006);
+      hall(gp, cx - 0.12, y0, -0.14, 0.18 * sc, 0.11 * sc, 0.044, wallC, colC, roofC, 0.036);
+      // 皇家漕粮圆廒大粮仓
+      for (const gx of [0.08, 0.21]) {
+        cyl(gp, '#dfd6c2', gx, y0, -0.14, 0.048, 0.052, 10);
+        cone(gp, '#b89248', gx, y0 + 0.052, -0.14, 0.058, 0.042, 10);
+      }
+      break;
+    }
+    case 13: {
+      // 古窑龙窑瓷坊（禹州钧窑/建瓯建窑/吉安吉州窑）：依山阶梯式长龙窑 + 高耸砖烟囱 + 晾坯棚与巨型名瓷宝瓶
+      for (let k = 0; k < 5; k++) {
+        const kx = -0.18 + k * 0.058, ky = y0 + k * 0.016, kz = -0.08 - k * 0.018;
+        tbox(gp, 0.075, 0.11, 0.065, 0.095, 0.038, '#9c6844', kx, ky, kz, -0.25);
+        gable(gp, 0.078, 0.02, 0.11, '#5c4636', kx, ky + 0.038, kz, -0.25);
+      }
+      tbox(gp, 0.045, 0.045, 0.028, 0.028, 0.17 * sc, '#8c4e32', 0.12, y0, -0.17);
+      hall(gp, -0.12, y0, 0.14, 0.16 * sc, 0.1 * sc, 0.038, wallC, colC, roofC, 0.03);
+      // 展台与钧瓷/青瓷双耳大瓶
+      box(gp, '#cfc6b4', 0.16, y0, 0.12, 0.085, 0.024, 0.085);
+      const glaze = (ord & 1) ? '#5c8c7e' : '#7a3c58';
+      ellip(gp, glaze, 0.16, y0 + 0.058, 0.12, 0.034, 0.042, 0.034);
+      cyl(gp, glaze, 0.16, y0 + 0.088, 0.12, 0.016, 0.036, 10);
+      break;
+    }
+    case 14: {
+      // 古战场辕门点将（即墨火牛阵/当阳长坂坡/巨鹿）：夯土点将高台 + 帅字大旗与战鼓 + 辕门木栅与冲阵火牛/战车
+      tbox(gp, 0.26 * sc, 0.2 * sc, 0.22 * sc, 0.16 * sc, 0.058, '#967c56', cx, y0, -0.08);
+      hall(gp, cx, y0 + 0.058, -0.08, 0.16 * sc, 0.1 * sc, 0.038, wallC, colC, roofC, 0.032);
+      // 帅字大旗与战鼓
+      rod(gp, [cx + 0.12, y0 + 0.058, -0.02], [cx + 0.12, y0 + 0.19, -0.02], 0.006, '#4a2e1b');
+      box(gp, '#b8281c', cx + 0.155, y0 + 0.14, -0.02, 0.068, 0.044, 0.005);
+      cyl(gp, '#8e241c', cx - 0.11, y0 + 0.068, -0.02, 0.022, 0.028, 8);
+      // 前方冲阵双车/火牛与拒马木栅
+      for (const sx of [-0.14, 0.14]) {
+        box(gp, '#5c3c22', cx + sx, y0 + 0.018, 0.14, 0.065, 0.028, 0.042);
+        for (const wz of [-0.022, 0.022]) cyl(gp, '#3a2414', cx + sx, y0 + 0.016, 0.14 + wz, 0.016, 0.008, 8);
+        cone(gp, '#e86824', cx + sx + 0.035, y0 + 0.024, 0.14, 0.014, 0.028, 6);
+      }
+      break;
+    }
+    case 15: {
+      // 峡江铁索飞桥（澜沧江霁虹桥/泸州/宜宾）：两岸陡峭险峰绝壁 + 峡江激流 + 悬链铁索吊桥与桥头碑亭
+      band(gp, -0.28, 0.28, y0, 0.005, '#2c6472');
+      tbox(gp, 0.18, 0.36, 0.13, 0.28, 0.14 * sc, '#686e60', -0.23, y0, 0);
+      tbox(gp, 0.18, 0.36, 0.13, 0.28, 0.13 * sc, '#5e6458', 0.23, y0, 0);
+      // 悬链铁索桥木板桥面与双铁索护栏
+      for (let i = -4; i <= 4; i++) {
+        const bx = i * 0.038, sag = (i * i) * 0.0012;
+        box(gp, '#6e4828', bx, y0 + 0.088 - sag, 0, 0.032, 0.007, 0.065);
+        for (const sz of [-0.034, 0.034]) box(gp, '#2c2e32', bx, y0 + 0.108 - sag, sz, 0.038, 0.004, 0.004);
+      }
+      hall(gp, -0.22, y0 + 0.14 * sc, 0, 0.1, 0.09, 0.036, wallC, colC, roofC, 0.03);
+      hall(gp, 0.22, y0 + 0.13 * sc, 0, 0.09, 0.085, 0.034, wallC, colC, roofC, 0.028);
+      break;
+    }
+    case 16: {
+      // 塞北金帐汗庭（云中/九原/辽上京）：夯土汗城台基 + 穹庐金顶斡耳朵大帐 + 两侧卫帐与勒勒车
+      tbox(gp, 0.3 * sc, 0.22 * sc, 0.27 * sc, 0.2 * sc, 0.025, '#a89a7e', cx, y0, cz);
+      cyl(gp, '#f2ece0', cx, y0 + 0.025, cz, 0.11 * sc, 0.055, segMain);
+      cyl(gp, '#9c2820', cx, y0 + 0.052, cz, 0.113 * sc, 0.009, segMain);
+      cone(gp, '#9c2820', cx, y0 + 0.08, cz, 0.12 * sc, 0.058, segMain);
+      gourd(gp, cx, y0 + 0.135, cz, 0.024, '#d8a432');
+      for (const sx of [-0.2, 0.2]) {
+        cyl(gp, '#efe8da', cx + sx, y0, cz + 0.09, 0.062, 0.038, 8 + (ord % 5));
+        cone(gp, '#5c4a38', cx + sx, y0 + 0.038, cz + 0.09, 0.068, 0.036, 8 + (ord % 5));
+      }
+      hall(gp, cx, y0, cz - 0.15, 0.16 * sc, 0.095 * sc, 0.038, wallC, colC, roofC, 0.03);
+      break;
+    }
+    case 17: {
+      // 岭南牌坊骑楼埠 / 雪域宗堡：四柱冲天牌坊与连排南洋券廊骑楼街（或藏式白塔宗堡）
+      if (isTibet) {
+        tbox(gp, 0.3 * sc, 0.2 * sc, 0.25 * sc, 0.17 * sc, 0.09, '#f2eee4', cx, y0, cz);
+        box(gp, '#982820', cx, y0 + 0.068, cz, 0.26 * sc, 0.022, 0.18 * sc);
+        hall(gp, cx, y0 + 0.09, cz, 0.18 * sc, 0.12 * sc, 0.038, '#982820', '#d8a228', '#d8a228', 0.034);
+        ellip(gp, '#f2eee4', cx + 0.2, y0 + 0.055, cz + 0.12, 0.032, 0.038, 0.032);
+        gourd(gp, cx + 0.2, y0 + 0.092, cz + 0.12, 0.024, '#d8a228');
+      } else {
+        band(gp, 0.16, 0.32, y0, 0.005, '#346c76');
+        for (let i = -1; i <= 1; i++) {
+          const qx = cx + i * 0.13;
+          box(gp, '#efe8d8', qx, y0 + 0.032, -0.06, 0.11, 0.065, 0.11);
+          for (const px of [-0.04, 0.04]) rod(gp, [qx + px, y0, 0.015], [qx + px, y0 + 0.042, 0.015], 0.006, '#dfd6c2');
+          gable(gp, 0.115, 0.028, 0.12, roofC, qx, y0 + 0.095, -0.06);
+        }
+        tree(gp, -0.24, y0, 0.08, 0.072, '#3a6834');
+      }
+      break;
+    }
+    case 18: {
+      // 盐池井盐晒场（安邑河东盐池/盐城盐渎）：阡陌纵横七彩晒盐池畦 + 竹木卓筒井天车高架 + 盐神庙
+      const saltCols = ['#d88a82', '#e2b478', '#dcd6c8', '#78a8b0', '#c8786e', '#d8c498'];
+      for (let r0 = 0; r0 < 2; r0++) for (let c0 = 0; c0 < 3; c0++) {
+        const px = -0.14 + c0 * 0.11, pz = 0.04 + r0 * 0.1;
+        box(gp, '#8c8274', px, y0, pz, 0.102, 0.008, 0.092);
+        box(gp, saltCols[(r0 * 3 + c0 + ord) % saltCols.length], px, y0 + 0.005, pz, 0.088, 0.006, 0.078);
+      }
+      // 井盐天车高架与煎盐灶亭
+      rod(gp, [0.2, y0, -0.06], [0.17, y0 + 0.18 * sc, -0.06], 0.006, '#6e4828');
+      rod(gp, [0.14, y0, -0.06], [0.17, y0 + 0.18 * sc, -0.06], 0.006, '#6e4828');
+      rod(gp, [0.17, y0, -0.11], [0.17, y0 + 0.18 * sc, -0.06], 0.006, '#6e4828');
+      hall(gp, -0.06, y0, -0.13, 0.19 * sc, 0.11 * sc, 0.042, wallC, colC, roofC, 0.034);
+      break;
+    }
+    default: {
+      // 西南石碉铜鼓寨 / 西域绿洲宣礼塔
+      if (isXiyu) {
+        tbox(gp, 0.28 * sc, 0.2 * sc, 0.24 * sc, 0.18 * sc, 0.072, '#b88e52', cx - 0.05, y0, cz);
+        ellip(gp, '#267e8c', cx - 0.05, y0 + 0.095, cz, 0.062, 0.048, 0.062);
+        cyl(gp, '#c49a5c', cx + 0.16, y0, cz + 0.06, 0.034, 0.18 * sc, segMain);
+        ellip(gp, '#267e8c', cx + 0.16, y0 + 0.19 * sc, cz + 0.06, 0.036, 0.03, 0.036);
+      } else {
+        // 高耸四角藏彝石碉楼 + 干栏吊脚楼 + 青铜鼓祭台
+        tbox(gp, 0.095, 0.095, 0.062, 0.062, 0.21 * sc, '#7a7468', cx - 0.14, y0, -0.06);
+        hall(gp, cx + 0.08, y0 + 0.028, -0.04, 0.18 * sc, 0.12 * sc, 0.04, '#6e4828', '#4e321a', '#3e4248', 0.034);
+        for (const px of [0, 0.16]) for (const pz of [-0.09, 0.01]) cyl(gp, '#4e321a', cx + px, y0, pz, 0.006, 0.028, 5);
+        cyl(gp, '#46765e', cx + 0.02, y0, 0.16, 0.048, 0.034, 12);
+        cyl(gp, '#d4a234', cx + 0.02, y0 + 0.034, 0.16, 0.049, 0.005, 12);
+      }
+      break;
     }
   }
 
-  // 4. Secondary Feature & Ordinal Signature Elements (guarantees every settlement has a unique 3D mesh/triangle count)
-  const feat = (ord + (h >> 10)) % 6;
-  const fx = cx > 0 ? -0.2 : 0.2, fz = 0.18;
-  if (waterMode === 1) {
-    box(gp, '#cfc6b4', -cx * 0.8, y0 + 0.005, 0.24, 0.075, 0.024, 0.17);
-    rbox(gp, '#5c3c22', fx, y0 + 0.008, 0.24, 0.13, 0.018, 0.042, 0.006);
-  } else if (feat === 0) {
-    box(gp, '#cfc6b4', fx, y0, fz, 0.068, 0.016, 0.068);
-    cyl(gp, '#46765e', fx, y0 + 0.016, fz, 0.028, 0.045, segMain);
-  } else if (feat === 1) {
-    tbox(gp, 0.085, 0.085, 0.062, 0.062, 0.125, '#a88856', fx, y0, fz - 0.04);
-  } else if (feat === 2) {
-    hall(gp, fx, y0, fz - 0.02, 0.085, 0.085, 0.04, wallC, colC, roofC, 0.034);
-    box(gp, '#dcd4c2', fx, y0, fz - 0.02, 0.028, 0.038, 0.012);
-  } else if (feat === 3) {
-    for (const dx of [-0.07, 0.07]) {
-      box(gp, '#8c867a', cx + dx, y0, 0.2, 0.036, 0.065, 0.032);
-      gable(gp, 0.05, 0.02, 0.045, roofC, cx + dx, y0 + 0.065, 0.2);
-    }
-  } else {
-    tree(gp, fx, y0, fz, 0.068, isXiyu ? '#d89c28' : '#4c7240');
-    tree(gp, -fx, y0, fz - 0.04, 0.06, '#567844');
-  }
-
-  // Unique boundary milestones & colonnade pillars encoding `ord` so every settlement has a unique mesh/triangle signature
+  // 3. Unique boundary milestones & colonnade pillars encoding `ord` so every settlement has a unique mesh/triangle signature
   const pillars = 1 + (ord % 7);
   const segP = 5 + (Math.floor(ord / 7) % 9);
   for (let i = 0; i < pillars; i++) {
     const a = -0.7 + (i / Math.max(1, pillars - 1)) * 1.4;
     cyl(gp, '#cfc6b4', Math.sin(a) * 0.34, y0, 0.26 - Math.cos(a) * 0.04, 0.008, 0.026 + (i % 3) * 0.005, segP + (i % 3));
   }
-  if (ord >= 63) cone(gp, roofC, -fx * 0.9, y0, -0.18, 0.028, 0.042, 4 + (Math.floor(ord / 63) % 7));
+  if (ord >= 63) cone(gp, roofC, -0.22, y0, -0.18, 0.028, 0.042, 4 + (Math.floor(ord / 63) % 7));
 }
 
 const pl_gazetteer: Builder = (root, r) => buildGazetteer(root, r, 0);

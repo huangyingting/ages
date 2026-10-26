@@ -3,22 +3,27 @@ import { type Builder, box, rbox, cyl, cone as rawCone, ellip, rod, gable as raw
 import { grp, proof } from '../timber.ts';
 import { human } from '../human.ts';
 
+let siteSeq = 0;
 function site(root: THREE.Group, top: string, k = 0.88): [THREE.Group, number] {
   const h = plinth(root, top);
   const p = new THREE.Group();
   p.position.y = h + 0.0015;
   p.scale.setScalar(k);
   root.add(p);
-  // Perimeter landscape trees, scholar rocks, stone markers & historical figures (古木景石、界碑与人物)
-  tree(p, -0.31, 0, 0.16, 0.056, '#44683a');
-  tree(p, 0.31, 0, -0.15, 0.05, '#3b5c34');
-  for (const [rx, rz] of [[-0.28, 0.22], [0.28, -0.21]] as [number, number][]) {
-    ellip(p, '#787268', rx, 0.008, rz, 0.022, 0.012, 0.018);
-    cyl(p, '#cfc6b4', -rx, 0, rz, 0.012, 0.028, 6);
-    rawCone(p, '#525860', -rx, 0.028, rz, 0.017, 0.012, 6);
+  const s = ++siteSeq;
+  const a1 = 0.8 + (s % 7) * 0.37, a2 = a1 + 2.1 + (s % 5) * 0.25;
+  const tops = ['#6e5238', '#843226', '#345468', '#4c643e', '#764e36', '#564458', '#8e6632'];
+  const bots = ['#42362a', '#d8d0be', '#2e363e', '#c2b8a4', '#4e3a30', '#38463a'];
+  const poses = ['walk', 'point', 'stand', 'relax', 'carry'] as const;
+  const hats = ['knot', 'brim', 'conical', 'turban', 'hood'] as const;
+  if (top !== SITE.water && top !== SITE.snow) {
+    tree(p, Math.cos(a1) * 0.34, 0, Math.sin(a1) * 0.31, 0.046 + (s % 3) * 0.006, s & 1 ? '#44683a' : '#4e6c3c');
+    human(p, Math.cos(a2) * 0.28, 0, Math.sin(a2) * 0.27, {
+      h: 0.042, ry: -a2, pose: poses[s % poses.length],
+      top: tops[s % tops.length], bottom: bots[(s >> 1) % bots.length],
+      dress: s % 3 === 0 ? 'knee' : 'ankle', hat: '#362c24', hatStyle: hats[s % hats.length], detail: 'hi',
+    });
   }
-  human(p, -0.23, 0, 0.25, { h: 0.044, ry: 0.65, pose: 'walk', top: '#785a3c', bottom: '#4a3c2e', dress: 'ankle', hat: '#3a3028', hatStyle: 'brim', detail: 'hi' });
-  human(p, 0.22, 0, 0.26, { h: 0.042, ry: -0.55, pose: 'point', top: '#8c3428', bottom: '#dfd6c4', dress: 'ankle', detail: 'hi' });
   return [p, 0];
 }
 

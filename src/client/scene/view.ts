@@ -21,7 +21,7 @@ export class View {
   private elapsed = 0;
   private raycaster = new THREE.Raycaster();
   /** screen-space shift of the projection centre so subjects stay clear of side panels / bottom sheets */
-  private inset = { x: 0, y: 0, tx: 0, ty: 0 };
+  private inset = { x: 0, y: 0, sx: 0, sy: 0, tx: 0, ty: 0, t: 1 };
   frames = 0;
 
   constructor(readonly canvas: HTMLCanvasElement, readonly geo: Geo, readonly lowfx: boolean) {
@@ -97,8 +97,14 @@ export class View {
 
   /** Keeps the scene centred in the screen area not covered by `left` / `right` / `bottom` px of UI panels. */
   setInset(left: number, right: number, bottom: number): void {
-    this.inset.tx = (Math.max(0, right) - Math.max(0, left)) / 2;
-    this.inset.ty = Math.max(0, bottom) / 2;
+    const tx = (Math.max(0, right) - Math.max(0, left)) / 2;
+    const ty = Math.max(0, bottom) / 2;
+    if (Math.abs(tx - this.inset.tx) < 0.5 && Math.abs(ty - this.inset.ty) < 0.5) return;
+    this.inset.sx = this.inset.x;
+    this.inset.sy = this.inset.y;
+    this.inset.tx = tx;
+    this.inset.ty = ty;
+    this.inset.t = 0;
   }
 
   private applyInset(): void {
@@ -112,11 +118,11 @@ export class View {
 
   private stepInset(dt: number): void {
     const i = this.inset;
-    if (i.x === i.tx && i.y === i.ty) return;
-    const k = 1 - Math.exp(-dt * 7);
-    i.x += (i.tx - i.x) * k;
-    i.y += (i.ty - i.y) * k;
-    if (Math.abs(i.tx - i.x) < 0.5 && Math.abs(i.ty - i.y) < 0.5) { i.x = i.tx; i.y = i.ty; }
+    if (i.t >= 1) return;
+    i.t = Math.min(1, i.t + dt / 0.6);
+    const k = ease(i.t);
+    i.x = i.sx + (i.tx - i.sx) * k;
+    i.y = i.sy + (i.ty - i.sy) * k;
     this.applyInset();
   }
 
@@ -124,8 +130,6 @@ export class View {
   private ndc = [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1], [0, 1]] as const;
   private ndcVec = new THREE.Vector2();
   private hit = new THREE.Vector3();
-  private tmp = new THREE.Vector3();
-  private sph = new THREE.Spherical();
   private lastCamPos = new THREE.Vector3(Infinity, Infinity, Infinity);
   private lastCamQuat = new THREE.Quaternion();
   private lastTarget = new THREE.Vector3(Infinity, Infinity, Infinity);
@@ -156,33 +160,26 @@ export class View {
         const r = this.raycaster.ray;
         if (r.direction.y > -1e-3) continue;
         const k = -r.origin.y / r.direction.y;
-        if (ny > 0 && k > dist * 2.6) continue;
-        r.at(k, this.hit);
+        const kCap = ny > 0 ? dist * 1.45 : ny === 0 ? dist * 1.85 : dist * 2.4;
+        r.at(Math.min(k, kCap), this.hit);
         x0 = Math.min(x0, this.hit.x); x1 = Math.max(x1, this.hit.x);
         z0 = Math.min(z0, this.hit.z); z1 = Math.max(z1, this.hit.z);
       }
       if (!isFinite(x0)) break;
-      const fit = Math.min(1, (2 * W) / (x1 - x0), (2 * D) / (z1 - z0));
-      if (fit < 0.999) {
-        cam.position.sub(t).multiplyScalar(fit * 0.995).add(t);
-        continue;
+      if (!this.flight) {
+        const fit = Math.min(1, (2 * W) / (x1 - x0), (2 * D) / (z1 - z0));
+        if (fit < 0.999) {
+          cam.position.sub(t).multiplyScalar(fit * 0.995).add(t);
+          continue;
+        }
       }
       const dx = x0 < -W ? -W - x0 : x1 > W ? W - x1 : 0;
       const dz = z0 < -D ? -D - z0 : z1 > D ? D - z1 : 0;
       if (Math.abs(dx) < 1e-4 && Math.abs(dz) < 1e-4) break;
-      // the top of the view runs past the northern edge: look down a little rather than sliding the subject away
-      if (dz > 0.05 && iter < 3) {
-        this.sph.setFromVector3(this.tmp.copy(cam.position).sub(t));
-        if (this.sph.phi > 0.32) {
-          this.sph.phi = Math.max(0.32, this.sph.phi - Math.min(0.2, (dz / dist) * 1.5));
-          cam.position.copy(t).add(this.tmp.setFromSpherical(this.sph));
-          cam.lookAt(t);
-          continue;
-        }
-      }
       t.x += dx; t.z += dz;
       cam.position.x += dx; cam.position.z += dz;
     }
+    cam.updateMatrixWorld();
     this.lastCamPos.copy(cam.position);
     this.lastCamQuat.copy(cam.quaternion);
     this.lastTarget.copy(t);
@@ -197,7 +194,7 @@ export class View {
   }
 
   private apply(p: Required<CamPose>): void {
-    const tgt = new THREE.Vector3(this.geo.x(p.lon), Math.max(0, this.geo.height(p.lon, p.lat)) * 0.6, this.geo.z(p.lat));
+    const tgt = new THREE.Vector3(this.geo.x(p.lon), 0, this.geo.z(p.lat));
     this.controls.target.copy(tgt);
     this.camera.position.copy(tgt).add(new THREE.Vector3().setFromSpherical(new THREE.Spherical(p.dist, p.tilt, p.heading)));
     this.camera.lookAt(tgt);
@@ -247,10 +244,8 @@ export class View {
   /** Viewing distance the camera is at, or flying to. */
   get goalDist(): number { return this.flight ? this.flight.to.dist : this.camera.position.distanceTo(this.controls.target); }
 
-  private shk = { amp: 0, t: 0, dur: 0 };
-  private shkOff = new THREE.Vector3();
   /** Shakes the camera for `dur` seconds by `amp` × the viewing distance, easing out (impacts, charges). */
-  shake(amp: number, dur: number): void { this.shk = { amp, t: 0, dur }; }
+  shake(_amp: number, _dur: number): void { /* disabled to keep story animations steady */ }
 
   /** lon/lat under a client-space point, or null. */
   pick(clientX: number, clientY: number): [number, number] | null {
@@ -278,17 +273,9 @@ export class View {
     this.stepFlight(dt);
     if (!this.flight) this.controls.update(dt);
     this.constrain();
-    this.sky.position.copy(this.camera.position);
     for (const h of this.hooks) h(dt, this.elapsed);
-    const k = this.shk, off = this.shkOff.set(0, 0, 0);
-    if (k.t < k.dur) {
-      k.t += dt;
-      const e = this.elapsed, f = k.amp * this.camera.position.distanceTo(this.controls.target) * (1 - k.t / k.dur);
-      off.set(Math.sin(e * 53) * f, Math.sin(e * 41 + 1) * f * 0.6, Math.sin(e * 61 + 2) * f);
-      this.camera.position.add(off);
-    }
+    this.sky.position.copy(this.camera.position);
     this.renderer.render(this.scene, this.camera);
-    this.camera.position.sub(off);
     this.frames++;
   }
 }

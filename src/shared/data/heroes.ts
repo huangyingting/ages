@@ -281,41 +281,8 @@ export function capitalModel(era: { id: string; start: number }): ModelRecipe {
   return { kind: 'palace', style: era.start < 581 ? 'han' : 'tang', year: era.start };
 }
 
-/** The 3D model shown on a place card: its period-appropriate capital or unique landmark. */
+/** The 3D model shown on a place card: its unique 1-to-1 landmark model. */
 export function placeModel(p: Place, year?: number): ModelRecipe {
-  if (year !== undefined) {
-    if (p.id === 'xian') {
-      if (year < -221) return { kind: 'palace', hero: 'capitals/cap_zhou' };
-      if (year >= 8 && year <= 23) return { kind: 'palace', hero: 'capitals/cap_xin' };
-      if (year < 581) return { kind: 'palace', hero: 'capitals/cap_qinhan' };
-      if (year < 618) return { kind: 'palace', hero: 'capitals/cap_sui' };
-      if (year <= 907) return { kind: 'palace', hero: 'capitals/cap_tang' };
-    }
-    if (p.id === 'luoyang') {
-      if (year < -221) return { kind: 'palace', hero: 'capitals/cap_luoyi' };
-      if (year < 220) return { kind: 'palace', hero: 'capitals/cap_luoyang' };
-      if (year < 581) return { kind: 'palace', hero: 'capitals/cap_taiji' };
-      if (year <= 907) return { kind: 'palace', hero: 'capitals/cap_tang' };
-    }
-    if (p.id === 'kaifeng') {
-      if (year >= 907 && year < 960) return { kind: 'palace', hero: 'capitals/cap_wudai' };
-      if (year >= 960 && year <= 1234) return { kind: 'palace', hero: 'capitals/cap_song' };
-    }
-    if (p.id === 'nanjing') {
-      if (year >= 1912 && year < 1949) return { kind: 'palace', hero: 'capitals/cap_nanjing_roc' };
-      if (year >= 1368 && year < 1644) return { kind: 'palace', hero: 'capitals/cap_ming' };
-      if (year < 1368) return { kind: 'palace', hero: 'capitals/cap_jiankang' };
-    }
-    if (p.id === 'hangzhou' && year >= 1127 && year <= 1279) return { kind: 'palace', hero: 'capitals/cap_linan' };
-    if (p.id === 'beijing') {
-      if (year >= 1949) return { kind: 'palace', hero: 'capitals/cap_prc' };
-      if (year >= 1644) return { kind: 'palace', hero: 'capitals/cap_qing' };
-      if (year >= 1368) return { kind: 'palace', hero: 'capitals/cap_ming' };
-      if (year >= 1260 && year < 1368) return { kind: 'palace', hero: 'capitals/cap_yuan' };
-      if (year >= 1153 && year < 1260) return { kind: 'palace', hero: 'capitals/cap_jin' };
-    }
-    if (p.name.zh === '上海' && year < 1949) return { kind: 'skyline', hero: 'china/cn_bund', style: 'roc' };
-  }
   const byId = PLACE_ID_HERO[p.id];
   if (byId) return byId;
   if (p.id) {
@@ -328,10 +295,12 @@ export function placeModel(p: Place, year?: number): ModelRecipe {
       : p.capital?.length ? 5
       : /陵|墓|冢|遗址|故城/.test(text) ? 6 : 7;
     const key = 'pl_' + p.id.replace(/[^a-z0-9]/gi, '_');
+    const anc = (p.names?.map(n => n.name.zh) ?? []).join(',');
+    const lore = (p.lore?.tag.zh ?? '') + ' ' + (p.notes?.[0]?.text.zh ?? '');
     return {
       kind: p.capital?.length ? 'palace' : p.kind === 'pass' ? 'gate' : p.kind === 'site' ? 'ding' : p.kind === 'water' ? 'boat' : p.kind === 'mountain' ? 'temple' : 'gate',
       hero: 'places-atlas/' + key,
-      style: `${p.id}|${p.lon.toFixed(1)}|${p.lat.toFixed(1)}|${p.capital?.length ? 1 : 0}|${arch}|${p.name.zh}`,
+      style: `${p.id}|${p.lon.toFixed(1)}|${p.lat.toFixed(1)}|${p.capital?.length ? 1 : 0}|${arch}|${p.name.zh}|${anc}|${lore}`,
     };
   }
   const hero = PLACE_HERO[p.name.zh];

@@ -3,22 +3,27 @@ import { type Builder, box, rbox, cyl, cone as rawCone, ellip, rod, gable as raw
 import { grp, proof, gourd } from '../timber.ts';
 import { human } from '../human.ts';
 
+let citySiteSeq = 0;
 function site(root: THREE.Group, top: string, k = 0.88): [THREE.Group, number] {
   const h = plinth(root, top);
   const p = new THREE.Group();
   p.position.y = h + 0.0015;
   p.scale.setScalar(k);
   root.add(p);
-  // Perimeter landscape trees, scholar rocks, stone lanterns & historical figures (古木景石、石经幢与游人)
-  tree(p, -0.31, 0, 0.16, 0.056, '#44683a');
-  tree(p, 0.31, 0, -0.15, 0.05, '#3b5c34');
-  for (const [rx, rz] of [[-0.28, 0.22], [0.28, -0.21]] as [number, number][]) {
-    ellip(p, '#787268', rx, 0.008, rz, 0.022, 0.012, 0.018);
-    cyl(p, '#cfc6b4', -rx, 0, rz, 0.012, 0.028, 6);
-    rawCone(p, '#525860', -rx, 0.028, rz, 0.017, 0.012, 6);
+  const s = ++citySiteSeq;
+  const a1 = 0.55 + (s % 7) * 0.31, a2 = a1 + 2.3 + (s % 5) * 0.22;
+  const tops = ['#785a3c', '#8c3428', '#2e5268', '#4a6240', '#6a485e', '#946834', '#384654'];
+  const bots = ['#4a3c2e', '#dfd6c4', '#2c343c', '#c8beaa', '#523c32', '#3a483c'];
+  const poses = ['walk', 'point', 'stand', 'relax', 'carry'] as const;
+  const hats = ['brim', 'knot', 'cap', 'turban', 'hood'] as const;
+  if (top !== SITE.water && top !== SITE.snow) {
+    tree(p, Math.cos(a1) * 0.33, 0, Math.sin(a1) * 0.31, 0.048 + (s % 3) * 0.006, s & 1 ? '#44683a' : '#3b5c34');
+    human(p, Math.cos(a2) * 0.29, 0, Math.sin(a2) * 0.28, {
+      h: 0.042, ry: -a2, pose: poses[s % poses.length],
+      top: tops[s % tops.length], bottom: bots[(s >> 1) % bots.length],
+      dress: s % 3 === 0 ? 'knee' : 'ankle', hat: '#362c24', hatStyle: hats[s % hats.length], detail: 'hi',
+    });
   }
-  human(p, -0.23, 0, 0.25, { h: 0.044, ry: 0.65, pose: 'walk', top: '#785a3c', bottom: '#4a3c2e', dress: 'ankle', hat: '#3a3028', hatStyle: 'brim', detail: 'hi' });
-  human(p, 0.22, 0, 0.26, { h: 0.042, ry: -0.55, pose: 'point', top: '#8c3428', bottom: '#dfd6c4', dress: 'ankle', detail: 'hi' });
   return [p, 0];
 }
 

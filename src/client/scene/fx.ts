@@ -160,6 +160,7 @@ export class Fx {
     }
     for (const it of this.items) it.update?.(sdt, t, this.s);
     this.stepFollow(sdt);
+    this.view.constrain();
     this.missiles.step(sdt);
     this.particles.step(sdt, this.view.renderer.getPixelRatio() * this.view.canvas.clientHeight * 0.5 * this.view.camera.projectionMatrix.elements[5]);
   }
@@ -839,25 +840,20 @@ export class Fx {
       for (const sd of sides) if (sd.label) { this.labels.remove(sd.label); sd.label = undefined; }
       return true;
     };
-    // the camera: low behind the advancing line, push in at contact, crane up over the rout
+    // the camera: smooth framing over the battlefield without whip-pans or shake
     const cam = layer === 'story' && o.cam !== false;
     const p0 = this.view.pose(), base = this.view.goalDist, sp = Math.max(0.25, this.speed);
-    const flank = side.clone();
-    const heading = (d: THREE.Vector3) => { let h = Math.atan2(d.x, d.z); while (h - p0.heading > Math.PI) h -= Math.PI * 2; while (h - p0.heading < -Math.PI) h += Math.PI * 2; return h; };
-    if (Math.abs(heading(flank) - p0.heading) > Math.abs(heading(flank.clone().negate()) - p0.heading)) flank.negate();
-    const shot = (p: THREE.Vector3, dist: number, tilt: number, d: THREE.Vector3, t: number) => {
+    const shot = (p: THREE.Vector3, dist: number, tilt: number, yawDelta: number, t: number) => {
       if (!cam || gone()) return;
       const dd = THREE.MathUtils.clamp(base * dist, this.view.controls.minDistance, this.view.controls.maxDistance);
-      void this.view.flyTo({ lon: this.geo.lon(p.x), lat: this.geo.lat(p.z), dist: dd, tilt, heading: heading(d) }, t / sp);
+      void this.view.flyTo({ lon: this.geo.lon(p.x), lat: this.geo.lat(p.z), dist: dd, tilt, heading: p0.heading + yawDelta }, t / sp);
     };
-    shot(at(sides[0], D * 0.35, 0), 0.72, 1.14, flank.clone().addScaledVector(ax, -0.8).normalize(), dur * 0.3);
+    shot(c, 0.72, 0.9, 0.1, dur * 0.45);
     field.show(0.6);
     await this.tween(dur * 0.35, x => { k = x * 0.35; });
     if (gone()) return;
     battle = this.particles.emitter('battle', c.clone().setY(c.y + 0.02), () => this.s);
     this.ring(c.clone().setY(c.y + 0.02), '#ff5a36', dur * 0.4, layer, 0.8);
-    shot(c, 0.5, 1.04, flank, dur * 0.12);
-    if (cam) this.view.shake(0.006, dur * 0.3 / sp);
     await this.tween(dur * 0.35, x => { k = 0.35 + x * 0.35; });
     battle.stop = true;
     if (gone()) return;
@@ -868,7 +864,7 @@ export class Fx {
       for (let j = 0; j < 3; j++) fires.push(this.particles.emitter('fire', ground(at(ls, D * (0.3 + Math.random() * 0.5), (Math.random() - 0.5) * D * 0.8)), () => this.s * 0.6));
       for (const f of fires) f.k = 1;
     }
-    shot(ls ? at(ls, D * 0.4, 0) : c, 0.95, 0.62, flank.clone().applyAxisAngle(up, 0.45), dur * 0.3);
+    shot(c, 0.88, 0.82, 0.24, dur * 0.3);
     await this.tween(dur * 0.3, x => { k = 0.7 + x * 0.3; });
     if (gone()) return;
     for (const sd of sides) if (sd.label && sd.id === loser) { this.labels.remove(sd.label); sd.label = undefined; }
