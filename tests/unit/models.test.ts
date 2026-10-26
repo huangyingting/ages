@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { MODEL_KINDS } from '../../src/shared/data/event-kit.ts';
 import { BUILDERS, buildFresh } from '../../src/client/models/kit.ts';
 import { packModel, unpackModel } from '../../src/client/models/pack.ts';
-import { loadPack, parseHero } from '../../src/client/models/heroes/index.ts';
+import { loadPack, PACK_IDS, parseHero } from '../../src/client/models/heroes/index.ts';
 import { LIFE } from '../../src/shared/data/life.ts';
 import { ERAS } from '../../src/shared/data/eras.ts';
 import { PLACES } from '../../src/shared/data/places.ts';
@@ -214,5 +214,48 @@ describe('period-dressed figures', () => {
     expect(ready(qinCap)).toBe(true);
     const cached = await prototype(qinCap);
     expect(cached).toBeDefined();
+  }, 60_000);
+
+  it('registers all hero packs via import.meta.glob and gives each place era-differentiated 3D models', async () => {
+    expect(PACK_IDS.length).toBeGreaterThanOrEqual(16);
+    await loadPack('capitals');
+    await loadPack('places-cities');
+    await loadPack('places-sites');
+    await loadPack('places-atlas');
+
+    // No duplicate entries for merged passes/sites (嘉峪关, 山海关, 赤壁, 雅克萨, 巨鹿)
+    for (const landmark of ['嘉峪关', '山海关', '赤壁', '雅克萨', '巨鹿']) {
+      expect(PLACES.filter(p => p.name.zh === landmark).length, landmark).toBe(1);
+    }
+
+    // All places have unique recipes both without year and within any era year
+    const keysAtTang = new Set<string>();
+    for (const p of PLACES) {
+      const r = placeModel(p, 720);
+      const k = `${r.hero ?? r.kind}:${r.style ?? ''}`;
+      expect(keysAtTang.has(k), `duplicate recipe at 720 for ${p.id}`).toBe(false);
+      keysAtTang.add(k);
+    }
+
+    // Jiayuguan and Dunhuang have completely different models in any era
+    const jyg = PLACES.find(p => p.id === 'jiayuguan')!;
+    const dh = PLACES.find(p => p.id === 'dunhuang')!;
+    const jygMing = buildFresh(placeModel(jyg, 1500));
+    const dhMing = buildFresh(placeModel(dh, 1500));
+    expect(stats(jygMing).tris).not.toBe(stats(dhMing).tris);
+
+    // Same place across different eras produces distinct recipes and distinct 3D geometry
+    for (const id of ['xian', 'luoyang', 'beijing', 'dunhuang', 'jiayuguan', 'nanjing', 'kaifeng', 'j0']) {
+      const p = PLACES.find(x => x.id === id)!;
+      const sampleYears = [-150, 720, 1080, 1500, 1780, 1980];
+      const trisByEra = new Set<number>();
+      for (const y of sampleYears) {
+        const r = placeModel(p, y);
+        const s = stats(buildFresh(r));
+        expect(s.tris, `${id}@${y}`).toBeGreaterThan(500);
+        trisByEra.add(s.tris);
+      }
+      expect(trisByEra.size, `${id} distinct geometry across 6 eras`).toBe(sampleYears.length);
+    }
   }, 60_000);
 });

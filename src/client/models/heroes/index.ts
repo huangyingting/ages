@@ -6,9 +6,12 @@ import type { Builder } from '../prims.ts';
  * Packs become separate chunks and are fetched only when an item that needs them is about to be built.
  */
 type Pack = Record<string, Builder>;
-const LOADERS = typeof import.meta.glob === 'function'
-  ? import.meta.glob<Record<string, unknown>>(['./*.ts', '!./index.ts'])
-  : {};
+let LOADERS: Record<string, () => Promise<Record<string, unknown>>> = {};
+try {
+  LOADERS = import.meta.glob<Record<string, unknown>>(['./*.ts', '!./index.ts']);
+} catch {
+  LOADERS = {};
+}
 const packPath = (id: string): string => `./${id}.ts`;
 
 const loaded = new Map<string, Pack>();

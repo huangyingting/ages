@@ -222,14 +222,15 @@ export function importedPlaces(curated: Place[]): Place[] {
     }
     const capital = g.items.filter(s => s.capital).map(s => [s.from, s.to] as [Year, Year]);
     const notes = g.items.filter(s => s.note).map(s => ({ from: s.from, to: s.to, text: s.note! }));
+    const first = g.items[0];
     const c = nearest(g.lon, g.lat, 0.3, curated);
-    if (c?.kind === 'city') {
+    const sameLandmark = c && (c.name.zh === first.modern.zh || names.some(s => s.name.zh === c.name.zh || s.name.zh.startsWith(c.name.zh + '（')));
+    if (c?.kind === 'city' || sameLandmark) {
       // enrich the curated place: periods it lacks, notes
       c.notes = [...(c.notes ?? []), ...notes];
       c.periods = [...(c.periods ?? []), ...names];
       continue;
     }
-    const first = g.items[0];
     const p: Place = {
       // Keep existing j-IDs stable when separating a settlement previously merged into a nearby landmark.
       id: c ? `settlement-${g.lon}-${g.lat}` : `j${n++}`, scope: 'china', lon: g.lon, lat: g.lat, kind: 'city', name: first.modern.zh ? first.modern : first.name, names,

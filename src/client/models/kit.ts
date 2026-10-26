@@ -3,7 +3,8 @@ import type { ModelRecipe } from '../../shared/data/types.ts';
 import { ANCIENT } from './build-ancient.ts';
 import { MODERN } from './build-modern.ts';
 import { C, box, cone, type Builder as LiteBuilder } from './lite.ts';
-import type { Builder } from './prims.ts';
+import { cyl as pCyl, tbox as pTbox, ellip as pEllip, rod as pRod, type Builder } from './prims.ts';
+import { grp, proof, gourd, setPlaceEraContext } from './timber.ts';
 import { RICH, personModel } from './rich.ts';
 import { bakeStaticMeshes } from './pp-kit.ts';
 import { heroBuilder, whenHeroReady } from './heroes/index.ts';
@@ -159,6 +160,193 @@ function addEventAccent(gp: THREE.Group, recipe: ModelRecipe, rawStyle: string):
   cone(gp, capCol, x, 0.02 + ht, z, w * 0.65, 0.018 + (h % 7) * 0.003, 4 + (h % 4));
 }
 
+const ERA_VIGNETTE_INDEX: Record<string, number> = {
+  paleo: 0, neo: 1, legend: 2, xia: 3, shang: 4, wzhou: 5, chunqiu: 6, zhanguo: 7,
+  qin: 8, whan: 9, xin: 10, ehan: 11, sanguo: 12, wjin: 13, ejin: 14, nanbei: 15,
+  sui: 16, tang: 17, wudai: 18, bsong: 19, nsong: 20, liao: 21, xixia: 22, jin: 23,
+  yuan: 24, ming: 25, qing: 26, roc: 27, prc: 28,
+};
+
+/**
+ * Adds a dynasty-authentic architectural/cultural vignette on the plinth edge for `placeModel(p, year)`,
+ * ensuring the same place in different eras has distinct period structures and a unique 3D mesh signature.
+ */
+function addPlaceEraVignette(inner: THREE.Group, placeId: string, eraId: string): void {
+  const idx = ERA_VIGNETTE_INDEX[eraId] ?? 17;
+  const h = hashEventStyle(`${placeId}:${eraId}`);
+  const ang = -0.82 + ((h & 0xff) / 255) * 0.48;
+  const vx = Math.sin(ang) * 0.285, vz = Math.cos(ang) * 0.275, y0 = 0.048;
+  const g = grp(inner, vx, vz, -ang * 0.6, y0);
+  // Era-indexed stone plinth with distinct polygon segment count (5..33) so every era has a unique mesh signature
+  pCyl(g, '#c8beaa', 0, 0, 0, 0.044, 0.008, 5 + idx);
+  const y = 0.008;
+  switch (eraId) {
+    case 'paleo': // 旧石器火塘与打制石笋
+      for (let i = 0; i < 6; i++) {
+        const a = (i * Math.PI) / 3;
+        pCyl(g, '#7c7264', Math.cos(a) * 0.024, y, Math.sin(a) * 0.024, 0.008, 0.012, 5);
+      }
+      cone(g, '#e05a24', 0, y, 0, 0.018, 0.036, 6);
+      cone(g, '#f2a830', 0.006, y + 0.006, 0, 0.011, 0.028, 5);
+      break;
+    case 'neo': // 新石器半地穴茅草屋与彩陶罐
+      pCyl(g, '#9c7c54', -0.01, y, 0, 0.028, 0.018, 8);
+      cone(g, '#b89452', -0.01, y + 0.016, 0, 0.036, 0.034, 8);
+      pEllip(g, '#b85234', 0.024, y + 0.014, 0.01, 0.012, 0.016, 0.012);
+      break;
+    case 'legend': // 五帝玉琮祭坛与图腾柱
+      box(g, '#6a8e72', -0.012, y, 0, 0.028, 0.028, 0.028);
+      pCyl(g, '#4e6e56', -0.012, y, 0, 0.016, 0.032, 10);
+      pCyl(g, '#7e5232', 0.02, y, 0, 0.007, 0.058, 7);
+      break;
+    case 'xia': // 夏代二里头夯土高台与青铜爵
+      pTbox(g, 0.062, 0.048, 0.05, 0.038, 0.024, '#a68254', 0, y, 0);
+      pCyl(g, '#4a7a62', 0, y + 0.024, 0, 0.014, 0.022, 6);
+      for (const sx of [-0.009, 0.009]) pRod(g, [sx, y + 0.024, 0], [sx * 1.3, y + 0.046, 0], 0.0025, '#4a7a62');
+      break;
+    case 'shang': // 商代司母戊大方鼎与甲骨卜辞碑
+      box(g, '#3e6e58', 0, y + 0.014, 0, 0.044, 0.026, 0.032);
+      for (const sx of [-0.016, 0.016]) for (const sz of [-0.011, 0.011]) pCyl(g, '#3e6e58', sx, y, sz, 0.004, 0.016, 6);
+      for (const sx of [-0.016, 0.016]) box(g, '#c89a38', sx, y + 0.04, 0, 0.006, 0.01, 0.014);
+      break;
+    case 'wzhou': // 西周编钟木虡与礼器列鼎
+      for (const sx of [-0.028, 0.028]) pCyl(g, '#6e2218', sx, y, 0, 0.004, 0.052, 6);
+      box(g, '#8e281c', 0, y + 0.048, 0, 0.066, 0.007, 0.009);
+      for (const bx of [-0.016, 0, 0.016]) cone(g, '#c89632', bx, y + 0.024, 0, 0.007, 0.018, 6);
+      break;
+    case 'chunqiu': // 春秋战车双轮与诸侯旌旗
+      box(g, '#6a261c', 0, y + 0.016, 0, 0.038, 0.018, 0.028);
+      for (const sz of [-0.018, 0.018]) pCyl(g, '#4a2e1b', 0, y + 0.014, sz, 0.014, 0.005, 10);
+      pRod(g, [0.014, y + 0.016, 0], [0.014, y + 0.068, 0], 0.003, '#4a2e1b');
+      box(g, '#b83222', 0.028, y + 0.052, 0, 0.026, 0.018, 0.003);
+      break;
+    case 'zhanguo': // 战国层台高阙与铁剑台
+      pTbox(g, 0.064, 0.05, 0.048, 0.038, 0.028, '#96764e', 0, y, 0);
+      pTbox(g, 0.042, 0.034, 0.032, 0.026, 0.024, '#7c261c', 0, y + 0.028, 0);
+      proof(g, 0, y + 0.052, 0, { n: 4, R0: 0.032, R1: 0.006, h: 0.02, lift: 0.22, tile: '#42464c' });
+      break;
+    case 'qin': // 秦代玄黑子母双阙与玄鸟战旗
+      for (const sx of [-0.018, 0.018]) {
+        pTbox(g, 0.024, 0.024, 0.02, 0.02, 0.042, '#3a3430', sx, y, 0);
+        proof(g, sx, y + 0.042, 0, { n: 4, R0: 0.022, R1: 0.004, h: 0.016, lift: 0.18, tile: '#242629' });
+      }
+      pRod(g, [0, y, 0.016], [0, y + 0.068, 0.016], 0.0028, '#242629');
+      box(g, '#1e2024', 0.014, y + 0.05, 0.016, 0.026, 0.018, 0.003);
+      break;
+    case 'whan': // 西汉朱红双层汉阙与博山铜炉
+      pTbox(g, 0.048, 0.036, 0.038, 0.028, 0.036, '#84241c', -0.008, y, 0);
+      proof(g, -0.008, y + 0.036, 0, { n: 4, R0: 0.034, R1: 0.006, h: 0.02, lift: 0.22, tile: '#32363c' });
+      cone(g, '#b88e34', 0.022, y + 0.012, 0.008, 0.012, 0.026, 7);
+      break;
+    case 'xin': // 新朝上圆下方明堂辟雍亭
+      box(g, '#c8beaa', 0, y, 0, 0.056, 0.01, 0.056);
+      pCyl(g, '#6a261e', 0, y + 0.01, 0, 0.02, 0.028, 8);
+      proof(g, 0, y + 0.038, 0, { n: 8, R0: 0.032, R1: 0.004, h: 0.022, lift: 0.24, tile: '#3c464a' });
+      break;
+    case 'ehan': // 东汉绿釉三层陶楼望亭
+      for (let k = 0; k < 2; k++) {
+        const s = 1 - k * 0.22, ky = y + k * 0.026;
+        box(g, '#8c281e', 0, ky, 0, 0.036 * s, 0.022, 0.032 * s);
+        proof(g, 0, ky + 0.02, 0, { n: 4, R0: 0.032 * s, R1: 0.005, h: 0.015, lift: 0.26, tile: '#2e6850' });
+      }
+      break;
+    case 'sanguo': // 三国辕门战鼓台与牙旗
+      pTbox(g, 0.054, 0.044, 0.044, 0.036, 0.022, '#7c6448', 0, y, 0);
+      pCyl(g, '#8e2218', -0.008, y + 0.024, 0, 0.016, 0.022, 10);
+      pRod(g, [0.016, y + 0.022, 0], [0.016, y + 0.072, 0], 0.0028, '#4a2e1b');
+      box(g, '#9c241c', 0.03, y + 0.052, 0, 0.026, 0.02, 0.003);
+      break;
+    case 'wjin': // 西晋竹林曲水兰亭与石琴台
+      for (const sx of [-0.016, 0.016]) for (const sz of [-0.016, 0.016]) pCyl(g, '#5c3c24', sx, y, sz, 0.003, 0.032, 6);
+      proof(g, 0, y + 0.032, 0, { n: 4, R0: 0.032, R1: 0.005, h: 0.02, lift: 0.3, tile: '#384652' });
+      box(g, '#cfc6b4', 0, y + 0.006, 0, 0.024, 0.008, 0.014);
+      break;
+    case 'ejin': // 东晋六朝神道辟邪石兽与瓦亭
+      box(g, '#cfc6b4', -0.014, y, 0, 0.028, 0.014, 0.018);
+      pEllip(g, '#dcd4c2', -0.014, y + 0.022, 0, 0.014, 0.01, 0.009);
+      pCyl(g, '#cfc6b4', 0.018, y, 0, 0.006, 0.052, 8);
+      break;
+    case 'nanbei': // 南北朝八角石窟经幢与莲座小塔
+      for (let k = 0; k < 3; k++) {
+        const s = 1 - k * 0.2, ky = y + k * 0.02;
+        pCyl(g, '#dfd6c2', 0, ky, 0, 0.022 * s, 0.018, 8);
+        proof(g, 0, ky + 0.016, 0, { n: 8, R0: 0.028 * s, R1: 0.005, h: 0.012, lift: 0.32, tile: '#3a6258' });
+      }
+      break;
+    case 'sui': // 隋代大运河皇家圆廒粮仓与系船石柱
+      pCyl(g, '#e4dcc8', -0.006, y, 0, 0.026, 0.032, 10);
+      cone(g, '#b89042', -0.006, y + 0.032, 0, 0.032, 0.026, 10);
+      pCyl(g, '#8c8476', 0.024, y, 0.01, 0.006, 0.028, 6);
+      break;
+    case 'tang': // 唐代青绿琉璃飞檐八角灯亭与红灯笼
+      pCyl(g, '#9a241c', 0, y, 0, 0.022, 0.034, 8);
+      proof(g, 0, y + 0.032, 0, { n: 8, R0: 0.038, R1: 0.005, h: 0.024, lift: 0.42, tile: '#2f6d5a' });
+      gourd(g, 0, y + 0.056, 0, 0.016, '#e2b23c');
+      break;
+    case 'wudai': // 五代十国陀罗尼石经幢与砖雕敌台
+      pTbox(g, 0.046, 0.046, 0.038, 0.038, 0.026, '#7a7062', -0.008, y, 0);
+      pCyl(g, '#dcd4c2', 0.018, y, 0, 0.009, 0.048, 8);
+      cone(g, '#4e5248', 0.018, y + 0.048, 0, 0.014, 0.016, 8);
+      break;
+    case 'bsong': // 北宋汴京勾栏瓦肆亭与酒楼招幌旗
+      box(g, '#f2ece0', -0.008, y, 0, 0.036, 0.03, 0.032);
+      proof(g, -0.008, y + 0.028, 0, { n: 4, R0: 0.034, R1: 0.005, h: 0.022, lift: 0.38, tile: '#34404a' });
+      pRod(g, [0.02, y, 0.01], [0.02, y + 0.068, 0.01], 0.0025, '#5c3c22');
+      box(g, '#28648c', 0.032, y + 0.05, 0.01, 0.024, 0.016, 0.003);
+      break;
+    case 'nsong': // 南宋临安江南水榭凉亭与太湖奇石
+      for (const sx of [-0.016, 0.016]) for (const sz of [-0.016, 0.016]) pCyl(g, '#69241e', sx - 0.006, y, sz, 0.003, 0.032, 6);
+      proof(g, -0.006, y + 0.03, 0, { n: 4, R0: 0.034, R1: 0.005, h: 0.022, lift: 0.42, tile: '#353e48' });
+      pEllip(g, '#9a968c', 0.024, y + 0.018, 0.008, 0.012, 0.022, 0.01);
+      break;
+    case 'liao': // 辽代契丹穹庐毡帐与八角密檐小塔
+      pCyl(g, '#efe8da', -0.01, y, 0, 0.026, 0.024, 10);
+      cone(g, '#9c2820', -0.01, y + 0.024, 0, 0.028, 0.022, 10);
+      pCyl(g, '#d8d0c0', 0.022, y, 0, 0.01, 0.046, 8);
+      break;
+    case 'xixia': // 西夏贺兰山覆钵白塔与朱红台座
+      pTbox(g, 0.044, 0.044, 0.038, 0.038, 0.018, '#9c3224', 0, y, 0);
+      pEllip(g, '#f2ece0', 0, y + 0.032, 0, 0.02, 0.024, 0.02);
+      cone(g, '#d6a22e', 0, y + 0.05, 0, 0.01, 0.022, 8);
+      break;
+    case 'jin': // 金代女真黄琉璃重檐亭与系马石桩
+      pCyl(g, '#7c2018', -0.006, y, 0, 0.02, 0.032, 6);
+      proof(g, -0.006, y + 0.03, 0, { n: 6, R0: 0.034, R1: 0.005, h: 0.022, lift: 0.34, tile: '#8c6828' });
+      pCyl(g, '#cfc6b4', 0.024, y, 0.01, 0.005, 0.032, 6);
+      break;
+    case 'yuan': // 元代藏式覆钵白塔与孔雀蓝琉璃顶
+      box(g, '#f2eee4', 0, y, 0, 0.042, 0.016, 0.042);
+      pEllip(g, '#f5f0e6', 0, y + 0.03, 0, 0.022, 0.024, 0.022);
+      gourd(g, 0, y + 0.052, 0, 0.02, '#e2b43c');
+      break;
+    case 'ming': // 明代四柱三间琉璃石牌坊与墩台
+      for (const sx of [-0.024, -0.008, 0.008, 0.024]) pCyl(g, '#dcd4c2', sx, y, 0, 0.0035, 0.048, 6);
+      box(g, '#a83226', 0, y + 0.038, 0, 0.058, 0.007, 0.012);
+      proof(g, 0, y + 0.045, 0, { n: 4, R0: 0.028, R1: 0.005, h: 0.016, lift: 0.32, tile: '#c89024', sx: 1.6 });
+      break;
+    case 'qing': // 清代黄琉璃御碑亭与汉白玉华表
+      pCyl(g, '#821c16', -0.008, y, 0, 0.02, 0.034, 4);
+      proof(g, -0.008, y + 0.032, 0, { n: 4, R0: 0.034, R1: 0.005, h: 0.024, lift: 0.34, tile: '#d8a228' });
+      pCyl(g, '#f2eee4', 0.024, y, 0.01, 0.005, 0.056, 8);
+      box(g, '#f2eee4', 0.024, y + 0.048, 0.01, 0.018, 0.004, 0.006);
+      break;
+    case 'roc': // 民国青砖西洋钟楼与复古路灯
+      box(g, '#6c7078', -0.006, y, 0, 0.032, 0.052, 0.028);
+      box(g, '#ece6d8', -0.006, y + 0.034, 0.015, 0.014, 0.014, 0.003);
+      cone(g, '#8c3828', -0.006, y + 0.052, 0, 0.024, 0.018, 4);
+      pCyl(g, '#2c3036', 0.022, y, 0.01, 0.003, 0.048, 6);
+      break;
+    default: // 新中国红旗观礼台与纪念碑柱
+      box(g, '#b53428', 0, y, 0, 0.054, 0.018, 0.034);
+      box(g, '#e8e0d0', 0, y + 0.018, 0, 0.018, 0.048, 0.018);
+      for (const sx of [-0.02, 0.02]) {
+        pRod(g, [sx, y + 0.018, 0.008], [sx, y + 0.058, 0.008], 0.002, '#d6a436');
+        box(g, '#c8241c', sx + 0.009, y + 0.048, 0.008, 0.018, 0.012, 0.002);
+      }
+      break;
+  }
+}
+
 /**
  * Builds and bakes a model (no caching; the worker and the main-thread fallback both use this). Hero recipes
  * (`hero: 'pack/name'`) need `whenModelReady` first, otherwise the kind's generic model is built.
@@ -169,18 +357,25 @@ export function buildFresh(recipe: ModelRecipe): THREE.Group {
   root.add(inner);
   const hero = heroBuilder(recipe.hero);
   const rich = hero ?? (recipe.kind === 'person' ? personModel : RICH[recipe.kind]);
-  if (rich) {
-    if (hero) {
-      rich(inner, { color: '#cccccc', ...recipe });
-    } else {
-      const rawStyle = typeof recipe.style === 'string' ? recipe.style : '';
-      const head = rawStyle.split('__')[0];
-      const baseStyle = head === 'nanxun' ? 'shenzhen' : KNOWN_RICH_STYLES.has(head) ? head : undefined;
-      rich(inner, { ...recipe, style: baseStyle });
-      if (rawStyle && !KNOWN_RICH_STYLES.has(rawStyle)) addEventAccent(inner, recipe, rawStyle);
-    }
-    inner.scale.setScalar(KIT_SCALE * (typeof recipe.scale === 'number' ? recipe.scale : 1));
-  } else (BUILDERS[recipe.kind] as LiteBuilder ?? FALLBACK)(inner, recipe);
+  const mPlaceEra = typeof recipe.style === 'string' ? /(?:^|\|)place:([^|]+)\|era:([^|]+)$/.exec(recipe.style) : null;
+  if (mPlaceEra) setPlaceEraContext(typeof recipe.year === 'number' ? recipe.year : undefined, mPlaceEra[2]);
+  try {
+    if (rich) {
+      if (hero) {
+        rich(inner, { color: '#cccccc', ...recipe });
+      } else {
+        const rawStyle = typeof recipe.style === 'string' ? recipe.style : '';
+        const head = rawStyle.split('__')[0];
+        const baseStyle = head === 'nanxun' ? 'shenzhen' : KNOWN_RICH_STYLES.has(head) ? head : undefined;
+        rich(inner, { ...recipe, style: baseStyle });
+        if (rawStyle && !KNOWN_RICH_STYLES.has(rawStyle)) addEventAccent(inner, recipe, rawStyle);
+      }
+      if (mPlaceEra) addPlaceEraVignette(inner, mPlaceEra[1], mPlaceEra[2]);
+      inner.scale.setScalar(KIT_SCALE * (typeof recipe.scale === 'number' ? recipe.scale : 1));
+    } else (BUILDERS[recipe.kind] as LiteBuilder ?? FALLBACK)(inner, recipe);
+  } finally {
+    if (mPlaceEra) setPlaceEraContext(undefined, undefined);
+  }
   bakeAnimated(root);
   bakeStaticMeshes(root);
   gradeModel(root);

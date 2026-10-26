@@ -281,8 +281,95 @@ export function capitalModel(era: { id: string; start: number }): ModelRecipe {
   return { kind: 'palace', style: era.start < 581 ? 'han' : 'tang', year: era.start };
 }
 
-/** The 3D model shown on a place card: its unique 1-to-1 landmark model. */
-export function placeModel(p: Place, year?: number): ModelRecipe {
+/** Period-specific capital palace & landmark overrides for multi-era seats (each cap_* is unique to one city in that era). */
+const PLACE_ERA_HERO: Record<string, Partial<Record<string, ModelRecipe>>> = {
+  erlitou: { xia: { kind: 'palace', hero: 'capitals/cap_erlitou' } },
+  anyang: { shang: { kind: 'palace', hero: 'capitals/cap_yinxu' } },
+  xianyang: { qin: { kind: 'palace', hero: 'capitals/cap_xianyang' } },
+  xian: {
+    wzhou: { kind: 'palace', hero: 'capitals/cap_zhou' },
+    whan: { kind: 'palace', hero: 'capitals/cap_qinhan' },
+    xin: { kind: 'palace', hero: 'capitals/cap_xin' },
+    sui: { kind: 'palace', hero: 'capitals/cap_sui' },
+    tang: { kind: 'palace', hero: 'capitals/cap_tang' },
+  },
+  luoyang: {
+    chunqiu: { kind: 'palace', hero: 'capitals/cap_luoyi' },
+    ehan: { kind: 'palace', hero: 'capitals/cap_luoyang' },
+    sanguo: { kind: 'palace', hero: 'capitals/cap_sanguo' },
+    wjin: { kind: 'palace', hero: 'capitals/cap_taiji' },
+    nanbei: { kind: 'palace', hero: 'capitals/cap_nanbei' },
+  },
+  nanjing: {
+    ejin: { kind: 'palace', hero: 'capitals/cap_jiankang' },
+    roc: { kind: 'palace', hero: 'capitals/cap_nanjing_roc' },
+  },
+  kaifeng: {
+    wudai: { kind: 'palace', hero: 'capitals/cap_wudai' },
+    bsong: { kind: 'palace', hero: 'capitals/cap_song' },
+  },
+  hangzhou: {
+    nsong: { kind: 'palace', hero: 'capitals/cap_linan' },
+  },
+  xingqing: {
+    xixia: { kind: 'palace', hero: 'capitals/cap_xixia' },
+  },
+  'settlement-119.38-43.97': {
+    liao: { kind: 'palace', hero: 'capitals/cap_liao' },
+  },
+  'settlement-126.97-45.54': {
+    jin: { kind: 'palace', hero: 'capitals/cap_jin' },
+  },
+  beijing: {
+    zhanguo: { kind: 'palace', hero: 'capitals/cap_zhanguo' },
+    yuan: { kind: 'palace', hero: 'capitals/cap_yuan' },
+    ming: { kind: 'palace', hero: 'capitals/cap_ming' },
+    qing: { kind: 'palace', hero: 'capitals/cap_qing' },
+    prc: { kind: 'monument', hero: 'capitals/cap_prc' },
+  },
+};
+
+/** Resolves the dynasty/era ID for a place at a given year, respecting simultaneous regimes (Liao/Xixia/Jin vs Song). */
+export function placeEraId(p: Place, year: number): string {
+  if (year >= 907 && year <= 1270) {
+    const activeText = [
+      p.id,
+      ...(p.names ?? []).filter(n => year >= n.from && year <= n.to).map(n => n.name.zh),
+      ...(p.periods ?? []).filter(n => year >= n.from && year <= n.to).map(n => n.name.zh),
+      ...(p.notes ?? []).filter(n => year >= n.from && year <= n.to).map(n => n.text.zh),
+    ].join(' ');
+    if (year >= 1038 && year <= 1227 && (p.id === 'xingqing' || /西夏|兴庆府|党项/.test(activeText))) return 'xixia';
+    if (year >= 916 && year <= 1125 && (/辽|契丹|临潢|析津/.test(activeText) || p.lat > 39.5)) return 'liao';
+    if (year >= 1115 && year <= 1234 && (/金|女真|会宁|中都/.test(activeText) || p.lat > 34.5)) return 'jin';
+  }
+  if (year < -10_000) return 'paleo';
+  if (year < -2070) return 'neo';
+  if (year < -1600) return 'xia';
+  if (year < -1046) return 'shang';
+  if (year < -770) return 'wzhou';
+  if (year < -475) return 'chunqiu';
+  if (year < -221) return 'zhanguo';
+  if (year < -202) return 'qin';
+  if (year <= 8) return 'whan';
+  if (year <= 24) return 'xin';
+  if (year < 220) return 'ehan';
+  if (year < 266) return 'sanguo';
+  if (year <= 316) return 'wjin';
+  if (year < 420) return 'ejin';
+  if (year < 581) return 'nanbei';
+  if (year < 618) return 'sui';
+  if (year < 907) return 'tang';
+  if (year < 960) return 'wudai';
+  if (year < 1127) return 'bsong';
+  if (year < 1271) return 'nsong';
+  if (year < 1368) return 'yuan';
+  if (year < 1644) return 'ming';
+  if (year < 1912) return 'qing';
+  if (year < 1949) return 'roc';
+  return 'prc';
+}
+
+function basePlaceModel(p: Place): ModelRecipe {
   const byId = PLACE_ID_HERO[p.id];
   if (byId) return byId;
   if (p.id) {
@@ -305,8 +392,23 @@ export function placeModel(p: Place, year?: number): ModelRecipe {
   }
   const hero = PLACE_HERO[p.name.zh];
   if (hero) return hero;
-  if (p.capital?.length) return { kind: 'palace', ...(year !== undefined ? { year } : {}) };
-  return { kind: p.kind === 'pass' ? 'gate' : p.kind === 'site' ? 'ding' : p.kind === 'water' ? 'boat' : p.kind === 'mountain' ? 'temple' : 'gate', ...(year !== undefined ? { year } : {}) };
+  if (p.capital?.length) return { kind: 'palace' };
+  return { kind: p.kind === 'pass' ? 'gate' : p.kind === 'site' ? 'ding' : p.kind === 'water' ? 'boat' : p.kind === 'mountain' ? 'temple' : 'gate' };
+}
+
+/** The 3D model shown on a place card: its unique 1-to-1 landmark model, differentiated by dynasty/era when `year` is supplied. */
+export function placeModel(p: Place, year?: number): ModelRecipe {
+  const base = basePlaceModel(p);
+  if (year === undefined) return base;
+  const eraId = placeEraId(p, year);
+  const eraCap = PLACE_ERA_HERO[p.id]?.[eraId];
+  const chosen = eraCap ?? base;
+  const prefix = chosen.style ? `${chosen.style}|` : '';
+  return {
+    ...chosen,
+    year,
+    style: `${prefix}place:${p.id}|era:${eraId}`,
+  };
 }
 
 export type PersonRole = 'ruler' | 'general' | 'monk' | 'woman' | 'scholar';

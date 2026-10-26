@@ -24,6 +24,7 @@ export interface CardHooks {
   journey(j: Journey): void;
   person(p: Person): void;
   life(l: LifeItem): void;
+  year?(y: Year): void;
 }
 
 const LIFE_COLOR: Record<LifeKind, string> = { person: '#b8322a', building: '#8a6a3a', custom: '#3f7f6a', food: '#c0782a' };
@@ -212,10 +213,17 @@ export class Card {
       h('div', { class: 'acts' },
         this.wikiBtn(life?.wiki ?? { zh: wikiName.zh, en: wikiName.en }, tr(wikiName, L))),
       showNames ? this.sec(t('namesThrough'), true, h('ul', { class: 'periods' },
-        ...names.map(n => h('li', { class: year >= n.from && year <= n.to ? 'cur' : '' }, h('span', { class: 'y', text: this.span(n.from, n.to) }), h('b', { text: tr(n.name, L) }))))) : null,
+        ...names.map(n => h('li', {
+          class: year >= n.from && year <= n.to ? 'cur' : '',
+          style: 'cursor:pointer',
+          onclick: () => this.hooks.year?.(Math.round((n.from + Math.min(n.to, 2025)) / 2)),
+        }, h('span', { class: 'y', text: this.span(n.from, n.to) }), h('b', { text: tr(n.name, L) }))))) : null,
       p.capital?.length ? this.sec(t('asCapital'), true, h('p', { class: 'caps', text: p.capital.map(([a, b]) => this.span(a, b)).join('；') })) : null,
       notes.length ? this.sec(t('notes'), true, h('ul', { class: 'periods' },
-        ...notes.map(n => h('li', {}, h('span', { class: 'y', text: this.span(n.from, n.to) }), h('span', { text: tr(n.text, L) }))))) : null,
+        ...notes.map(n => h('li', {
+          style: 'cursor:pointer',
+          onclick: () => this.hooks.year?.(Math.round((n.from + Math.min(n.to, 2025)) / 2)),
+        }, h('span', { class: 'y', text: this.span(n.from, n.to) }), h('span', { text: tr(n.text, L) }))))) : null,
       evs.length ? this.sec(t('nearby'), true, this.evList(evs)) : null,
     );
   }

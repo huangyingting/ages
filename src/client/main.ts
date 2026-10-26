@@ -74,6 +74,7 @@ class App {
       journey: j => this.playJourney(j),
       person: p => this.openPerson(p),
       life: l => this.openLife(l),
+      year: y => { this.timeline.setPlaying(false); this.timeline.set(y, true); },
     }, this.progress, lowfx);
     this.learn = new Learn(this.progress);
   }
@@ -164,7 +165,10 @@ class App {
     tl.onYear = (y, final) => {
       pending = y;
       if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (pending != null) this.atlas.setYear(pending); });
-      if (final) { this.saveYear(y); }
+      if (final) {
+        this.saveYear(y);
+        if (this.card.open && this.card.place) this.card.showPlace(this.card.place.p, y);
+      }
     };
     tl.onEvent = e => this.openEvent(e);
     this.chronicle.onOpen = e => this.openEvent(e);

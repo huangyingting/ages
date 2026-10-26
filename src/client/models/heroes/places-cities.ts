@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { type Builder, box, rbox, cyl, cone as rawCone, ellip, rod, gable as rawGable, prism, tbox as rawTbox, shade, plinth, tree, SITE } from '../prims.ts';
-import { grp, proof, gourd } from '../timber.ts';
+import { grp, proof, gourd, stylePlaceHallColors, stylePlaceHuman } from '../timber.ts';
 import { human } from '../human.ts';
 
 let citySiteSeq = 0;
@@ -15,13 +15,13 @@ function site(root: THREE.Group, top: string, k = 0.88): [THREE.Group, number] {
   const tops = ['#785a3c', '#8c3428', '#2e5268', '#4a6240', '#6a485e', '#946834', '#384654'];
   const bots = ['#4a3c2e', '#dfd6c4', '#2c343c', '#c8beaa', '#523c32', '#3a483c'];
   const poses = ['walk', 'point', 'stand', 'relax', 'carry'] as const;
-  const hats = ['brim', 'knot', 'cap', 'turban', 'hood'] as const;
   if (top !== SITE.water && top !== SITE.snow) {
     tree(p, Math.cos(a1) * 0.33, 0, Math.sin(a1) * 0.31, 0.048 + (s % 3) * 0.006, s & 1 ? '#44683a' : '#3b5c34');
+    const hs = stylePlaceHuman(s, tops[s % tops.length], bots[(s >> 1) % bots.length]);
     human(p, Math.cos(a2) * 0.29, 0, Math.sin(a2) * 0.28, {
       h: 0.042, ry: -a2, pose: poses[s % poses.length],
-      top: tops[s % tops.length], bottom: bots[(s >> 1) % bots.length],
-      dress: s % 3 === 0 ? 'knee' : 'ankle', hat: '#362c24', hatStyle: hats[s % hats.length], detail: 'hi',
+      top: hs.top, bottom: hs.bottom,
+      dress: hs.dress, hat: hs.hat, hatStyle: hs.hatStyle, detail: 'hi',
     });
   }
   return [p, 0];
@@ -31,17 +31,18 @@ function gable(
   p: THREE.Object3D, w: number, h: number, d: number,
   c: string, x = 0, y = 0, z = 0, ry = 0,
 ): THREE.Mesh {
-  const m = rawGable(p, w * 0.92, h * 0.88, d * 0.92, c, x, y, z, ry);
+  const [, , roofC, , goldC] = stylePlaceHallColors('#ece4d4', '#8e231c', c);
+  const m = rawGable(p, w * 0.92, h * 0.88, d * 0.92, roofC, x, y, z, ry);
   const g = grp(p, x, z, ry, y);
   const R0 = ((d / 2) * 1.06) / Math.SQRT1_2;
   const topY = proof(g, 0, 0, 0, {
     n: 4, R0, R1: R0 * 0.28, h, lift: 0.34, sub: 4,
-    tile: c, sx: w / Math.max(0.02, d * 1.06),
+    tile: roofC, sx: w / Math.max(0.02, d * 1.06),
   });
   const rw = Math.max(w * 0.48, 0.024);
-  box(g, shade(c, 0.76), 0, topY - h * 0.08, 0, rw, Math.max(0.004, h * 0.14), Math.max(0.004, d * 0.06));
+  box(g, shade(roofC, 0.76), 0, topY - h * 0.08, 0, rw, Math.max(0.004, h * 0.14), Math.max(0.004, d * 0.06));
   for (const sx of [-1, 1]) {
-    box(g, '#d8a634', sx * (rw * 0.49), topY - h * 0.04, 0, Math.max(0.004, h * 0.12), Math.max(0.008, h * 0.22), Math.max(0.005, d * 0.07));
+    box(g, goldC, sx * (rw * 0.49), topY - h * 0.04, 0, Math.max(0.004, h * 0.12), Math.max(0.008, h * 0.22), Math.max(0.005, d * 0.07));
   }
   return m;
 }
@@ -111,8 +112,9 @@ function cone(
   return rawCone(p, c, x, y, z, r, h, seg, ry);
 }
 
-function hall(p: THREE.Object3D, x: number, y: number, z: number, w: number, d: number, h: number, wall: string, col: string, roofC: string, rh = h * 0.85): number {
-  const stoneC = '#cfc6b4', doorC = '#6e1d16', winC = '#efe4cc', goldC = '#d8a634', beamC = '#2e7666';
+function hall(p: THREE.Object3D, x: number, y: number, z: number, w: number, d: number, h: number, wallIn: string, colIn: string, roofIn: string, rh = h * 0.85): number {
+  const [wall, col, roofC, beamC, goldC] = stylePlaceHallColors(wallIn, colIn, roofIn);
+  const stoneC = '#cfc6b4', doorC = '#6e1d16', winC = '#efe4cc';
   // Molded stone foundation rim & front approach steps (台基压阑石与踏道)
   box(p, stoneC, x, y, z, w + 0.01, Math.min(0.007, h * 0.14), d + 0.01);
   if (w >= 0.085 && d >= 0.07) {
