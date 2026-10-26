@@ -345,24 +345,24 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .hud-tl, .hud-tr, .hud-bot { position: absolute; z-index: 1; }
 .hud-tl > *, .hud-tr > *, .hud-bl > *, .hud-bc > * { pointer-events: auto; }
 
-/* headline (top left): brand kicker, then era · year · reign — the year is the largest type on screen */
-.hud-tl { top: 18px; left: 24px; max-width: 46%; display: flex; flex-direction: column; align-items: flex-start; }
-.brand { display: flex; align-items: center; gap: 8px; font-size: var(--t-xs); color: var(--ink-2); white-space: nowrap; }
-.brand b { font-size: var(--t-m); font-weight: 800; letter-spacing: .02em; color: var(--ink); }
+/* headline (top left): brand kicker, then era · year · reign */
+.hud-tl { top: 12px; left: 18px; max-width: 46%; display: flex; flex-direction: column; align-items: flex-start; }
+.brand { display: flex; align-items: center; gap: 7px; font-size: var(--t-xs); color: var(--ink-2); white-space: nowrap; }
+.brand b { font-size: var(--t-s); font-weight: 800; letter-spacing: .02em; color: var(--ink); }
 .brand .logo {
-  flex: none; width: 22px; height: 22px; background: var(--zhu);
+  flex: none; width: 20px; height: 20px; background: var(--zhu);
   position: relative; overflow: hidden;
 }
 /* a river winding between two peaks */
 .brand .logo::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath d='M3 22l7-10 4 5 4-6 9 11z' fill='%23fff' fill-opacity='.92'/%3E%3Cpath d='M2 26c6-3 9 1 14-1s8-3 12-1' stroke='%23ffd9a0' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center / cover; }
 .brand-k { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
-.tl-head { margin-top: 16px; display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; }
+.tl-head { margin-top: 8px; display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; }
 .tl-head > * { pointer-events: auto; }
-.tl-era { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; padding: 0; font-size: var(--t-l); font-weight: 700; line-height: 1.2; color: var(--ink); }
-.tl-era::before { content: ''; width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 28%, transparent); }
+.tl-era { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; font-size: var(--t-m); font-weight: 700; line-height: 1.2; color: var(--ink); }
+.tl-era::before { content: ''; width: 9px; height: 9px; flex: none; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 28%, transparent); }
 .tl-era:hover { color: var(--zhu); }
-.tl-year { margin-top: 2px; font-size: var(--t-3xl); font-weight: 300; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); pointer-events: none; }
-.tl-ruler { margin-top: 4px; font-size: var(--t-s); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tl-year { margin-top: 1px; font-size: 24px; font-weight: 500; line-height: 1.12; letter-spacing: -.01em; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); pointer-events: none; }
+.tl-ruler { margin-top: 2px; font-size: var(--t-xs); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .tl-ruler:empty { display: none; }
 
 /* the toolbar (top right): one frosted plate, grouped — find (search · 时期详情) | study hall · settings — fixed in the
@@ -423,8 +423,8 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .st-c { margin: 6px 0 0; font-size: var(--t-xs); color: var(--ink-3); }
 
 /* the foot: line key (left) and the phase line / story caption over the timeline (centre) */
-.hud-bot { left: 24px; right: 24px; bottom: 16px; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 24px; align-items: end; }
-.hud-bl { min-width: 0; padding-bottom: 4px; }
+.hud-bot { left: 18px; right: 24px; bottom: 10px; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 24px; align-items: end; }
+.hud-bl { min-width: 0; padding-bottom: 2px; }
 .map-key { display: flex; flex-direction: column; gap: 6px; font-size: var(--t-xs); color: var(--ink-2); transition: opacity .4s; }
 .mk-row { display: flex; flex-wrap: wrap; gap: 5px 14px; }
 .mk { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -520,20 +520,21 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 }
 .panel.on { transform: none; opacity: 1; visibility: visible; transition: transform .35s var(--ease-out), opacity .35s; }
 .panel-l {
-  --cut: 10px; left: 18px; top: var(--lt, 170px); bottom: var(--lb, 120px); width: var(--lw); clip-path: var(--pp-clip);
+  --cut: 10px; left: 18px; top: var(--lt, 112px); bottom: var(--lb, 44px); width: var(--lw); clip-path: var(--pp-clip);
   opacity: 0; transform: translateX(-24px);
 }
 .panel-l:has(> .card.top.reading) { width: min(calc(var(--lw) + 580px), calc(100% - 48px)); }
-/* the slab hugs its top view: on wide screens from under the headline down to at most the line key, on phones up from
+/* the slab hugs its top view: on wide screens the card stretches from under the headline down to the line key, on phones up from
    the timeline to at most the sheet's height */
 .panel-l { display: flex; flex-direction: column; }
 .panel-l .view { position: relative; inset: auto; flex: 0 1 auto; min-height: 0; }
 .panel-l .view:not(.top) { display: none; }
 .panel-l .view.quiz { overflow: auto; }
-.panel-l .card.reading { flex: 1 1 auto; }
+.panel-l .card.top, .panel-l .card.reading { flex: 1 1 auto; }
 @media (min-width: 721px) {
-  .panel-l { bottom: auto; max-height: calc(100% - var(--lt, 170px) - var(--lb, 120px)); }
-  .panel-l:has(> .card.top.reading) { height: calc(100% - var(--lt, 170px) - var(--lb-read, var(--lb, 120px))); max-height: none; }
+  .panel-l { bottom: auto; max-height: calc(100% - var(--lt, 112px) - var(--lb, 44px)); }
+  .panel-l:has(> .card.top) { height: calc(100% - var(--lt, 112px) - var(--lb, 44px)); max-height: none; }
+  .panel-l:has(> .card.top.reading) { height: calc(100% - var(--lt, 112px) - var(--lb-read, var(--lb, 44px))); max-height: none; }
 }
 /* wide screens keep the period's figures (top right) clear of the reading slab */
 @media (min-width: 1181px) {
@@ -1010,10 +1011,10 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
   .hud::after { height: 150px; }
   .hud-tl { top: 12px; left: 14px; max-width: 50%; }
   .brand-k { display: none; }
-  .tl-head { margin-top: 12px; }
-  .tl-era { font-size: var(--t-m); }
-  .tl-year { font-size: var(--t-2xl); }
-  .tl-ruler { font-size: var(--t-xs); }
+  .tl-head { margin-top: 8px; }
+  .tl-era { font-size: var(--t-s); }
+  .tl-year { font-size: 20px; }
+  .tl-ruler { font-size: var(--t-2xs); }
   .bar { top: 12px; right: 10px; }
   .tools { gap: 4px; }
   .search, .search:focus-within { width: 112px; }
@@ -1055,12 +1056,13 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
    top; reading runs from under the tools down over the timeline; popovers use the full height */
 @media (min-width: 721px) and (max-height: 560px) {
   .brand-k, .hud-tr { display: none; }
-  .tl-head { margin-top: 6px; }
-  .tl-year { font-size: var(--t-2xl); }
+  .tl-head { margin-top: 4px; }
+  .tl-year { font-size: 20px; }
   .hud-tl { transition: opacity .3s; }
   .dock-on:not(.story-on) .hud-tl, .dock-on .amb { opacity: 0; pointer-events: none; }
-  .panel-l { top: 12px; max-height: calc(100% - 12px - var(--lb, 120px)); }
-  .panel-l:has(> .card.top.reading) { top: 62px; height: auto; bottom: 8px; max-height: none; }
+  .panel-l { top: 10px; max-height: calc(100% - 10px - var(--lb, 44px)); }
+  .panel-l:has(> .card.top) { top: 10px; height: calc(100% - 10px - var(--lb, 44px)); max-height: none; }
+  .panel-l:has(> .card.top.reading) { top: 56px; height: auto; bottom: 8px; max-height: none; }
   .menu { max-height: calc(100dvh - 70px); }
   .menu.pv { height: calc(100dvh - 70px); }
 }

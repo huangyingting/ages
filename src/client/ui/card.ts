@@ -213,10 +213,10 @@ export class Card {
         this.wikiBtn(life?.wiki ?? { zh: wikiName.zh, en: wikiName.en }, tr(wikiName, L))),
       showNames ? this.sec(t('namesThrough'), true, h('ul', { class: 'periods' },
         ...names.map(n => h('li', { class: year >= n.from && year <= n.to ? 'cur' : '' }, h('span', { class: 'y', text: this.span(n.from, n.to) }), h('b', { text: tr(n.name, L) }))))) : null,
-      p.capital?.length ? this.sec(t('asCapital'), !showNames, h('p', { class: 'caps', text: p.capital.map(([a, b]) => this.span(a, b)).join('；') })) : null,
-      notes.length ? this.sec(t('notes'), false, h('ul', { class: 'periods' },
+      p.capital?.length ? this.sec(t('asCapital'), true, h('p', { class: 'caps', text: p.capital.map(([a, b]) => this.span(a, b)).join('；') })) : null,
+      notes.length ? this.sec(t('notes'), true, h('ul', { class: 'periods' },
         ...notes.map(n => h('li', {}, h('span', { class: 'y', text: this.span(n.from, n.to) }), h('span', { text: tr(n.text, L) }))))) : null,
-      evs.length ? this.sec(t('nearby'), false, this.evList(evs)) : null,
+      evs.length ? this.sec(t('nearby'), true, this.evList(evs)) : null,
     );
   }
 
@@ -307,8 +307,8 @@ export class Card {
       h('p', { class: 'sum', text: tr(e.summary, L) }),
       h('div', { class: 'acts' }, playBtn, e.wiki ? this.wikiBtn(e.wiki, tr(e.title, L)) : null, learnBtn),
       e.points.length ? this.sec(t('keyPoints'), true, h('ul', { class: 'points' }, ...e.points.map(p => h('li', { text: tr(p, L) })))) : null,
-      e.people?.length ? this.sec(t('people'), false, h('div', { class: 'people' }, ...e.people.map(p => this.personChip(p)))) : null,
-      units.length ? this.sec(t('textbook'), false, h('ul', { class: 'units' }, ...units)) : null,
+      e.people?.length ? this.sec(t('people'), true, h('div', { class: 'people' }, ...e.people.map(p => this.personChip(p)))) : null,
+      units.length ? this.sec(t('textbook'), true, h('ul', { class: 'units' }, ...units)) : null,
     );
   }
 
@@ -329,8 +329,8 @@ export class Card {
       h('p', { class: 'sum', text: tr(era.summary, L) }),
       era.wiki ? h('div', { class: 'acts' }, this.wikiBtn(era.wiki, tr(era.name, L))) : null,
       dy?.summary.zh ? this.sec(t('overview'), true, h('p', { class: 'sum', text: tr(dy.summary, L) })) : null,
-      figures.length ? this.sec(t('figures'), !dy?.summary.zh, h('div', { class: 'people' }, ...figures.map(p => this.personChip(p.name)))) : null,
-      life.length ? this.sec(t('lifeOf'), false, h('div', { class: 'people' }, ...life.map(x =>
+      figures.length ? this.sec(t('figures'), true, h('div', { class: 'people' }, ...figures.map(p => this.personChip(p.name)))) : null,
+      life.length ? this.sec(t('lifeOf'), true, h('div', { class: 'people' }, ...life.map(x =>
         h('button', { type: 'button', class: `chip link life-chip k-${x.kind}`, onclick: () => this.hooks.life(x) }, tr(x.name, L))))) : null,
     );
   }

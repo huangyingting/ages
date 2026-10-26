@@ -520,13 +520,13 @@ class App {
     // the left column: under the headline, above the line key (or the timeline, where the key is folded away)
     const head = this.hudTl.getBoundingClientRect().bottom - top;
     const foot = Math.min(tl, this.hudBl.getClientRects().length ? this.hudBl.getBoundingClientRect().top - top : tl);
-    this.root.style.setProperty('--lt', `${Math.round(head + 14)}px`);
-    this.root.style.setProperty('--lb', `${Math.round(H - foot + 14)}px`);
+    this.root.style.setProperty('--lt', `${Math.ceil(head + 6)}px`);
+    this.root.style.setProperty('--lb', `${Math.ceil(H - foot + 6)}px`);
     // reading, the widened panel reaches over the foot's centre: stop above the phase line too
     const line = this.hudBc.getBoundingClientRect().top - top;
     // 时期详情 runs from under the toolbar down to just above the foot's centre
     this.root.style.setProperty('--bc-t', `${Math.round(line)}px`);
-    this.root.style.setProperty('--lb-read', `${Math.round(H - Math.min(foot, line) + 14)}px`);
+    this.root.style.setProperty('--lb-read', `${Math.ceil(H - Math.min(foot, line) + 6)}px`);
     if (this.root.classList.contains('story-on')) return this.atlas.view.setInset(0, 0, 0);
     if (matchMedia('(max-width: 720px)').matches) {
       const sheet = this.panel.open ? tl - this.panel.el.offsetHeight : tl;
