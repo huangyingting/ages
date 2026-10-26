@@ -23,6 +23,8 @@ export class View {
   /** screen-space shift of the projection centre so subjects stay clear of side panels / bottom sheets */
   private inset = { x: 0, y: 0, sx: 0, sy: 0, tx: 0, ty: 0, t: 1 };
   frames = 0;
+  /** Increments whenever the projection matrix (resize or view-offset inset) changes. */
+  projVersion = 0;
 
   constructor(readonly canvas: HTMLCanvasElement, readonly geo: Geo, readonly lowfx: boolean) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !lowfx, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: false });
@@ -114,6 +116,7 @@ export class View {
     if (Math.abs(x) < 0.5 && Math.abs(y) < 0.5) this.camera.clearViewOffset();
     else this.camera.setViewOffset(w, h, x, y, w, h);
     this.constrainDirty = true;
+    this.projVersion++;
   }
 
   private stepInset(dt: number): void {

@@ -129,6 +129,7 @@ export class Atlas {
   /** the camera's pose last frame and the frames since it last moved: hover waits until the map holds still */
   private camPos = new THREE.Vector3();
   private camQuat = new THREE.Quaternion();
+  private camProj = -1;
   private camStill = Infinity;
   /** a keyboard-focused object whose tooltip waits for the map to stop */
   private focusWait: MapTarget | null = null;
@@ -403,10 +404,12 @@ export class Atlas {
     // with the map past a still pointer; hover returns once the map is still and the pointer moves
     // (damping leaves a sub-pixel tail for a long time: only motion over ~1/5000 of the view distance per frame counts)
     const cam = this.view.camera;
-    const moved = cam.position.distanceTo(this.camPos) > cam.position.distanceTo(this.view.controls.target) * 2e-4
+    const moved = this.view.projVersion !== this.camProj
+      || cam.position.distanceTo(this.camPos) > cam.position.distanceTo(this.view.controls.target) * 2e-4
       || cam.quaternion.angleTo(this.camQuat) > 2e-4;
     this.camPos.copy(cam.position);
     this.camQuat.copy(cam.quaternion);
+    this.camProj = this.view.projVersion;
     if (moved) {
       this.camStill = 0;
       const hv = this.hover;
