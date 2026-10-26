@@ -10,13 +10,13 @@ import { instance } from '../models/library.ts';
 /** Idle turntable speed (rad/s). */
 const SPIN = 0.3;
 /** Intro: the camera glides in from INTRO_FAR × the resting distance and INTRO_RISE rad higher while the model turns INTRO_YAW into place. */
-const INTRO_MS = 1600, INTRO_FAR = 2, INTRO_RISE = 0.3, INTRO_YAW = 0.8;
+const INTRO_MS = 750, INTRO_FAR = 1.25, INTRO_RISE = 0.16, INTRO_YAW = 0.45;
 
 export class Preview {
   readonly canvas: HTMLCanvasElement;
   private renderer: THREE.WebGLRenderer | null = null;
   private scene = new THREE.Scene();
-  private cam = new THREE.PerspectiveCamera(30, 2, 0.05, 100);
+  private cam = new THREE.PerspectiveCamera(28, 2, 0.05, 100);
   private turn = new THREE.Group();
   private model: THREE.Object3D | null = null;
   private key = '';
@@ -107,16 +107,22 @@ export class Preview {
         mesh.geometry.setDrawRange(near[0], near[1]);
       }
     });
-    // frame the model: normalise its footprint and aim the camera at its middle
+    // frame the model tightly inside the compact hero strip so there is minimal dead space around it
     const box = new THREE.Box3().setFromObject(g);
     const size = box.getSize(new THREE.Vector3());
-    const k = 1.9 / Math.max(size.x, size.z, size.y * 0.9, 0.01);
+    const k = 2.0 / Math.max(size.x, size.z, size.y * 0.85, 0.01);
     g.scale.multiplyScalar(k);
     g.position.set(-(box.min.x + box.max.x) / 2 * k, -box.min.y * k, -(box.min.z + box.max.z) / 2 * k);
     this.model = g;
     this.turn.add(g);
-    const h = size.y * k, ly = h * 0.42, cy = 0.9 + h * 0.55 - ly, cz = 3.9 + h * 0.35;
-    this.pose = { d: Math.hypot(cy, cz), e: Math.atan2(cy, cz), y: ly };
+    const h = size.y * k, w = Math.hypot(size.x, size.z) * k * 0.78;
+    const el = 0.25, ly = h * 0.48;
+    const aspect = (this.canvas.clientWidth && this.canvas.clientHeight) ? this.canvas.clientWidth / this.canvas.clientHeight : 2.3;
+    const tanHalf = Math.tan(THREE.MathUtils.degToRad(this.cam.fov * 0.5));
+    const projH = h * Math.cos(el) + w * Math.sin(el);
+    const dv = (projH * 0.53) / tanHalf;
+    const dh = (w * 0.54) / (tanHalf * aspect);
+    this.pose = { d: Math.max(1.8, dv, dh), e: el, y: ly };
     this.angle = -0.5;
     this.introAt = this.still || matchMedia('(prefers-reduced-motion: reduce)').matches ? Infinity : -1;
     this.place(1);

@@ -206,9 +206,9 @@ export class Card {
     fill(this.body,
       this.title(modern ? this.eyebrow(`${t('today')} ${tr(modern, L)}`) : null, tr(now, L), null,
         [isCapital(p, year) ? h('span', { class: 'badge star', text: '★ ' + t('capitalNow') }) : null]),
+      this.stats([t('when'), formatYear(year, L)], capYears ? [t('asCapital'), t('years', { n: capYears })] : [t('eventsN'), String(evs.length)]),
       p.lore ? h('p', { class: 'sum' }, h('b', { text: tr(p.lore.tag, L) + ' · ' }), tr(p.lore.desc, L)) : null,
       life ? h('p', { class: 'sum', text: tr(life.desc, L) }) : null,
-      this.stats([t('when'), formatYear(year, L)], capYears ? [t('asCapital'), t('years', { n: capYears })] : [t('eventsN'), String(evs.length)]),
       h('div', { class: 'acts' },
         this.wikiBtn(life?.wiki ?? { zh: wikiName.zh, en: wikiName.en }, tr(wikiName, L))),
       showNames ? this.sec(t('namesThrough'), true, h('ul', { class: 'periods' },
@@ -240,8 +240,8 @@ export class Card {
     this.setHero(personModel(p), t('person'), '#b8322a', i >= 0 ? [i + 1, PEOPLE.length] : null);
     fill(this.body,
       this.title(null, tr(p.name, L), tr(p.title, L)),
-      p.aliases.length && L === 'zh' ? h('p', { class: 'sum', text: '又称 ' + p.aliases.join('、') }) : null,
       this.stats(this.lifespan(p), era ? [t('dynasty'), this.eraLink(era)] : null),
+      p.aliases.length && L === 'zh' ? h('p', { class: 'sum', text: '又称 ' + p.aliases.join('、') }) : null,
       h('div', { class: 'acts' },
         this.journeyBtn(p),
         this.wikiBtn({ zh: p.name.zh, en: p.name.en }, tr(p.name, L))),
@@ -264,8 +264,8 @@ export class Card {
     const evs = p ? this.personEvents(p) : twin ? [twin] : [];
     fill(this.body,
       this.title(null, tr(l.name, L), p ? tr(p.title, L) : null),
-      tr(l.desc, L) ? h('p', { class: 'sum', text: tr(l.desc, L) }) : null,
       this.stats(p ? this.lifespan(p) : null, era ? [t('dynasty'), this.eraLink(era)] : null),
+      tr(l.desc, L) ? h('p', { class: 'sum', text: tr(l.desc, L) }) : null,
       h('div', { class: 'acts' }, p ? this.journeyBtn(p) : null, this.wikiBtn(l.wiki, tr(l.name, L))),
       evs.length ? this.sec(t(p ? 'events' : 'relEvent'), true, this.evList(evs)) : null,
       others.length ? this.sec(t('sameEra'), true, h('div', { class: 'people' }, ...others.map(x =>
@@ -325,8 +325,8 @@ export class Card {
       i > 0 ? () => this.hooks.era(ERAS[i - 1].id) : undefined, i < ERAS.length - 1 ? () => this.hooks.era(ERAS[i + 1].id) : undefined);
     fill(this.body,
       this.title(seat ? this.eyebrow('★ ' + seat) : null, tr(era.name, L)),
-      h('p', { class: 'sum', text: tr(era.summary, L) }),
       this.stats([t('when'), `${formatYear(era.start, L, { short: true })} – ${formatYear(era.end, L, { short: true })}`], era.start > -5000 ? [t('duration'), t('years', { n: Math.max(1, era.end - era.start) })] : null),
+      h('p', { class: 'sum', text: tr(era.summary, L) }),
       era.wiki ? h('div', { class: 'acts' }, this.wikiBtn(era.wiki, tr(era.name, L))) : null,
       dy?.summary.zh ? this.sec(t('overview'), true, h('p', { class: 'sum', text: tr(dy.summary, L) })) : null,
       figures.length ? this.sec(t('figures'), !dy?.summary.zh, h('div', { class: 'people' }, ...figures.map(p => this.personChip(p.name)))) : null,

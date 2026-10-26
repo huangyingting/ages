@@ -122,8 +122,7 @@ export class Period {
         h('span', { class: 'mk mk-border' }, h('i'), h('span', { text: t('keyBorder') })),
         h('span', { class: 'mk mk-ghost' }, h('i'), h('span', { text: t('roleGhost') })),
         h('span', { class: 'mk mk-cap' }, h('i'), h('span', { text: t('capitalNow') })),
-        ...works.map(k => h('span', { class: `mk mk-line k-${k}`, style: `--c:${WORK_COLOR[k] ?? '#888'}` }, h('i'), h('span', { text: t(WORK_KEY[k] ?? 'works') })))),
-      h('div', { class: 'mk-row' }, h('span', { class: 'mk mk-ev' }, h('i'), h('span', { text: t('keyEvent') }))));
+        ...works.map(k => h('span', { class: `mk mk-line k-${k}`, style: `--c:${WORK_COLOR[k] ?? '#888'}` }, h('i'), h('span', { text: t(WORK_KEY[k] ?? 'works') })))));
   }
 
   // ------------------------------------------------------------ the 时期详情 popover
