@@ -1,6 +1,10 @@
 import * as THREE from 'three';
-import { type Builder, box, rbox, cyl, cone as rawCone, ellip, rod, gable as rawGable, prism, tbox as rawTbox, shade, plinth, tree, SITE } from '../prims.ts';
-import { grp, proof, stylePlaceHallColors, stylePlaceHuman } from '../timber.ts';
+import { type Builder, box, rbox, cyl, ellip, rod, prism, shade, plinth, tree, SITE } from '../prims.ts';
+import {
+  grp, stylePlaceHuman,
+  placeGable as gable, placeBand as band, placeTbox as tbox,
+  placeCone as cone, placeHall as hall,
+} from '../timber.ts';
 import { human } from '../human.ts';
 
 let siteSeq = 0;
@@ -25,152 +29,6 @@ function site(root: THREE.Group, top: string, k = 0.88): [THREE.Group, number] {
     });
   }
   return [p, 0];
-}
-
-function gable(
-  p: THREE.Object3D, w: number, h: number, d: number,
-  c: string, x = 0, y = 0, z = 0, ry = 0,
-): THREE.Mesh {
-  const [, , roofC, , goldC] = stylePlaceHallColors('#ece4d4', '#8e231c', c);
-  const m = rawGable(p, w * 0.92, h * 0.88, d * 0.92, roofC, x, y, z, ry);
-  const g = grp(p, x, z, ry, y);
-  const R0 = ((d / 2) * 1.06) / Math.SQRT1_2;
-  const topY = proof(g, 0, 0, 0, {
-    n: 4, R0, R1: R0 * 0.28, h, lift: 0.34, sub: 4,
-    tile: roofC, sx: w / Math.max(0.02, d * 1.06),
-  });
-  const rw = Math.max(w * 0.48, 0.024);
-  box(g, shade(roofC, 0.76), 0, topY - h * 0.08, 0, rw, Math.max(0.004, h * 0.14), Math.max(0.004, d * 0.06));
-  for (const sx of [-1, 1]) {
-    box(g, goldC, sx * (rw * 0.49), topY - h * 0.04, 0, Math.max(0.004, h * 0.12), Math.max(0.008, h * 0.22), Math.max(0.005, d * 0.07));
-  }
-  return m;
-}
-
-function band(p: THREE.Object3D, z0: number, z1: number, y: number, h: number, c: string, r = 0.43): void {
-  const L: [number, number][] = [], R: [number, number][] = [];
-  for (let i = 0; i <= 10; i++) {
-    const z = z0 + ((z1 - z0) * i) / 10, x = Math.sqrt(Math.max(0, r * r - z * z));
-    L.push([-x, z]); R.push([x, z]);
-  }
-  prism(p, [...L, ...R.reverse()], y, h, c);
-}
-
-function tbox(
-  p: THREE.Object3D, w0: number, d0: number, w1: number, d1: number, h: number,
-  c: string, x = 0, y = 0, z = 0, ry = 0,
-): THREE.Mesh {
-  const m = rawTbox(p, w0, d0, w1, d1, h, c, x, y, z, ry);
-  if (w0 >= 0.11 && d0 >= 0.04 && h >= 0.022) {
-    const g = grp(p, x, z, ry, y);
-    const rimC = shade(c, 1.12), darkC = shade(c, 0.82);
-    box(g, rimC, 0, 0, 0, w0 + 0.008, Math.min(0.006, h * 0.14), d0 + 0.008);
-    box(g, rimC, 0, h - Math.min(0.006, h * 0.14), 0, w1 + 0.008, Math.min(0.006, h * 0.14), d1 + 0.008);
-    for (const f of [0.34, 0.67]) {
-      const wf = w0 + (w1 - w0) * f + 0.003, df = d0 + (d1 - d0) * f + 0.003;
-      box(g, darkC, 0, h * f, 0, wf, 0.0028, df);
-    }
-    const qw = Math.min(0.014, w1 * 0.1), qd = Math.min(0.014, d1 * 0.12);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-      box(g, rimC, sx * (w1 * 0.48), 0, sz * (d1 * 0.48), qw, h, qd);
-    }
-    if (w0 >= 0.2 && h >= 0.042) {
-      const nb = Math.max(4, Math.min(11, Math.round(w1 / 0.038)));
-      const mw = (w1 * 0.9) / (nb * 1.45);
-      for (let i = 0; i < nb; i++) {
-        const bx = -w1 * 0.44 + (i / Math.max(1, nb - 1)) * (w1 * 0.88);
-        for (const sz of [-1, 1]) {
-          box(g, darkC, bx, h, sz * (d1 * 0.46), mw, 0.009, 0.007);
-        }
-      }
-    }
-  }
-  return m;
-}
-
-function cone(
-  p: THREE.Object3D, c: string, x: number, y: number, z: number,
-  r: number, h: number, seg = 8, ry = 0,
-): THREE.Mesh {
-  if (r >= 0.045 && h >= 0.065 && seg <= 8) {
-    const sMain = 14 + (seg % 5);
-    const m = rawCone(p, c, x, y, z, r, h, sMain, ry);
-    const darkC = shade(c, 0.84), lightC = shade(c, 1.12);
-    rawCone(p, darkC, x, y, z, r * 1.08, h * 0.42, 10, ry + 0.35);
-    for (let i = 0; i < 4; i++) {
-      const a = ry + (i * Math.PI) / 2 + 0.4;
-      const sr = r * (0.46 + (i % 2) * 0.08), sh = h * (0.58 + (i % 2) * 0.12);
-      rawCone(p, i % 2 ? darkC : lightC, x + Math.cos(a) * r * 0.42, y, z + Math.sin(a) * r * 0.42, sr, sh, 8, a);
-    }
-    return m;
-  }
-  return rawCone(p, c, x, y, z, r, h, seg, ry);
-}
-
-function hall(p: THREE.Object3D, x: number, y: number, z: number, w: number, d: number, h: number, wallIn: string, colIn: string, roofIn: string, rh = h * 0.85): number {
-  const [wall, col, roofC, beamC, goldC] = stylePlaceHallColors(wallIn, colIn, roofIn);
-  const stoneC = '#cfc6b4', doorC = '#6e1d16', winC = '#efe4cc';
-  box(p, stoneC, x, y, z, w + 0.01, Math.min(0.007, h * 0.14), d + 0.01);
-  if (w >= 0.085 && d >= 0.07) {
-    const sw = Math.min(w * 0.32, 0.072);
-    for (let s = 0; s < 3; s++) {
-      box(p, stoneC, x, y + s * 0.0022, z + d * 0.5 + (2 - s) * 0.006, sw, 0.0025, 0.008);
-    }
-  }
-  box(p, wall, x, y, z, w * 0.92, h, d * 0.9);
-  const nc = Math.max(3, Math.min(7, Math.round(w / 0.036)));
-  const nd = Math.max(2, Math.min(5, Math.round(d / 0.04)));
-  const cr = Math.min(0.0044, Math.max(0.0028, w * 0.024));
-  for (let i = 0; i <= nc; i++) {
-    const cx = x - w * 0.46 + (i / nc) * (w * 0.92);
-    for (const sz of [-1, 1]) {
-      const cz = z + sz * (d * 0.46);
-      cyl(p, stoneC, cx, y, cz, cr * 1.45, Math.min(0.0055, h * 0.11), 6);
-      cyl(p, col, cx, y, cz, cr, h, 6);
-    }
-  }
-  for (let j = 1; j < nd; j++) {
-    const cz = z - d * 0.46 + (j / nd) * (d * 0.92);
-    for (const sx of [-1, 1]) {
-      const cx = x + sx * (w * 0.46);
-      cyl(p, stoneC, cx, y, cz, cr * 1.4, Math.min(0.0055, h * 0.11), 6);
-      cyl(p, col, cx, y, cz, cr, h, 6);
-    }
-  }
-  const dh = h * 0.76, dw = Math.min(w * 0.32, 0.082);
-  for (const sz of [-1, 1]) {
-    const fz = z + sz * (d * 0.453);
-    box(p, doorC, x, y, fz, dw, dh, 0.004);
-    box(p, goldC, x, y + dh * 0.48, fz + sz * 0.001, dw * 0.9, 0.003, 0.003);
-    if (w >= 0.11) {
-      for (const sx of [-1, 1]) {
-        const wx = x + sx * Math.min(w * 0.29, dw * 0.95);
-        box(p, doorC, wx, y + h * 0.24, fz, dw * 0.5, h * 0.42, 0.003);
-        box(p, winC, wx, y + h * 0.26, fz + sz * 0.0008, dw * 0.42, h * 0.35, 0.002);
-      }
-    }
-  }
-  const bh = Math.min(0.0075, h * 0.17);
-  box(p, beamC, x, y + h - bh, z, w + 0.006, bh, d + 0.006);
-  box(p, col, x, y + h - bh * 1.55, z, w + 0.008, bh * 0.55, d + 0.008);
-  const nb = Math.max(4, Math.min(10, nc * 2));
-  for (let i = 0; i <= nb; i++) {
-    const bx = x - w * 0.45 + (i / nb) * (w * 0.9);
-    for (const sz of [-1, 1]) {
-      box(p, col, bx, y + h - bh * 0.35, z + sz * (d * 0.47), cr * 2.2, bh * 0.9, cr * 2.6);
-    }
-  }
-  const ov = 1.32, R0 = ((d / 2) * ov) / Math.SQRT1_2;
-  const topY = proof(p, x, y + h, z, {
-    n: 4, R0, R1: R0 * 0.28, h: rh, lift: 0.34, sub: 4,
-    tile: roofC, sx: (w + d * (ov - 1)) / (d * ov),
-  });
-  const rw = Math.max(w * 0.48, (w + d * (ov - 1)) * 0.34);
-  box(p, shade(roofC, 0.76), x, topY - rh * 0.08, z, rw, Math.max(0.005, rh * 0.14), Math.max(0.005, d * 0.06));
-  for (const sx of [-1, 1]) {
-    box(p, goldC, x + sx * (rw * 0.49), topY - rh * 0.04, z, Math.max(0.005, rh * 0.12), Math.max(0.009, rh * 0.24), Math.max(0.006, d * 0.07));
-  }
-  return topY;
 }
 
 function banner(p: THREE.Object3D, x: number, y: number, z: number, h: number, c: string, trim = '#d6a840'): void {
@@ -982,41 +840,6 @@ const pl_nansha: Builder = root => {
   cyl(gp, '#d8a838', 0.08, y0 + 0.202, -0.02, 0.024, 0.025, 8);
 };
 
-/** 陶寺: Taosi Neolithic Solar Observatory (陶寺古观象台十三根弧形夯土观测柱与彩绘蟠龙陶盘). */
-const pl_taosi: Builder = root => {
-  const [gp, y0] = site(root, SITE.loess, 0.88);
-  const EARTH = '#ad8a58', DARK = '#745632', RED = '#a83224', CLAY = '#383430';
-  // Semi-circular stepped rammed-earth observatory terrace (陶寺观象台半圆形夯土基座)
-  cyl(gp, EARTH, 0, y0, 0.04, 0.28, 0.032, 18);
-  // 13 curved rammed-earth observation pillars forming 12 solar-term viewing slits (十三根夯土观测柱与十二道观日缝)
-  for (let i = -6; i <= 6; i++) {
-    const a = -Math.PI * 0.5 + i * 0.16, r = 0.22;
-    const x = Math.cos(a) * r, z = 0.06 + Math.sin(a) * r;
-    const b = box(gp, i % 2 ? EARTH : shade(EARTH, 0.92), x, y0 + 0.032, z, 0.026, 0.14 + Math.abs(6 - Math.abs(i)) * 0.006, 0.034);
-    b.rotation.y = -a + Math.PI / 2;
-  }
-  // Central observation point stone disc (观测圆心太极石) & Taosi Painted Coiled-Dragon Dish (彩绘龙盘)
-  cyl(gp, DARK, 0, y0 + 0.032, 0.08, 0.042, 0.008, 16);
-  cyl(gp, CLAY, 0.18, y0, 0.2, 0.075, 0.02, 18);
-  cyl(gp, RED, 0.18, y0 + 0.015, 0.2, 0.052, 0.008, 16);
-};
-
-/** 石峁: Shimao Prehistoric Stepped Stone Pyramid Huangchengtai (石峁遗址皇城台十一级石砌护坡阶梯金字塔与东门瓮城). */
-const pl_shimao: Builder = root => {
-  const [gp, y0] = site(root, SITE.loess, 0.88);
-  const STONE = '#988c76', DARK = '#6c6252', JADE = '#468c6e';
-  // Monumental Stepped Stone-Faced Pyramid of Huangchengtai (石峁皇城台层阶式护坡石墙)
-  for (let i = 0; i < 6; i++) {
-    const w = 0.52 - i * 0.055, d = 0.42 - i * 0.045, y = y0 + i * 0.028;
-    tbox(gp, w, d, w - 0.025, d - 0.025, 0.028, i % 2 ? STONE : shade(STONE, 0.92), -0.02, y, -0.04);
-  }
-  // East Gate Outer Barbican Bastion (外城东门马面与内凹瓮城) & Carved Stone Relief Blocks (石雕神面)
-  box(gp, DARK, -0.1, y0, 0.18, 0.085, 0.085, 0.085);
-  box(gp, DARK, 0.06, y0, 0.18, 0.085, 0.085, 0.085);
-  // Jade Zhang / Dao blade embedded in the stone wall (石墙藏玉牙璋)
-  box(gp, JADE, 0.2, y0 + 0.015, 0.16, 0.024, 0.085, 0.008).rotation.z = -0.2;
-};
-
 /** 安阳: Houmuwu / Simuwu Rectangular Bronze Ding (安阳殷墟后母戊大方鼎) & Oracle Bone Inscription Forest (甲骨碑林). */
 const pl_anyang: Builder = root => {
   const [gp, y0] = site(root, SITE.loess, 0.88);
@@ -1071,24 +894,6 @@ const pl_jiaxing: Builder = root => {
   box(gp, ROOF, bx - 0.02, y0 + 0.072, bz, 0.24, 0.01, 0.082);
 };
 
-/** 泸定桥: Luding Thirteen-Chain Iron Suspension Bridge over the Dadu River Gorge (飞夺泸定桥十三根铁索与东西桥亭). */
-const pl_luding: Builder = root => {
-  const [gp, y0] = site(root, '#2a6270', 0.88);
-  const CLIFF = '#6c665c', IRON = '#282c32', WD = '#8c6238', RED = '#982c22', TILE = '#464c52';
-  // Steep east & west granite gorge banks of the Dadu River (大渡河两岸绝壁与桥台)
-  box(gp, CLIFF, -0.32, y0, 0, 0.16, 0.1, 0.44);
-  box(gp, CLIFF, 0.32, y0, 0, 0.16, 0.1, 0.44);
-  // East & West Bridgehead Pavilions (泸定桥东西桥头堡皇木亭)
-  for (const sx of [-0.3, 0.3]) hall(gp, sx, y0 + 0.1, 0, 0.13, 0.16, 0.052, '#e4dcc8', RED, TILE, 0.044);
-  // 9 Bottom Iron Chains with Half-Planked Deck & 4 Side Handrail Chains (十三根碗口粗铁索与半铺木板)
-  for (const dz of [-0.045, -0.022, 0, 0.022, 0.045]) rod(gp, [-0.24, y0 + 0.105, dz], [0.24, y0 + 0.105, dz], 0.004, IRON, 6);
-  for (const dz of [-0.052, 0.052]) {
-    rod(gp, [-0.24, y0 + 0.135, dz], [0.24, y0 + 0.135, dz], 0.004, IRON, 6);
-    rod(gp, [-0.24, y0 + 0.12, dz], [0.24, y0 + 0.12, dz], 0.0035, IRON, 6);
-  }
-  for (let i = -5; i <= 1; i++) box(gp, WD, i * 0.036, y0 + 0.108, 0, 0.024, 0.006, 0.095);
-};
-
 /** 酒泉卫星发射中心: Dongfeng Space City Blue Launch Umbilical Tower & Long March-2F Shenzhou Crewed Rocket. */
 const pl_jiuquan_lc: Builder = root => {
   const [gp, y0] = site(root, '#c8a66c', 0.88);
@@ -1110,50 +915,6 @@ const pl_jiuquan_lc: Builder = root => {
   cyl(gp, RED, rx, y0 + 0.18, 0, 0.025, 0.014, 12);
   cone(gp, WHITE, rx, y0 + 0.248, 0, 0.026, 0.045, 12);
   cyl(gp, WHITE, rx, y0 + 0.293, 0, 0.005, 0.038, 6);
-};
-
-/** 文昌发射场: Coastal Wenchang Spacecraft Launch Site, Long March-5 Heavy Rocket, Lightning Masts & Coconut Grove. */
-const pl_wenchang: Builder = root => {
-  const [gp, y0] = site(root, '#567e48', 0.88);
-  const SEA = '#1e627c', TOWER = '#86929e', WHITE = '#f4f6f8', RED = '#c82820';
-  band(gp, 0.18, 0.36, y0, 0.006, SEA);
-  // Coastal launch pad, Tall Vehicle Assembly Building (垂直总装测试厂房) & 4 Lightning Protection Towers (避雷塔)
-  box(gp, '#c4beb2', 0.04, y0, -0.04, 0.36, 0.024, 0.26);
-  box(gp, '#dce2e8', -0.22, y0, -0.12, 0.14, 0.22, 0.14);
-  box(gp, '#2b6cb0', -0.22, y0 + 0.18, -0.048, 0.11, 0.024, 0.006);
-  // Thick Long March-5 "Pang Wu" Cryogenic Rocket with 4 Large Boosters (长征五号“胖五”大火箭)
-  const rx = 0.08, rz = -0.04;
-  cyl(gp, WHITE, rx, y0 + 0.024, rz, 0.032, 0.21, 14);
-  for (const [dx, dz] of [[-0.04, 0], [0.04, 0], [0, -0.04], [0, 0.04]] as [number, number][]) {
-    cyl(gp, WHITE, rx + dx, y0 + 0.024, rz + dz, 0.016, 0.12, 10);
-    cone(gp, WHITE, rx + dx, y0 + 0.144, rz + dz, 0.016, 0.028, 10);
-  }
-  cyl(gp, RED, rx, y0 + 0.18, rz, 0.033, 0.016, 14);
-  cone(gp, WHITE, rx, y0 + 0.234, rz, 0.034, 0.058, 14);
-  for (const [tx, tz] of [[-0.04, -0.14], [0.2, -0.14], [-0.04, 0.06], [0.2, 0.06]] as [number, number][]) {
-    cyl(gp, TOWER, tx, y0 + 0.024, tz, 0.005, 0.26, 6);
-  }
-  tree(gp, -0.18, y0, 0.14, 0.065, '#3b7a42');
-};
-
-/** 雄安新区: Dewdrop-Shaped Xiong'an High-Speed Railway Station Solar Dome (雄安站水滴形光伏穹顶) & Baiyangdian Lotus Lake. */
-const pl_xiongan: Builder = root => {
-  const [gp, y0] = site(root, '#367882', 0.88);
-  const ROOF = '#cfd8e2', SOLAR = '#284c78', GLASS = '#7ab8d4', LOTUS = '#48884e', PINK = '#e46c88';
-  // Ecological green plaza & high-speed rail viaduct spanning north-south
-  prism(gp, [[-0.4, -0.34], [0.4, -0.34], [0.38, 0.08], [-0.38, 0.08]], y0, 0.018, '#688e58', 0.04);
-  box(gp, '#d8d2c4', 0, y0 + 0.018, -0.12, 0.14, 0.022, 0.56);
-  // Iconic Oval Dewdrop-Shaped Xiong'an Station Roof with Central Light Canyon (雄安站椭球水滴屋盖与光谷)
-  ellip(gp, GLASS, 0, y0 + 0.048, -0.12, 0.24, 0.038, 0.17);
-  for (const sx of [-0.11, 0.11]) {
-    ellip(gp, ROOF, sx, y0 + 0.072, -0.12, 0.135, 0.032, 0.18);
-    ellip(gp, SOLAR, sx, y0 + 0.082, -0.12, 0.11, 0.026, 0.15);
-  }
-  // Baiyangdian Lotus & Reed Ecological Wetland (白洋淀荷花苇海) in the foreground
-  for (const [lx, lz] of [[-0.22, 0.2], [-0.08, 0.24], [0.12, 0.22], [0.24, 0.18]] as [number, number][]) {
-    cyl(gp, LOTUS, lx, y0 + 0.006, lz, 0.042, 0.005, 12);
-    cone(gp, PINK, lx, y0 + 0.011, lz, 0.016, 0.024, 7);
-  }
 };
 
 // ============================================================================
@@ -1415,14 +1176,14 @@ const pl_taishan: Builder = root => {
 
 export const PLACES_SITES: Record<string, Builder> = {
   pl_yuanmou, pl_hemudu, pl_liangzhu, pl_dawenkou, pl_dujiangyan, pl_dunhuang,
-  pl_taosi, pl_shimao, pl_anyang, pl_yungang,
+  pl_anyang, pl_yungang,
   pl_muye, pl_changping, pl_julu, pl_gaixia, pl_dazexiang, pl_guandu, pl_chibi, pl_feishui, pl_yashan,
   pl_yumenguan, pl_hanguguan, pl_tongguan, pl_jianmenguan, pl_pingxingguan,
   pl_pass_wuguan, pl_pass_dasanguan, pl_pass_xiaoguan, pl_pass_hulao, pl_pass_yangping,
   pl_pass_yanmen, pl_pass_zijing, pl_pass_niangzi, pl_pass_gubeikou, pl_pass_yangguan,
   pl_pass_wusheng, pl_pass_xianxia, pl_pass_meiguan,
-  pl_jiaxing, pl_jinggangshan, pl_ruijin, pl_zunyi, pl_luding, pl_yanan, pl_xibaipo, pl_lugouqiao,
-  pl_taierzhuang, pl_humen, pl_weihai, pl_xiaogang, pl_jiuquan_lc, pl_wenchang, pl_xiongan, pl_dandong,
+  pl_jiaxing, pl_jinggangshan, pl_ruijin, pl_zunyi, pl_yanan, pl_xibaipo, pl_lugouqiao,
+  pl_taierzhuang, pl_humen, pl_weihai, pl_xiaogang, pl_jiuquan_lc, pl_dandong,
   pl_everest, pl_diaoyu, pl_nanhai, pl_xisha, pl_nansha,
   pl_erlitou, pl_shangjing, pl_huining, pl_zhoukoudian, pl_banpo, pl_sanxingdui,
   pl_lingqu, pl_zhaozhou, pl_longmen, pl_mogao, pl_lop_nur, pl_jiayuguan, pl_shanhaiguan,

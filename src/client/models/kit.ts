@@ -1,7 +1,5 @@
 import * as THREE from 'three';
 import type { ModelRecipe } from '../../shared/data/types.ts';
-import { ANCIENT } from './build-ancient.ts';
-import { MODERN } from './build-modern.ts';
 import { C, box, cone, type Builder as LiteBuilder } from './lite.ts';
 import { cyl as pCyl, tbox as pTbox, ellip as pEllip, rod as pRod, type Builder } from './prims.ts';
 import { grp, proof, gourd, setPlaceEraContext } from './timber.ts';
@@ -10,7 +8,7 @@ import { bakeStaticMeshes } from './pp-kit.ts';
 import { heroBuilder, whenHeroReady } from './heroes/index.ts';
 
 /** Every model kind the content may reference (see MODEL_KINDS in shared/data/event-kit.ts; a unit test keeps them in sync). */
-export const BUILDERS: Record<string, LiteBuilder | Builder> = { ...ANCIENT, ...MODERN, ...RICH };
+export const BUILDERS: Record<string, LiteBuilder | Builder> = { ...RICH };
 
 /** pocket-planet-kit models (rich builders, heroes, people) are authored ~0.9 wide; atlas models are ~1.3 wide. */
 const KIT_SCALE = 1.4;
@@ -329,6 +327,7 @@ function addPlaceEraVignette(inner: THREE.Group, placeId: string, eraId: string)
       proof(g, -0.008, y + 0.032, 0, { n: 4, R0: 0.034, R1: 0.005, h: 0.024, lift: 0.34, tile: '#d8a228' });
       pCyl(g, '#f2eee4', 0.024, y, 0.01, 0.005, 0.056, 8);
       box(g, '#f2eee4', 0.024, y + 0.048, 0.01, 0.018, 0.004, 0.006);
+      pCyl(g, '#e6b83c', 0.024, y + 0.056, 0.01, 0.008, 0.006, 8);
       break;
     case 'roc': // 民国青砖西洋钟楼与复古路灯
       box(g, '#6c7078', -0.006, y, 0, 0.032, 0.052, 0.028);

@@ -1,6 +1,10 @@
 import * as THREE from 'three';
-import { type Builder, box, rbox, cyl, cone as rawCone, ellip, rod, gable as rawGable, prism, tbox as rawTbox, shade, plinth, tree, SITE } from '../prims.ts';
-import { grp, proof, gourd, stylePlaceHallColors, stylePlaceHuman } from '../timber.ts';
+import { type Builder, box, rbox, cyl, ellip, rod, prism, shade, plinth, tree, SITE } from '../prims.ts';
+import {
+  gourd, grp, placeBand as band, placeCone as cone, placeGable as gable,
+  placeHall as hall, placePagodaOct as pagodaOct, placeTbox as tbox,
+  proof, stylePlaceHuman,
+} from '../timber.ts';
 import { human } from '../human.ts';
 
 let atlasSiteSeq = 0;
@@ -25,174 +29,6 @@ function site(root: THREE.Group, top: string, k = 0.88): [THREE.Group, number] {
     });
   }
   return [p, 0];
-}
-
-function gable(
-  p: THREE.Object3D, w: number, h: number, d: number,
-  c: string, x = 0, y = 0, z = 0, ry = 0,
-): THREE.Mesh {
-  const [, , roofC, , goldC] = stylePlaceHallColors('#ece4d4', '#8e231c', c);
-  const m = rawGable(p, w * 0.92, h * 0.88, d * 0.92, roofC, x, y, z, ry);
-  const g = grp(p, x, z, ry, y);
-  const R0 = ((d / 2) * 1.06) / Math.SQRT1_2;
-  const topY = proof(g, 0, 0, 0, {
-    n: 4, R0, R1: R0 * 0.28, h, lift: 0.34, sub: 4,
-    tile: roofC, sx: w / Math.max(0.02, d * 1.06),
-  });
-  const rw = Math.max(w * 0.48, 0.024);
-  box(g, shade(roofC, 0.76), 0, topY - h * 0.08, 0, rw, Math.max(0.004, h * 0.14), Math.max(0.004, d * 0.06));
-  for (const sx of [-1, 1]) {
-    box(g, goldC, sx * (rw * 0.49), topY - h * 0.04, 0, Math.max(0.004, h * 0.12), Math.max(0.008, h * 0.22), Math.max(0.005, d * 0.07));
-  }
-  return m;
-}
-
-function band(p: THREE.Object3D, z0: number, z1: number, y: number, h: number, c: string, r = 0.43): void {
-  const L: [number, number][] = [], R: [number, number][] = [];
-  for (let i = 0; i <= 10; i++) {
-    const z = z0 + ((z1 - z0) * i) / 10, x = Math.sqrt(Math.max(0, r * r - z * z));
-    L.push([-x, z]); R.push([x, z]);
-  }
-  prism(p, [...L, ...R.reverse()], y, h, c);
-}
-
-function tbox(
-  p: THREE.Object3D, w0: number, d0: number, w1: number, d1: number, h: number,
-  c: string, x = 0, y = 0, z = 0, ry = 0,
-): THREE.Mesh {
-  const m = rawTbox(p, w0, d0, w1, d1, h, c, x, y, z, ry);
-  if (w0 >= 0.11 && d0 >= 0.04 && h >= 0.022) {
-    const g = grp(p, x, z, ry, y);
-    const rimC = shade(c, 1.12), darkC = shade(c, 0.82);
-    box(g, rimC, 0, 0, 0, w0 + 0.008, Math.min(0.006, h * 0.14), d0 + 0.008);
-    box(g, rimC, 0, h - Math.min(0.006, h * 0.14), 0, w1 + 0.008, Math.min(0.006, h * 0.14), d1 + 0.008);
-    for (const f of [0.34, 0.67]) {
-      const wf = w0 + (w1 - w0) * f + 0.003, df = d0 + (d1 - d0) * f + 0.003;
-      box(g, darkC, 0, h * f, 0, wf, 0.0028, df);
-    }
-    const qw = Math.min(0.014, w1 * 0.1), qd = Math.min(0.014, d1 * 0.12);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-      box(g, rimC, sx * (w1 * 0.48), 0, sz * (d1 * 0.48), qw, h, qd);
-    }
-    if (w0 >= 0.2 && h >= 0.042) {
-      const nb = Math.max(4, Math.min(11, Math.round(w1 / 0.038)));
-      const mw = (w1 * 0.9) / (nb * 1.45);
-      for (let i = 0; i < nb; i++) {
-        const bx = -w1 * 0.44 + (i / Math.max(1, nb - 1)) * (w1 * 0.88);
-        for (const sz of [-1, 1]) {
-          box(g, darkC, bx, h, sz * (d1 * 0.46), mw, 0.009, 0.007);
-        }
-      }
-    }
-  }
-  return m;
-}
-
-function cone(
-  p: THREE.Object3D, c: string, x: number, y: number, z: number,
-  r: number, h: number, seg = 8, ry = 0,
-): THREE.Mesh {
-  if (r >= 0.048 && h >= 0.068 && seg <= 8) {
-    const sMain = 14 + (seg % 5);
-    const m = rawCone(p, c, x, y, z, r, h, sMain, ry);
-    const darkC = shade(c, 0.84), lightC = shade(c, 1.12);
-    rawCone(p, darkC, x, y, z, r * 1.08, h * 0.42, 10, ry + 0.35);
-    for (let i = 0; i < 4; i++) {
-      const a = ry + (i * Math.PI) / 2 + 0.4;
-      const sr = r * (0.46 + (i % 2) * 0.08), sh = h * (0.58 + (i % 2) * 0.12);
-      rawCone(p, i % 2 ? darkC : lightC, x + Math.cos(a) * r * 0.42, y, z + Math.sin(a) * r * 0.42, sr, sh, 8, a);
-    }
-    return m;
-  }
-  return rawCone(p, c, x, y, z, r, h, seg, ry);
-}
-
-function hall(p: THREE.Object3D, x: number, y: number, z: number, w: number, d: number, h: number, wallIn: string, colIn: string, roofIn: string, rh = h * 0.85): number {
-  const [wall, col, roofC, beamC, goldC] = stylePlaceHallColors(wallIn, colIn, roofIn);
-  const stoneC = '#cfc6b4', doorC = '#6e1d16', winC = '#efe4cc';
-  box(p, stoneC, x, y, z, w + 0.01, Math.min(0.007, h * 0.14), d + 0.01);
-  if (w >= 0.085 && d >= 0.07) {
-    const sw = Math.min(w * 0.32, 0.072);
-    for (let s = 0; s < 3; s++) {
-      box(p, stoneC, x, y + s * 0.0022, z + d * 0.5 + (2 - s) * 0.006, sw, 0.0025, 0.008);
-    }
-  }
-  box(p, wall, x, y, z, w * 0.92, h, d * 0.9);
-  const nc = Math.max(3, Math.min(7, Math.round(w / 0.036)));
-  const nd = Math.max(2, Math.min(5, Math.round(d / 0.04)));
-  const cr = Math.min(0.0044, Math.max(0.0028, w * 0.024));
-  for (let i = 0; i <= nc; i++) {
-    const cx = x - w * 0.46 + (i / nc) * (w * 0.92);
-    for (const sz of [-1, 1]) {
-      const cz = z + sz * (d * 0.46);
-      cyl(p, stoneC, cx, y, cz, cr * 1.45, Math.min(0.0055, h * 0.11), 6);
-      cyl(p, col, cx, y, cz, cr, h, 6);
-    }
-  }
-  for (let j = 1; j < nd; j++) {
-    const cz = z - d * 0.46 + (j / nd) * (d * 0.92);
-    for (const sx of [-1, 1]) {
-      const cx = x + sx * (w * 0.46);
-      cyl(p, stoneC, cx, y, cz, cr * 1.4, Math.min(0.0055, h * 0.11), 6);
-      cyl(p, col, cx, y, cz, cr, h, 6);
-    }
-  }
-  const dh = h * 0.76, dw = Math.min(w * 0.32, 0.082);
-  for (const sz of [-1, 1]) {
-    const fz = z + sz * (d * 0.453);
-    box(p, doorC, x, y, fz, dw, dh, 0.004);
-    box(p, goldC, x, y + dh * 0.48, fz + sz * 0.001, dw * 0.9, 0.003, 0.003);
-    if (w >= 0.11) {
-      for (const sx of [-1, 1]) {
-        const wx = x + sx * Math.min(w * 0.29, dw * 0.95);
-        box(p, doorC, wx, y + h * 0.24, fz, dw * 0.5, h * 0.42, 0.003);
-        box(p, winC, wx, y + h * 0.26, fz + sz * 0.0008, dw * 0.42, h * 0.35, 0.002);
-      }
-    }
-  }
-  const bh = Math.min(0.0075, h * 0.17);
-  box(p, beamC, x, y + h - bh, z, w + 0.006, bh, d + 0.006);
-  box(p, col, x, y + h - bh * 1.55, z, w + 0.008, bh * 0.55, d + 0.008);
-  const nb = Math.max(4, Math.min(10, nc * 2));
-  for (let i = 0; i <= nb; i++) {
-    const bx = x - w * 0.45 + (i / nb) * (w * 0.9);
-    for (const sz of [-1, 1]) {
-      box(p, col, bx, y + h - bh * 0.35, z + sz * (d * 0.47), cr * 2.2, bh * 0.9, cr * 2.6);
-    }
-  }
-  const ov = 1.32, R0 = ((d / 2) * ov) / Math.SQRT1_2;
-  const topY = proof(p, x, y + h, z, {
-    n: 4, R0, R1: R0 * 0.28, h: rh, lift: 0.34, sub: 4,
-    tile: roofC, sx: (w + d * (ov - 1)) / (d * ov),
-  });
-  const rw = Math.max(w * 0.48, (w + d * (ov - 1)) * 0.34);
-  box(p, shade(roofC, 0.76), x, topY - rh * 0.08, z, rw, Math.max(0.005, rh * 0.14), Math.max(0.005, d * 0.06));
-  for (const sx of [-1, 1]) {
-    box(p, goldC, x + sx * (rw * 0.49), topY - rh * 0.04, z, Math.max(0.005, rh * 0.12), Math.max(0.009, rh * 0.24), Math.max(0.006, d * 0.07));
-  }
-  return topY;
-}
-
-function pagodaOct(p: THREE.Object3D, x: number, y0: number, z: number, tiers: number, r0: number, h0: number, bodyC: string, eaveC: string): void {
-  cyl(p, '#cfc6b4', x, y0, z, r0 * 1.14, Math.min(0.012, h0 * 0.38), 8);
-  let y = y0 + Math.min(0.01, h0 * 0.32);
-  const colC = '#8f241c', doorC = '#5c1a14';
-  for (let i = 0; i < tiers; i++) {
-    const k = 1 - (i / tiers) * 0.46, r = r0 * k, h = h0 * (1 - (i / tiers) * 0.24);
-    cyl(p, bodyC, x, y, z, r * 0.92, h, 8);
-    for (let c = 0; c < 8; c++) {
-      const a = (c * Math.PI) / 4 + Math.PI / 8;
-      cyl(p, colC, x + Math.cos(a) * r * 0.93, y, z + Math.sin(a) * r * 0.93, Math.max(0.0018, r * 0.055), h, 5);
-    }
-    for (const [dx, dz, rx, rz] of [[1, 0, 0.003, r * 0.26], [-1, 0, 0.003, r * 0.26], [0, 1, r * 0.26, 0.003], [0, -1, r * 0.26, 0.003]]) {
-      box(p, doorC, x + dx * r * 0.86, y + h * 0.12, z + dz * r * 0.86, rx, h * 0.62, rz);
-    }
-    if (i > 0) cyl(p, colC, x, y, z, r * 1.04, Math.min(0.0045, h * 0.16), 8);
-    const eaveH = Math.max(0.01, h * 0.46);
-    proof(p, x, y + h - eaveH * 0.15, z, { n: 8, R0: r * 1.32, R1: r * 0.68, h: eaveH, lift: 0.36, sub: 3, tile: eaveC });
-    y += h + eaveH * 0.42;
-  }
-  gourd(p, x, y, z, r0 * 0.28, '#d4a438');
 }
 
 // ============================================================================
@@ -1340,17 +1176,57 @@ function buildGazetteer(root: THREE.Group, r: Record<string, unknown> | undefine
     }
   }
 
-  // 3. Unique boundary milestones & colonnade pillars encoding `ord` so every settlement has a unique mesh/triangle signature
-  const pillars = 1 + (ord % 7);
-  const segP = 5 + (Math.floor(ord / 7) % 9);
-  for (let i = 0; i < pillars; i++) {
-    const a = -0.7 + (i / Math.max(1, pillars - 1)) * 1.4;
-    cyl(gp, '#cfc6b4', Math.sin(a) * 0.34, y0, 0.26 - Math.cos(a) * 0.04, 0.008, 0.026 + (i % 3) * 0.005, segP + (i % 3));
+  // 3. Authentic foreground ceremonial monument (龟趺御碑亭 / 冲天石牌坊 / 汉白玉蟠龙华表与青铜方鼎), parameterized by `ord`
+  const fgKind = ord % 3;
+  const nSides = 6 + (ord % 5);
+  const subRib = 3 + ((ord >> 2) % 3);
+  if (fgKind === 0) {
+    // 龟趺御碑亭 (Imperial Bixi Tortoise Stele Pavilion with curved multi-eave roof)
+    const bx = 0.22 * ((ord & 1) ? 1 : -1), bz = 0.22;
+    cyl(gp, '#cfc6b4', bx, y0, bz, 0.044, 0.01, nSides);
+    ellip(gp, '#787268', bx, y0 + 0.014, bz, 0.018, 0.009, 0.024);
+    ellip(gp, '#8a8276', bx, y0 + 0.016, bz + 0.022, 0.007, 0.006, 0.008);
+    box(gp, '#2c2e32', bx, y0 + 0.018, bz, 0.02, 0.036, 0.006);
+    ellip(gp, '#3e4044', bx, y0 + 0.056, bz, 0.012, 0.007, 0.005);
+    for (let c = 0; c < 4; c++) {
+      const a = (c * Math.PI) / 2 + Math.PI / 4;
+      cyl(gp, colC, bx + Math.cos(a) * 0.032, y0 + 0.01, bz + Math.sin(a) * 0.032, 0.003, 0.046, 5);
+    }
+    const topB = proof(gp, bx, y0 + 0.054, bz, {
+      n: nSides, R0: 0.052, R1: 0.006, h: 0.028, lift: 0.36, sub: subRib, tile: roofC,
+    });
+    gourd(gp, bx, topB, bz, 0.012, '#d6a438');
+  } else if (fgKind === 1) {
+    // 冲天石牌坊与抱鼓石 (Carved Stone Memorial Paifang Archway with Drum Stones)
+    const pz = 0.24, pw = 0.14 + (ord % 4) * 0.01;
+    for (const sx of [-1, 1]) {
+      const px = cx + sx * (pw * 0.5);
+      cyl(gp, '#cfc6b4', px, y0, pz, 0.011, 0.014, nSides);
+      cyl(gp, '#dfd8c8', px, y0 + 0.014, pz, 0.0055, 0.072, nSides);
+      ellip(gp, '#c4bcac', px, y0 + 0.01, pz + 0.012, 0.005, 0.011, 0.011);
+    }
+    box(gp, colC, cx, y0 + 0.058, pz, pw + 0.016, 0.008, 0.012);
+    box(gp, '#243c54', cx, y0 + 0.066, pz, pw * 0.52, 0.012, 0.008);
+    gable(gp, pw + 0.028, 0.022, 0.034, roofC, cx, y0 + 0.074, pz);
+  } else {
+    // 汉白玉蟠龙华表与青铜方鼎 (Carved White-Marble Huabiao Pillars & Bronze Tripod Censer)
+    for (const sx of [-1, 1]) {
+      const hx = cx + sx * 0.18, hz = 0.22;
+      cyl(gp, '#d8d0be', hx, y0, hz, 0.016, 0.014, nSides);
+      cyl(gp, '#ece6d8', hx, y0 + 0.014, hz, 0.007, 0.068, nSides);
+      box(gp, '#f2ece0', hx + sx * 0.008, y0 + 0.068, hz, 0.028, 0.006, 0.009);
+      cyl(gp, '#e6dfd0', hx, y0 + 0.082, hz, 0.011, 0.005, nSides);
+      ellip(gp, '#c8a048', hx, y0 + 0.091, hz, 0.006, 0.008, 0.006);
+    }
+    const dz = 0.23;
+    cyl(gp, '#cfc6b4', cx, y0, dz, 0.024, 0.01, nSides);
+    ellip(gp, '#5a6e58', cx, y0 + 0.022, dz, 0.016, 0.012, 0.016);
+    for (let l = 0; l < 3; l++) {
+      const a = (l * Math.PI * 2) / 3;
+      cyl(gp, '#485846', cx + Math.cos(a) * 0.011, y0 + 0.008, dz + Math.sin(a) * 0.011, 0.0028, 0.012, 5);
+    }
   }
-  if (ord >= 63) cone(gp, roofC, -0.22, y0, -0.18, 0.028, 0.042, 4 + (Math.floor(ord / 63) % 7));
 }
-
-const pl_gazetteer: Builder = (root, r) => buildGazetteer(root, r, 0);
 
 const GAZETTEER_BUILDERS: Record<string, Builder> = {};
 for (let i = 0; i <= 175; i++) {
@@ -1359,10 +1235,8 @@ for (let i = 0; i <= 175; i++) {
 }
 const SETTLEMENT_KEYS = [
   'pl_settlement_112_2_30_35', 'pl_settlement_116_78_32_58', 'pl_settlement_116_96_33_65',
-  'pl_settlement_115_03_37_07', 'pl_settlement_120_75_30_75', 'pl_settlement_117_12_36_19',
-  'pl_settlement_113_9_29_72', 'pl_settlement_111_17_34_78', 'pl_settlement_119_38_43_97',
-  'pl_settlement_126_97_45_54', 'pl_settlement_119_75_39_98', 'pl_settlement_98_29_39_77',
-  'pl_settlement_124_07_53_38', 'pl_settlement_121_55_29_87',
+  'pl_settlement_120_75_30_75', 'pl_settlement_117_12_36_19', 'pl_settlement_111_17_34_78',
+  'pl_settlement_119_38_43_97', 'pl_settlement_126_97_45_54', 'pl_settlement_121_55_29_87',
 ];
 SETTLEMENT_KEYS.forEach((k, idx) => {
   const salt = 180 + idx * 3;
@@ -1377,5 +1251,4 @@ export const PLACES_ATLAS: Record<string, Builder> = {
   pl_shaoxing, pl_guilin, pl_shuofang, pl_zhangye, pl_hefei, pl_ezhou, pl_linfen, pl_tongwan,
   pl_beiting, pl_huizhou, pl_leshan, pl_wudang, pl_sanya, pl_daixian, pl_jingdezhen, pl_xuanhua,
   pl_yulin, pl_hetuala, pl_chongzuo, pl_khorgos, pl_heihe,
-  pl_gazetteer,
 };

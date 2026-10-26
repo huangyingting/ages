@@ -210,24 +210,6 @@ export const PLACE_ID_HERO: Record<string, ModelRecipe> = {
   'settlement-121.55-29.87': { kind: 'palace', hero: 'places-atlas/pl_ningbo' },
 };
 
-/** Landmark model per place (modern name fallback). */
-const PLACE_HERO: Record<string, ModelRecipe> = {
-  拉萨: { kind: 'temple', hero: 'places-cities/pl_lhasa' }, 敦煌: { kind: 'gate', hero: 'places-sites/pl_dunhuang' },
-  杭州: { kind: 'pagoda', hero: 'places-cities/pl_hangzhou' }, 武汉: { kind: 'pagoda', hero: 'places-cities/pl_wuhan' },
-  泰安: { kind: 'temple', hero: 'places-cities/pl_taian' }, 泰山: { kind: 'temple', hero: 'places-sites/pl_taishan' },
-  乐山: { kind: 'statue', hero: 'places-atlas/pl_leshan' }, 桂林: { kind: 'mountain', hero: 'places-atlas/pl_guilin' },
-  北京: { kind: 'palace', hero: 'places-cities/pl_beijing' }, 西安: { kind: 'pagoda', hero: 'places-cities/pl_xian' },
-  广汉: { kind: 'ding', hero: 'places-sites/pl_sanxingdui' }, 长沙: { kind: 'ding', hero: 'places-cities/pl_changsha' },
-  大同: { kind: 'temple', hero: 'places-cities/pl_datong' }, 黄山: { kind: 'gate', hero: 'places-atlas/pl_huizhou' },
-  上海: { kind: 'skyline', hero: 'places-cities/pl_shanghai' }, 山海关: { kind: 'gate', hero: 'places-sites/pl_shanhaiguan' },
-  嘉峪关: { kind: 'gate', hero: 'places-sites/pl_jiayuguan' }, 八达岭: { kind: 'wall', hero: 'places-sites/pl_pass_juyong' },
-  陶寺: { kind: 'monument', hero: 'places-sites/pl_taosi' }, 石峁: { kind: 'wall', hero: 'places-sites/pl_shimao' },
-  殷: { kind: 'palace', hero: 'capitals/cap_yinxu' }, 镐京: { kind: 'palace', hero: 'capitals/cap_zhou' },
-  武昌: { kind: 'temple', hero: 'places-atlas/pl_ezhou' }, 会稽: { kind: 'bridge', hero: 'places-atlas/pl_shaoxing' },
-  雄安: { kind: 'skyline', hero: 'places-sites/pl_xiongan' }, 泸定: { kind: 'bridge', hero: 'places-sites/pl_luding' },
-  文昌: { kind: 'rocket', hero: 'places-sites/pl_wenchang' },
-};
-
 /** People with their own detailed figure. */
 const PERSON_HERO: Record<string, string> = {
   孔子: 'people-a/pp_confucius', 张衡: 'people-a/pp_zhangheng', 蔡伦: 'people-a/pp_cailun', 祖冲之: 'people-a/pp_zuchongzhi',
@@ -390,8 +372,6 @@ function basePlaceModel(p: Place): ModelRecipe {
       style: `${p.id}|${p.lon.toFixed(1)}|${p.lat.toFixed(1)}|${p.capital?.length ? 1 : 0}|${arch}|${p.name.zh}|${anc}|${lore}`,
     };
   }
-  const hero = PLACE_HERO[p.name.zh];
-  if (hero) return hero;
   if (p.capital?.length) return { kind: 'palace' };
   return { kind: p.kind === 'pass' ? 'gate' : p.kind === 'site' ? 'ding' : p.kind === 'water' ? 'boat' : p.kind === 'mountain' ? 'temple' : 'gate' };
 }
