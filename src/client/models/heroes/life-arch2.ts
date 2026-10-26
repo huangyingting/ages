@@ -443,15 +443,17 @@ const lf_academy: Builder = (gp, r) => {
       box(gp, '#9a8262', qx, Y0, qz, 0.11, 0.11, 0.11);
       xhall(gp, qx, Y0 + 0.11, qz, 0.09, 0.09, 0.065, { roof: 'hip', tile, wall, col, band: '#5c281d', rh: 0.045, ncol: 2 });
     }
-    // Debate court (论道广场): ceremonial bronze tripod ding + low lacquer tables with bamboo slips + debating scholars
-    cyl(gp, '#5a7866', 0, Y0 + 0.018, 0.16, 0.026, 0.03, 10);
+    // Debate court (论道广场): ceremonial bronze tripod ding, bronze chime bell rack (编钟架) + low lacquer tables with bamboo slips + debating scholars
+    cyl(gp, '#5a7866', 0, Y0 + 0.018, 0.16, 0.026, 0.03, 12);
     for (const sx of [-1, 1]) {
       for (const dz of [0.1, 0.22]) {
         box(gp, '#3d1c16', sx * 0.13, Y0 + 0.008, dz, 0.075, 0.016, 0.042);
         box(gp, '#c8a86b', sx * 0.13, Y0 + 0.018, dz, 0.052, 0.004, 0.028);
-        human(gp, sx * 0.13, Y0, dz - sx * 0.036, { h: 0.036, pose: 'point', ry: sx < 0 ? 0.6 : -2.2, top: sx < 0 ? '#243b53' : '#5a3a22', bottom: '#d8d0bc', hair: '#1c1714', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'lo' });
+        human(gp, sx * 0.13, Y0, dz - sx * 0.036, { h: 0.036, pose: 'point', ry: sx < 0 ? 0.6 : -2.2, top: sx < 0 ? '#243b53' : '#5a3a22', bottom: '#d8d0bc', hair: '#1c1714', hat: '#1f1d1b', hatStyle: 'cap', dress: 'ankle', detail: 'hi' });
       }
+      minipine(gp, sx * 0.33, Y0, -0.05, 0.085);
     }
+    human(gp, 0, Y0 + 0.105, -0.01, { h: 0.038, pose: 'stand', ry: 0, top: '#7f1d1d', bottom: '#1e293b', hair: '#1c1714', hat: '#d97706', hatStyle: 'cap', dress: 'ankle', detail: 'hi' });
     return;
   }
   ground(gp, SITE.grass);
@@ -564,11 +566,15 @@ const lf_guanxing: Builder = (gp, r) => {
       box(P, i % 2 ? '#8f7453' : '#9c805e', 0, 0, 0, 0.044, ph, 0.028);
       box(P, '#755c3f', 0, ph, 0, 0.048, 0.012, 0.032);
     }
-    // Three solar sightlines (冬至、春秋分、夏至日出观测线) radiating from the central gnomon through the slits
+    // Three solar sightlines (冬至、春秋分、夏至日出观测线) radiating from the central gnomon through the slits + astronomer priests
     for (const idx of [0.5, 6.0, 11.5]) {
       const a = -Math.PI * 0.11 - (idx / 12) * Math.PI * 0.78;
       rod(gp, [0, oy + 0.012, oz], [Math.cos(a) * 0.39, py + 0.008, oz + Math.sin(a) * 0.39], 0.004, idx === 6 ? '#eab308' : '#d97706', 4);
     }
+    // Painted pottery calendar vessel (彩陶槷表壶), jade cong & astronomer-priests (羲和观象) at the central gnomon
+    human(gp, -0.045, oy + 0.008, oz + 0.03, { h: 0.042, pose: 'point', ry: 3.0, top: '#7f1d1d', bottom: '#d6d3d1', hair: '#1c1714', hat: '#d97706', hatStyle: 'peaked', dress: 'ankle', detail: 'hi' });
+    human(gp, 0.055, oy + 0.008, oz + 0.02, { h: 0.038, pose: 'pray', ry: -2.8, top: '#3f3f46', bottom: '#a8a29e', hair: '#1c1714', hat: '#27272a', hatStyle: 'cap', dress: 'ankle', detail: 'hi' });
+    for (const [tx, tz] of [[-0.36, 0.22], [0.36, 0.22], [-0.39, 0.04], [0.39, 0.04]] as const) minipine(gp, tx, Y0, tz, 0.075);
     return;
   }
   ground(gp, SITE.grass);
@@ -1566,7 +1572,8 @@ const lf_baisikou: Builder = gp => {
   }
   // Low stone prayer wall and figures between the twin pagodas
   pbox(gp, '#948876', 0, Y(0, 0.16), 0.16, 0.09, 0.014, 0.05, brickPaint('#948876', '#a89c8a', 0.005), 0.01);
-  human(gp, -0.03, Y(-0.03, 0.24), 0.24, { h: 0.034, pose: 'pray', ry: Math.PI, top: '#8a3828', bottom: '#3a2c22', hair: '#1c1714', dress: 'ankle', detail: 'lo' });
+  human(gp, -0.03, Y(-0.03, 0.24), 0.24, { h: 0.036, pose: 'pray', ry: Math.PI, top: '#8a3828', bottom: '#3a2c22', hair: '#1c1714', dress: 'ankle', detail: 'hi' });
+  human(gp, 0.035, Y(0.035, 0.25), 0.25, { h: 0.035, pose: 'stand', ry: Math.PI + 0.2, top: '#d97706', bottom: '#7c2d12', hair: '#1c1714', hat: '#f59e0b', hatStyle: 'cap', dress: 'ankle', detail: 'hi' });
   for (const [x, z] of [[-0.32, 0.16], [0.32, 0.14], [-0.24, -0.18], [0.25, -0.16]] as const) minipine(gp, x, Y(x, z), z, 0.095);
 };
 

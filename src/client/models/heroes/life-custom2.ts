@@ -964,10 +964,15 @@ const lf_sancai: Builder = (gp, r) => {
     glazeAll(D);
     rod(gp, [0.12, Y, 0.12], [0.16, Y + 0.14, 0.04], 0.004, '#3c2418', 4);
     rod(gp, [0.2, Y, 0.04], [0.16, Y + 0.14, 0.04], 0.004, '#3c2418', 4);
-    // 3. Tall Liao amber-glazed long-necked phoenix vase at back-right
+    // 3. Tall Liao amber-glazed long-necked phoenix vase at back-right + Khitan nobleman admiring the glazed wares
     const V = grp(gp, 0.12, Y, -0.15);
-    lathe(V, [[0, 0], [0.036, 0], [0.068, 0.07], [0.064, 0.14], [0.022, 0.2], [0.02, 0.28], [0.034, 0.31], [0, 0.31]], GZ.amber, 0, 0, 0, 18);
+    lathe(V, [[0, 0], [0.036, 0], [0.068, 0.07], [0.064, 0.14], [0.022, 0.2], [0.02, 0.28], [0.034, 0.31], [0, 0.31]], GZ.amber, 0, 0, 0, 24);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU;
+      ell8(V, GZ.green, Math.cos(a) * 0.064, 0.105, Math.sin(a) * 0.064, 0.012, 0.022, 0.006, -a);
+    }
     glazeAll(V);
+    man(gp, -0.26, Y, -0.14, { h: 0.22, ry: 0.65, top: '#2e5945', head: 'futou', hc: '#d97706', skin: '#dfb995', hands: [[-0.08, 0.45, 0.14], [0.09, 0.52, 0.18]] });
     return;
   }
   // shared museum plinth with a pale stone top

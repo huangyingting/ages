@@ -65,16 +65,70 @@ export function storey(p: THREE.Object3D, x: number, y: number, z: number, n: nu
 }
 export function hall(p: THREE.Object3D, x: number, y: number, z: number, w: number, d: number, h: number, roof: string, ry = 0, wall = '#b0372b', o: { rh?: number; ov?: number; lift?: number; col?: string; band?: string } = {}): number {
   const gr = grp(p, x, z, ry, y);
-  box(gr, wall, 0, 0, 0, w, h, d);
-  const nc = Math.max(2, Math.round(w / 0.024)), cr = Math.min(0.0042, w * 0.05);
-  for (let i = 0; i <= nc; i++) cyl(gr, o.col ?? '#8f1f1a', -w / 2 + (i / nc) * w, 0, d / 2 + cr * 0.6, cr, h, 5);
+  const colC = o.col ?? '#8f1f1a', bandC = o.band ?? '#2f7d6d';
+  const stoneC = '#cfc6b4', doorC = '#6e1d16', winC = '#efe4cc', goldC = '#d8a634';
+  // Molded stone plinth rim (台基压阑石)
+  box(gr, stoneC, 0, 0, 0, w + 0.01, Math.min(0.008, h * 0.14), d + 0.01);
+  // Recessed inner wall core so perimeter colonnade stands proud
+  box(gr, wall, 0, 0, 0, w * 0.92, h, d * 0.9);
+  const nc = Math.max(3, Math.min(7, Math.round(w / 0.024))), nd = Math.max(2, Math.min(5, Math.round(d / 0.028)));
+  const cr = Math.min(0.0044, w * 0.048);
+  // Front & back perimeter colonnade (前后檐柱与柱础)
+  for (let i = 0; i <= nc; i++) {
+    const cx = -w * 0.47 + (i / nc) * (w * 0.94);
+    for (const sz of [-1, 1]) {
+      const cz = sz * (d * 0.46 + cr * 0.4);
+      cyl(gr, stoneC, cx, 0, cz, cr * 1.45, Math.min(0.006, h * 0.11), 6);
+      cyl(gr, colC, cx, 0, cz, cr, h, 6);
+    }
+  }
+  // Side colonnade (山面檐柱)
+  for (let j = 1; j < nd; j++) {
+    const cz = -d * 0.46 + (j / nd) * (d * 0.92);
+    for (const sx of [-1, 1]) {
+      const cx = sx * (w * 0.47 + cr * 0.4);
+      cyl(gr, stoneC, cx, 0, cz, cr * 1.4, Math.min(0.006, h * 0.11), 6);
+      cyl(gr, colC, cx, 0, cz, cr, h, 6);
+    }
+  }
+  // Central lattice doors (隔扇门) and side mullion windows (直棂窗) on front/back
+  const dh = h * 0.76, dw = Math.min(w * 0.34, 0.085);
+  for (const sz of [-1, 1]) {
+    const fz = sz * (d * 0.452);
+    box(gr, doorC, 0, 0, fz, dw, dh, 0.004);
+    box(gr, goldC, 0, dh * 0.48, fz + sz * 0.001, dw * 0.92, 0.003, 0.003);
+    if (w >= 0.09) {
+      for (const sx of [-1, 1]) {
+        const wx = sx * Math.min(w * 0.3, dw * 0.95);
+        box(gr, doorC, wx, h * 0.24, fz, dw * 0.52, h * 0.42, 0.003);
+        box(gr, winC, wx, h * 0.26, fz + sz * 0.0008, dw * 0.44, h * 0.36, 0.002);
+      }
+    }
+  }
+  // Polychrome architrave (额枋彩画) & under-eave bracket sets (斗拱)
   const bh = Math.min(0.008, h * 0.18);
-  box(gr, o.band ?? '#2f7d6d', 0, h - bh, 0, w + 0.004, bh, d + 0.004);
+  box(gr, bandC, 0, h - bh, 0, w + 0.006, bh, d + 0.006);
+  box(gr, colC, 0, h - bh * 1.55, 0, w + 0.008, bh * 0.55, d + 0.008);
+  const nb = Math.max(4, Math.min(10, nc * 2));
+  for (let i = 0; i <= nb; i++) {
+    const bx = -w * 0.46 + (i / nb) * (w * 0.92);
+    for (const sz of [-1, 1]) {
+      box(gr, colC, bx, h - bh * 0.4, sz * (d * 0.47), cr * 2.2, bh * 0.9, cr * 2.6);
+    }
+  }
   const ov = o.ov ?? 1.35, R0 = ((d / 2) * ov) / Math.SQRT1_2;
-  return y + proof(gr, 0, h, 0, { n: 4, R0, R1: R0 * 0.3, h: o.rh ?? d * 0.42, lift: o.lift ?? 0.35, tile: roof, sx: (w + d * (ov - 1)) / (d * ov) });
+  const rh = o.rh ?? d * 0.42;
+  const topY = proof(gr, 0, h, 0, { n: 4, R0, R1: R0 * 0.3, h: rh, lift: o.lift ?? 0.35, tile: roof, sx: (w + d * (ov - 1)) / (d * ov) });
+  // Main roof ridge (正脊) & upturned owl-tail ridge finials (鸱吻)
+  const rw = Math.max(w * 0.46, (w + d * (ov - 1)) * 0.32);
+  box(gr, shade(roof, 0.76), 0, topY - rh * 0.08, 0, rw, Math.max(0.005, rh * 0.14), Math.max(0.005, d * 0.06));
+  for (const sx of [-1, 1]) {
+    box(gr, goldC, sx * (rw * 0.49), topY - rh * 0.04, 0, Math.max(0.005, rh * 0.12), Math.max(0.009, rh * 0.24), Math.max(0.006, d * 0.07));
+  }
+  return y + topY;
 }
 /** Calabash (gourd) finial on a spike — the golden tip of pagodas and towers. */
 export function gourd(p: THREE.Object3D, x: number, y: number, z: number, s: number, c = '#e8b23a'): void {
-  lathe(p, [[0, 0], [0.4, 0.05], [0.55, 0.25], [0.3, 0.48], [0.42, 0.66], [0.2, 0.9], [0, 1]].map(([r, v]) => [r * s, v * s * 1.6] as [number, number]), c, x, y, z, 8);
-  rod(p, [x, y + s * 1.5, z], [x, y + s * 2.4, z], s * 0.06, c, 4);
+  lathe(p, [[0, 0], [0.52, 0.04], [0.46, 0.14], [0.58, 0.26], [0.34, 0.44], [0.46, 0.62], [0.28, 0.78], [0.36, 0.9], [0.16, 1.04], [0, 1.16]].map(([r, v]) => [r * s, v * s * 1.55] as [number, number]), c, x, y, z, 10);
+  rod(p, [x, y + s * 1.5, z], [x, y + s * 2.45, z], s * 0.065, c, 6);
 }

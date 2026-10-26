@@ -565,9 +565,9 @@ const weir: Builder = (gp, r) => {
     cyl(gp, '#c8c2b4', -0.22, topY, -0.05, 0.032, 0.014, 8);
     cyl(gp, '#32353a', -0.22, topY + 0.014, -0.05, 0.014, 0.11, 8);
     cone(gp, '#d4af37', -0.22, topY + 0.124, -0.05, 0.02, 0.028, 8);
-    person(gp, -0.08, topY, -0.045, { h: 0.075, pose: 'point', top: '#8a261e', bottom: '#2b2622', dress: 'ankle', hat: '#1c1714', hatStyle: 'cap', ry: 0.2, detail: 'lo' });
+    person(gp, -0.08, topY, -0.045, { h: 0.075, pose: 'point', top: '#8a261e', bottom: '#2b2622', dress: 'ankle', hat: '#1c1714', hatStyle: 'cap', ry: 0.2, detail: 'hi' });
     for (const [wx, wz] of [[0.08, -0.04], [0.18, -0.05]] as const) {
-      person(gp, wx, topY, wz, { h: 0.068, pose: 'carry', top: '#5a6452', bottom: '#3a3228', hat: '#b89c64', hatStyle: 'conical', ry: -0.4, detail: 'lo' });
+      person(gp, wx, topY, wz, { h: 0.068, pose: 'carry', top: '#5a6452', bottom: '#3a3228', hat: '#b89c64', hatStyle: 'conical', ry: -0.4, detail: 'hi' });
     }
     // protected Jiangnan mulberry trees and whitewashed house behind the seawall
     box(gp, '#ece6d8', 0.12, h0, -0.24, 0.14, 0.055, 0.09);
@@ -631,10 +631,10 @@ const weir: Builder = (gp, r) => {
   for (const [x, z] of [[-0.42, 0.05], [0.4, 0.04], [-0.27, -0.31], [0.33, 0.3], [0.28, 0.24], [0.06, 0.37]]) minipine(gp, x, x > 0.2 && z > 0.2 ? h0 + 0.1 : x < 0.1 && x > 0 ? h0 + 0.08 : h0, z, 0.05, '#3f5a32');
   // people at true scale are specks: gabion builders carrying cobble baskets and Li Bing at the Fish Mouth
   for (const [x, z, ph] of [[0.02, -0.06, 0.1], [0.05, 0.0, 0.6], [0.03, 0.15, 0.3]] as const) {
-    const w = person(gp, x, top + 0.024, z, { h: 0.034, pose: 'carry', phase: ph, top: '#6a6450', bottom: '#3a3128', hat: '#b49a64', hatStyle: 'conical', ry: Math.PI, detail: 'lo' });
+    const w = person(gp, x, top + 0.024, z, { h: 0.034, pose: 'carry', phase: ph, top: '#6a6450', bottom: '#3a3128', hat: '#b49a64', hatStyle: 'conical', ry: Math.PI, detail: 'hi' });
     ellip(gp, '#8a8680', w.head[0], w.head[1] + 0.007, w.head[2], 0.007, 0.005, 0.007);
   }
-  person(gp, 0.04, top + 0.024, -0.2, { h: 0.04, pose: 'point', top: '#2e2a26', bottom: '#2e2a26', dress: 'ankle', hat: '#1c1714', hatStyle: 'knot', ry: Math.PI - 0.4, detail: 'lo' });
+  person(gp, 0.04, top + 0.024, -0.2, { h: 0.04, pose: 'point', top: '#2e2a26', bottom: '#2e2a26', dress: 'ankle', hat: '#1c1714', hatStyle: 'knot', ry: Math.PI - 0.4, detail: 'hi' });
 };
 
 // ==== modern ===================================================================================================
@@ -823,6 +823,13 @@ function crh(gp: THREE.Group): void {
   rod(gp, [px + 0.008, pt + 0.028, zt], [px - 0.004, pt + 0.042, zt], 0.0015, '#5a5f66', 3);
   box(gp, '#3a3a3a', px - 0.004, pt + 0.042, zt, 0.004, 0.003, 0.04);
   for (const [x, z, k] of [[-0.35, -0.24, 1], [0.36, -0.22, 2], [-0.3, 0.28, 3], [0.25, 0.32, 4], [0.0, -0.36, 5]]) leafTree(gp, x, h0, z, 0.1, '#55703e', k);
+  // High-voltage catenary wires, acoustic barrier screens along the viaduct & maintenance engineers below
+  for (const s of [-1, 1]) {
+    box(gp, '#94a3b8', 0, dy + 0.018, zt + s * 0.062, 0.9, 0.01, 0.003);
+  }
+  rod(gp, [-0.42, dy + 0.138, zt], [0.42, dy + 0.138, zt], 0.0012, '#64748b', 4);
+  person(gp, -0.18, h0, 0.22, { h: 0.055, pose: 'point', top: '#ea580c', bottom: '#1e3a8a', hat: '#facc15', hatStyle: 'helmet', ry: 0.3, detail: 'hi' });
+  person(gp, 0.16, h0, 0.24, { h: 0.055, pose: 'stand', top: '#2563eb', bottom: '#1e293b', hat: '#facc15', hatStyle: 'helmet', ry: -0.4, detail: 'hi' });
 }
 
 const train: Builder = (gp, r) => (r.style === 'crh' ? crh(gp) : steam(gp, str(r.color, '#1f2124')));
@@ -1166,7 +1173,7 @@ const cz1 = (gp: THREE.Group, launch: boolean) => {
   for (const s of [-1, 1]) box(gp, '#5a5a58', 0.27 + s * 0.012, h0, 0.05, 0.004, 0.003, 0.38);
   // 1970 launch crew in blue work clothes and PLA green
   for (const [x, z, ry, c] of [[0.24, 0.24, -0.5, '#3a4a6a'], [0.28, 0.2, -0.9, '#4a5a3a'], [-0.18, 0.28, 0.3, '#3a4a6a']] as const)
-    person(gp, x, h0, z, { h: 0.045, pose: 'stand', top: c, bottom: c, hat: c, hatStyle: 'cap', ry, detail: 'lo' });
+    person(gp, x, h0, z, { h: 0.045, pose: 'stand', top: c, bottom: c, hat: c, hatStyle: 'cap', ry, detail: 'hi' });
   if (launch) {
     const fl = flame(gp, rx, by - 0.04, rz, 0.0);
     fl.rotation.x = Math.PI; fl.clear();
@@ -1257,7 +1264,7 @@ const cz2f = (gp: THREE.Group, launch: boolean) => {
     for (let k = 1; k < 7; k++) box(gp, '#c81e1e', x, h0 + k * 0.1, z, 0.012, 0.01, 0.012);
   }
   pbox(gp, -0.33, h0, 0.18, 0.12, 0.2, 0.1, [4, 6, 4], '#e4e0d6', (_x, y, _z, _nx, ny, nz) => ny > 0.5 ? '#9a9a9a' : nz > 0.5 && y < 0.17 && y > 0.01 && Math.abs(_x) < 0.03 ? '#4a4e55' : '#e4e0d6');
-  for (const [x, z, ry] of [[0.3, 0.2, -0.6], [0.34, 0.15, -0.9], [-0.18, 0.3, 0.3]] as const) person(gp, x, h0, z, { h: 0.026, pose: 'stand', top: '#2a5a9a', bottom: '#2a5a9a', hat: '#e8e8e8', hatStyle: 'helmet', ry, detail: 'lo' });
+  for (const [x, z, ry] of [[0.3, 0.2, -0.6], [0.34, 0.15, -0.9], [-0.18, 0.3, 0.3]] as const) person(gp, x, h0, z, { h: 0.026, pose: 'stand', top: '#2a5a9a', bottom: '#2a5a9a', hat: '#e8e8e8', hatStyle: 'helmet', ry, detail: 'hi' });
   if (launch) {
     const fl = flame(gp, rx, by - 0.04, rz, 0.0);
     fl.rotation.x = Math.PI;
@@ -1631,11 +1638,16 @@ const dam: Builder = gp => {
   // rock between dam end and the lock, and the right-bank abutment
   prism(gp, clipR([[x1 - 0.004, zd - 0.008], [0.25, zd - 0.008], [0.25, 0.2], [0.24, 0.18], [x1 - 0.004, zd + 0.06]], 0.455), h0, CR + 0.005, '#7f7a6a');
   lump(gp, 0.25, h0 + CR, 0.02, 0.03, 0.03, 0.08, '#5f6e44', { seed: 7, rough: 0.25, paint: rock(7) });
-  // a Yangtze cruise ship below the dam
+  // a Yangtze cruise ship below the dam + gorge pines & engineers on the observation terrace
   const sh = grp(gp, -0.08, 0.3, 0.15, h0 + TW);
   box(sh, '#ecebe6', 0, 0, 0, 0.012, 0.005, 0.034);
   box(sh, '#ecebe6', 0, 0.005, -0.002, 0.01, 0.006, 0.024);
   box(sh, '#3e4a52', 0, 0.0075, -0.002, 0.0102, 0.0015, 0.0242);
+  for (const [tx, tz] of [[-0.38, 0.18], [-0.32, 0.28], [0.22, 0.34], [0.34, 0.25]] as const) {
+    minipine(gp, tx, h0 + TW + 0.008, tz, 0.055, '#3b5932');
+  }
+  person(gp, -0.26, h0 + TW + 0.008, 0.22, { h: 0.042, pose: 'point', top: '#2563eb', bottom: '#1e293b', hat: '#facc15', hatStyle: 'helmet', ry: 0.4, detail: 'hi' });
+  person(gp, -0.22, h0 + TW + 0.008, 0.25, { h: 0.042, pose: 'stand', top: '#e2e8f0', bottom: '#334155', hat: '#ef4444', hatStyle: 'helmet', ry: -0.2, detail: 'hi' });
 };
 
 export const RICH2: Record<string, Builder> = { cave, stilt, jade, oracle, weir, train, factory, rocket, stadium, skyline, dam };

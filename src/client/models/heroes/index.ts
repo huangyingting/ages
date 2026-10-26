@@ -6,7 +6,9 @@ import type { Builder } from '../prims.ts';
  * Packs become separate chunks and are fetched only when an item that needs them is about to be built.
  */
 type Pack = Record<string, Builder>;
-const LOADERS = import.meta.glob<Record<string, unknown>>(['./*.ts', '!./index.ts']);
+const LOADERS = typeof import.meta.glob === 'function'
+  ? import.meta.glob<Record<string, unknown>>(['./*.ts', '!./index.ts'])
+  : {};
 const packPath = (id: string): string => `./${id}.ts`;
 
 const loaded = new Map<string, Pack>();
@@ -26,8 +28,7 @@ export function loadPack(id: string): Promise<Pack> {
   if (have) return Promise.resolve(have);
   let p = loading.get(id);
   if (!p) {
-    const load = LOADERS[packPath(id)];
-    if (!load) return Promise.reject(new Error(`Unknown hero pack "${id}"`));
+    const load = LOADERS[packPath(id)] ?? (() => import(/* @vite-ignore */ packPath(id)));
     p = load().then(mod => {
       const pack: Pack = {};
       for (const v of Object.values(mod)) {

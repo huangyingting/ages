@@ -183,26 +183,42 @@ function body(p: THREE.Object3D, x: number, y: number, z: number, w: number, d: 
   const cr = o.cr ?? 0.0045, sp = o.sp ?? 0.04;
   box(p, o.wall, x, y, z, w - cr * 2.4, h, d - cr * 2.4);
   const nW = Math.max(2, Math.round(w / sp)), nD = Math.max(1, Math.round(d / sp));
-  for (let i = 0; i <= nW; i++) for (const sz of o.back === false ? [1] : [-1, 1]) cyl(p, o.col, x - w / 2 + (i * w) / nW, y, z + (sz * d) / 2, cr, h, 6);
-  for (let i = 1; i < nD; i++) for (const sx of [-1, 1]) cyl(p, o.col, x + (sx * w) / 2, y, z - d / 2 + (i * d) / nD, cr, h, 6);
+  const post = (px: number, pz: number) => {
+    cyl(p, '#9c9588', px, y, pz, cr * 1.4, Math.min(0.0045, h * 0.1), 8);
+    cyl(p, o.col, px, y, pz, cr, h, 8);
+  };
+  for (let i = 0; i <= nW; i++) for (const sz of o.back === false ? [1] : [-1, 1]) post(x - w / 2 + (i * w) / nW, z + (sz * d) / 2);
+  for (let i = 1; i < nD; i++) for (const sx of [-1, 1]) post(x + (sx * w) / 2, z - d / 2 + (i * d) / nD);
   const bh = Math.min(0.01, h * 0.14);
   box(p, o.beam ?? o.col, x, y + h - bh, z, w + 0.004, bh, d + 0.004);
   // Decorative painted architrave band (额枋彩画) under the lintel beam
   if (h > 0.03) box(p, mix(o.beam ?? o.col, '#2f7a68', 0.38), x, y + h - bh * 1.45, z, w + 0.002, bh * 0.45, d + 0.002);
   if (o.door) {
     const nd = Math.min(nW, o.doorN ?? nW), i0 = Math.floor((nW - nd) / 2), bw = w / nW;
-    for (let i = i0; i < i0 + nd; i++) {
+    for (let i = 0; i < nW; i++) {
       const dx = x - w / 2 + (i + 0.5) * bw, dw = bw * 0.72, dh = h * 0.72;
-      box(p, o.door, dx, y, z + d / 2 - cr, dw, dh, 0.004);
-      box(p, o.col, dx, y, z + d / 2 - cr + 0.001, 0.0025, dh, 0.003);
-      box(p, shade(o.col, 1.15), dx, y + dh * 0.52, z + d / 2 - cr + 0.001, dw * 0.96, 0.0025, 0.003);
+      if (i >= i0 && i < i0 + nd) {
+        box(p, o.door, dx, y, z + d / 2 - cr, dw, dh, 0.004);
+        box(p, o.col, dx, y, z + d / 2 - cr + 0.001, 0.0025, dh, 0.003);
+        box(p, shade(o.col, 1.15), dx, y + dh * 0.52, z + d / 2 - cr + 0.001, dw * 0.96, 0.0025, 0.003);
+      } else {
+        // Traditional vertical mullion window (直棂窗) on flanking bays
+        box(p, '#2f2018', dx, y + h * 0.28, z + d / 2 - cr, dw * 0.84, dh * 0.56, 0.0035);
+        for (const mx of [-0.24, 0, 0.24]) box(p, o.col, dx + mx * dw, y + h * 0.28, z + d / 2 - cr + 0.001, 0.002, dh * 0.56, 0.0025);
+      }
     }
   }
   let top = y + h;
   if (o.bracket) {
     const bk = Math.min(0.012, h * 0.16);
-    for (let i = 0; i <= nW; i++) for (const sz of [-1, 1]) box(p, o.bracket, x - w / 2 + (i * w) / nW, top, z + (sz * d) / 2, 0.011, bk, 0.011);
-    for (let i = 0; i <= nD; i++) for (const sx of [-1, 1]) box(p, o.bracket, x + (sx * w) / 2, top, z - d / 2 + (i * d) / nD, 0.011, bk, 0.011);
+    for (let i = 0; i <= nW; i++) for (const sz of [-1, 1]) {
+      box(p, shade(o.bracket, 0.78), x - w / 2 + (i * w) / nW, top, z + (sz * d) / 2, 0.008, bk * 0.5, 0.008);
+      box(p, o.bracket, x - w / 2 + (i * w) / nW, top + bk * 0.45, z + (sz * d) / 2, 0.0125, bk * 0.55, 0.0125);
+    }
+    for (let i = 0; i <= nD; i++) for (const sx of [-1, 1]) {
+      box(p, shade(o.bracket, 0.78), x + (sx * w) / 2, top, z - d / 2 + (i * d) / nD, 0.008, bk * 0.5, 0.008);
+      box(p, o.bracket, x + (sx * w) / 2, top + bk * 0.45, z - d / 2 + (i * d) / nD, 0.0125, bk * 0.55, 0.0125);
+    }
     box(p, shade(o.bracket, 0.85), x, top + bk * 0.25, z, w - 0.006, bk * 0.7, d - 0.006);
     top += bk;
   }
@@ -265,7 +281,7 @@ function galleryZ(p: THREE.Object3D, x: number, y: number, z0: number, z1: numbe
 function figure(p: THREE.Object3D, x: number, y: number, z: number, h: number, robe: string, o: { hat?: HumanOpts['hatStyle']; hatC?: string; ry?: number; armor?: string; pose?: HumanOpts['pose']; phase?: number } = {}): void {
   human(p, x, y, z, {
     h, ry: o.ry ?? 0, pose: o.pose ?? 'stand', phase: o.phase ?? 0, top: robe, bottom: shade(robe, 0.8), skin: '#c49a76', hair: '#1d1915',
-    hat: o.hatC ?? '#24211e', hatStyle: o.hat ?? 'knot', dress: 'ankle', shoes: '#2a2420', detail: 'lo',
+    hat: o.hatC ?? '#24211e', hatStyle: o.hat ?? 'knot', dress: 'ankle', shoes: '#2a2420', detail: 'hi',
     ...(o.armor ? { armor: o.armor, armorTrim: shade(o.armor, 0.7) } : {}),
   });
 }
@@ -1595,14 +1611,17 @@ const cap_paleo: Builder = root => {
   }
   cone(gp, '#e86420', -0.04, y0 + 0.024, 0.07, 0.024, 0.052, 7);
   cone(gp, '#f6bc38', -0.04, y0 + 0.03, 0.07, 0.014, 0.036, 6);
-  // Chipped quartz cores, bone tools & hominins in hide wraps
+  // Chipped quartz cores, bone tools, deer antlers & hominins in hide wraps
   for (const [x, z] of [[-0.18, 0.12], [0.1, 0.11], [0.16, 0.04]] as [number, number][]) {
     ellip(gp, '#c8bfa8', x, y0 + 0.01, z, 0.014, 0.008, 0.011);
   }
+  for (const dx of [-0.09, -0.04, 0.01]) cone(gp, '#948d7f', dx, y0 + 0.088, 0.018, 0.007, -0.022, 6);
   figure(gp, -0.11, y0 + 0.02, 0.08, 0.028, '#6e4c2e', { ry: 0.8 });
   figure(gp, 0.05, y0 + 0.02, 0.09, 0.027, '#583c24', { ry: -0.9 });
+  figure(gp, -0.02, y0 + 0.02, 0.16, 0.027, '#755334', { ry: 2.8, pose: 'point' });
   tree(gp, -0.32, y0, 0.06, 0.068, '#546b3e');
   tree(gp, 0.3, y0, 0.1, 0.062, '#5c7444');
+  tree(gp, -0.26, y0, -0.22, 0.058, '#4e6338');
 };
 
 /**
@@ -1639,6 +1658,9 @@ const cap_neo: Builder = root => {
   for (const [x, z] of [[0.06, 0.14], [0.1, 0.16]] as [number, number][]) ellip(gp, CLAY, x, y0 + 0.014, z, 0.012, 0.015, 0.012);
   figure(gp, -0.02, y0, 0.14, 0.028, '#8a6a44', { ry: 0.3 });
   figure(gp, 0.06, y0, 0.18, 0.027, '#6e5236', { ry: -0.6 });
+  figure(gp, -0.22, y0 + 0.036, 0.2, 0.027, '#9c432c', { ry: 0.2, pose: 'pray' });
+  tree(gp, -0.34, y0, -0.05, 0.058, '#58703e');
+  tree(gp, 0.31, y0, -0.12, 0.056, '#58703e');
 };
 
 /**

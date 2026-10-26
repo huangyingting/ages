@@ -161,7 +161,7 @@ function paintLathe(p: THREE.Object3D, pts: [number, number][], c: string, seg: 
   for (let i = 0; i < pts.length - 1; i++) {
     const [r0, y0] = pts[i], [r1, y1] = pts[i + 1];
     const dy = Math.abs(y1 - y0);
-    const n = dy > 0.008 ? Math.min(8, Math.max(1, Math.ceil(dy / 0.014))) : 1;
+    const n = dy > 0.008 ? Math.min(8, Math.max(2, Math.ceil(dy / 0.013))) : 1;
     for (let k = 1; k <= n; k++) {
       const t = k / n;
       sub.push([r0 + (r1 - r0) * t, y0 + (y1 - y0) * t]);
@@ -404,11 +404,18 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
       box(body, '#d6b25e', 0, Y(0.28) * u - 0.1 * u, 0.132 * u, 0.095 * u, 0.24 * u, 0.008 * u, 0, -0.09, 0);
       box(body, o.bixi, 0, Y(0.285) * u - 0.095 * u, 0.135 * u, 0.082 * u, 0.225 * u, 0.008 * u, 0, -0.09, 0);
       for (const yy of [0.22, 0.32, 0.41]) box(body, '#eab308', 0, Y(yy) * u, 0.136 * u - (yy - 0.28) * 0.02 * u, 0.056 * u, 0.014 * u, 0.009 * u);
-      for (const sx of [-1, 1]) {
-        // 玉佩 (jade ring & plaque pendants at the sides)
-        ellip(body, '#e2ece0', sx * 0.105 * u, Y(0.36) * u, 0.068 * u, 0.018 * u, 0.018 * u, 0.006 * u);
-        box(body, '#d8e6d6', sx * 0.108 * u, Y(0.24) * u, 0.07 * u, 0.012 * u, 0.07 * u, 0.006 * u);
+    }
+    // 组玉佩 / 腰佩: hanging lateral jade pendant assemblies (珩, 琚, 璜, 冲牙 & silk tassels) on both hips of long robes
+    for (const sx of [-1, 1]) {
+      const px = sx * 0.112 * u, pz = 0.068 * u;
+      box(body, '#eab308', px, Y(0.415) * u, pz, 0.007 * u, 0.014 * u, 0.022 * u);
+      ellip(body, '#e2ece0', px, Y(0.39) * u, pz, 0.018 * u, 0.009 * u, 0.006 * u); // 玉珩 top bridge
+      for (const dx of [-0.007, 0.007]) {
+        box(body, '#b91c1c', px + dx * u, Y(0.305) * u, pz, 0.003 * u, 0.115 * u, 0.003 * u); // 组绶 silk cords
       }
+      cyl(body, '#d8e6d6', px, Y(0.335) * u, pz, 0.014 * u, 0.005 * u, 12).rotation.x = Math.PI / 2; // 玉璧 central disc
+      ellip(body, '#e2ece0', px, Y(0.28) * u, pz, 0.02 * u, 0.01 * u, 0.006 * u); // 玉璜 lower arc
+      cone(body, '#991b1b', px, Y(0.205) * u, pz, 0.009 * u, 0.055 * u, 8); // 丝绦流苏 silk tassel
     }
     // toes peeking out, one foot slightly forward
     for (const sx of [-1, 1]) ellip(body, shoes, sx * 0.05 * u, 0.018 * u, (sx < 0 ? 0.118 : 0.105) * u, 0.03 * u, 0.018 * u, 0.046 * u, sx * 0.12);
@@ -629,27 +636,34 @@ export function figure(p: THREE.Object3D, o: FigureOpts): FigureAnchors {
     if (sgn < 0) anchors.handL = hand; else anchors.handR = hand;
   }
 
-  // ---- neck & head: a natural head (1/7 of the height) with small, quiet features
+  // ---- neck & head: a natural head (1/7 of the height) with sculpted ears, layered eyes, nose & lips
   cyl(body, skin, 0, 0.8 * u, 0, 0.03 * u, 0.08 * u, 10);
   const hy = 0.93 * u, hr = 0.059 * u;
   ellip(body, skin, 0, hy, 0.002 * u, hr, hr * 1.2, hr * 1.06);
   ellip(body, skin, 0, hy - hr * 0.6, hr * 0.22, hr * 0.66, hr * 0.48, hr * 0.7); // jaw and chin
-  for (const sx of [-1, 1]) ellip(body, tone(skin, -0.08), sx * hr * 0.98, hy - hr * 0.02, -hr * 0.04, hr * 0.14, hr * 0.26, hr * 0.12); // ears
   for (const sx of [-1, 1]) {
+    ellip(body, tone(skin, -0.08), sx * hr * 0.98, hy - hr * 0.02, -hr * 0.04, hr * 0.14, hr * 0.26, hr * 0.12); // ears
+    ellip(body, tone(skin, -0.11), sx * hr * 0.96, hy - hr * 0.21, -hr * 0.02, hr * 0.09, hr * 0.11, hr * 0.1); // earlobes
     if (o.blind) {
       box(body, '#6b4c3b', sx * hr * 0.34, hy + hr * 0.05, hr * 0.94, hr * 0.24, hr * 0.03, hr * 0.04); // closed peaceful eyelids
     } else {
-      ellip(body, '#2a201b', sx * hr * 0.34, hy + hr * 0.06, hr * 0.94, hr * 0.12, hr * 0.05, hr * 0.04); // eyes
+      ellip(body, '#f8f5ee', sx * hr * 0.34, hy + hr * 0.06, hr * 0.92, hr * 0.14, hr * 0.06, hr * 0.045); // sclera
+      ellip(body, '#2a201b', sx * hr * 0.34, hy + hr * 0.06, hr * 0.95, hr * 0.085, hr * 0.052, hr * 0.04); // iris/pupil
     }
     box(body, tone(hair, -0.15), sx * hr * 0.36, hy + hr * 0.25, hr * 0.92, hr * 0.32, hr * 0.05, hr * 0.06, 0, 0, sx * -0.08); // brows
+    if ((o.hairStyle ?? 'short') !== 'bald') {
+      ellip(body, hair, sx * hr * 0.88, hy + hr * 0.06, hr * 0.28, hr * 0.1, hr * 0.32, hr * 0.16); // temple hair locks (鬓发)
+    }
   }
   if (o.crescent) {
     // 包拯额上银色月牙
     ellip(body, '#f8fafc', 0, hy + hr * 0.4, hr * 1.02, hr * 0.19, hr * 0.16, hr * 0.05);
     ellip(body, skin, hr * 0.09, hy + hr * 0.47, hr * 1.05, hr * 0.14, hr * 0.13, hr * 0.05);
   }
-  ellip(body, tone(skin, -0.05), 0, hy - hr * 0.14, hr * 1.0, hr * 0.11, hr * 0.22, hr * 0.15); // nose
-  box(body, '#9a6352', 0, hy - hr * 0.5, hr * 0.9, hr * 0.26, hr * 0.035, hr * 0.05); // mouth
+  ellip(body, tone(skin, -0.05), 0, hy - hr * 0.12, hr * 1.0, hr * 0.1, hr * 0.22, hr * 0.15); // nose bridge
+  for (const sx of [-1, 1]) ellip(body, tone(skin, -0.09), sx * hr * 0.08, hy - hr * 0.22, hr * 0.98, hr * 0.06, hr * 0.055, hr * 0.06); // nose alae
+  ellip(body, '#9a6352', 0, hy - hr * 0.48, hr * 0.91, hr * 0.16, hr * 0.04, hr * 0.05); // upper lip
+  ellip(body, '#a86d5b', 0, hy - hr * 0.54, hr * 0.9, hr * 0.14, hr * 0.042, hr * 0.05); // lower lip
   if (o.glasses) {
     for (const sx of [-1, 1]) {
       const m = add(body, g('fig-ring', () => new THREE.TorusGeometry(1, 0.16, 6, 14)), mat('#3f3f46', { metal: 0.6 }), sx * hr * 0.34, hy + hr * 0.04, hr * 0.98, hr * 0.2, hr * 0.17, hr * 0.17);

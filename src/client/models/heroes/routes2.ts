@@ -30,7 +30,7 @@ const speck = (c: string, x: number, y: number, z: number, n: number) => (n ? sh
 const VCM = () => mat('#ffffff', { flat: false, vc: true });
 
 // ---- Small sculpting helpers (adapted from animals.ts) ----
-const ESEG = [[6, 4], [8, 6], [12, 8], [16, 11]];
+const ESEG = [[10, 8], [14, 10], [18, 13], [22, 16]];
 const ellip = (p: THREE.Object3D, c: string, x: number, y: number, z: number, rx: number, ry = rx, rz = rx, roty = 0, rotx = 0, rotz = 0) => {
   const r = Math.max(rx, ry, rz), [a, b] = ESEG[r < 0.006 ? 0 : r < 0.02 ? 1 : r < 0.045 ? 2 : 3];
   return add(p, g('r2-esph' + a, () => new THREE.SphereGeometry(1, a, b)), mat(c, { flat: false }), x, y, z, rx, ry, rz, roty, rotx, rotz);
@@ -61,7 +61,7 @@ function vpaint<T extends THREE.Mesh>(m: T, base: string, paint?: Paint): T {
   m.material = VCM();
   return m;
 }
-function vblob(p: THREE.Object3D, c: string, x: number, y: number, z: number, rx: number, ry: number, rz: number, paint?: Paint, rot: V3 = [0, 0, 0], seg = 16): THREE.Mesh {
+function vblob(p: THREE.Object3D, c: string, x: number, y: number, z: number, rx: number, ry: number, rz: number, paint?: Paint, rot: V3 = [0, 0, 0], seg = 22): THREE.Mesh {
   return vpaint(pblob(p, c, x, y, z, rx, ry, rz, undefined, rot, seg), c, paint);
 }
 /** Grid surface: rings along u∈[0,1], v∈[0,1) wrapping around, fan-capped ends; outward winding is auto-detected. */
@@ -110,7 +110,7 @@ interface SpSt { p: V3; w: number; h: number }
 function spine(p: THREE.Object3D, st: SpSt[], c: string, paint?: Paint,
   o: { nu?: number; nv?: number; side?: V3; shape?: (u: number, a: number) => number; uvp?: (u: number, a: number, x: number, y: number, z: number) => string | null } = {}): THREE.Mesh {
   const curve = new THREE.CatmullRomCurve3(st.map(s => new THREE.Vector3(...s.p)), false, 'centripetal');
-  const nu = o.nu ?? (st.length - 1) * 6, nv = o.nv ?? 18;
+  const nu = o.nu ? Math.round(o.nu * 1.35) : (st.length - 1) * 9, nv = o.nv ? Math.round(o.nv * 1.35) : 24;
   const side = new THREE.Vector3(...(o.side ?? [1, 0, 0]));
   const fr: { P: THREE.Vector3; S: THREE.Vector3; N: THREE.Vector3; w: number; h: number }[] = [];
   for (let i = 0; i <= nu; i++) {
@@ -127,7 +127,7 @@ function spine(p: THREE.Object3D, st: SpSt[], c: string, paint?: Paint,
   }, c, paint, o.uvp ? (u, v, x, y, z) => o.uvp!(u, v * Math.PI * 2, x, y, z) : undefined);
 }
 /** Streamlined fin / fluke / flipper: span stations root→tip with leading & trailing edge points and thickness along `up`. */
-function foil(p: THREE.Object3D, c: string, st: { le: V3; te: V3; t: number }[], up: V3, paint?: Paint, nu = 12, nv = 12): THREE.Mesh {
+function foil(p: THREE.Object3D, c: string, st: { le: V3; te: V3; t: number }[], up: V3, paint?: Paint, nu = 18, nv = 16): THREE.Mesh {
   const L = new THREE.CatmullRomCurve3(st.map(s => new THREE.Vector3(...s.le)), false, 'centripetal');
   const T = new THREE.CatmullRomCurve3(st.map(s => new THREE.Vector3(...s.te)), false, 'centripetal');
   const U = new THREE.Vector3(...up).normalize(), le = new THREE.Vector3(), te = new THREE.Vector3();
@@ -140,8 +140,8 @@ function foil(p: THREE.Object3D, c: string, st: { le: V3; te: V3; t: number }[],
 }
 const DROP = () => g('r2-drop', () => {
   const pts: THREE.Vector2[] = [];
-  for (let i = 0; i <= 6; i++) { const t = i / 6; pts.push(new THREE.Vector2(Math.max(1e-4, 0.5 * Math.sin(Math.PI * Math.pow(t, 0.62))), t)); }
-  const lg = new THREE.LatheGeometry(pts, 7);
+  for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push(new THREE.Vector2(Math.max(1e-4, 0.5 * Math.sin(Math.PI * Math.pow(t, 0.62))), t)); }
+  const lg = new THREE.LatheGeometry(pts, 12);
   lg.computeVertexNormals();
   return lg;
 });
@@ -274,7 +274,7 @@ function hull(p: THREE.Object3D, o: HullOpts): Hull {
     const y = top - (top - k) * Math.pow(s, o.full);
     return [Math.sign(c) * Math.pow(Math.abs(c), 0.8) * hb(u) * (1 - tm * Math.pow(1 - s, 2)), y, z(u)];
   };
-  const sp = new Soup(), nu = o.nu ?? 24, nv = o.nv ?? 12;
+  const sp = new Soup(), nu = o.nu ?? 36, nv = o.nv ?? 18;
   const dset = new Set<number>(Array.from({ length: nv + 1 }, (_, j) => j / nv));
   for (const d of o.bands ?? []) { dset.add(d / 2); dset.add(1 - d / 2); }
   const vs = [...dset].sort((a, b) => a - b);
@@ -291,7 +291,7 @@ function hull(p: THREE.Object3D, o: HullOpts): Hull {
   }
   // Deck planking
   const dk = o.deck;
-  sp.sheet(nu, 6, (u, w) => { const g0 = sec(u, 0)[0]; return [(w * 2 - 1) * g0, o.sheer(u) - 0.003, z(u)]; },
+  sp.sheet(nu, 8, (u, w) => { const g0 = sec(u, 0)[0]; return [(w * 2 - 1) * g0, o.sheer(u) - 0.003, z(u)]; },
     typeof dk === 'string' ? (u, w) => (Math.floor(w * 6) % 2 ? dk : sh(dk, 0.9 + hash3(Math.floor(u * 9), Math.floor(w * 6), 1) * 0.1)) : dk, undefined, 0, undefined, undefined, 1);
   // Bulwarks: a thin two-sided strip standing on the gunwale
   if (o.bulwark) for (const sd of [-1, 1]) {
@@ -303,17 +303,17 @@ function hull(p: THREE.Object3D, o: HullOpts): Hull {
 /** Square sail hanging from a yard: u across (port→starboard), v down; bellies forward (+z) and gets a yard spar. */
 function squareSail(p: THREE.Object3D, at: V3, w: number, h: number, belly: number, paint: (u: number, v: number) => string, us?: number[], vs?: number[], foot = 1): void {
   const sp = new Soup();
-  sp.sheet(6, 5, (u, v) => {
+  sp.sheet(10, 8, (u, v) => {
     const ww = w * (1 + (foot - 1) * v);
     return [at[0] + (u - 0.5) * ww, at[1] - v * h, at[2] + belly * Math.pow(Math.sin(Math.PI * u), 0.7) * Math.sin(Math.PI * (0.12 + 0.8 * v))];
   }, paint, paint, 0.005, us, vs);
   sp.mesh(p);
-  rod(p, [at[0] - w * 0.56, at[1] + 0.006, at[2]], [at[0] + w * 0.56, at[1] + 0.006, at[2]], 0.0055, '#4a3420', 6);
+  rod(p, [at[0] - w * 0.56, at[1] + 0.006, at[2]], [at[0] + w * 0.56, at[1] + 0.006, at[2]], 0.0055, '#4a3420', 8);
 }
 /** Triangular (lateen / crab-claw) sheet A-B-C with a belly along `bv`. */
 function triSail(p: THREE.Object3D, A: V3, B: V3, C: V3, bv: V3, paint: (u: number, v: number) => string, dip = 0): void {
   const sp = new Soup();
-  sp.sheet(6, 5, (u, v) => {
+  sp.sheet(10, 8, (u, v) => {
     const t = Math.sin(Math.PI * u) * Math.sin(Math.PI * Math.min(1, v * 1.1)) , d = dip * Math.sin(Math.PI * u) * (1 - v);
     const x = A[0] + (B[0] - A[0]) * u, y = A[1] + (B[1] - A[1]) * u, zz = A[2] + (B[2] - A[2]) * u;
     return [x + (C[0] - x) * v + bv[0] * t + (C[0] - x) * d, y + (C[1] - y) * v + bv[1] * t + (C[1] - y) * d, zz + (C[2] - zz) * v + bv[2] * t + (C[2] - zz) * d];
@@ -694,7 +694,7 @@ function sbox(sp: Soup, c: string, x: number, y: number, z: number, sx: number, 
   f([x0, y, z0 + Z], [X, 0, 0], [0, Y, 0], 4); f([x0, y, z0], [0, Y, 0], [X, 0, 0], 5);
 }
 /** Wheel face (disc in the y-z plane) looking out along ±x, with a darker tyre ring and hub. */
-function sdisc(sp: Soup, x: number, y: number, z: number, r: number, side: number, c: string, tyre = '#1d1f23', n = 12): void {
+function sdisc(sp: Soup, x: number, y: number, z: number, r: number, side: number, c: string, tyre = '#1d1f23', n = 20): void {
   const ring = (rr: number, dx: number, col: string) => {
     const C: V3 = [x + dx * side, y, z];
     for (let k = 0; k < n; k++) {
@@ -712,7 +712,7 @@ function sbogie(sp: Soup, z: number, w: number, axles = 2, wr = 0.013, c = '#262
   for (let i = 0; i < axles; i++) for (const sd of [-1, 1]) sdisc(sp, sd * w * 0.86, wr, z - L / 2 + i * wr * 2.4, wr, sd, '#3b3f46');
 }
 /** Rounded-rectangle section (right half bottom→top, then mirrored), anticlockwise seen from +z; extra side vertices at `ys`. */
-function rrSec(w: number, h: number, r: number, rt: number, ys: number[], n = 3): [number, number][] {
+function rrSec(w: number, h: number, r: number, rt: number, ys: number[], n = 6): [number, number][] {
   const R: [number, number][] = [[0, 0]];
   for (let i = 0; i <= n; i++) { const a = -Math.PI / 2 + (i / n) * Math.PI / 2; R.push([w - r + Math.cos(a) * r, r + Math.sin(a) * r]); }
   for (const y of [...ys].sort((a, b) => a - b)) if (y > r + 1e-4 && y < h - rt - 1e-4) R.push([w, y]);

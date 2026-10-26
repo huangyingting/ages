@@ -694,14 +694,60 @@ const flag: Builder = (gp, r) => {
   // pole, its fly and foot edged with the flame-tooth border (火焰牙) in a darker shade, a leaf-bladed spear finial with a
   // red horsehair tassel (缨). Built of 'flap' segments that wave in the wind. r.style 'modern': a plain rectangular
   // (3:2) flag on a pale staff with a gilt ball finial for 19th–20th-century events. r.color: the field.
+  // Mounted on a full ceremonial command platform (誓师将台 / 盟坛) with steps, battlements, bronze war drum, tripod ding,
+  // weapon rack of halberds, flanking pennants, and a standard-bearer/commander figure.
   const c = str(r.color, '#a8352a'), modern = r.style === 'modern', edge = shade(c, 0.55);
-  ground(gp, 0.1, '#8a7a5a');
-  for (let i = 0; i < 7; i++) {
-    const a = i * 0.9, d = 0.025 + (i % 3) * 0.012;
-    ellip(gp, shade('#8f887a', 0.9 + hash3(i, 2, 5) * 0.2), Math.cos(a) * d, 0.035, Math.sin(a) * d, 0.022, 0.016, 0.018, a);
+  const floor = ground(gp, 0.44, modern ? '#8e8a80' : '#8a7a5a');
+  // Two-tier rammed-earth/stone command platform (将台 / 盟坛) with front stairs and crenellated parapet
+  const stC = modern ? '#9a968c' : '#968468', trimC = modern ? '#b8b4aa' : '#7a684e';
+  tbox(gp, 0.52, 0.44, 0.48, 0.4, 0.055, stC, 0, floor, -0.02);
+  box(gp, trimC, 0, floor + 0.053, -0.02, 0.5, 0.008, 0.42);
+  tbox(gp, 0.34, 0.28, 0.31, 0.25, 0.045, shade(stC, 1.06), 0, floor + 0.055, -0.03);
+  const py = floor + 0.1;
+  // Front stone staircase ascending to the command platform
+  for (let s = 0; s < 5; s++) {
+    box(gp, shade(stC, 1.08 - s * 0.03), 0, floor + s * 0.02, 0.21 - s * 0.022, 0.13, 0.02, 0.028);
   }
+  // Crenellated corner parapets (将台女墙垛口) on the lower terrace
+  for (const sx of [-1, 1]) {
+    box(gp, stC, sx * 0.16, floor + 0.055, 0.16, 0.14, 0.024, 0.022);
+    for (let k = -1; k <= 1; k++) box(gp, trimC, sx * 0.16 + k * 0.042, floor + 0.079, 0.16, 0.026, 0.014, 0.022);
+  }
+  // Carved stone flagstaff socket pedestal (汉白玉旗座) in the center of the upper platform
+  rbox(gp, '#c8c0b0', 0, py, -0.03, 0.1, 0.035, 0.1, 0.004);
+  for (const sx of [-1, 1]) box(gp, '#b4ab99', sx * 0.032, py, -0.03, 0.012, 0.065, 0.055);
+  // Bronze war drum (战鼓) on a lacquered stand at left + weapon rack (兰锜) of halberds at right
+  const Dr = grp(gp, -0.22, 0.02, 0.35, floor + 0.055);
+  for (const sx of [-1, 1]) rod(Dr, [sx * 0.04, 0, -0.02], [sx * 0.032, 0.075, 0], 0.004, P.darkwood, 4);
+  const drm = cyl(Dr, '#8a261c', 0, 0.068, 0, 0.036, 0.048, 14);
+  drm.rotation.x = Math.PI / 2;
+  for (const sz of [-1, 1]) cyl(Dr, '#e5d8b8', 0, 0.068, sz * 0.025, 0.032, 0.003, 14).rotation.x = Math.PI / 2;
+  const Rk = grp(gp, 0.22, 0.01, -0.35, floor + 0.055);
+  for (const sx of [-1, 1]) box(Rk, P.darkwood, sx * 0.045, 0, 0, 0.008, 0.065, 0.012);
+  box(Rk, P.darkwood, 0, 0.05, 0, 0.1, 0.008, 0.014);
+  for (let k = 0; k < 4; k++) {
+    const hx = -0.033 + k * 0.022;
+    rod(Rk, [hx, 0, 0], [hx, 0.19, 0.005], 0.0025, '#4a3222', 4);
+    cone(Rk, '#b8bcc2', hx, 0.19, 0.005, 0.004, 0.022, 4);
+    box(Rk, c, hx, 0.175, 0.005, 0.006, 0.012, 0.006);
+  }
+  // Ritual bronze tripod (盟誓铜鼎) with flickering flame at front-left of upper platform + two rear sub-banners
+  const dx = -0.1, dz = 0.05;
+  lathe(gp, [[0, 0.018], [0.026, 0.022], [0.03, 0.044], [0.024, 0.052], [0, 0.052]], P.bronze, dx, py, dz, 12);
+  for (let l = 0; l < 3; l++) {
+    const a = (l / 3) * Math.PI * 2;
+    cyl(gp, P.bronze, dx + Math.cos(a) * 0.02, py + 0.01, dz + Math.sin(a) * 0.02, 0.004, 0.02, 6);
+  }
+  fire(gp, dx, py + 0.052, dz, 0.018);
+  for (const sx of [-1, 1]) banner(gp, sx * 0.28, floor, -0.22, 0.34, c, 0.09);
+  // Commander / standard-bearer standing beside the main war standard on the platform
+  human(gp, 0.09, py, 0.03, {
+    h: 0.19, pose: 'point', top: c, bottom: '#2b2622', hat: modern ? '#3a4238' : P.iron,
+    hatStyle: modern ? 'peaked' : 'helmet', detail: 'hi', ry: -0.25,
+  });
+
   const H = 0.9, Fh = modern ? 0.24 : 0.34, Fw = modern ? 0.36 : 0.27, n = 5, sw = Fw / n;
-  rod(gp, [0, 0.02, 0], [0, H, 0], 0.008, modern ? '#d8d2c4' : P.darkwood, 6);
+  rod(gp, [0, py, -0.03], [0, H, 0], 0.008, modern ? '#d8d2c4' : P.darkwood, 8);
   if (modern) ellip(gp, P.gold, 0, H + 0.012, 0, 0.014);
   else {
     const blade = lathe(gp, [[0, 0], [0.012, 0.012], [0.014, 0.03], [0.008, 0.06], [0, 0.08]], '#b8bcc2', 0, H + 0.01, 0, 4);
@@ -2100,14 +2146,14 @@ const printing: Builder = (gp, r) => {
     rod(Pr, [0.2, 0.1, 0.0], [0.2, 0.1, 0.05], 0.004, iron, 5);
     cyl(Pr, '#5a3e2a', 0.2, 0.1, 0.06, 0.015, 0.004, 10).rotation.x = Math.PI / 2;
     // pressman pulling the bar, compositor at the sloping case
-    human(Pr, 0.045, 0, 0.23, { h: 0.2, pose: 'stand', hands: [[-0.04, 0.74, 0.36], [0.06, 0.72, 0.34]], top: '#3a4a5a', bottom: '#2a2a2a', skin, hair: '#1c1714', hatStyle: 'peaked', hat: '#3a3a3a', detail: 'lo', ry: Math.PI + 0.15, sleeve: 0.4 });
+    human(Pr, 0.045, 0, 0.23, { h: 0.2, pose: 'stand', hands: [[-0.04, 0.74, 0.36], [0.06, 0.72, 0.34]], top: '#3a4a5a', bottom: '#2a2a2a', skin, hair: '#1c1714', hatStyle: 'peaked', hat: '#3a3a3a', detail: 'hi', ry: Math.PI + 0.15, sleeve: 0.4 });
     const C = grp(gp, 0.24, -0.2, -0.5, floor);
     for (const sx of [-1, 1]) box(C, wood, sx * 0.08, 0, 0, 0.012, 0.14, 0.06);
     const tray = grp(C, 0, 0.0, 0, 0.14);
     tray.rotation.x = 0.5;
     box(tray, wood, 0, 0, 0, 0.18, 0.012, 0.1);
     for (let i = 0; i < 9; i++) for (let j = 0; j < 5; j++) box(tray, (i + j) % 3 ? '#8a8a86' : '#6a6a66', -0.08 + i * 0.02, 0.012, -0.04 + j * 0.02, 0.016, 0.002, 0.016);
-    human(gp, 0.27, floor, -0.06, { h: 0.2, pose: 'stand', top: '#6a6a72', bottom: '#2a2a2a', skin, hair: '#1c1714', detail: 'lo', ry: Math.PI - 0.5, dress: 'ankle', hands: [[-0.1, 0.55, 0.22], [0.1, 0.58, 0.25]] });
+    human(gp, 0.27, floor, -0.06, { h: 0.2, pose: 'stand', top: '#6a6a72', bottom: '#2a2a2a', skin, hair: '#1c1714', detail: 'hi', ry: Math.PI - 0.5, dress: 'ankle', hands: [[-0.1, 0.55, 0.22], [0.1, 0.58, 0.25]] });
     // bundles of the magazine with twine, and a stack of fresh sheets
     for (let k = 0; k < 4; k++) {
       const x = -0.3 + (k % 2) * 0.09, z = 0.14 + Math.floor(k / 2) * 0.08, y = floor;
@@ -2149,7 +2195,8 @@ const printing: Builder = (gp, r) => {
       box(K, '#2a1e16', cx, cy, 0.0352, 0.044, 0.028, 0.001);
       box(K, paper, cx, cy + 0.016, 0.0362, 0.014, 0.008, 0.001);
     }
-    human(gp, -0.03, floor, -0.13, { h: 0.2, pose: 'kneel', top: '#6a5a44', bottom: '#4a3e2c', skin, hair: '#1c1714', hat: ink, hatStyle: 'cap', detail: 'lo', dress: 'knee', hands: [[-0.12, 0.38, 0.32], [0.08, 0.4, 0.34]] });
+    human(gp, -0.03, floor, -0.13, { h: 0.2, pose: 'kneel', top: '#6a5a44', bottom: '#4a3e2c', skin, hair: '#1c1714', hat: ink, hatStyle: 'cap', detail: 'hi', dress: 'knee', hands: [[-0.12, 0.38, 0.32], [0.08, 0.4, 0.34]] });
+    human(gp, 0.16, floor, -0.11, { h: 0.19, pose: 'kneel', top: '#4e5d6c', bottom: '#3a342c', skin, hair: '#1c1714', hat: ink, hatStyle: 'cap', detail: 'hi', dress: 'knee', ry: -0.4 });
     sheet(gp, -0.3, floor, 0.12, 0.09, 0.07, 8, 0.2);
     sheet(gp, -0.29, floor + 0.002, 0.13, 0.09, 0.07, 8, -0.1);
     return;
@@ -2164,14 +2211,14 @@ const printing: Builder = (gp, r) => {
   cyl(T, '#7a5a34', -0.11, ty, -0.035, 0.012, 0.012, 8);
   cyl(T, '#3a2a1a', -0.11, ty + 0.012, -0.035, 0.008, 0.016, 6);
   for (let k = 0; k < 4; k++) box(T, paper, 0.11, ty + k * 0.002, -0.01, 0.06, 0.0018, 0.08, k * 0.05);
-  const pr = human(gp, 0, floor, -0.12, { h: 0.2, pose: 'kneel', top: '#6b5a3e', bottom: '#4a3e2c', skin, hair: '#1c1714', hat: ink, hatStyle: 'cap', detail: 'lo', dress: 'knee', hands: [[-0.1, 0.36, 0.3], [0.06, 0.38, 0.36]] });
+  const pr = human(gp, 0, floor, -0.12, { h: 0.2, pose: 'kneel', top: '#6b5a3e', bottom: '#4a3e2c', skin, hair: '#1c1714', hat: ink, hatStyle: 'cap', detail: 'hi', dress: 'knee', hands: [[-0.1, 0.36, 0.3], [0.06, 0.38, 0.36]] });
   ellip(gp, '#5a3a20', pr.handR[0], pr.handR[1] - 0.004, pr.handR[2], 0.012, 0.007, 0.016);
   // the carver at a second table with a half-cut block and his knife
   const T2 = table(-0.27, 0.12, 0.12, 0.09, 0.055, 0.5);
   box(T2, pear, 0, 0.055, 0, 0.09, 0.012, 0.06);
   for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) box(T2, '#a8804a', -0.03 + i * 0.01, 0.067, -0.025 + j * 0.01, 0.006, 0.002, 0.007);
   box(T2, paper, 0.02, 0.067, 0, 0.04, 0.0015, 0.055);
-  const cv = human(gp, -0.37, floor, 0.06, { h: 0.19, pose: 'kneel', top: '#7a6a52', bottom: '#4a3e2c', skin, hair: '#1c1714', hatStyle: 'knot', detail: 'lo', dress: 'knee', ry: 2.07, hands: [[-0.06, 0.34, 0.3], [0.08, 0.36, 0.3]] });
+  const cv = human(gp, -0.37, floor, 0.06, { h: 0.19, pose: 'kneel', top: '#7a6a52', bottom: '#4a3e2c', skin, hair: '#1c1714', hatStyle: 'knot', detail: 'hi', dress: 'knee', ry: 2.07, hands: [[-0.06, 0.34, 0.3], [0.08, 0.36, 0.3]] });
   rod(gp, cv.handR, [cv.handR[0] + 0.01, cv.handR[1] - 0.025, cv.handR[2] + 0.01], 0.002, '#9aa0a6', 4);
   // drying line with printed sheets, and a rack of finished blocks
   for (const x of [0.14, 0.4]) rod(gp, [x, floor, -0.26], [x, floor + 0.22, -0.26], 0.005, wood, 5);
@@ -2234,6 +2281,16 @@ const compass: Builder = gp => {
   ellip(sp, '#18191e', 0, 0.036, -0.028, 0.044, 0.008, 0.052); // hollowed inner scoop of the spoon
   const hnd = tube(sp, [[0, 0.022, 0.025], [0, 0.034, 0.095], [0, 0.042, 0.165], [0, 0.038, 0.215]], 0.018, 0.007, '#272930', { radial: 8, sub: 4 });
   hnd.material = mag;
+  // Four bronze corner guardian mounts (四维瑞兽铜足) & Han diviner's bamboo slip manual + bronze Boshan censer
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const cx = sx * 0.275, cz = sz * 0.275;
+    bronze(ellip(gp, P.bronze, cx, y0 + 0.018, cz, 0.024, 0.016, 0.024), P.bronze);
+    bronze(ellip(gp, P.gold, cx + sx * 0.01, y0 + 0.032, cz + sz * 0.01, 0.012, 0.012, 0.012), P.gold);
+  }
+  for (let i = 0; i < 7; i++) {
+    box(gp, i % 2 ? '#c8a868' : '#b89452', -0.18 + i * 0.014, y0 + 0.004, 0.34, 0.01, 0.004, 0.075);
+  }
+  bronze(lathe(gp, [[0, 0], [0.022, 0], [0.014, 0.015], [0.028, 0.032], [0.022, 0.048], [0, 0.062]], P.bronze, 0.24, y0, 0.32, 14), P.bronze);
 };
 
 const seismoscope: Builder = gp => {
@@ -2440,6 +2497,13 @@ const tent: Builder = (gp, r) => {
   for (const s of [-1, 1]) cyl(Dr, '#d8c8a0', 0, 0.075, s * 0.0305, 0.034, 0.002, 14).rotation.x = Math.PI / 2;
   for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2; ellip(Dr, P.gold, Math.cos(a) * 0.04, 0.075 + Math.sin(a) * 0.04, 0, 0.003); }
   soldier(grp(gp, 0.1, 0.17, 0.2, floor), 0, 0, 0.15, c, { shield: false, arm: 'ji' });
+  // Commander seated at the tactical map table inside the open tent + flanking camp braziers (火盆)
+  human(T, 0, 0, -hd + 0.065, { h: 0.15, pose: 'sit', top: c, bottom: '#2b2622', hat: P.gold, hatStyle: 'helmet', detail: 'hi', ry: 0 });
+  box(T, '#f0e6cf', 0, 0.026, -hd + 0.06, 0.055, 0.002, 0.032);
+  for (const sx of [-1, 1]) {
+    lathe(gp, [[0, 0], [0.02, 0.005], [0.026, 0.022], [0.022, 0.026], [0, 0.018]], P.iron, sx * 0.18, floor, 0.16, 10);
+    fire(gp, sx * 0.18, floor + 0.022, 0.16, 0.016);
+  }
   for (const sx of [-1, 1]) banner(gp, sx * 0.25, floor, 0.06, 0.34, c, 0.1);
 };
 
@@ -2492,7 +2556,9 @@ const hut: Builder = (gp, r) => {
       ellip(gp, k ? '#b07a3a' : '#e8e0d0', x, floor + 0.012, z, 0.01, 0.009, 0.014);
       ellip(gp, '#c8352a', x, floor + 0.022, z + 0.012, 0.003, 0.004, 0.002);
     }
-    human(gp, 0.05, floor, 0.16, { h: 0.14, pose: 'relax', top: '#4a5a7a', bottom: '#3a3a3a', skin: '#b8865c', hair: '#1c1714', detail: 'lo', ry: -0.3 });
+    human(gp, 0.05, floor, 0.16, { h: 0.14, pose: 'relax', top: '#4a5a7a', bottom: '#3a3a3a', skin: '#b8865c', hair: '#1c1714', detail: 'hi', ry: -0.3 });
+    human(gp, -0.18, floor, 0.14, { h: 0.135, pose: 'carry', top: '#7a4a3a', bottom: '#3a3a42', skin: '#c09068', hair: '#1c1714', detail: 'hi', ry: 0.4 });
+    tree(gp, 0.3, floor, -0.16, 0.09, '#5e7844');
     return;
   }
   const floor = ground(gp, 0.45, '#9a845a');
@@ -2541,8 +2607,8 @@ const hut: Builder = (gp, r) => {
   for (let k = 0; k < 3; k++) box(gp, '#2a1e18', 0.2 - 0.02 + k * 0.02, floor + 0.012, 0.18 + 0.038, 0.012, 0.004, 0.002);
   for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2; ellip(gp, '#8a8278', -0.27 + Math.cos(a) * 0.035, floor + 0.006, 0.2 + Math.sin(a) * 0.035, 0.012, 0.008, 0.01); }
   fire(gp, -0.27, floor + 0.004, 0.2, 0.018);
-  human(gp, 0.06, floor, 0.24, { h: 0.17, pose: 'carry', top: '#9a7a52', bottom: '#9a7a52', skin: '#b8865c', hair: '#1c1714', detail: 'lo', dress: 'knee', sleeve: 0.4, ry: -0.4 });
-  const mn = human(gp, -0.18, floor, 0.12, { h: 0.18, pose: 'stand', top: '#8a6a42', bottom: '#8a6a42', skin: '#b07a52', hair: '#1c1714', detail: 'lo', dress: 'knee', sleeve: 0, ry: 0.5, hands: [[-0.12, 0.47, 0.02], [0.12, 0.62, 0.12]] });
+  human(gp, 0.06, floor, 0.24, { h: 0.17, pose: 'carry', top: '#9a7a52', bottom: '#9a7a52', skin: '#b8865c', hair: '#1c1714', detail: 'hi', dress: 'knee', sleeve: 0.4, ry: -0.4 });
+  const mn = human(gp, -0.18, floor, 0.12, { h: 0.18, pose: 'stand', top: '#8a6a42', bottom: '#8a6a42', skin: '#b07a52', hair: '#1c1714', detail: 'hi', dress: 'knee', sleeve: 0, ry: 0.5, hands: [[-0.12, 0.47, 0.02], [0.12, 0.62, 0.12]] });
   const [hx, hy, hz] = mn.handR;
   rod(gp, [hx, hy - 0.1, hz], [hx, hy + 0.05, hz], 0.003, '#6a4a30', 4);
   box(gp, '#7a7470', hx, hy + 0.05, hz + 0.006, 0.006, 0.026, 0.02);
@@ -2782,9 +2848,9 @@ const boat: Builder = (gp, r) => {
   box(o, '#5a4030', 0.022, wl - ys - 0.02, -0.14, 0.004, 0.012, 0.04);
   rod(o, [0, 0, 0], [-0.005, 0.045, 0.1], 0.003, '#5a4030', 4);
   rod(o, [-0.005, 0.045, 0.1], [0.0, 0.0, 0.0], 0.001, '#c8b88a', 3);
-  human(b, -0.005, sAt(0.18), zt(0.19), { h: 0.11, pose: 'stand', hands: [[0.05, 0.62, -0.28], [-0.05, 0.6, -0.26]], ry: Math.PI, top: '#3f4a5a', bottom: '#2e2a26', skin: '#a8764c', hat: '#c8a96a', hatStyle: 'conical', detail: 'lo' });
+  human(b, -0.005, sAt(0.18), zt(0.19), { h: 0.11, pose: 'stand', hands: [[0.05, 0.62, -0.28], [-0.05, 0.6, -0.26]], ry: Math.PI, top: '#3f4a5a', bottom: '#2e2a26', skin: '#a8764c', hat: '#c8a96a', hatStyle: 'conical', detail: 'hi' });
   // poleman with a bamboo quant at the bow
-  human(b, 0.02, sAt(0.8), zt(0.8), { h: 0.105, pose: 'stand', hands: [[0.24, 0.62, 0.12], [0.3, 0.42, 0.22]], ry: 0.3, top: '#5a5248', bottom: '#2e2a26', skin: '#a8764c', hat: '#c8a96a', hatStyle: 'conical', detail: 'lo' });
+  human(b, 0.02, sAt(0.8), zt(0.8), { h: 0.105, pose: 'stand', hands: [[0.24, 0.62, 0.12], [0.3, 0.42, 0.22]], ry: 0.3, top: '#5a5248', bottom: '#2e2a26', skin: '#a8764c', hat: '#c8a96a', hatStyle: 'conical', detail: 'hi' });
   rod(b, [0.05, sAt(0.8) + 0.13, zt(0.77)], [0.12, wl - 0.01, zt(0.92)], 0.0025, '#b8a060', 4);
 };
 
@@ -2839,7 +2905,7 @@ const fireship: Builder = (gp, r) => {
   for (let i = 0; i <= 6; i++) { const t = i / 6, w = 0.032 * (0.35 + 0.65 * Math.sin(Math.PI * t)), z = (t - 0.5) * 0.2; sh.push([[-w, wl + 0.022, z], [-w * 0.8, wl - 0.008, z], [w * 0.8, wl - 0.008, z], [w, wl + 0.022, z]]); }
   skin(B, sh, '#5a4030', { caps: true, flat: true, paint: (_x, _y, _z, _nx, ny) => (ny > 0.6 ? '#7a5a3a' : null) });
   for (const [z, ph] of [[0.035, 0.1], [-0.03, 0.55]] as const) {
-    human(B, 0, wl + 0.012, z, { h: 0.075, pose: 'row', phase: ph, top: '#5a3a2a', bottom: '#2e2a26', skin: '#a8764c', hair: '#1c1714', detail: 'min', ry: Math.PI });
+    human(B, 0, wl + 0.012, z, { h: 0.075, pose: 'row', phase: ph, top: '#5a3a2a', bottom: '#2e2a26', skin: '#a8764c', hair: '#1c1714', detail: 'hi', ry: Math.PI });
     for (const sx of [-1, 1]) rod(B, [sx * 0.03, wl + 0.03, z], [sx * 0.09, wl - 0.01, z - 0.03], 0.002, '#5a4030', 3);
   }
   rod(b, [0.05, sAt(0.02) + 0.005, zt(0.02)], [0.15, wl + 0.03, zb + 0.09], 0.003, '#a89a74', 3);
@@ -2958,9 +3024,12 @@ const redboat: Builder = gp => {
   skin(b, rRings, roofC, { caps: true, flat: true, paint: (px) => (Math.floor((px + 0.2) * 80) % 2 ? '#48433f' : roofC) });
   rbox(b, '#6e2216', 0, 0.056, -0.25, 0.14, 0.075, 0.09, 0.003);
   gable(b, 0.155, 0.025, 0.1, roofC, 0, 0.13, -0.25);
-  // Bamboo punt pole (竹篙) on the cabin roof & stern sculling oar (摇橹)
+  // Bamboo punt pole (竹篙) on the cabin roof & stern sculling oar (摇橹) + lakeside stone mooring bollards & delegates
   rod(b, [0.06, 0.182, -0.2], [0.06, 0.182, 0.24], 0.003, '#b89e5a', 4);
   rod(b, [-0.04, 0.08, -0.29], [-0.09, 0.015, -0.43], 0.004, '#7a5230', 4);
+  human(b, 0, 0.056, 0.23, { h: 0.085, pose: 'stand', top: '#3b4a5e', bottom: '#2a2a30', skin: '#c89a72', hair: '#1c1714', detail: 'hi', ry: 0.2 });
+  human(b, -0.02, 0.056, -0.31, { h: 0.082, pose: 'stand', top: '#6e4e3a', bottom: '#2e2a26', skin: '#b8865c', hat: '#c8a96a', hatStyle: 'conical', detail: 'hi', ry: Math.PI });
+  tree(gp, -0.18, lake + 0.018, -0.31, 0.095, '#5c743e');
 };
 
 /** Points along a circular arch of chord `span` and rise `f` springing at (x0 ± span/2, y0), left to right; `off` grows the radius. */
@@ -3230,7 +3299,7 @@ const cannon: Builder = (gp, r) => {
   // Qing gunners: red-bordered tunics with the round 兵 patch, warm-weather hats
   const crew = (x: number, z: number, ry: number, o: Partial<HumanOpts>) => {
     const H = grp(gp, x, z, ry, floor);
-    human(H, 0, 0, 0, { h: 0.2, top: '#2f4a7a', bottom: '#2a2620', skin: '#b08458', hair: '#1c1714', hatStyle: 'qing', hat: '#3a2a1e', detail: 'lo', ...o } as HumanOpts);
+    human(H, 0, 0, 0, { h: 0.2, top: '#2f4a7a', bottom: '#2a2620', skin: '#b08458', hair: '#1c1714', hatStyle: 'qing', hat: '#3a2a1e', detail: 'hi', ...o } as HumanOpts);
     return H;
   };
   const g1 = crew(-0.14, -0.16, 0.6, { pose: 'stand', hands: [[0.2, 0.55, 0.35], [-0.12, 0.45, 0.05]] });
@@ -3282,7 +3351,7 @@ function fieldGun(gp: THREE.Group, r: ModelRecipe): void {
   // New Army crew: grey uniforms, peaked caps, white armbands of the revolution
   const crew = (x: number, z: number, ry: number, o: Partial<HumanOpts>) => {
     const H = grp(gp, x, z, ry, floor);
-    human(H, 0, 0, 0, { h: 0.2, top: '#5c6156', bottom: '#4a4e46', skin: '#b08458', hair: '#1c1714', hatStyle: 'peaked', hat: '#4a4e46', detail: 'lo', ...o } as HumanOpts);
+    human(H, 0, 0, 0, { h: 0.2, top: '#5c6156', bottom: '#4a4e46', skin: '#b08458', hair: '#1c1714', hatStyle: 'peaked', hat: '#4a4e46', detail: 'hi', ...o } as HumanOpts);
   };
   crew(-0.12, -0.2, 0.5, { pose: 'crouch' });
   crew(0.14, -0.22, -0.4, { pose: 'kneel' });
@@ -3324,9 +3393,10 @@ const trebuchet: Builder = (gp, r) => {
   for (let k = 0; k < 4; k++) {
     const x = -0.15 + k * 0.1, z = 0.32 + (k % 2) * 0.04;
     rod(gp, front, [x, 0.2, z], 0.003, '#c8b88a', 3);
-    human(gp, x, 0.03, z, { h: 0.2, pose: 'carry', top: k % 2 ? tint(c, -0.1) : '#6b5a3e', bottom: '#3a3128', hat: '#3a3128', hatStyle: 'cap', detail: 'lo', ry: Math.PI });
+    human(gp, x, 0.03, z, { h: 0.2, pose: 'carry', top: k % 2 ? tint(c, -0.1) : '#6b5a3e', bottom: '#3a3128', hat: '#3a3128', hatStyle: 'cap', detail: 'hi', ry: Math.PI });
   }
-  for (let k = 0; k < 3; k++) ellip(gp, '#8a8478', 0.24 + (k % 2) * 0.05, 0.06, 0.05 + k * 0.05, 0.035);
+  human(gp, 0.26, 0.03, -0.12, { h: 0.2, pose: 'point', top: c, bottom: '#2b2622', hat: P.iron, hatStyle: 'helmet', detail: 'hi', ry: -0.4 });
+  for (let k = 0; k < 5; k++) ellip(gp, '#8a8478', 0.24 + (k % 2) * 0.045, 0.06 + (k > 2 ? 0.038 : 0), 0.04 + (k % 3) * 0.045, 0.034);
   banner(gp, -0.3, 0.03, -0.25, 0.4, c, 0.1);
 };
 
