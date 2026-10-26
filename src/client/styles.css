@@ -436,6 +436,8 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 }
 .amb:hover { color: var(--zhu); }
 .story-on .amb { display: none; }
+.story-on .hud-bot, .hud-bot:has(.caption:not([hidden])) { left: 24px; right: 24px; grid-template-columns: minmax(0, 1fr); }
+.story-on .hud-bl, .hud-bot:has(.caption:not([hidden])) .hud-bl { display: none; }
 .story-on .hud-stats, .story-on .map-key, .quiz-on .hud-stats, .lesson-on .hud-stats { opacity: 0; pointer-events: none; }
 .story-on .hud-stats *, .story-on .map-key * { pointer-events: none; }
 
@@ -831,7 +833,7 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
 
 /* ================================================================ story caption: a dark subtitle box in the phase line's slot */
 .caption {
-  --cut: 9px; position: relative; width: min(760px, 100%); padding: 10px 8px 12px 18px; display: flex; align-items: center; gap: 12px; overflow: hidden;
+  --cut: 9px; position: relative; width: min(760px, 100%); margin-inline: auto; padding: 10px 8px 12px 18px; display: flex; align-items: center; gap: 12px; overflow: hidden;
   background: rgba(20, 19, 17, 0.78); clip-path: var(--pp-clip); color: #f2ede3;
   -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
 }

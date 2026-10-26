@@ -93,7 +93,7 @@ export const STORIES: Record<string, StoryStep[]> = {
   ],
 
   zhangqian: [
-    title('张骞通西域', 'Zhang Qian Opens the West', '前138年 · 丝绸之路', '138 BCE · the Silk Road'), year(-138), fly(92, 38, 70, 0.8),
+    title('张骞通西域', 'Zhang Qian Opens the West', '前138年 · 丝绸之路', '138 BCE · the Silk Road'), year(-138), fly(92, 37, 54, 0.84),
     cap('前138年，张骞从长安出发出使西域。', '138 BCE: Zhang Qian sets out from Chang’an.'),
     { do: 'route', model: { kind: 'camel' }, dur: 9, color: '#b9770e', label: lbl('丝绸之路', 'Silk Road'), keep: true,
       pts: [[108.94, 34.27], [104.0, 35.6], [102.6, 37.9], [100.4, 38.9], [98.5, 39.7], [94.66, 40.14], [89.2, 42.9], [84.0, 41.7],
@@ -171,7 +171,7 @@ export const STORIES: Record<string, StoryStep[]> = {
   ],
 
   xuanzang: [
-    title('玄奘西行', 'Xuanzang’s Journey West', '627—645年', '627–645'), year(627), fly(88, 33, 85, 0.75),
+    title('玄奘西行', 'Xuanzang’s Journey West', '627—645年', '627–645'), year(627), fly(92, 33, 54, 0.84),
     cap('玄奘从长安出发，西行求法。', 'Xuanzang leaves Chang’an to seek the scriptures.'),
     { do: 'route', model: { kind: 'camel' }, dur: 10, color: '#d68910', keep: true,
       pts: [[108.94, 34.27], [102.6, 37.9], [95.8, 40.5], [93.5, 42.8], [89.2, 42.9], [83.0, 41.7], [80.3, 41.2], [76.0, 42.4], [72.3, 42.5],
@@ -223,7 +223,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'spawn', lon: 114.31, lat: 34.8, model: { kind: 'palace', hero: 'capitals/cap_song' }, label: lbl('东京开封府', 'Kaifeng') },
     wipe(960, 114.31, 34.8, RED),
     cap('960年，赵匡胤陈桥兵变，黄袍加身，建立宋朝。', '960: Zhao Kuangyin is proclaimed emperor at Chenqiao and founds the Song.'),
-    fly(110, 36, 60, 0.8), year(1100), { do: 'highlight', polity: 'bsong', dur: 3 },
+    fly(110, 36, 52, 0.84), year(1100), { do: 'highlight', polity: 'bsong', dur: 3 },
     cap('北宋与辽、西夏并立。', 'The Northern Song coexists with Liao and Western Xia.'),
   ],
 
@@ -250,7 +250,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'army', pts: [[109.0, 48.0], [112.5, 44.0], [115.0, 40.5], [116.6, 37.0], [117.4, 34.5]], color: '#1e8449', dur: 4.5, count: 50, unit: 'horse', follow: true },
     { do: 'clash', lon: 117.5, lat: 34.3, a: '#1e8449', b: '#b7950b', winner: 'a', angle: 90, dur: 4, count: 22, units: ['horse', 'mixed'], formations: ['wings', 'circle'] },
     year(1234), banner(117.5, 34.3, '金亡', 'Jin falls', '#1e8449', lbl('1234年', '1234')),
-    fly(113, 30, 60, 0.8),
+    fly(112, 32, 52, 0.84),
     { do: 'fleet', pts: [[114.2, 22.0], [113.4, 21.9], [113.08, 22.1]], model: 'warship', color: '#2471a3', count: 6, dur: 3, label: lbl('崖山', 'Yamen') },
     { do: 'fx', lon: 113.08, lat: 22.1, fx: 'fire', dur: 3, par: true },
     wipe(1280, 116.4, 39.9, '#1e8449', 4),
@@ -259,14 +259,14 @@ export const STORIES: Record<string, StoryStep[]> = {
   ],
 
   zhenghe: [
-    year(1405), title('郑和下西洋', 'Zheng He’s Voyages', '1405—1433年 · 七下西洋', '1405–1433 · seven voyages'), fly(118, 26, 50, 0.75),
+    year(1405), title('郑和下西洋', 'Zheng He’s Voyages', '1405—1433年 · 七下西洋', '1405–1433 · seven voyages'), fly(118, 25, 36, 0.84),
     cap('1405年，郑和率二百余艘船、两万七千余人从刘家港起航。', '1405: Zheng He sails from Liujiagang with over 200 ships and 27,000 men.'),
     { do: 'fleet', model: 'junk', dur: 14, color: '#d4ac0d', count: 7, keep: true, follow: true, label: lbl('郑和宝船', 'Treasure fleet'),
       pts: [[121.1, 31.6], [122.5, 29.5], [119.9, 25.9], [117.0, 22.5], [112.0, 17.5], [109.2, 13.8], [106.5, 8.5],
         [104.5, 3.2], [102.25, 2.2], [99.5, 4.2], [95.3, 5.8], [88.0, 6.0], [81.5, 5.8], [80.2, 6.0], [77.0, 8.0], [75.78, 11.25]] },
     { do: 'spawn', lon: 75.78, lat: 11.25, model: { kind: 'flag' }, label: lbl('古里', 'Calicut') },
     banner(75.78, 11.25, '古里', 'Calicut', '#d4ac0d', lbl('“西洋大国”', 'the great port of the western ocean')),
-    fly(98, 14, 110, 0.7),
+    fly(100, 20, 54, 0.84, 2.4),
     year(1433),
     cap('28年间七下西洋，最远到达非洲东海岸和红海沿岸。', 'Seven voyages in 28 years, reaching East Africa and the Red Sea.', 4),
   ],
@@ -313,7 +313,7 @@ export const STORIES: Record<string, StoryStep[]> = {
   ],
 
   opium_war: [
-    year(1840), title('鸦片战争', 'The Opium War', '1840—1842年 · 中国近代史的开端', '1840–1842 · the start of modern Chinese history'), fly(118, 28, 60, 0.8),
+    year(1840), title('鸦片战争', 'The Opium War', '1840—1842年 · 中国近代史的开端', '1840–1842 · the start of modern Chinese history'), fly(118, 28, 38, 0.85),
     cap('1840年6月，英国舰队封锁珠江口，鸦片战争爆发。', 'June 1840: a British fleet blockades the Pearl River; the Opium War begins.'),
     { do: 'fleet', model: 'warship', dur: 8, color: '#566573', count: 6, keep: true, follow: true, label: lbl('英国舰队', 'British fleet'),
       pts: [[114.2, 22.0], [117.5, 23.0], [120.0, 25.5], [122.1, 29.8]] },
@@ -338,7 +338,7 @@ export const STORIES: Record<string, StoryStep[]> = {
   ],
 
   russia_land: [
-    title('沙俄侵占中国领土', 'Russian Annexations', '1858—1864年', '1858–1864'), year(1857), fly(128, 47, 60, 0.85),
+    title('沙俄侵占中国领土', 'Russian Annexations', '1858—1864年', '1858–1864'), year(1857), fly(124, 44, 48, 0.85),
     cap('第二次鸦片战争期间，沙俄趁火打劫。', 'During the Second Opium War, Russia seizes its chance.'),
     year(1901), { do: 'highlight', polity: 'russia', dur: 4 },
     cap('通过不平等条约割占中国东北和西北领土150多万平方千米。', 'Unequal treaties take over 1.5 million km² in the north-east and north-west.', 4),
@@ -445,7 +445,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'clash', lon: 116.23, lat: 39.85, a: '#2e86c1', b: JP, angle: 270, dur: 5, count: 18, labels: [lbl('第29军', '29th Army'), lbl('日军', 'Japanese')] },
     banner(116.21, 39.85, '卢沟桥', 'Marco Polo Bridge', '#7b241c', lbl('“卢沟桥即其坟墓”', '“Lugou Bridge shall be our grave”')),
     cap('1937年7月7日，日军炮轰宛平城，中国守军奋起抵抗。', '7 July 1937: Japanese guns shell Wanping and Chinese troops fight back.'),
-    fly(112, 33, 70, 0.85),
+    fly(112, 34, 52, 0.85),
     wipe(1937, 116.21, 39.85, JP, 4.5),
     { do: 'highlight', polity: 'jp_occ', dur: 3 },
     cap('日本发动全面侵华战争，全民族抗战开始。', 'Japan launches full-scale invasion; the whole nation rises in resistance.'),
@@ -478,7 +478,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'wait', dur: 3.6 },
     { do: 'fx', lon: 118.78, lat: 32.06, fx: 'flag', color: PLA },
     banner(118.78, 32.06, '解放南京', 'Nanjing liberated', PLA, lbl('4月23日', '23 April')),
-    fly(114, 32, 60, 0.85),
+    fly(114, 33, 52, 0.85),
     wipe(1949, 118.78, 32.06, PLA, 4),
     cap('4月23日南京解放，国民党在大陆的统治宣告结束。', 'Nanjing is taken on 23 April; Nationalist rule on the mainland ends.'),
   ],
@@ -654,7 +654,7 @@ export function journeyStory(j: Journey): StoryStep[] {
       const span = Math.max((Math.max(...lons) - Math.min(...lons)) * 0.8, Math.max(...lats) - Math.min(...lats));
       const dur = Math.min(7, Math.max(2.5, span * 0.6));
       steps.push({ do: 'fly', lon: (Math.min(...lons) + Math.max(...lons)) / 2, lat: (Math.min(...lats) + Math.max(...lats)) / 2 - span * 0.12,
-        dist: Math.min(80, Math.max(16, span * 2.6 + 10)), tilt: 0.85, dur: 2, par: true });
+        dist: Math.min(56, Math.max(16, span * 2.2 + 10)), tilt: 0.85, dur: 2, par: true });
       if (s.year !== prev.year) steps.push({ do: 'year', year: s.year });
       steps.push(who === 'army'
         ? { do: 'army', pts, color: j.color, dur, count: 26, unit: 'mixed', keep: true, trail: true, ...(i === 1 ? { label: j.short } : {}) }
@@ -669,8 +669,8 @@ export function journeyStory(j: Journey): StoryStep[] {
   const lons = st.map(s => s.lon), lats = st.map(s => s.lat);
   const span = Math.max((Math.max(...lons) - Math.min(...lons)) * 0.8, Math.max(...lats) - Math.min(...lats));
   steps.push(
-    { do: 'fly', lon: (Math.min(...lons) + Math.max(...lons)) / 2, lat: (Math.min(...lats) + Math.max(...lats)) / 2 - span * 0.15,
-      dist: Math.min(110, Math.max(24, span * 2.4 + 12)), tilt: 0.8, dur: 3 },
+    { do: 'fly', lon: (Math.min(...lons) + Math.max(...lons)) / 2, lat: (Math.min(...lats) + Math.max(...lats)) / 2 - span * 0.12,
+      dist: Math.min(58, Math.max(24, span * 1.9 + 12)), tilt: 0.84, dur: 2.6 },
     { do: 'orbit', deg: 25, dur: 5, par: true },
     { do: 'caption', text: j.title, dur: 4 },
   );

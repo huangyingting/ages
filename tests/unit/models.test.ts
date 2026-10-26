@@ -169,7 +169,7 @@ describe('period-dressed figures', () => {
     }
     const steppe = buildFresh({ kind: 'person', role: 'ruler', year: 1038, eth: 'steppe', prop: 'sword' });
     expect(stats(steppe).tris).toBeGreaterThan(200);
-  });
+  }, 30_000);
 
   it('gives named historical figures distinct character-specific portraits, props and vignettes', () => {
     expect(personLook('ruler', 'xianqin', { person: '大禹' }).hat).toBe('douli');

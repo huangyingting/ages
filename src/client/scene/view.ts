@@ -150,7 +150,14 @@ export class View {
     ) return;
     this.constrainDirty = false;
     const W = g.width / 2, D = g.depth / 2;
-    cam.updateMatrixWorld();
+    const hadOffset = Math.abs(this.inset.x) >= 0.5 || Math.abs(this.inset.y) >= 0.5;
+    if (hadOffset) cam.clearViewOffset();
+    const sph = new THREE.Spherical().setFromVector3(cam.position.clone().sub(t));
+    const rotated = Math.abs(sph.theta) > 1e-4;
+    if (rotated) {
+      cam.position.set(t.x, sph.radius * Math.cos(sph.phi), t.z + sph.radius * Math.sin(sph.phi));
+      cam.lookAt(t);
+    }
     for (let iter = 0; iter < 4; iter++) {
       cam.updateMatrixWorld();
       let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
@@ -166,18 +173,28 @@ export class View {
         z0 = Math.min(z0, this.hit.z); z1 = Math.max(z1, this.hit.z);
       }
       if (!isFinite(x0)) break;
-      if (!this.flight) {
-        const fit = Math.min(1, (2 * W) / (x1 - x0), (2 * D) / (z1 - z0));
-        if (fit < 0.999) {
-          cam.position.sub(t).multiplyScalar(fit * 0.995).add(t);
-          continue;
-        }
+      const fit = Math.min(1, (2 * W) / (x1 - x0), (2 * D) / (z1 - z0));
+      if (fit < 0.999) {
+        const s = fit * 0.995;
+        cam.position.sub(t).multiplyScalar(s).add(t);
+        x0 = t.x + (x0 - t.x) * s; x1 = t.x + (x1 - t.x) * s;
+        z0 = t.z + (z0 - t.z) * s; z1 = t.z + (z1 - t.z) * s;
       }
-      const dx = x0 < -W ? -W - x0 : x1 > W ? W - x1 : 0;
-      const dz = z0 < -D ? -D - z0 : z1 > D ? D - z1 : 0;
-      if (Math.abs(dx) < 1e-4 && Math.abs(dz) < 1e-4) break;
+      const dx = x0 < -W && x1 > W ? -0.5 * (x0 + x1) : x0 < -W ? -W - x0 : x1 > W ? W - x1 : 0;
+      const dz = z0 < -D && z1 > D ? -0.5 * (z0 + z1) : z0 < -D ? -D - z0 : z1 > D ? D - z1 : 0;
+      if (fit >= 0.999 && Math.abs(dx) < 1e-4 && Math.abs(dz) < 1e-4) break;
       t.x += dx; t.z += dz;
       cam.position.x += dx; cam.position.z += dz;
+    }
+    if (rotated) {
+      sph.radius = cam.position.distanceTo(t);
+      cam.position.setFromSpherical(sph).add(t);
+      cam.lookAt(t);
+    }
+    if (hadOffset) {
+      const el = this.canvas.parentElement ?? this.canvas;
+      const w = Math.max(1, el.clientWidth), h = Math.max(1, el.clientHeight);
+      cam.setViewOffset(w, h, this.inset.x, this.inset.y, w, h);
     }
     cam.updateMatrixWorld();
     this.lastCamPos.copy(cam.position);
@@ -214,7 +231,14 @@ export class View {
     // take the short way round
     while (heading - from.heading > Math.PI) heading -= Math.PI * 2;
     while (heading - from.heading < -Math.PI) heading += Math.PI * 2;
-    const to = { ...p, heading };
+    this.apply({ ...p, heading });
+    this.constrainDirty = true;
+    this.constrain();
+    const to = this.pose();
+    while (to.heading - from.heading > Math.PI) to.heading -= Math.PI * 2;
+    while (to.heading - from.heading < -Math.PI) to.heading += Math.PI * 2;
+    this.apply(from);
+    this.constrainDirty = true;
     return new Promise(done => { this.flight = { from, to, t: 0, dur: Math.max(0.01, dur), done }; });
   }
 
@@ -230,13 +254,16 @@ export class View {
     f.t = Math.min(1, f.t + dt / f.dur);
     const k = ease(f.t);
     const lerp = (a: number, b: number) => a + (b - a) * k;
+    const lon = lerp(f.from.lon, f.to.lon), lat = lerp(f.from.lat, f.to.lat);
     const travel = Math.hypot((f.to.lon - f.from.lon) * this.geo.kx, f.to.lat - f.from.lat);
-    const hop = Math.sin(Math.PI * k) * Math.min(40, travel * 0.6) * (travel > 6 ? 1 : 0);
+    const baseDist = lerp(f.from.dist, f.to.dist);
+    const edgeClear = Math.max(0, Math.min(1, (28 - Math.abs(this.geo.x(lon))) / 12, (20 - Math.abs(this.geo.z(lat))) / 10, (38 - baseDist) / 12));
+    const hop = Math.sin(Math.PI * k) * Math.min(18, travel * 0.35) * (travel > 6 ? edgeClear : 0);
     this.apply({
-      lon: lerp(f.from.lon, f.to.lon), lat: lerp(f.from.lat, f.to.lat),
-      dist: lerp(f.from.dist, f.to.dist) + hop, tilt: lerp(f.from.tilt, f.to.tilt), heading: lerp(f.from.heading, f.to.heading),
+      lon, lat,
+      dist: baseDist + hop, tilt: lerp(f.from.tilt, f.to.tilt), heading: lerp(f.from.heading, f.to.heading),
     });
-    if (f.t >= 1) { this.flight = null; f.done(); }
+    if (f.t >= 1) { this.flight = null; this.controls.update(); f.done(); }
   }
 
   get flying(): boolean { return !!this.flight; }

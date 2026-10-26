@@ -93,7 +93,7 @@ class App {
       onYear: y => this.timeline.set(y, false, false),
       onState: s => {
         this.caption.state(s);
-        this.root.classList.toggle('story-on', s !== 'idle');
+        if (s !== 'idle') this.root.classList.add('story-on');
         this.atlas.setStoryMode(s !== 'idle');
         this.card.setActive(s === 'idle');
         if (s === 'idle') { this.cine?.classList.remove('on'); this.root.classList.remove('cine-on'); }
@@ -418,6 +418,7 @@ class App {
         if (this.player.state !== 'idle') return;
         const hadFocus = this.caption.el.contains(document.activeElement);
         this.caption.show(false);
+        this.root.classList.remove('story-on');
         if (hadFocus) this.card.el.querySelector<HTMLElement>('[data-act=play]')?.focus({ preventScroll: true });
       }, 2500);
     }
@@ -432,7 +433,12 @@ class App {
     this.root.classList.add('story-on');
     this.caption.pauseBtn.focus({ preventScroll: true });
     const done = await this.player.playSteps(journeyStory(j));
-    if (done) setTimeout(() => { if (this.player.state === 'idle') this.caption.show(false); }, 2500);
+    if (done) setTimeout(() => {
+      if (this.player.state === 'idle') {
+        this.caption.show(false);
+        this.root.classList.remove('story-on');
+      }
+    }, 2500);
   }
 
   stopStory(): void {
