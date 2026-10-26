@@ -57,6 +57,12 @@ export class Reader {
     const b = this.el.querySelector<HTMLElement>('.rd-fold');
     if (b) { b.title = t('fold'); b.setAttribute('aria-label', t('fold')); }
     this.el.setAttribute('aria-label', t('readTitle'));
+    // the article's chrome (reading time, "open in Wikipedia", error/retry) is in the UI language: rebuild it from the
+    // cached fetch, keeping the reading position
+    if (this.open && this.wiki) {
+      const top = this.body.scrollTop;
+      void this.load().then(() => { this.body.scrollTop = top; });
+    }
   }
 
   private renderSeg(): void {

@@ -8,9 +8,11 @@ import { h, icon } from './dom.ts';
 export class Music {
   readonly el: HTMLButtonElement;
   private audio: HTMLAudioElement | null = null;
-  private i = load<number>('track', 0) % MUSIC.length;
+  private i = load<number>('track', 0, v => Number.isInteger(v) && (v as number) >= 0) % MUSIC.length;
   private name: HTMLElement;
   playing = false;
+  /** tracks that failed in a row: offline, every one fails, so stop instead of cycling forever */
+  private fails = 0;
 
   constructor() {
     this.name = h('span', { class: 'mu-t' });
@@ -30,7 +32,11 @@ export class Music {
         this.audio = new Audio();
         this.audio.volume = 0.5;
         this.audio.addEventListener('ended', () => this.next());
-        this.audio.addEventListener('error', () => { if (this.playing) this.next(); });
+        this.audio.addEventListener('playing', () => { this.fails = 0; });
+        this.audio.addEventListener('error', () => {
+          if (!this.playing) return;
+          if (++this.fails >= MUSIC.length) { this.fails = 0; this.toggle(false); } else this.next();
+        });
         this.audio.src = this.src();
       }
       void this.audio.play().catch(() => { this.playing = false; this.relabel(); });

@@ -31,7 +31,7 @@ export class View {
   projVersion = 0;
 
   constructor(readonly canvas: HTMLCanvasElement, readonly geo: Geo, readonly lowfx: boolean) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !lowfx, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: false });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !lowfx, alpha: true, powerPreference: lowfx ? 'low-power' : 'high-performance', preserveDrawingBuffer: false });
     this.maxRatio = Math.min(window.devicePixelRatio || 1, lowfx ? 1 : 2);
     this.ratio = this.maxRatio;
     this.renderer.setPixelRatio(this.ratio);

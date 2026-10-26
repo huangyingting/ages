@@ -54,6 +54,7 @@ export class LessonView {
   get id(): string | null { return this.lesson?.id ?? (this.test ? `test:${this.test.book}-${this.test.unit}` : null); }
 
   start(l: Lesson): void {
+    this.clearMap();
     this.lesson = l;
     this.test = null;
     this.phase = 'steps';
@@ -64,6 +65,7 @@ export class LessonView {
   }
 
   startTest(book: Book, unit: number): void {
+    this.clearMap();
     this.lesson = null;
     this.test = { book, unit };
     this.check();
@@ -96,7 +98,12 @@ export class LessonView {
     this.render();
   }
 
-  relabel(): void { if (this.open) this.render(false); }
+  /** In the new language, without moving the map; an answered question keeps its marked options until Next (rebuilding
+   * it would offer the question again). */
+  relabel(): void {
+    if (!this.open || (this.phase === 'check' && this.got[this.i] != null)) return;
+    this.render(false);
+  }
 
   private check(): void {
     this.phase = 'check';
@@ -128,7 +135,7 @@ export class LessonView {
       iconBtn('close', t('close'), () => this.stop()),
       h('i', { class: 'ls-prog', style: `--p:${at / Math.max(total, 1)}` }));
     if (this.phase === 'steps') this.renderStep(this.lesson!.steps[this.i], move);
-    else if (this.phase === 'check') this.renderQuestion();
+    else if (this.phase === 'check') this.renderQuestion(move);
     else this.renderDone();
     this.body.scrollTop = 0;
   }
@@ -183,7 +190,7 @@ export class LessonView {
     return h('p', { class: `ls-res ${ok ? 'ok' : 'bad'}` }, h('b', { text: t(ok ? 'pqRight' : 'pqWrong') }), h('span', { text: tr(q.why, lang) }));
   }
 
-  private renderQuestion(): void {
+  private renderQuestion(move = true): void {
     const L = lang;
     const q = this.qs[this.i];
     const out = h('div', { class: 'ls-out' });
@@ -234,7 +241,7 @@ export class LessonView {
       nodes.push(h('p', { class: 'ls-hint', text: t('lsOrderHint') }), h('div', { class: 'ls-opts' }, ...btns), list, h('div', { class: 'ls-acts' }, undo, ok));
     } else {
       nodes.push(h('p', { class: 'ls-hint', text: t('lsPick') }));
-      void this.atlas.home();
+      if (move) void this.atlas.home();
       this.atlas.setPickMode((lon, lat) => {
         this.atlas.setPickMode(null);
         const km = Math.round(distKm([lon, lat], [q.lon, q.lat]));

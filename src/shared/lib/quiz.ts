@@ -48,8 +48,14 @@ export function makeQuiz(events: HistEvent[], opts: { n?: number; seed?: number;
     if (kind === 1) {
       return { type: 'where', event: e.id, lon: e.lon, lat: e.lat, prompt: { zh: `在地图上找到「${e.title.zh}」的发生地`, en: `Find where “${e.title.en}” happened` } };
     }
-    if (kind === 2 && pool.length >= 4) {
-      const set = shuffle([e, ...shuffle(pool.filter(x => x.id !== e.id && Math.abs(x.year - e.year) > 3), r).slice(0, 3)], r);
+    // every pair at least 4 years apart, so the order is never a tie
+    const chosen = [e];
+    if (kind === 2) for (const x of shuffle(pool, r)) {
+      if (chosen.length === 4) break;
+      if (chosen.every(c => Math.abs(c.year - x.year) > 3)) chosen.push(x);
+    }
+    if (chosen.length === 4) {
+      const set = shuffle(chosen, r);
       return { type: 'order', events: set.map(x => x.id), answer: set.slice().sort((a, b) => a.year - b.year).map(x => x.id),
         prompt: { zh: '按时间先后排列这些事件', en: 'Put these events in time order' } };
     }

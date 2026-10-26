@@ -94,9 +94,11 @@ export class Preview {
     if (this.model) { this.turn.remove(this.model); this.model = null; }
     this.canvas.parentElement?.classList.add('pv-loading');
     this.dirty = true;
-    if (!recipe || !this.ensure()) return;
+    // nothing to show, or it failed (e.g. offline): drop the spinner, and forget the key so reopening retries
+    const fail = () => { if (id !== this.req) return; this.canvas.parentElement?.classList.remove('pv-loading'); this.key = ''; };
+    if (!recipe || !this.ensure()) return fail();
     let g: THREE.Group;
-    try { g = await instance(recipe, true); } catch { return; }
+    try { g = await instance(recipe, true); } catch { return fail(); }
     if (id !== this.req) return;
     g.traverse(o => {
       const mesh = o as THREE.Mesh;

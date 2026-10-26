@@ -1,0 +1,18 @@
+{
+  "name": "长河 · 3D 中国历史地图 | Ages",
+  "short_name": "长河 Ages",
+  "description": "在三维山河上读中国历史：历代疆域、都城、人物行迹与动画故事。An interactive 3D atlas of Chinese history.",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#15181d",
+  "theme_color": "#15181d",
+  "categories": ["education"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

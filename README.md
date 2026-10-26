@@ -32,7 +32,9 @@ It is an original 3D re-imagining inspired by [jiangshan-map](https://github.com
 * **Modern interface** in three levels, with the full-screen relief map always in view: (1) text set straight on the map over soft scrims — the headline (dynasty · year · reign) top left, one grouped toolbar plate top right — search · **时期详情** | **hub** (tabs: study — course, quiz; journeys) · **settings** (01 map style, 02 layers, 03 sound & display, 04 language, help) — with the period's figures under it, the line key bottom left, the phase line and the timeline bottom centre; (2) one side panel on the left, between the headline and the line key, whose views stack — what is being studied (a lesson, the quiz, the card with its live 3D model); the card's W button unfolds the Wikipedia article to its right and folds it back, as in pocket-planet; (3) popovers, one at a time (时期详情, hub, settings), and dialogs (the course picker, help). There is no right-hand drawer. The panel steps aside during stories (captions take the phase line's place), and the camera re-frames itself so the subject stays beside it. On phones the panel is a bottom sheet above the timeline.
 * **No anachronistic names**: the map only prints a place name in the years it was actually used (e.g. 西安 only from 1369, 上海 from 1292, 北京 from 1403); before that it shows the period name (长安, 汴京, 燕京 …) or nothing.
 * **Map styles**: paper (light relief, default), ink (dark) and plain.
-* **Shareable deep links**: `#e=<event>`, `#y=<year>`, `#p=<place>`, `#person=<id>`, `#life=<id>`, `#j=<journey>`, `&lang=zh|en`. The same keys also work in the query string (`?year=1415`).
+* **Shareable deep links**: `#e=<event>`, `#y=<year>`, `#p=<place>`, `#person=<id>`, `#life=<id>`, `#j=<journey>` (kept in the address bar while the journey plays), `#lesson=<id>`, `&lang=zh|en`. The same keys also work in the query string (`?year=1415`). Every card has a share button: the system share sheet on phones, a copied link elsewhere.
+* **Installable and offline**: a web app manifest and a service worker (`src/client/sw.js`, versioned per build) let the app be installed, and after the first visit it reloads without a network; only Wikipedia, finer terrain and music need one.
+* **Quality setting**: Settings › 03 offers 高画质 / 省电流畅 (battery saver: coarser terrain, DPR 1, no antialiasing), remembered on the device; the renderer also lowers its resolution on its own when the frame rate drops.
 
 ## Quick start
 ```bash
@@ -46,7 +48,8 @@ The app is fully static: deploy `dist/` to any static host. Pushes to `main` pub
 ## URL flags
 | Flag | Effect |
 |---|---|
-| `?lowfx=1` | low-cost rendering (DPR 1, no antialiasing); useful on old devices and under software GL |
+| `?lowfx=1` | low-cost rendering (DPR 1, no antialiasing) for this visit, whatever the saved quality setting; useful under software GL |
+| `?map=paper\|ink\|plain` | map style for this visit (otherwise the saved choice, else paper) |
 | `#e=<event id>` | open an event, e.g. `#e=zhenghe`, `#e=qin_unify` |
 | `#y=<year>` | jump to a year (negative = BCE), e.g. `#y=-221`, `#y=1405` |
 | `&lang=zh\|en` | UI and content language (otherwise the saved choice or the browser language) |

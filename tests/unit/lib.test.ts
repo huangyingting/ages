@@ -71,6 +71,13 @@ describe('quiz', () => {
       if (q.type === 'order') expect([...q.answer].sort()).toEqual([...q.events].sort());
     }
   });
+  it('never asks to order events from the same few years', () => {
+    for (let seed = 1; seed <= 40; seed++) for (const q of makeQuiz(EVENTS, { seed, n: 9 })) {
+      if (q.type !== 'order') continue;
+      const ys = q.answer.map(id => EVENTS.find(e => e.id === id)!.year);
+      for (let k = 1; k < ys.length; k++) expect(ys[k] - ys[k - 1]).toBeGreaterThan(3);
+    }
+  });
   it('filters by textbook', () => {
     const q = makeQuiz(EVENTS, { seed: 1, n: 6, book: 'g8b' });
     const ids = q.flatMap(x => ('event' in x ? [x.event] : []));

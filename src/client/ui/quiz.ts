@@ -19,6 +19,9 @@ export class Quiz {
   private score = 0;
   private book: Book | '' = '';
   private mode: 'events' | 'locate' = 'events';
+  /** where the quiz is, so a language switch re-renders it in place */
+  private phase: 'setup' | 'ask' | 'done' = 'setup';
+  private answered = false;
   onClose: () => void = () => {};
   /** moves the whole app (timeline + map) to a question's year */
   onYear: (y: number) => void = y => this.atlas.setYear(y);
@@ -40,6 +43,8 @@ export class Quiz {
   }
 
   private setup(): void {
+    this.phase = 'setup';
+    this.atlas.setPickMode(null);
     const sel = h('select', { 'aria-label': t('quizBook') },
       h('option', { value: '', text: t('allBooks') }),
       ...(Object.keys(BOOKS) as Book[]).map(b => h('option', { value: b, text: tr(BOOKS[b].name, lang) })));
@@ -64,6 +69,8 @@ export class Quiz {
   }
 
   private ask(): void {
+    this.phase = 'ask';
+    this.answered = false;
     this.atlas.setPickMode(null);
     this.atlas.fx.clear('story');
     const q = this.qs[this.i];
@@ -73,6 +80,7 @@ export class Quiz {
     const next = h('button', { type: 'button', class: 'btn primary', 'data-act': 'next', hidden: true, text: t('nextQ'), onclick: () => { this.i++; this.ask(); } });
     const nodes: Node[] = [this.head(`${this.i + 1}/${this.qs.length}`), h('p', { class: 'qz-q', text: tr(q.prompt, L) })];
     const finish = (ok: boolean, msg: string, pts = ok ? 1 : 0) => {
+      this.answered = true;
       this.score += pts;
       fb.textContent = msg;
       fb.className = 'qz-fb ' + (ok ? 'ok' : 'no');
@@ -167,6 +175,7 @@ export class Quiz {
   }
 
   private finish(): void {
+    this.phase = 'done';
     this.atlas.setPickMode(null);
     const locate = this.mode === 'locate';
     if (!locate) this.progress.quiz(this.score);
@@ -179,5 +188,13 @@ export class Quiz {
       h('div', { class: 'qz-row' }, h('button', { type: 'button', class: 'btn primary', text: t('again'), onclick: () => this.start() })));
   }
 
-  relabel(): void { if (this.open) this.setup(); }
+  /** In the new language: the start screen, the current question while unanswered (an answered one keeps its marked
+   * options until Next), or the score. */
+  relabel(): void {
+    this.el.setAttribute('aria-label', t('quizTitle'));
+    if (!this.open) return;
+    if (this.phase === 'setup') this.setup();
+    else if (this.phase === 'done') this.finish();
+    else if (!this.answered) this.ask();
+  }
 }

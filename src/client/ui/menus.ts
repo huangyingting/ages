@@ -19,6 +19,8 @@ export class SettingsMenu {
   onHelp: () => void = () => {};
   /** sound & display controls (music, fullscreen) */
   extra: HTMLElement | null = null;
+  /** rendering quality (low = 省电: coarser terrain, DPR 1, no antialiasing); applied by reloading */
+  quality: { low: boolean; pick: (low: boolean) => void } | null = null;
   constructor(private layers: Layers, public surface: Surface) {
     this.el = h('div', { class: 'pop menu settings', hidden: true, role: 'dialog', 'aria-label': t('settings') });
     this.render();
@@ -39,10 +41,15 @@ export class SettingsMenu {
       type: 'button', role: 'radio', class: l === lang ? 'on' : '', 'aria-checked': String(l === lang), 'data-lang': l, text: name,
       onclick: () => { if (l !== lang) this.onLang(l); },
     })));
+    const q = this.quality;
+    const quality = q ? h('div', { class: 'seg quality', role: 'radiogroup', 'aria-label': t('quality') }, ...([[false, 'qHigh'], [true, 'qLow']] as const).map(([low, k]) => h('button', {
+      type: 'button', role: 'radio', class: low === q.low ? 'on' : '', 'aria-checked': String(low === q.low), 'data-low': String(low), text: t(k),
+      onclick: () => { if (low !== q.low) q.pick(low); },
+    }))) : null;
     this.el.replaceChildren(
       sec(1, t('mapStyle')), sw,
       sec(2, t('layers')), layers,
-      ...(this.extra ? [sec(3, t('display')), this.extra] : []),
+      ...(this.extra ? [sec(3, t('display')), this.extra, ...(quality ? [quality] : [])] : []),
       sec(this.extra ? 4 : 3, t('language')), langs,
       h('footer', { class: 'menu-foot' }, h('button', { type: 'button', class: 'b-help2', onclick: () => this.onHelp() }, icon('help'), h('span', { text: t('helpTitle') }))));
   }
@@ -54,7 +61,7 @@ type HubTab = 'study' | 'journeys';
 /** Study hall popover, in tabs: 学习 (the course, the quiz) and 人物行迹 (the journeys of historical figures). */
 export class HubMenu {
   readonly el: HTMLElement;
-  private tab: HubTab = load<HubTab>('hubTab', 'study');
+  private tab: HubTab = load<HubTab>('hubTab', 'study', v => v === 'study' || v === 'journeys');
   onPlay: (j: Journey) => void = () => {};
   onPick: (what: 'learn' | 'quiz') => void = () => {};
   /** the course's progress, e.g. ✓ 3/31 */
@@ -103,7 +110,7 @@ export class Help {
     this.el.replaceChildren(h('div', { class: 'modal-box help' },
       h('header', {}, h('h2', { text: t('helpTitle') }), iconBtn('close', t('close'), () => this.toggle(false))),
       h('ul', {}, ...(['helpControls', 'helpTimeline', 'tlHint', 'helpStory', 'helpKeys'] as Key[]).map(k => h('li', { text: t(k) }))),
-      h('div', { class: 'legend' }, ...(['politics', 'war', 'reform', 'culture', 'science', 'economy', 'diplomacy', 'revolution'] as const).map(k => h('span', { class: `lg k-${k}` }, h('i'), h('span', { text: kindName(k) })))),
+      h('div', { class: 'legend' }, ...(['prehistory', 'politics', 'war', 'reform', 'culture', 'science', 'economy', 'diplomacy', 'revolution'] as const).map(k => h('span', { class: `lg k-${k}` }, h('i'), h('span', { text: kindName(k) })))),
       h('p', { class: 'small', text: t('disclaimer') }),
       h('p', { class: 'small', text: t('credits') }),
       h('p', { class: 'small', text: t('creditsJsm') }),

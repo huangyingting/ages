@@ -47,6 +47,7 @@ const PATHS = {
   list: 'M4 5h2v2H4zm4 0h12v2H8zm-4 6h2v2H4zm4 0h12v2H8zm-4 6h2v2H4zm4 0h12v2H8z',
   down: 'M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z',
   up: 'M7.4 15.4 12 10.8l4.6 4.6L18 14l-6-6-6 6z',
+  link: 'M3.9 12c0-1.7 1.4-3.1 3.1-3.1h4V7H7a5 5 0 0 0 0 10h4v-1.9H7c-1.7 0-3.1-1.4-3.1-3.1zM8 13h8v-2H8zm9-6h-4v1.9h4c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 0-10z',
 } as const;
 export type IconName = keyof typeof PATHS;
 

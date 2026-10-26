@@ -34,7 +34,8 @@ import { initTips } from './ui/tip.ts';
 import { BootIntro } from './ui/intro.ts';
 
 const params = new URLSearchParams(location.search);
-const lowfx = params.has('lowfx') || (navigator.hardwareConcurrency ?? 4) <= 2;
+// ?lowfx forces low cost; otherwise the saved Settings choice, else low only on very weak devices
+const lowfx = params.has('lowfx') || (load<'low' | 'high' | null>('quality', null, v => v === 'low' || v === 'high') ?? ((navigator.hardwareConcurrency ?? 4) <= 2 ? 'low' : 'high')) === 'low';
 
 /** Application shell: wires the atlas, timeline, side panel (lesson, quiz, card with its reader), popovers and story player together. */
 class App {
@@ -235,6 +236,15 @@ class App {
     fullBtn.hidden = !document.fullscreenEnabled;
     document.addEventListener('fullscreenchange', () => fullBtn.classList.toggle('on', !!document.fullscreenElement));
     this.settings.extra = h('div', { class: 'set-extra' }, this.music.el, fullBtn);
+    this.settings.quality = {
+      low: lowfx,
+      pick: low => {
+        save('quality', low ? 'low' : 'high');
+        const u = new URL(location.href);
+        u.searchParams.delete('lowfx');
+        location.replace(u.href);
+      },
+    };
     this.settings.render();
     const tools = h('div', { class: 'tools' }, this.search.el, this.period.btn, h('i', { class: 'tools-sep', 'aria-hidden': 'true' }), hubBtn, setBtn);
     const pops = [this.period.view, this.hub.el, this.settings.el];
@@ -440,7 +450,10 @@ class App {
     this.caption.show(true);
     this.root.classList.add('story-on');
     this.caption.pauseBtn.focus({ preventScroll: true });
+    writeLink({ journey: j.id, lang });
     const done = await this.player.playSteps(journeyStory(j));
+    // finished or stopped (not replaced by another story or a card): the address returns to the year
+    if (readLink().journey === j.id && this.player.state === 'idle') writeLink({ year: this.timeline.year, lang });
     if (done) setTimeout(() => {
       if (this.player.state === 'idle') {
         this.caption.show(false);
@@ -546,7 +559,9 @@ class App {
     this.period.relabel();
     this.reader.relabel();
     this.music.relabel();
-    writeLink(this.card.event ? { event: this.card.event.id, lang: l } : this.lesson.open && this.lesson.id && !this.lesson.id.startsWith('test:') ? { lesson: this.lesson.id, lang: l } : { year: this.timeline.year, lang: l });
+    this.caption.relabel();
+    const journey = this.player.state !== 'idle' ? readLink().journey : undefined;
+    writeLink(journey ? { journey, lang: l } : this.card.event ? { event: this.card.event.id, lang: l } : this.lesson.open && this.lesson.id && !this.lesson.id.startsWith('test:') ? { lesson: this.lesson.id, lang: l } : { year: this.timeline.year, lang: l });
   }
 
   /** Fits the side panel between the headline and the line key, and tells the camera how much of the screen it (or the
@@ -617,6 +632,11 @@ function fatal(msg: string, retry: boolean): void {
   root.append(h('div', { class: 'nogl', role: 'alert' },
     h('p', { text: msg }),
     retry ? h('button', { type: 'button', class: 'btn primary', text: t('reload'), onclick: () => location.reload() }) : null));
+}
+
+// offline support (production builds only; see src/client/sw.js)
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  addEventListener('load', () => { navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {}); });
 }
 
 const root = document.getElementById('app')!;

@@ -8,6 +8,7 @@ import type { Era, EventKind, HistEvent, I18n, ModelRecipe, Place, Wiki, Year } 
 import { eraAt, formatYear } from '../../shared/lib/timeline.ts';
 import { kindName, lang, t } from '../lib/i18n.ts';
 import type { Progress } from '../lib/storage.ts';
+import { shareLink } from '../lib/link.ts';
 import { fill, h, icon, iconBtn } from './dom.ts';
 import { Preview } from './preview.ts';
 import { capitalModel, personModel, placeModel } from '../../shared/data/heroes.ts';
@@ -131,7 +132,17 @@ export class Card {
     fill(this.nav,
       prev ? iconBtn('prev', t('prev'), prev) : null,
       next ? iconBtn('next', t('next'), next) : null,
+      iconBtn('link', t('share'), e => void this.share(e.currentTarget as HTMLElement), 'card-share'),
       iconBtn('close', t('close'), () => this.hooks.close(), 'card-x'));
+  }
+  private async share(b: HTMLElement): Promise<void> {
+    const subject = this.body.querySelector('h2')?.textContent;
+    const r = await shareLink(subject ? `${subject} · ${document.title}` : document.title);
+    if (r !== 'copied') return;
+    b.classList.add('on');
+    b.title = t('copied');
+    b.setAttribute('aria-label', t('copied'));
+    setTimeout(() => { b.classList.remove('on'); b.title = t('share'); b.setAttribute('aria-label', t('share')); }, 2000);
   }
   private eyebrow(...parts: (string | Node | null | undefined)[]): HTMLElement {
     const kids = parts.filter(Boolean) as (string | Node)[];

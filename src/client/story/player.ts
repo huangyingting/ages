@@ -30,6 +30,8 @@ export class StoryPlayer {
   private set(s: StoryPlayer['state']): void {
     this.state = s;
     this.atlas.fx.paused = s === 'paused';
+    // narration follows the player (partial Web Speech implementations throw)
+    try { if (s === 'paused') window.speechSynthesis?.pause(); else if (s === 'playing') window.speechSynthesis?.resume(); } catch { /* ignore */ }
     this.hooks.onState(s);
   }
 
@@ -132,6 +134,8 @@ export class StoryPlayer {
     // completing pending tweens lets awaiting steps return; story items stay on the map
     this.atlas.fx.finishTweens();
     this.atlas.view.cancelFlight();
+    // a caption waits for its narration too: cut the sentence short so Skip moves on at once
+    try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
   }
 
   stop(): void {

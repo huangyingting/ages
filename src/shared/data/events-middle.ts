@@ -171,7 +171,7 @@ export const EVENTS_MIDDLE: HistEvent[] = [
   ev({ id: 'yuan_found', y: 1271, end: 1279, k: 'politics', at: 'beijing', w: 1, m: 'palace', c: 'g7b.2 hs1.3', who: [['忽必烈', 'Kublai Khan']],
     t: ['元朝建立与统一', 'The Yuan dynasty unifies China'],
     s: ['1271年忽必烈定国号为元，次年定都大都。1276年元军攻占临安，1279年崖山海战后南宋灭亡，元朝统一全国。',
-      'Kublai Khan named his dynasty Yuan in 1271 with Dadu as capital. Lin’an fell in 1276 and the Song’s last fleet was destroyed at Yamen in 1279.'],
+      'Kublai Khan named his dynasty Yuan in 1271 and made Dadu his capital the next year. Lin’an fell in 1276 and the Song’s last fleet was destroyed at Yamen in 1279.'],
     p: [['1271年定国号元', 'Yuan named 1271'], ['都大都', 'capital Dadu'], ['1279年统一全国', 'unification 1279'], ['文天祥“人生自古谁无死”', 'Wen Tianxiang’s loyalty']],
     wiki: ['元朝', 'Yuan dynasty'] }),
   ev({ id: 'xingsheng', y: 1280, k: 'reform', at: 'lhasa', w: 1, m: 'flag', c: 'g7b.2 hs1.3',

@@ -30,8 +30,33 @@ export function writeLink(s: LinkState): void {
   else if (s.place) { p.set('p', s.place); if (s.year != null) p.set('y', String(Math.round(s.year))); }
   else if (s.person) p.set('person', s.person);
   else if (s.life) p.set('life', s.life);
+  else if (s.journey) p.set('j', s.journey);
   else if (s.year != null) p.set('y', String(Math.round(s.year)));
   if (s.lang) p.set('lang', s.lang);
   const h = '#' + p.toString();
   if (h !== location.hash) history.replaceState(null, '', h === '#' ? location.pathname + location.search : h);
+}
+
+/** The address to share: the current deep link (kept up to date by writeLink) without device-only flags such as ?lowfx. */
+export function shareUrl(): string {
+  const u = new URL(location.href);
+  u.searchParams.delete('lowfx');
+  return u.href;
+}
+
+/** Shares the current view: the system share sheet on touch devices, otherwise the clipboard. Resolves to 'copied',
+ * 'shared' or null (cancelled / unavailable). */
+export async function shareLink(title: string): Promise<'copied' | 'shared' | null> {
+  const url = shareUrl();
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+    try { await navigator.share({ title, url }); return 'shared'; } catch { return null; }
+  }
+  try { await navigator.clipboard.writeText(url); return 'copied'; } catch { /* insecure context or denied: fall back */ }
+  const ta = Object.assign(document.createElement('textarea'), { value: url, readOnly: true });
+  ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+  document.body.append(ta);
+  ta.select();
+  const ok = document.execCommand('copy');
+  ta.remove();
+  return ok ? 'copied' : null;
 }

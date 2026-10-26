@@ -244,8 +244,11 @@ test.describe('Ages atlas', () => {
     await page.locator('[data-journey=sushi]').click();
     await expect(page.locator('.caption')).toBeVisible();
     await expect.poll(() => page.evaluate(() => (window as any).__atlas.player.state)).toBe('playing');
+    // the address bar shares the journey while it plays, and returns to the year when it is stopped
+    await expect.poll(() => page.evaluate(() => location.hash)).toBe('#j=sushi&lang=zh');
     await page.locator('.caption [aria-label=停止]').click();
     await expect.poll(() => page.evaluate(() => (window as any).__atlas.player.state)).toBe('idle');
+    await expect.poll(() => page.evaluate(() => location.hash)).toMatch(/^#y=-?\d+&lang=zh$/);
 
     await page.locator('.search .q').fill('汴梁');
     await page.locator('.hits li', { hasText: '开封' }).first().click();
@@ -574,6 +577,48 @@ test.describe('Ages atlas', () => {
     await expect(ls.locator('.ls-k')).toContainText('Unit 1');
     await page.keyboard.press('Escape');
     await expect(ls).toBeHidden();
+  });
+
+  test('works offline after the first visit, and switches rendering quality in settings', async ({ browser }) => {
+    const ctx = await browser.newContext({ serviceWorkers: 'allow', viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    const errs: string[] = [];
+    page.on('pageerror', e => errs.push(e.message));
+    await openApp(page, 'y=1405');
+    await expect(page.locator('link[rel=manifest]')).toHaveAttribute('href', /manifest\.webmanifest$/);
+    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller), { timeout: 60_000 }).toBe(true);
+    // the worker precached the whole build at install, model packs of eras not yet visited included
+    const cached = await page.evaluate(async () => {
+      const keys = await Promise.all((await caches.keys()).map(async k => (await (await caches.open(k)).keys()).map(r => new URL(r.url).pathname)));
+      return keys.flat();
+    });
+    expect(cached).toContain('/');
+    expect(cached).toContain('/data/terrain/east-asia.png');
+    expect(cached.filter(p => /^\/assets\/life-food-.*\.js$/.test(p)).length).toBeGreaterThan(0);
+    await ctx.setOffline(true);
+    await page.goto('about:blank');
+    await openApp(page, 'e=zhenghe&lang=zh');
+    expect((await state(page)).event).toBe('zhenghe');
+    await ctx.setOffline(false);
+
+    // the card's share button copies the deep link, minus device flags
+    await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const share = page.locator('.card-nav .card-share');
+    await share.click();
+    await expect(share).toHaveAttribute('aria-label', '链接已复制');
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toMatch(/#e=zhenghe&lang=zh$/);
+    expect(copied).not.toContain('lowfx');
+
+    // 03 sound & display: quality, saved and applied by reloading without ?lowfx
+    await page.locator('.b-settings').click();
+    const q = page.locator('.settings .quality button');
+    await expect(q).toHaveText(['高画质', '省电流畅']);
+    await expect(q.nth(1)).toHaveAttribute('aria-checked', 'true');
+    await Promise.all([page.waitForURL(u => !u.search.includes('lowfx')), q.nth(0).click()]);
+    expect(await page.evaluate(() => localStorage.getItem('ages:quality'))).toBe('"high"');
+    expect(errs).toEqual([]);
+    await ctx.close();
   });
 
   test('reports load and GPU failures, and keeps keyboard focus in menus', async ({ page }) => {

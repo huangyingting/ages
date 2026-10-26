@@ -17,6 +17,8 @@ export default defineConfig({
     headless: !process.env.DISPLAY,
     actionTimeout: 30_000,
     trace: 'retain-on-failure',
+    // the offline service worker would answer requests before page.route mocks; the offline test opts back in
+    serviceWorkers: 'block',
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, launchOptions: { args: gl } }, grepInvert: /@mobile/ },

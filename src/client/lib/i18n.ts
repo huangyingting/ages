@@ -154,7 +154,7 @@ const S = {
   // help
   helpTitle: { zh: '使用说明', en: 'How to use' },
   helpControls: { zh: '拖动平移 · 右键/双指旋转倾斜 · 滚轮/捏合缩放 · 点击地图上的事件查看详情', en: 'Drag to pan · right-drag / two fingers to rotate and tilt · scroll / pinch to zoom · click an event pin for details' },
-  helpTimeline: { zh: '拖动底部时间轴穿越历史；疆域、地名和都城会随年代变化，红色虚线是上一阶段的疆界。右上角「时期详情」列出本时期全部大事，左下角图例显示疆域阶段与政权。', en: 'Drag the timeline at the bottom; borders, place names and capitals change with the year, and the dashed red line shows the previous phase. “Period details” at the top right lists every event of the period; the legend at bottom left shows the territorial phase and polities.' },
+  helpTimeline: { zh: '拖动底部时间轴穿越历史；疆域、地名和都城会随年代变化，红色虚线是上一阶段的疆界。右上角「时期详情」列出本时期全部大事与政权，地图右上方显示疆域面积与并存的主要政权，左下角图例说明疆界、都城与长城、运河等线条。', en: 'Drag the timeline at the bottom; borders, place names and capitals change with the year, and the dashed red line shows the previous phase. “Period details” at the top right lists every event and polity of the period, the map’s top right shows the realm’s area and the largest coexisting polities, and the legend at bottom left explains the borders, capitals and lines such as walls and canals.' },
   helpStory: { zh: '有实际动画的事件（战役、行军路线、工程、航海等）会在卡片中显示「动画演示」，点击观看 3D 动画讲解：战役中可以看到各时代的兵种（战车、弓弩、骑兵、火器）与阵型（横阵、锋矢阵、鹤翼阵、圆阵等），镜头会随战局推拉。', en: 'Events with a real animation (battles, marches, routes, building works, voyages…) show “Play” on their card — press it to watch a 3D explanation: battles show each era’s troop types (chariots, archers, cavalry, firearms) and formations (line, wedge, wings, circle…), with the camera following the action.' },
   helpKeys: { zh: '快捷键：空格 播放/暂停 · ← → 上一个/下一个大事（Shift ±10 年）· / 搜索 · R 回到全图 · Esc 关闭', en: 'Keys: Space play/pause · ← → previous/next event (Shift ±10 years) · / search · R reset view · Esc close' },
   disclaimer: { zh: '历史疆域为示意图，依据中学历史课本地图简化绘制，不作为划界依据。', en: 'Historical borders are schematic, simplified from school-textbook maps, and are not authoritative boundaries.' },
@@ -174,6 +174,11 @@ const S = {
   sPaper: { zh: '地形', en: 'Relief' },
   sPlain: { zh: '素图', en: 'Plain' },
   fullscreen: { zh: '全屏', en: 'Full screen' },
+  quality: { zh: '画质', en: 'Quality' },
+  share: { zh: '分享链接', en: 'Share link' },
+  copied: { zh: '链接已复制', en: 'Link copied' },
+  qHigh: { zh: '高画质', en: 'High quality' },
+  qLow: { zh: '省电流畅', en: 'Battery saver' },
   kicker: { zh: '中国历代疆域与大事', en: 'Borders & events of Chinese history' },
   details: { zh: '时期详情', en: 'Period details' },
   pOverview: { zh: '时期概况', en: 'Overview' },
@@ -216,7 +221,7 @@ const KIND: Record<EventKind, Record<Lang, string>> = {
 };
 
 const browser = (): Lang => (typeof navigator !== 'undefined' && /^zh/i.test(navigator.language) ? 'zh' : navigator.language ? 'en' : 'zh');
-export let lang: Lang = load<Lang | null>('lang', null) ?? browser();
+export let lang: Lang = load<Lang | null>('lang', null, v => v === 'zh' || v === 'en') ?? browser();
 
 const listeners = new Set<(l: Lang) => void>();
 export function setLang(l: Lang): void {

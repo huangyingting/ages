@@ -66,7 +66,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'build', kind: 'canal', dur: 4.5, pts: [[110.6, 35.6], [111.3, 34.8], [112.8, 34.8], [114.5, 35.2], [116.2, 36.4], [117.8, 37.5]] },
     { do: 'spawn', lon: 111.52, lat: 36.09, model: { kind: 'dam', style: 'story_dayu' }, label: lbl('三过家门而不入', 'Yu Tames the Floods') },
     orbit(36, 4.2, true),
-    cap('禹治水十三年，“三过家门而不入”，受舜禅让成为部落联盟首领。', 'For thirteen years Yu labours without entering his own home thrice passed, earning Shun’s succession.', 4),
+    cap('禹治水十三年，“三过家门而不入”，受舜禅让成为部落联盟首领。', 'For thirteen years Yu labours, passing his own home three times without entering, and earns Shun’s succession.', 4),
   ],
 
   xia_found: [
@@ -104,7 +104,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'fx', lon: 114.35, lat: 36.12, fx: 'glow', color: '#d4ac0d', dur: 3 },
     banner(114.35, 36.12, '定都于殷', 'Settled at Yin', '#9c6b30', lbl('甲骨卜辞 · 后母戊鼎', 'oracle bones · ritual bronzes')),
     orbit(40, 4.5, true),
-    cap('此后商朝统治稳定近三百年，殷墟出土的甲骨文与司母戊鼎见证了商代文明高峰。', 'Yin remains the capital for nearly three centuries, yielding oracle-bone inscriptions and monumental bronzes.', 4.2),
+    cap('此后商朝统治稳定近三百年，殷墟出土的甲骨文与后母戊鼎见证了商代文明高峰。', 'Yin remains the capital for nearly three centuries, yielding oracle-bone inscriptions and monumental bronzes.', 4.2),
   ],
 
   muye: [
@@ -214,12 +214,12 @@ export const STORIES: Record<string, StoryStep[]> = {
 
   shangyang: [
     year(-356), title('商鞅变法', 'Shang Yang’s Legalist Reforms', '前356年起 · 立木取信 · 奖励耕战', 'from 356 BCE · Rule of Law, Farming & War'),
-    fly(108.71, 34.33, 14, 0.9),
-    { do: 'spawn', lon: 108.71, lat: 34.33, model: { kind: 'monument', style: 'story_shangyang' }, label: lbl('咸阳南门立木', 'Pillar of Trust at Xianyang') },
-    { do: 'fx', lon: 108.71, lat: 34.33, fx: 'glow', color: '#d4ac0d', dur: 2.5 },
+    fly(109.26, 34.68, 14, 0.9),
+    { do: 'spawn', lon: 109.26, lat: 34.68, model: { kind: 'monument', style: 'story_shangyang' }, label: lbl('栎阳南门立木', 'Pillar of Trust at Yueyang') },
+    { do: 'fx', lon: 109.26, lat: 34.68, fx: 'glow', color: '#d4ac0d', dur: 2.5 },
     cap('前356年，秦孝公任用商鞅变法，于城南门“立木取信”，颁布新法。', '356 BCE: backed by Duke Xiao of Qin, Shang Yang sets a wooden pole at the south gate to establish trust in the law.'),
-    banner(108.71, 34.33, '废井田 · 奖军功 · 行县制', 'Fiefs Abolished · Merit in Battle · Counties', QIN, lbl('富国强兵', 'rich state and strong army')),
-    { do: 'army', pts: [[107.4, 34.4], [108.71, 34.33], [110.2, 34.5]], color: QIN, dur: 3.5, count: 28, unit: 'mixed', label: lbl('秦国锐士', 'Qin New Army') },
+    banner(109.26, 34.68, '废井田 · 奖军功 · 行县制', 'Fiefs Abolished · Merit in Battle · Counties', QIN, lbl('富国强兵', 'rich state and strong army')),
+    { do: 'army', pts: [[107.4, 34.4], [109.26, 34.68], [110.2, 34.5]], color: QIN, dur: 3.5, count: 28, unit: 'mixed', label: lbl('秦国锐士', 'Qin New Army') },
     orbit(35, 4, true),
     cap('商鞅变法废除贵族世袭特权，奖励耕织与军功，使秦国国富兵强，为统一六国奠定基础。', 'Abolishing hereditary privilege and rewarding farming and battle merit, the reforms make Qin the strongest state.', 4.2),
   ],
@@ -240,7 +240,7 @@ export const STORIES: Record<string, StoryStep[]> = {
   changping: [
     year(-260), title('长平之战', 'Battle of Changping', '前260年 · 白起破赵', '260 BCE · Bai Qi encircles the Zhao army'),
     fly(112.9, 35.8, 18, 0.88),
-    cap('前260年，秦赵两军在长平对峙，赵王以纸上谈兵的赵括替下老将廉颇。', '260 BCE: Qin and Zhao face off at Changping;趙 replaces veteran Lian Po with Zhao Kuo.'),
+    cap('前260年，秦赵两军在长平对峙，赵王以纸上谈兵的赵括替下老将廉颇。', '260 BCE: Qin and Zhao face off at Changping; the King of Zhao replaces veteran Lian Po with Zhao Kuo.'),
     { do: 'army', pts: [[111.0, 35.0], [112.2, 35.5], [112.85, 35.78]], color: QIN, dur: 3.5, count: 38, unit: 'mixed', label: lbl('白起秦军', 'Bai Qi (Qin)'), par: true },
     { do: 'army', pts: [[114.49, 36.6], [113.6, 36.1], [113.0, 35.84]], color: '#b9770e', dur: 3.5, count: 36, unit: 'mixed', label: lbl('赵括赵军', 'Zhao Kuo (Zhao)') },
     fly(112.92, 35.8, 10, 0.92, 1.4),
@@ -345,7 +345,7 @@ export const STORIES: Record<string, StoryStep[]> = {
   han_found: [
     year(-202), title('楚汉之争与西汉建立', 'Chu–Han Contention & Founding of Han', '前202年 · 垓下之围 · 定都长安', '202 BCE · Gaixia & Liu Bang founds the Western Han'),
     fly(116.5, 33.5, 22, 0.86),
-    cap('秦亡后，刘邦与项羽展开四年“楚汉之争”，前202年汉军在垓下十面埋伏围困项羽。', 'After four years of Chu–Han war, Liu Bang’s forces encircle Xiang Yu at Gaixia withChu songs on all sides.'),
+    cap('秦亡后，刘邦与项羽展开四年“楚汉之争”，前202年汉军在垓下十面埋伏围困项羽。', 'After four years of Chu–Han war, Liu Bang’s forces encircle Xiang Yu at Gaixia with Chu songs on all sides.'),
     { do: 'clash', lon: 117.3, lat: 33.3, a: '#a93226', b: '#8e44ad', winner: 'a', angle: 45, dur: 5.5, count: 32, labels: [lbl('刘邦·韩信汉军', 'Han Army'), lbl('项羽楚军', 'Xiang Yu')], units: ['mixed', 'horse'], formations: ['circle', 'wedge'] },
     banner(117.3, 33.3, '四面楚歌', 'Songs of Chu on All Sides', '#a93226', lbl('垓下决战', 'Battle of Gaixia')),
     fly(108.94, 34.27, 26, 0.86, 2.2),
@@ -709,9 +709,9 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'army', pts: [[109.0, 48.0], [107.5, 44.5], [106.6, 41.5], [106.3, 38.7]], color: '#1e8449', dur: 4, count: 50, unit: 'horse', label: lbl('蒙古铁骑', 'Mongol horse'), follow: true },
     { do: 'clash', lon: 106.23, lat: 38.49, a: '#1e8449', b: '#a04000', winner: 'a', siege: true, angle: 90, dur: 4, count: 22, units: ['horse', 'mixed'] },
     year(1227), banner(106.23, 38.49, '西夏亡', 'Western Xia falls', '#1e8449', lbl('1227年', '1227')),
-    { do: 'army', pts: [[109.0, 48.0], [112.5, 44.0], [115.0, 40.5], [116.6, 37.0], [117.4, 34.5]], color: '#1e8449', dur: 4.5, count: 50, unit: 'horse', follow: true },
-    { do: 'clash', lon: 117.5, lat: 34.3, a: '#1e8449', b: '#b7950b', winner: 'a', angle: 90, dur: 4, count: 22, units: ['horse', 'mixed'], formations: ['wings', 'circle'] },
-    year(1234), banner(117.5, 34.3, '金亡', 'Jin falls', '#1e8449', lbl('1234年', '1234')),
+    { do: 'army', pts: [[109.0, 48.0], [112.5, 44.0], [115.0, 40.5], [115.0, 37.0], [114.5, 33.3]], color: '#1e8449', dur: 4.5, count: 50, unit: 'horse', follow: true },
+    { do: 'clash', lon: 114.37, lat: 33.0, a: '#1e8449', b: '#b7950b', winner: 'a', angle: 90, dur: 4, count: 22, units: ['horse', 'mixed'], formations: ['wings', 'circle'] },
+    year(1234), banner(114.37, 33.0, '金亡', 'Jin falls', '#1e8449', lbl('1234年', '1234')),
     fly(112, 32, 52, 0.84),
     { do: 'fleet', pts: [[114.2, 22.0], [113.4, 21.9], [113.08, 22.1]], model: 'warship', color: '#2471a3', count: 6, dur: 3, label: lbl('崖山', 'Yamen') },
     { do: 'fx', lon: 113.08, lat: 22.1, fx: 'fire', dur: 3, par: true },
@@ -721,11 +721,11 @@ export const STORIES: Record<string, StoryStep[]> = {
   ],
 
   yuan_found: [
-    year(1271), title('元朝建立与统一', 'Founding of the Yuan Dynasty', '1271年定国号大元 · 1279年统一全国', '1271–1279 CE · Kublai Khan founds the Yuan at Dadu'),
+    year(1271), title('元朝建立与统一', 'Founding of the Yuan Dynasty', '1271年定国号大元 · 1279年统一全国', '1271 named Great Yuan · 1279 China unified'),
     fly(116.4, 39.9, 28, 0.86),
     { do: 'spawn', lon: 116.4, lat: 39.9, model: { kind: 'palace', hero: 'capitals/cap_yuan', style: 'story_dadu' }, label: lbl('元大都', 'Yuan Capital Dadu') },
-    banner(116.4, 39.9, '大元建国', 'Proclamation of Great Yuan', '#1e8449', lbl('1271年 · 忽必烈定都大都', '1271 · Kublai Khan at Dadu')),
-    cap('1271年，忽必烈取《易经》“大哉乾元”之意改国号为大元，次年定都大都（今北京）。', '1271: Kublai Khan proclaims the Great Yuan dynasty and establishes his capital at Dadu (modern Beijing).'),
+    banner(116.4, 39.9, '大元建国', 'Proclamation of Great Yuan', '#1e8449', lbl('1271年 · 忽必烈定国号大元', '1271 · Kublai Khan names the Great Yuan')),
+    cap('1271年，忽必烈取《易经》“大哉乾元”之意改国号为大元，次年定都大都（今北京）。', '1271: Kublai Khan proclaims the Great Yuan dynasty, after “great is the Qian origin” in the Book of Changes; the next year Dadu (modern Beijing) becomes his capital.'),
     fly(116.5, 32.0, 36, 0.85, 2.0),
     { do: 'army', pts: [[112.14, 32.01], [114.3, 30.56], [118.78, 32.06], [120.16, 30.27]], color: '#1e8449', dur: 4.5, count: 40, unit: 'mixed', label: lbl('伯颜南下灭宋', 'Bayan’s Campaign'), follow: true },
     wipe(1279, 120.16, 30.27, '#1e8449', 3.8),
@@ -1000,7 +1000,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'fx', lon: 116.01, lat: 40.36, fx: 'glow', color: '#f1c40f', dur: 3 },
     banner(116.01, 40.36, '“人”字形轨道与竖井开凿法', 'Switchback Track & Vertical Shafts', '#2980b9', lbl('1909年提前两年全线通车', 'completed two years ahead of schedule in 1909')),
     orbit(40, 4.2, true),
-    cap('詹天佑独创“竖井开凿法”打通居庸关与八达岭隧道，设计青龙桥“人”字形轨道，1909年提前两年全线通车。', 'Using vertical shafts for the Badaling tunnel and a clever “人”-shaped switchback at Qinglongqiao, the line opens in 1909 ahead of schedule.', 4.2),
+    cap('詹天佑独创“竖井开凿法”打通居庸关与八达岭隧道，设计青龙桥“人”字形轨道，1909年提前两年全线通车。', 'Using vertical shafts for the Badaling tunnel and a clever zigzag switchback at Qinglongqiao, the line opens in 1909 ahead of schedule.', 4.2),
   ],
 
   wuchang: [
@@ -1151,7 +1151,7 @@ export const STORIES: Record<string, StoryStep[]> = {
     fly(113.9, 39.3, 12, 0.9),
     cap('1937年9月，日军板垣师团进犯山西平型关；八路军第115师在林彪率领下于平型关东北乔沟设伏。', 'September 1937: Lin Biao’s 115th Division of the Eighth Route Army lays an ambush along the Qiaogou ravine at Pingxing Pass.'),
     { do: 'spawn', lon: 113.96, lat: 39.3, model: { kind: 'gate', hero: 'places-sites/pl_pingxingguan', style: 'story_pingxingguan' }, label: lbl('平型关乔沟伏击阵地', 'Pingxing Pass Ravine') },
-    { do: 'army', pts: [[114.4, 39.5], [114.15, 39.38], [113.96, 39.3]], color: JP, dur: 3, count: 24, unit: 'mixed', label: lbl('日军板垣师团第21旅团', 'Itagaki 5th Division') },
+    { do: 'army', pts: [[114.4, 39.5], [114.15, 39.38], [113.96, 39.3]], color: JP, dur: 3, count: 24, unit: 'mixed', label: lbl('日军板垣师团第21旅团', 'Itagaki’s 5th Division, 21st Brigade') },
     { do: 'clash', lon: 113.96, lat: 39.3, a: RED, b: JP, winner: 'a', angle: 310, dur: 5.5, count: 30, labels: [lbl('八路军第115师', '8th Route Army 115th Div'), lbl('日军车队', 'Japanese Column')], units: ['foot', 'mixed'], formations: ['wings', 'line'] },
     banner(113.96, 39.3, '平型关大捷', 'Victory at Pingxingguan', RED, lbl('歼敌1000余人 · 打破日军“不可战胜”神话', 'over 1,000 enemy troops eliminated')),
     cap('八路军第115师居高临下猛攻，歼灭日军1000余人，取得全民族抗战爆发以来中国军队的第一个重大胜利。', 'Striking from the heights above the ravine, the 115th Division eliminates over 1,000 Japanese troops in China’s first major victory of the war.', 4.2),
@@ -1364,7 +1364,7 @@ export const STORIES: Record<string, StoryStep[]> = {
   ],
 
   un_seat: [
-    year(1971), title('恢复在联合国的合法席位', 'Restoration of the UN Seat & 1970s Diplomacy', '1971年10月25日联大第2758号决议 · 1972年中美关系正常化', '1971–1979 · UN Resolution 2758 & diplomatic breakthroughs'),
+    year(1971), title('恢复在联合国的合法席位', 'Restoration of the UN Seat & 1970s Diplomacy', '1971年10月25日联大第2758号决议 · 1972年中美关系开始正常化', '1971–1979 · UN Resolution 2758 & diplomatic breakthroughs'),
     fly(116.4, 39.9, 32, 0.85),
     { do: 'fx', lon: 116.4, lat: 39.9, fx: 'flag', color: '#de2910' },
     { do: 'fx', lon: 116.4, lat: 39.9, fx: 'glow', color: '#f1c40f', dur: 3 },

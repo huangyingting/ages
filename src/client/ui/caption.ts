@@ -9,6 +9,9 @@ export class Caption {
   readonly pauseBtn: HTMLButtonElement;
   private speedBtn: HTMLButtonElement;
   private voiceBtn: HTMLButtonElement;
+  private skipBtn: HTMLButtonElement;
+  private stopBtn: HTMLButtonElement;
+  private paused = false;
   onPause: () => void = () => {};
   onSkip: () => void = () => {};
   onStop: () => void = () => {};
@@ -26,7 +29,7 @@ export class Caption {
     this.voiceBtn = iconBtn('mute', t('narrate'), () => { this.voice = !this.voice; setIcon(this.voiceBtn, this.voice ? 'sound' : 'mute'); this.voiceBtn.classList.toggle('on', this.voice); this.onVoice(this.voice); });
     this.el = h('div', { class: 'caption', hidden: true },
       this.text,
-      h('div', { class: 'cap-ctl' }, this.pauseBtn, iconBtn('next', t('skip'), () => this.onSkip()), this.speedBtn, canSpeak ? this.voiceBtn : null, iconBtn('stop', t('stop'), () => this.onStop())),
+      h('div', { class: 'cap-ctl' }, this.pauseBtn, this.skipBtn = iconBtn('next', t('skip'), () => this.onSkip()), this.speedBtn, canSpeak ? this.voiceBtn : null, this.stopBtn = iconBtn('stop', t('stop'), () => this.onStop())),
       this.bar);
   }
 
@@ -41,7 +44,19 @@ export class Caption {
   }
 
   state(s: 'playing' | 'paused' | 'idle'): void {
-    setIcon(this.pauseBtn, s === 'paused' ? 'play' : 'pause');
-    this.el.classList.toggle('paused', s === 'paused');
+    this.paused = s === 'paused';
+    setIcon(this.pauseBtn, this.paused ? 'play' : 'pause');
+    this.el.classList.toggle('paused', this.paused);
+    this.relabel();
+  }
+
+  /** Button names in the current language (and Pause / Play by state). */
+  relabel(): void {
+    const label = (b: HTMLElement, s: string) => { b.title = s; b.setAttribute('aria-label', s); };
+    label(this.pauseBtn, t(this.paused ? 'play' : 'pause'));
+    label(this.skipBtn, t('skip'));
+    this.speedBtn.title = t('speed');
+    label(this.voiceBtn, t('narrate'));
+    label(this.stopBtn, t('stop'));
   }
 }

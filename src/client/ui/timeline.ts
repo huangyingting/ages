@@ -6,7 +6,7 @@ import { reignAt, regionalReignsAt } from '../../shared/data/jiangshan.ts';
 import { STOPS, stepStop } from '../../shared/lib/chronicle.ts';
 import { realmArea } from '../../shared/data/areas.ts';
 import { SNAPSHOTS } from '../../shared/data/territories.ts';
-import { eraAt, formatYear, normYear, rulerAt, tToYear, ticks, yearToT } from '../../shared/lib/timeline.ts';
+import { eraAt, formatYear, normYear, rulerAt, tToYear, ticks, yearToT, YEAR_MAX, YEAR_MIN } from '../../shared/lib/timeline.ts';
 import { lang, t } from '../lib/i18n.ts';
 import { h, iconBtn, setIcon } from './dom.ts';
 
@@ -66,7 +66,7 @@ export class Timeline {
     this.thumb = h('div', { class: 'tl-thumb' }, h('i'), this.flag);
     this.tip = h('div', { class: 'tl-tip' });
     this.curve = h('div', { class: 'tl-curve', 'aria-hidden': 'true' });
-    this.track = h('div', { class: 'tl-track', role: 'slider', tabindex: 0, 'aria-label': t('era') }, this.curve, this.dots, this.bands, this.phases, this.axis, this.thumb, this.tip);
+    this.track = h('div', { class: 'tl-track', role: 'slider', tabindex: 0, 'aria-label': t('era'), 'aria-valuemin': YEAR_MIN, 'aria-valuemax': YEAR_MAX }, this.curve, this.dots, this.bands, this.phases, this.axis, this.thumb, this.tip);
     this.head = h('div', { class: 'tl-head' }, this.eraEl, this.yearEl, this.rulerEl);
     const ctl = h('div', { class: 'tl-ctl' },
       iconBtn('prev', t('prevStop'), () => this.step(-1), 'tl-prev'), this.playBtn, iconBtn('next', t('nextStop'), () => this.step(1), 'tl-next'),
@@ -81,7 +81,7 @@ export class Timeline {
     this.bands.replaceChildren(...ERAS.filter(e => e.scope === 'china').map(e => {
       const l = yearToT(e.start), r = yearToT(e.end);
       const b = h('button', {
-        type: 'button', class: `tl-band lane${e.lane ?? 0}`, style: `left:${l * 100}%;width:${Math.max(0.15, (r - l) * 100)}%;--c:${e.color}`,
+        type: 'button', tabindex: -1, class: `tl-band lane${e.lane ?? 0}`, style: `left:${l * 100}%;width:${Math.max(0.15, (r - l) * 100)}%;--c:${e.color}`,
         title: `${tr(e.name, lang)} ${formatYear(e.start, lang)}–${formatYear(e.end, lang)}`, 'data-era': e.id,
         onclick: (ev: Event) => { ev.stopPropagation(); this.onEra(e.id); },
       });
@@ -92,7 +92,8 @@ export class Timeline {
     this.phases.replaceChildren(...SNAPSHOTS.filter(x => x.year >= -2070).map(x => h('i', { style: `left:${yearToT(x.year) * 100}%` })));
     // textbook events on top of the (fainter) imported chronicle entries
     this.dots.replaceChildren(...EVENTS.filter(e => e.scope === 'china').sort((a, b) => b.weight - a.weight).map(e => {
-      const d = h('button', { type: 'button', class: `tl-dot w${e.weight} k-${e.kind}`, style: `left:${yearToT(e.year) * 100}%`, 'data-id': e.id, 'aria-label': tr(e.title, lang) });
+      // ~900 dots: pointer targets only, so Tab doesn't walk through them (the slider, search and period list cover the keyboard)
+      const d = h('button', { type: 'button', tabindex: -1, class: `tl-dot w${e.weight} k-${e.kind}`, style: `left:${yearToT(e.year) * 100}%`, 'data-id': e.id, 'aria-label': tr(e.title, lang) });
       d.addEventListener('pointerenter', () => this.showTip(e, d));
       d.addEventListener('pointerleave', () => this.tip.classList.remove('on'));
       d.addEventListener('click', ev => { ev.stopPropagation(); this.onEvent(e); });
@@ -172,21 +173,24 @@ export class Timeline {
       if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { this.set(this.year + step * (e.shiftKey ? 10 : 1), true); e.preventDefault(); e.stopPropagation(); }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { this.set(this.year - step * (e.shiftKey ? 10 : 1), true); e.preventDefault(); e.stopPropagation(); }
     });
-    let last = 0, raf = 0;
+    let last = 0, raf = 0, playT = 0;
     const tick = (now: number) => {
       raf = 0;
       if (!this.playing) return;
       const dt = Math.min(0.1, (now - (last || now)) / 1000);
       last = now;
+      // a fractional position: one frame's step is often less than a year, which rounding the year would swallow;
+      // re-synced whenever something else moved the year
+      if (normYear(tToYear(playT)) !== this.year) playT = yearToT(this.year);
       // ~100 s for the whole axis; slower inside dense periods because the axis is non-linear
-      const tt = yearToT(this.year) + (dt * this.speed) / 100;
-      if (tt >= 1) { this.set(tToYear(1), true); this.setPlaying(false); } else {
-        this.set(tToYear(tt), false);
+      playT += (dt * this.speed) / 100;
+      if (playT >= 1) { this.set(tToYear(1), true); this.setPlaying(false); } else {
+        this.set(tToYear(playT), false);
         if (this.playing) raf = requestAnimationFrame(tick);
       }
     };
     this.startTick = () => {
-      if (!raf && this.playing) { last = 0; raf = requestAnimationFrame(tick); }
+      if (!raf && this.playing) { last = 0; playT = yearToT(this.year); raf = requestAnimationFrame(tick); }
     };
   }
 
@@ -242,6 +246,7 @@ export class Timeline {
     this.rulerEl.textContent = reign ? tr(reign.label, lang) : r ? tr(r.name, lang) : '';
     this.flag.textContent = `${formatYear(y, lang)}${reign ? ' · ' + tr(reign.label, lang).replace(/^.*· /, '') : ''}`;
     this.rulerEl.title = [this.rulerEl.textContent, ...regionalReignsAt(y).map(x => `${tr(x.regime, lang)}${lang === 'zh' ? '：' : ': '}${tr(x.reign.label, lang)}`)].filter(Boolean).join('\n');
+    this.track.setAttribute('aria-valuenow', String(y));
     this.track.setAttribute('aria-valuetext', `${formatYear(y, lang)} ${era ? tr(era.name, lang) : ''}`);
     this.onRender(y);
   }

@@ -16,7 +16,7 @@ const PASS = 0.6;
 export class Learn {
   readonly el: HTMLElement;
   private box: HTMLElement;
-  private book: Book = load<Book>('book', 'g7a');
+  private book: Book = load<Book>('book', 'g7a', v => typeof v === 'string' && Object.hasOwn(BOOKS, v));
   onLesson: (l: Lesson) => void = () => {};
   onTest: (book: Book, unit: number) => void = () => {};
 

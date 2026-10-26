@@ -1,7 +1,7 @@
 import type { Book, CurriculumRef, EventKind, HistEvent, LonLat, ModelRecipe, StoryStep, Year } from './types.ts';
 import { PLACE } from './places.ts';
 
-/** Procedural model kinds the client knows how to build (builders: src/client/models/build-ancient.ts, build-modern.ts). */
+/** Procedural model kinds the client knows how to build (builders: src/client/models/rich.ts, rich2.ts). */
 export const MODEL_KINDS = [
   'cave', 'hut', 'stilt', 'jade', 'ding', 'oracle', 'chariot', 'bell', 'wall', 'beacon', 'palace', 'gate', 'pagoda', 'warrior', 'camel',
   'junk', 'boat', 'fireship', 'warship', 'weir', 'bridge', 'scroll', 'army', 'rider', 'cannon', 'flag', 'train', 'factory', 'rocket',

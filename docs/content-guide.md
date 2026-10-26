@@ -42,7 +42,7 @@ Snapshots in `territories.ts` are listed in time order. `year` is when the map s
 `places.ts` defines cities and sites with period names (`names: [[from, to, zh, en]]`) and capital periods (`capital: [[from, to]]`). Labels pick the name valid in the current year.
 
 ## Models
-Builders live in `src/client/models/build-ancient.ts` and `build-modern.ts`. A builder receives a root `THREE.Group` and the recipe, and composes primitives from `kit.ts`. To animate a part, name its node `spin`, `flap`, `sway`, `bob`, `flicker` or `smoke`. Register the kind in `MODEL_KINDS`. The model unit test builds every kind.
+Builders live in `src/client/models/rich.ts` and `rich2.ts` (detailed one-off models in the hero packs under `src/client/models/heroes/`). A builder receives a root `THREE.Group` and the recipe, and composes primitives from `kit.ts`. To animate a part, name its node `spin`, `flap`, `sway`, `bob`, `flicker` or `smoke`. Register the kind in `MODEL_KINDS` (`src/shared/data/event-kit.ts`) and its builder in the `RICH` map. The model unit test builds every kind.
 
 ## Sensitive content
 Follow the textbook framing. Borders are schematic and the disclaimer must stay visible. Do not add contemporary political leaders to the timeline readout.
