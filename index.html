@@ -15,22 +15,66 @@
       <div id="boot" class="boot">
         <canvas id="boot-dust" class="boot-dust" aria-hidden="true"></canvas>
         <div class="boot-glow" aria-hidden="true"></div>
+        <div class="boot-frame" aria-hidden="true">
+          <span class="bf-corner tl"><i>73°E · 53°N</i><b>禹迹九州 · 舆图志</b></span>
+          <span class="bf-corner tr"><b>浑天星野 · 历朝疆域</b><i>135°E · 53°N</i></span>
+          <span class="bf-corner bl"><i>73°E · 18°N</i><b>山川形胜 · 古今同轨</b></span>
+          <span class="bf-corner br"><b>长河漫卷 · 岁月留痕</b><i>135°E · 18°N</i></span>
+        </div>
         <div class="boot-center">
+          <div class="boot-kicker" aria-hidden="true"><span>山河舆图</span><i>·</i><span>三维历史长卷</span></div>
           <div class="boot-wheel" aria-hidden="true">
-            <svg viewBox="0 0 220 220" class="boot-ring">
-              <circle cx="110" cy="110" r="102" fill="none" stroke="currentColor" stroke-width="0.8" stroke-dasharray="2 6" />
-              <circle cx="110" cy="110" r="88" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="22 8 3 8" />
-              <circle cx="110" cy="110" r="72" fill="none" stroke="currentColor" stroke-width="0.6" stroke-opacity="0.55" />
+            <svg viewBox="0 0 320 320" class="boot-ring boot-ring-outer">
+              <circle cx="160" cy="160" r="152" fill="none" stroke="currentColor" stroke-width="0.75" stroke-opacity="0.38" />
+              <circle cx="160" cy="160" r="144" fill="none" stroke="currentColor" stroke-width="3.5" stroke-dasharray="1.2 6.65" stroke-opacity="0.55" />
+              <circle cx="160" cy="160" r="132" fill="none" stroke="currentColor" stroke-width="0.9" stroke-dasharray="18 6 2 6" stroke-opacity="0.65" />
+              <g class="boot-ring-glyphs" fill="currentColor" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="central">
+                <text x="160" y="21">子·北</text>
+                <text x="229" y="39">丑</text>
+                <text x="280" y="90">寅</text>
+                <text x="299" y="160">卯·东</text>
+                <text x="280" y="230">辰</text>
+                <text x="229" y="281">巳</text>
+                <text x="160" y="299">午·南</text>
+                <text x="91" y="281">未</text>
+                <text x="40" y="230">申</text>
+                <text x="21" y="160">酉·西</text>
+                <text x="40" y="90">戌</text>
+                <text x="91" y="39">亥</text>
+              </g>
             </svg>
-            <div class="boot-mark"><span>长河</span></div>
+            <svg viewBox="0 0 320 320" class="boot-ring boot-ring-mid">
+              <ellipse cx="160" cy="160" rx="116" ry="74" fill="none" stroke="currentColor" stroke-width="0.85" stroke-dasharray="5 5" stroke-opacity="0.42" transform="rotate(-24 160 160)" />
+              <ellipse cx="160" cy="160" rx="116" ry="74" fill="none" stroke="currentColor" stroke-width="0.85" stroke-dasharray="5 5" stroke-opacity="0.32" transform="rotate(36 160 160)" />
+              <circle cx="160" cy="160" r="108" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="32 10 4 10" stroke-opacity="0.78" />
+              <circle cx="160" cy="160" r="94" fill="none" stroke="currentColor" stroke-width="4" stroke-dasharray="2 10.3" stroke-opacity="0.42" />
+              <circle cx="160" cy="160" r="82" fill="none" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.48" />
+              <path d="M160 44 L165 56 L160 52 L155 56 Z M276 160 L264 165 L268 160 L264 155 Z M160 276 L165 264 L160 268 L155 264 Z M44 160 L56 165 L52 160 L56 155 Z" fill="currentColor" fill-opacity="0.85" />
+            </svg>
+            <div class="boot-mark">
+              <div class="boot-mark-inner">
+                <svg viewBox="0 0 64 26" class="boot-crest" aria-hidden="true">
+                  <path d="M4 22 L17 7 L26 16 L35 4 L47 17 L53 11 L60 22 Z" fill="currentColor" fill-opacity="0.22" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" />
+                  <path d="M2 24 C16 19, 26 26, 38 21 C47 17, 54 22, 62 19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                </svg>
+                <span class="boot-mark-title">长河</span>
+                <small class="boot-mark-sub">AGES ATLAS</small>
+              </div>
+            </div>
           </div>
-          <div class="boot-name">AGES</div>
-          <p class="boot-verse">一粒历史的尘埃 · 落成万里山河</p>
+          <div class="boot-chronicle" aria-hidden="true">
+            <span class="bc-era">秦</span>
+            <i class="bc-sep">·</i>
+            <b class="bc-year">前221年</b>
+            <i class="bc-sep">·</i>
+            <span class="bc-cap">都城 咸阳</span>
+          </div>
+          <p class="boot-verse">山河入卷 · 万古同晷 · 俯仰四千年风云</p>
           <div class="boot-dynasties" aria-hidden="true">
-            <span data-era="xia">夏</span><i>·</i><span data-era="shang">商</span><i>·</i><span data-era="zhou">周</span><i>·</i><span data-era="qin" class="hi">秦</span><i>·</i><span data-era="han">汉</span><i>·</i><span data-era="tang">唐</span><i>·</i><span data-era="song">宋</span><i>·</i><span data-era="yuan">元</span><i>·</i><span data-era="ming">明</span><i>·</i><span data-era="qing">清</span>
+            <span data-era="xia">夏</span><i></i><span data-era="shang">商</span><i></i><span data-era="zhou">周</span><i></i><span data-era="qin" class="hi">秦</span><i></i><span data-era="han">汉</span><i></i><span data-era="three_kingdoms">三国</span><i></i><span data-era="jin">晋</span><i></i><span data-era="sui">隋</span><i></i><span data-era="tang">唐</span><i></i><span data-era="song">宋</span><i></i><span data-era="yuan">元</span><i></i><span data-era="ming">明</span><i></i><span data-era="qing">清</span>
           </div>
           <div class="boot-bar"><i></i></div>
-          <div class="boot-status">正在拂去岁月尘埃 · 逐朝加载山河与风物…</div>
+          <div class="boot-status">正在展卷九州地形 · 逐朝构筑都城与风物…</div>
         </div>
       </div>
     </div>
