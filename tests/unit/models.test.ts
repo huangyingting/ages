@@ -12,6 +12,8 @@ import * as HEROES from '../../src/shared/data/heroes.ts';
 import { personLook } from '../../src/client/models/costume.ts';
 import { EVENTS } from '../../src/shared/data/events.ts';
 import { STORIES, TRAVELLER } from '../../src/shared/data/stories.ts';
+import { sceneryOf } from '../../src/shared/data/scenery.ts';
+import { cancelByTag, instance, prefetchEraModels, prototype, prunePrototypes, ready } from '../../src/client/models/library.ts';
 
 const { capitalModel, placeModel, personModel } = HEROES;
 
@@ -194,4 +196,23 @@ describe('period-dressed figures', () => {
       }
     }
   }, 120_000);
+
+  it('supports dynasty-by-dynasty priority loading, prefetching, cancellation and LRU pruning', async () => {
+    const qinEra = ERAS.find(e => e.id === 'qin')!;
+    const qinCap = capitalModel(qinEra);
+    const g = await instance(qinCap, { priority: 100, tag: 'era:qin' });
+    expect(g.children.length).toBeGreaterThan(0);
+    expect(ready(qinCap)).toBe(true);
+
+    const whanEra = ERAS.find(e => e.id === 'whan')!;
+    const whanPrimary = [capitalModel(whanEra), ...sceneryOf(whanEra).filter(s => s.level === 1).map(s => s.model)];
+    await prefetchEraModels(whanPrimary.slice(0, 2), 'whan');
+    expect(ready(whanPrimary[0])).toBe(true);
+
+    cancelByTag('era:old');
+    prunePrototypes([qinCap, ...whanPrimary]);
+    expect(ready(qinCap)).toBe(true);
+    const cached = await prototype(qinCap);
+    expect(cached).toBeDefined();
+  }, 60_000);
 });

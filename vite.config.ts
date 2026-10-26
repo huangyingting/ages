@@ -8,7 +8,16 @@ export default defineConfig({
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 1200,
-    rollupOptions: { output: { manualChunks: id => (id.includes('/node_modules/three/') ? 'three' : undefined) } },
+    rollupOptions: {
+      output: {
+        manualChunks: id => {
+          if (id.includes('/node_modules/three/')) return 'three';
+          if (id.includes('/src/shared/data/jiangshan') || id.includes('/src/shared/data/lessons')) return 'atlas-chronicle';
+          if (id.includes('/src/shared/data/')) return 'atlas-data';
+          return undefined;
+        },
+      },
+    },
   },
   // module workers: the model builder runs in a Web Worker (see ADR-004)
   worker: { format: 'es' },

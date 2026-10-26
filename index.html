@@ -12,7 +12,27 @@
   <body>
     <div id="app">
       <div id="stage" class="stage"></div>
-      <div id="boot" class="boot"><div class="boot-mark">长河</div><div class="boot-name">AGES</div><div class="boot-bar"><i></i></div></div>
+      <div id="boot" class="boot">
+        <canvas id="boot-dust" class="boot-dust" aria-hidden="true"></canvas>
+        <div class="boot-glow" aria-hidden="true"></div>
+        <div class="boot-center">
+          <div class="boot-wheel" aria-hidden="true">
+            <svg viewBox="0 0 220 220" class="boot-ring">
+              <circle cx="110" cy="110" r="102" fill="none" stroke="currentColor" stroke-width="0.8" stroke-dasharray="2 6" />
+              <circle cx="110" cy="110" r="88" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="22 8 3 8" />
+              <circle cx="110" cy="110" r="72" fill="none" stroke="currentColor" stroke-width="0.6" stroke-opacity="0.55" />
+            </svg>
+            <div class="boot-mark"><span>长河</span></div>
+          </div>
+          <div class="boot-name">AGES</div>
+          <p class="boot-verse">一粒历史的尘埃 · 落成万里山河</p>
+          <div class="boot-dynasties" aria-hidden="true">
+            <span data-era="xia">夏</span><i>·</i><span data-era="shang">商</span><i>·</i><span data-era="zhou">周</span><i>·</i><span data-era="qin" class="hi">秦</span><i>·</i><span data-era="han">汉</span><i>·</i><span data-era="tang">唐</span><i>·</i><span data-era="song">宋</span><i>·</i><span data-era="yuan">元</span><i>·</i><span data-era="ming">明</span><i>·</i><span data-era="qing">清</span>
+          </div>
+          <div class="boot-bar"><i></i></div>
+          <div class="boot-status">正在拂去岁月尘埃 · 逐朝加载山河与风物…</div>
+        </div>
+      </div>
     </div>
     <noscript>请启用 JavaScript / Please enable JavaScript.</noscript>
     <script type="module" src="/src/client/main.ts"></script>

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { formatArea, polityArea } from '../../shared/data/areas.ts';
+import { ERAS } from '../../shared/data/eras.ts';
 import { EVENTS } from '../../shared/data/events.ts';
 import { tr, type Lang } from '../../shared/data/i18n.ts';
 import { RIVER_LABELS, WORKS, type Person, type RiverLabel } from '../../shared/data/jiangshan.ts';
@@ -11,9 +12,11 @@ import { capitalModel } from '../../shared/data/heroes.ts';
 import { STAGES, type StageId } from '../../shared/data/stage.ts';
 import { snapshotAt } from '../../shared/data/territories.ts';
 import { previousSnap } from '../../shared/lib/chronicle.ts';
-import type { AdminUnit, HistEvent, LonLat, Place, Region, Snapshot, Year } from '../../shared/data/types.ts';
+import type { AdminUnit, Era, HistEvent, LonLat, ModelRecipe, Place, Region, Snapshot, Year } from '../../shared/data/types.ts';
 import { eraAt, formatYear } from '../../shared/lib/timeline.ts';
 import { kindName, t as ui } from '../lib/i18n.ts';
+import { loadHeroesFor } from '../models/heroes/index.ts';
+import { cancelByTag, prefetchEraModels, prunePrototypes } from '../models/library.ts';
 import { glyph } from '../ui/icons.ts';
 import { Fx, type SpawnState } from './fx.ts';
 import { Beam, Halo } from './halo.ts';
@@ -97,6 +100,8 @@ export class Atlas {
   onPlace: (p: Place) => void = () => {};
   onPerson: (p: Person) => void = () => {};
   onLife: (l: LifeItem) => void = () => {};
+  /** Reports dynasty-by-dynasty model streaming progress (`done / total` for `era`). */
+  onEraProgress: (era: Era, done: number, total: number) => void = () => {};
   private pins = new Map<string, MapTarget>();
   private places = new Map<string, MapTarget>();
   private riverLabels: [RiverLabel, Label][] = [];
@@ -106,6 +111,8 @@ export class Atlas {
   private morphTex: THREE.Texture | null = null;
   private capitalKey = '';
   private sceneryKey = '';
+  private lastSceneryEra = '';
+  private prefetchTimer = 0;
   private storyMode = false;
   private marks: Mark[] = [];
   private hover: Hover | null = null;
@@ -761,7 +768,7 @@ export class Atlas {
       const name = riverName(r, this.year);
       l.off = !name;
       const text = name ? tr(name, this.lang) : '';
-      if (name && l.el.textContent !== text) { l.el.textContent = text; this.labels.remeasure(); }
+      if (name && l.el.textContent !== text) { l.el.textContent = text; this.labels.remeasure(l); }
     }
   }
 
@@ -806,7 +813,7 @@ export class Atlas {
         l.el.querySelector('.t')!.textContent = text;
         l.el.setAttribute('aria-label', text);
         l.el.classList.toggle('cap', cap);
-        this.labels.remeasure();
+        this.labels.remeasure(l);
       }
       l.prio = cap ? 70 : p.tier === 1 ? 40 : p.tier === 2 ? 22 : 8;
       l.maxD = cap ? Infinity : p.tier === 1 ? Infinity : p.tier === 2 ? 48 : p.minor ? 12 : 20;
@@ -874,43 +881,71 @@ export class Atlas {
     const era = eraAt(this.year);
     const cap = era?.capital ? PLACE.get(era.capital) : undefined;
     const key = this.layers.models && cap ? `${cap.id}:${era!.id}` : '';
-    if (key === this.capitalKey) return;
-    this.capitalKey = key;
-    this.fx.clear('base');
-    if (cap && key) {
-      this.fx.spawn({ lon: cap.lon, lat: cap.lat, model: capitalModel(era!), scale: 1.9, yaw: 0, ring: KIND_COLOR.capital }, 'base').then(g => {
-        if (!g) return;
-        const target = this.places.get(cap.id)!;
-        this.addMark({
-          ...target, g, icon: 'capital', place: cap, layer: 'base', prio: 90, modelMaxD: Infinity, maxD: Infinity,
-          label: this.badge(target.key, 'capital', g.position.clone(), 90, 'map-models'),
+    if (key !== this.capitalKey) {
+      this.capitalKey = key;
+      this.fx.clear('base');
+      if (cap && key && era) {
+        const capRecipe = capitalModel(era);
+        void loadHeroesFor([capRecipe.hero]);
+        this.fx.spawn({
+          lon: cap.lon, lat: cap.lat, model: capRecipe, scale: 1.9, yaw: 0, ring: KIND_COLOR.capital,
+          priority: 100, tag: `era:${era.id}`,
+        }, 'base').then(g => {
+          if (!g || this.capitalKey !== key) return;
+          const target = this.places.get(cap.id)!;
+          this.addMark({
+            ...target, g, icon: 'capital', place: cap, layer: 'base', prio: 90, modelMaxD: Infinity, maxD: Infinity,
+            label: this.badge(target.key, 'capital', g.position.clone(), 90, 'map-models'),
+          });
         });
-      });
+      }
     }
     this.updateScenery();
   }
 
   /**
-   * The dynasty on the map: its curated people, buildings, customs and foods, then landmarks of its key events and
-   * more of its people in period dress. Importance controls priority; only geographical entries carry map names.
+   * Loads one dynasty at a time onto the map: cancels unstarted jobs from any superseded dynasty, streams the active
+   * dynasty's models by importance tier (Level 1 overview landmarks first, then Level 2 & 3 detail), and once complete,
+   * prunes cold prototypes and pre-warms the next chronological dynasty in the background.
    */
   private updateScenery(): void {
     const era = eraAt(this.year);
     const key = this.layers.models && era ? `${era.id}:${this.lang}` : '';
     if (key === this.sceneryKey) return;
+    const prevEra = this.lastSceneryEra;
     this.sceneryKey = key;
+    this.lastSceneryEra = era?.id ?? '';
+    if (this.prefetchTimer) { clearTimeout(this.prefetchTimer); this.prefetchTimer = 0; }
+    // Drop any unstarted worker builds from the previous dynasty or background prefetch
+    cancelByTag('era:');
+    cancelByTag('prefetch:');
     this.fx.clear('scenery');
     this.labels.clear('badges');
-    const items = era && key ? sceneryOf(era) : [];
-    this.updatePlaces();
     if (!era || !key) return;
+    const items = sceneryOf(era);
+    const tag = `era:${era.id}`;
+    // Pre-fetch all lazy hero chunks required by this single dynasty in parallel
+    void loadHeroesFor(items.map(s => s.model.hero));
+    // Subtle golden historical dust swirl over the new dynasty's capital when switching eras
+    if (!this.lowfx && prevEra && prevEra !== era.id && era.capital) {
+      const cap = PLACE.get(era.capital);
+      if (cap) this.fx.dustOfAges(cap.lon, cap.lat, 11, 0.7);
+    }
+    const total = items.length;
+    let done = 0;
+    this.onEraProgress(era, 0, total);
     for (const s of items) {
       const p = s.person, l = s.life;
       const ev = !p && !l && s.event ? EVENTS.find(x => x.id === s.event) : undefined;
       const place = l ? lifePlace(l) : undefined;
       const scale = s.kind === 'person' ? 1.8 : s.kind === 'food' ? 1.3 : 1.5;
-      this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale, yaw: s.yaw, ring: KIND_COLOR[s.kind] }, 'scenery').then(g => {
-        if (!g || this.sceneryKey !== key) return;
+      const priority = s.level === 1 ? 85 : s.level === 2 ? 60 : 40;
+      this.fx.spawn({ lon: s.lon, lat: s.lat, model: s.model, scale, yaw: s.yaw, ring: KIND_COLOR[s.kind], priority, tag }, 'scenery').then(g => {
+        if (this.sceneryKey !== key) return;
+        done++;
+        this.onEraProgress(era, done, total);
+        if (done === total) this.scheduleAdjacentEraPrefetch(era);
+        if (!g) return;
         const twin = l ? lifeEvent(l) : undefined;
         let target: Omit<MapTarget, 'label'> | undefined;
         if (l) {
@@ -936,6 +971,34 @@ export class Atlas {
         });
       });
     }
+  }
+
+  /**
+   * Once the current dynasty finishes loading, prunes cold prototypes from distant eras and pre-warms the next
+   * chronological dynasty's primary models during idle time.
+   */
+  private scheduleAdjacentEraPrefetch(era: Era): void {
+    const key = this.sceneryKey;
+    this.prefetchTimer = window.setTimeout(() => {
+      this.prefetchTimer = 0;
+      if (this.sceneryKey !== key) return;
+      const idx = ERAS.findIndex(e => e.id === era.id);
+      if (idx < 0) return;
+      const neighbors = [ERAS[idx], ERAS[idx + 1], ERAS[idx - 1]].filter((e): e is Era => !!e);
+      const keep: ModelRecipe[] = [];
+      for (const e of neighbors) {
+        if (e.capital) keep.push(capitalModel(e));
+        for (const s of sceneryOf(e)) keep.push(s.model);
+      }
+      prunePrototypes(keep);
+      const nextEra = ERAS[idx + 1];
+      if (nextEra) {
+        const primary: ModelRecipe[] = [];
+        if (nextEra.capital) primary.push(capitalModel(nextEra));
+        for (const s of sceneryOf(nextEra)) if (s.level === 1) primary.push(s.model);
+        void prefetchEraModels(primary, nextEra.id);
+      }
+    }, 650);
   }
 
   /** While a story plays the dynasty's scenery steps aside so the animation has the stage. */

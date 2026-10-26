@@ -50,10 +50,10 @@ export class Labels {
   }
 
   add(l: Label): Label {
+    l.w = undefined;
     this.items.push(l);
     this.root.append(l.el);
     l.el.style.visibility = 'hidden';
-    this.dirtySize = true;
     return l;
   }
 
@@ -72,7 +72,10 @@ export class Labels {
   }
 
   /** Call after label text changes (sizes are cached). */
-  remeasure(): void { this.dirtySize = true; }
+  remeasure(l?: Label): void {
+    if (l) l.w = undefined;
+    else this.dirtySize = true;
+  }
 
   layout(models: LayoutItem[] = []): void {
     const v = this.view;
@@ -86,11 +89,7 @@ export class Labels {
       this.dirtySize = true;
     }
     if (this.dirtySize) {
-      for (const l of this.items) {
-        l.w = l.el.offsetWidth; l.h = l.el.offsetHeight;
-        const marker = l.el.querySelector<HTMLElement>('.b');
-        l.markerX = marker ? marker.offsetLeft + marker.offsetWidth / 2 : l.w / 2;
-      }
+      for (const l of this.items) l.w = undefined;
       this.dirtySize = false;
     }
     const candidates = new Map<Label, LayoutItem>();
@@ -101,6 +100,11 @@ export class Labels {
         const p = v.project(l.pos, this.tmp);
         x = l.screen?.x ?? p.x; y = l.screen?.y ?? p.y;
         if (p.z < -1 || p.z > 1 || x < -40 || y < -40 || x > W + 40 || y > H + 40) show = false;
+      }
+      if (show && !(l.modelHit && l.model) && l.w === undefined) {
+        l.w = l.el.offsetWidth; l.h = l.el.offsetHeight;
+        const marker = l.el.querySelector<HTMLElement>('.b');
+        l.markerX = marker ? marker.offsetLeft + marker.offsetWidth / 2 : l.w / 2;
       }
       const w = l.w ?? 0, h = l.h ?? 0;
       const left = x - (l.anchor === 'beside' ? l.markerX ?? w / 2 : w / 2), top = l.anchor === 'above' ? y - h : y - h / 2;

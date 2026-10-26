@@ -31,6 +31,7 @@ import { Period } from './ui/period.ts';
 import { Panel } from './ui/panel.ts';
 import { Music } from './ui/music.ts';
 import { initTips } from './ui/tip.ts';
+import { BootIntro } from './ui/intro.ts';
 
 const params = new URLSearchParams(location.search);
 const lowfx = params.has('lowfx') || (navigator.hardwareConcurrency ?? 4) <= 2;
@@ -83,6 +84,8 @@ class App {
     const linkPlace = link.place ? PLACE.get(link.place) : undefined;
     const linkPerson = link.person ? PERSON.get(link.person) : undefined;
     const year: Year = ev?.year ?? link.year ?? (linkPerson ? Math.round((linkPerson.span[0] + linkPerson.span[1]) / 2) : undefined) ?? load<number>('year', -221);
+    const intro = new BootIntro(year, lang, lowfx);
+    this.atlas.onEraProgress = (era, done, total) => intro.setProgress(era, done, total);
     await this.atlas.init(year, lang);
     this.player = new StoryPlayer(this.atlas, {
       onCaption: (text, i, n) => this.caption.say(text, i, n),
@@ -131,8 +134,7 @@ class App {
     const linkJourney = link.journey ? JOURNEYS.find(j => j.id === link.journey) : undefined;
     if (linkJourney) setTimeout(() => void this.playJourney(linkJourney), 600);
     this.ready = true;
-    document.getElementById('boot')?.classList.add('gone');
-    setTimeout(() => document.getElementById('boot')?.remove(), 600);
+    intro.finish(this.atlas, Boolean(ev || linkPlace || linkPerson || link.life || linkLesson || linkJourney));
   }
 
   private cine?: HTMLElement;

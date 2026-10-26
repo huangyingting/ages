@@ -93,6 +93,9 @@ export class Fx {
   private particles: Particles;
   private missiles = new Missiles();
   private shadowTex = blobTexture();
+  private shadowGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+  private shadowMat = new THREE.MeshBasicMaterial({ map: this.shadowTex, transparent: true, depthWrite: false, opacity: 0.55 });
+  private ringMats = new Map<string, THREE.MeshBasicMaterial>();
   /** shared geometry of the base rings map items stand in */
   private baseRing = new THREE.RingGeometry(0.92, 1, 64).rotateX(-Math.PI / 2);
   /** the story year: troops are equipped for its period */
@@ -990,6 +993,9 @@ export class Fx {
     maxD?: number;
     /** colour of the thin base ring every map item stands in (its type colour, see docs/design/map-design.md) */
     ring?: string;
+    /** build queue priority and dynasty tag for per-era scheduling */
+    priority?: number;
+    tag?: string;
   }, layer: Layer = 'story'): Promise<THREE.Object3D | null> {
     const g = new THREE.Group();
     // Neither the shadow nor the unscaled base ring should appear while the model is still loading.
@@ -997,19 +1003,23 @@ export class Fx {
     const base = this.geo.pos(o.lon, o.lat, 0);
     if (!this.geo.isLand(o.lon, o.lat)) base.y = Math.max(-0.02, this.geo.height(o.lon, o.lat));
     g.position.copy(base);
-    const sh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: this.shadowTex, transparent: true, depthWrite: false, opacity: 0.55 }));
+    const sh = new THREE.Mesh(this.shadowGeo, this.shadowMat);
     sh.position.y = 0.006;
     sh.renderOrder = 2;
     sh.visible = false;
     g.add(sh);
-    const it = this.add({ layer, obj: g, own: [sh.geometry, sh.material as THREE.Material] });
+    const it = this.add({ layer, obj: g, own: [] });
     let base0: THREE.Mesh | null = null;
     if (o.ring) {
-      base0 = new THREE.Mesh(this.baseRing, ink(new THREE.MeshBasicMaterial({ color: o.ring, opacity: 0.65, side: THREE.DoubleSide })));
+      let rmat = this.ringMats.get(o.ring);
+      if (!rmat) {
+        rmat = ink(new THREE.MeshBasicMaterial({ color: o.ring, opacity: 0.65, side: THREE.DoubleSide }));
+        this.ringMats.set(o.ring, rmat);
+      }
+      base0 = new THREE.Mesh(this.baseRing, rmat);
       base0.renderOrder = INK.ring;
       base0.visible = false;
       g.add(base0);
-      it.own.push(base0.material as THREE.Material);
     }
     if (o.label) {
       const el = typeof o.label === 'string' ? tag(o.label, o.labelClass ?? 'model') : o.label;
@@ -1017,7 +1027,7 @@ export class Fx {
       it.label.off = true;
     }
     let m: THREE.Group;
-    try { m = await instance(o.model, true); } catch { this.remove(it); return null; }
+    try { m = await instance(o.model, { priority: o.priority ?? 90, tag: o.tag }); } catch { this.remove(it); return null; }
     if (!this.items.includes(it)) return null;
     g.visible = !this.hidden.has(layer);
     m.rotation.y = o.yaw ?? (Math.random() - 0.5) * 0.6;
@@ -1070,6 +1080,15 @@ export class Fx {
     if (o.fx === 'battle') this.ring(p, '#ff5a36', dur, layer, 0.9);
     await this.tween(dur, k => { em.k = k; });
     em.stop = true;
+  }
+
+  /**
+   * Releases a swirling veil of golden-bronze, amber and cinnabar historical dust motes ("历史的尘埃") over the map
+   * around (lon, lat), used when the atlas first opens and when awakening a new dynasty.
+   */
+  dustOfAges(lon: number, lat: number, span = 14, intensity = 1): void {
+    const c = this.geo.pos(lon, lat, 0.12);
+    this.particles.dustAges(c, Math.max(0.45, this.s), span, intensity);
   }
 
   /** Expanding glow rings on the ground. */
@@ -1309,6 +1328,35 @@ class Particles {
     } else {
       for (let i = 0; i < 14; i++) A.spawn(p.x, p.y, p.z, r() * 0.7 * s, Math.random() * 0.9 * s, r() * 0.7 * s, 0.5, 0.1 * s, Math.random() < 0.5 ? [1, 0.6, 0.15] : [1, 0.85, 0.4], 1.6);
       for (let i = 0; i < 5; i++) N.spawn(p.x + r() * 0.1 * s, p.y, p.z + r() * 0.1 * s, r() * 0.12 * s, 0.25 * s, r() * 0.12 * s, 2.4, 0.3 * s, i < 2 ? [0.62, 0.52, 0.4] : [0.3, 0.28, 0.27], -0.04, 0.55);
+    }
+  }
+
+  /** Swirling golden-bronze embers and warm loess mist ("历史的尘埃") drifting across the stage. */
+  dustAges(p: THREE.Vector3, s: number, span: number, intensity = 1): void {
+    const [A, N] = this.pools;
+    const countA = Math.min(220, Math.round(95 * intensity));
+    const countN = Math.min(70, Math.round(32 * intensity));
+    for (let i = 0; i < countA; i++) {
+      const th = Math.random() * Math.PI * 2;
+      const rad = Math.pow(Math.random(), 0.7) * span;
+      const ox = Math.cos(th) * rad, oz = Math.sin(th) * rad * 0.72;
+      const oy = Math.random() * 1.6 * s;
+      // Tangential swirl + gentle upward drift
+      const vx = (-Math.sin(th) * 0.45 + (Math.random() - 0.5) * 0.35) * s;
+      const vz = (Math.cos(th) * 0.35 + (Math.random() - 0.5) * 0.35) * s;
+      const vy = (0.18 + Math.random() * 0.42) * s;
+      const palette = i % 5 === 0 ? [0.92, 0.34, 0.22] : i % 2 === 0 ? [0.98, 0.82, 0.42] : [0.86, 0.64, 0.32];
+      A.spawn(p.x + ox, p.y + oy, p.z + oz, vx, vy, vz, 2.2 + Math.random() * 2.0, (0.07 + Math.random() * 0.11) * s, palette, -0.04, 0.85);
+    }
+    for (let i = 0; i < countN; i++) {
+      const th = Math.random() * Math.PI * 2;
+      const rad = Math.random() * span * 0.85;
+      const ox = Math.cos(th) * rad, oz = Math.sin(th) * rad * 0.7;
+      N.spawn(
+        p.x + ox, p.y + 0.05 * s, p.z + oz,
+        (Math.random() - 0.5) * 0.25 * s, (0.08 + Math.random() * 0.18) * s, (Math.random() - 0.5) * 0.25 * s,
+        2.6 + Math.random() * 1.6, (0.28 + Math.random() * 0.32) * s, [0.76, 0.65, 0.48], -0.02, 0.32,
+      );
     }
   }
 
