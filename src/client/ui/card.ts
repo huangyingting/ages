@@ -28,6 +28,9 @@ export interface CardHooks {
   year?(y: Year): void;
 }
 
+/** The phone layout (the bottom sheet), as in styles.css. */
+const PHONE = matchMedia('(max-width: 720px)');
+
 const LIFE_COLOR: Record<LifeKind, string> = { person: '#b8322a', building: '#8a6a3a', custom: '#3f7f6a', food: '#c0782a' };
 
 /** A generic model for events without their own recipe. */
@@ -38,7 +41,8 @@ const KIND_MODEL: Record<EventKind, ModelRecipe> = {
 
 /**
  * The info panel: a turntable 3D model of the subject on top, then a location line, the title, a stats grid, the main
- * actions and collapsible sections. Left-hand panel on desktop, bottom sheet on phones. Shows an event, an era, a place
+ * actions and collapsible sections. Left-hand panel on desktop; on phones a bottom sheet with the model floated beside
+ * the text, no hero buttons, and a handle that closes it. Shows an event, an era, a place
  * or a person. The Wikipedia reader unfolds to its right (on phones, in its place) and folds back.
  */
 export class Card {
@@ -47,6 +51,7 @@ export class Card {
   private hero: HTMLElement;
   private heroTag: HTMLElement;
   private nav: HTMLElement;
+  private grip: HTMLElement;
   private preview: Preview;
   event: HistEvent | null = null;
   era: Era | null = null;
@@ -67,7 +72,17 @@ export class Card {
     this.nav = h('div', { class: 'card-nav' });
     this.hero = h('div', { class: 'info-hero' }, this.preview.canvas, this.heroTag, this.nav);
     this.body = h('div', { class: 'card-body' });
-    this.el = h('aside', { class: 'card', hidden: true }, h('div', { class: 'card-main', 'aria-live': 'polite' }, this.hero, this.body));
+    // phones: the sheet's handle closes it (a tap or a swipe down), standing in for the hero's buttons
+    this.grip = h('button', { type: 'button', class: 'sheet-grip', onclick: () => this.hooks.close() });
+    this.grip.addEventListener('pointerdown', e => this.grip.setPointerCapture(e.pointerId));
+    this.el = h('aside', { class: 'card', hidden: true }, this.grip, h('div', { class: 'card-main', 'aria-live': 'polite' }, this.hero, this.body));
+    PHONE.addEventListener('change', () => this.placeHero());
+  }
+
+  /** On phones the model floats at the right of the text; elsewhere it heads the card. */
+  private placeHero(): void {
+    if (PHONE.matches) { if (this.body.firstChild !== this.hero) this.body.prepend(this.hero); }
+    else if (this.hero.nextSibling !== this.body) this.body.before(this.hero);
   }
 
   /** Puts the reader beside the card. */
@@ -119,6 +134,9 @@ export class Card {
     else if (this.place) this.renderPlace(this.place.p, this.place.year);
     else if (this.person) this.renderPerson(this.person);
     else if (this.life) this.renderLife(this.life);
+    this.grip.setAttribute('aria-label', t('close'));
+    this.grip.title = t('close');
+    this.placeHero();
   }
 
   // ------------------------------------------------------------ building blocks
