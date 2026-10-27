@@ -260,7 +260,7 @@ const PERSON_LOOK: Record<string, Partial<Look>> = {
   毛泽东: { top: '#64748b', bottom: '#64748b', outfit: 'zhongshan', pattern: 'zhongshan', hairStyle: 'short', beard: 'none' },
   邓小平: { h: 0.56, top: '#334155', bottom: '#334155', outfit: 'zhongshan', pattern: 'zhongshan', hairStyle: 'short', beard: 'none' },
   袁隆平: { top: '#94a3b8', bottom: '#334155', outfit: 'tunic', pattern: undefined, sleeve: 0.45, skin: '#d49e7a', hat: 'straw', hatColor: '#dfc17b', hairStyle: 'short', beard: 'none' },
-  朱德: RED_ARMY, 贺龙: { ...RED_ARMY, beard: 'moustache' }, 刘伯承: RED_ARMY, 彭德怀: RED_ARMY, 左权: RED_ARMY, 杨靖宇: RED_ARMY,
+  朱德: RED_ARMY, 贺龙: { ...RED_ARMY, beard: 'moustache' }, 刘伯承: RED_ARMY, 彭德怀: RED_ARMY, 左权: RED_ARMY, 杨靖宇: RED_ARMY, 林彪: RED_ARMY,
   白求恩: { top: '#5b6470', bottom: '#5b6470', outfit: 'zhongshan', pattern: 'zhongshan', skin: '#f1d3bd', hair: '#a8a29e', hairStyle: 'short', beard: 'moustache', glasses: false },
   利玛窦: { top: '#3f3f46', bottom: '#27272a', accent: '#a1a1aa', badge: undefined, hat: 'fangjin', hatColor: '#18181b', skin: '#f1d3bd', hair: '#78716c', beardColor: '#57534e', beard: 'full' },
   石达开: { top: '#b91c1c', bottom: '#7f1d1d', accent: '#eab308', outfit: 'roundrobe', pattern: 'mingrobe', piling: undefined, chaozhu: false, armor: undefined, hat: 'taiping', hairStyle: 'long', beard: 'short' },

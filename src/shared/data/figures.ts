@@ -4,7 +4,7 @@ import type { Year } from './types.ts';
 /**
  * Famous figures (政治家、军事家、思想家、文学家、科学家) that complete the imported people index: everyone the
  * curriculum events name, and the major thinkers, writers, statesmen and generals of every period, from 周武王 to
- * 杨利伟. `dyn` values are era ids. `fl` marks spans that are an active period (birth and death unknown) and `alive`
+ * 杨利伟, plus the lesser actors the curriculum names (吴广, 张角, 史思明 …). `dyn` values are era ids. `fl` marks spans that are an active period (birth and death unknown) and `alive`
  * a living person (span ends at the timeline's last year). Costume and pose hints feed personModel (heroes.ts).
  */
 type T = readonly [string, string];
@@ -45,11 +45,13 @@ export const FIGURES: Person[] = [
   f('xunzi', ['荀子', 'Xunzi'], ['儒家 · 《劝学》 · 性恶论', 'Confucian · Exhortation to Learning'], 'zhanguo', [-313, -238], ['荀况', '荀卿'], S({ prop: 'bamboo_scroll' })),
   f('hanfei', ['韩非', 'Han Fei'], ['法家集大成者 · 《韩非子》', 'Synthesiser of Legalism · Han Feizi'], 'zhanguo', [-280, -233], ['韩非子'], S({ prop: 'bamboo_scroll' })),
   f('libing', ['李冰', 'Li Bing'], ['秦蜀郡守 · 修都江堰', 'Qin governor of Shu · built Dujiangyan'], 'zhanguo', [-256, -251], [], S({ prop: 'spade', fl: true })),
+  f('wuguang', ['吴广', 'Wu Guang'], ['大泽乡起义领袖 · 与陈胜首义', 'Co-leader of the Dazexiang Uprising'], 'qin', [-209, -208], ['吴叔'], G({ year: -209, prop: 'sword', fl: true })),
   // ------------------------------------------------------------------ 两汉
   f('jiayi', ['贾谊', 'Jia Yi'], ['政论家 · 《过秦论》', 'Statesman-essayist · The Faults of Qin'], 'whan', [-200, -168], ['贾生', '贾长沙'], S({ prop: 'scroll' })),
   f('simaxiangru', ['司马相如', 'Sima Xiangru'], ['汉赋大家 · 《子虚赋》', 'Master of the Han rhapsody'], 'whan', [-179, -118], ['司马长卿'], S({ prop: 'scroll' })),
   f('dongzhongshu', ['董仲舒', 'Dong Zhongshu'], ['罢黜百家 · 独尊儒术', 'Made Confucianism the state creed'], 'whan', [-179, -104], ['董子'], S({ prop: 'book' })),
   f('wangzhaojun', ['王昭君', 'Wang Zhaojun'], ['昭君出塞 · 汉匈和亲', 'Han lady who wed the Xiongnu chanyu'], 'whan', [-54, -19], ['王嫱', '昭君', '明妃'], W({ prop: 'pipa' })),
+  f('huhanye', ['呼韩邪单于', 'Chanyu Huhanye'], ['匈奴单于 · 归附汉朝迎娶昭君', 'Xiongnu chanyu who submitted to Han and wed Zhaojun'], 'whan', [-58, -31], ['呼韩邪', '稽侯狦'], R({ year: -33, prop: 'bow', eth: 'steppe', fl: true })),
   f('mayuan', ['马援', 'Ma Yuan'], ['伏波将军 · 马革裹尸', 'Wave-Calming General'], 'ehan', [-14, 49], ['马文渊'], G({ year: 30, prop: 'sword' })),
   f('wangchong', ['王充', 'Wang Chong'], ['唯物思想家 · 《论衡》', 'Rationalist thinker · Lunheng'], 'ehan', [27, 97], ['王仲任'], S({ prop: 'book' })),
   f('bangu', ['班固', 'Ban Gu'], ['史学家 · 《汉书》', 'Historian · Book of Han'], 'ehan', [32, 92], ['班孟坚'], S({ prop: 'brush' })),
@@ -58,6 +60,7 @@ export const FIGURES: Person[] = [
   f('zhangheng', ['张衡', 'Zhang Heng'], ['浑天仪 · 地动仪', 'Armillary sphere and seismoscope'], 'ehan', [78, 139], ['张平子'], S({ prop: 'armillary' })),
   f('huatuo', ['华佗', 'Hua Tuo'], ['神医 · 麻沸散 · 五禽戏', 'Physician · anaesthetic and Five Animals exercise'], 'ehan', [145, 208], ['华元化'], S({ prop: 'herbs' })),
   f('zhangzhongjing', ['张仲景', 'Zhang Zhongjing'], ['医圣 · 《伤寒杂病论》', 'Sage of medicine · Treatise on Cold Damage'], 'ehan', [150, 219], ['张机'], S({ year: 180, prop: 'herbs' })),
+  f('zhangjue', ['张角', 'Zhang Jue'], ['太平道首领 · 黄巾起义 · 天公将军', 'Leader of the Way of Great Peace · Yellow Turban Rebellion'], 'ehan', [172, 184], ['天公将军'], G({ year: 184, prop: 'staff', fl: true })),
   // ------------------------------------------------------------------ 三国 · 两晋 · 南北朝
   f('caozhi', ['曹植', 'Cao Zhi'], ['建安文学 · 才高八斗', 'Jian’an poet · Rhapsody on the Luo Goddess'], 'sanguo', [192, 232], ['曹子建', '陈思王'], S({ prop: 'scroll' })),
   f('jikang', ['嵇康', 'Ji Kang'], ['竹林七贤 · 《广陵散》', 'Seven Sages of the Bamboo Grove'], 'sanguo', [224, 263], ['嵇叔夜', '嵇中散'], S({ prop: 'book' })),
@@ -88,6 +91,7 @@ export const FIGURES: Person[] = [
   f('luyu', ['陆羽', 'Lu Yu'], ['茶圣 · 《茶经》', 'Sage of tea · The Classic of Tea'], 'tang', [733, 804], ['陆鸿渐'], S({ prop: 'cup' })),
   f('dumu', ['杜牧', 'Du Mu'], ['晚唐诗人 · 《阿房宫赋》', 'Late Tang poet · Epang Palace rhapsody'], 'tang', [803, 852], ['杜樊川', '小杜'], S({ prop: 'cup' })),
   f('lishangyin', ['李商隐', 'Li Shangyin'], ['晚唐诗人 · 无题诗', 'Late Tang poet of the untitled poems'], 'tang', [813, 858], ['李义山', '玉溪生'], S({ prop: 'scroll' })),
+  f('shisiming', ['史思明', 'Shi Siming'], ['安史之乱叛军首领 · 继安禄山称燕帝', 'An Lushan’s fellow rebel who took the Yan throne'], 'tang', [703, 761], ['史窣干'], G({ year: 755, prop: 'sword', eth: 'steppe' })),
   f('zhuwen', ['朱温', 'Zhu Wen'], ['后梁太祖 · 篡唐建梁', 'Ended the Tang and founded Later Liang'], 'wudai', [852, 912], ['朱全忠', '后梁太祖'], R({ year: 907, prop: 'sword' })),
   f('shijingtang', ['石敬瑭', 'Shi Jingtang'], ['后晋高祖 · 割让燕云十六州', 'Ceded the Sixteen Prefectures to Liao'], 'wudai', [892, 942], ['后晋高祖'], R({ year: 936 })),
   // ------------------------------------------------------------------ 宋 · 辽 · 西夏 · 金
@@ -197,6 +201,7 @@ export const FIGURES: Person[] = [
   f('zuoquan', ['左权', 'Zuo Quan'], ['八路军副参谋长 · 抗日殉国', 'Eighth Route Army deputy chief of staff'], 'roc', [1905, 1942], ['左叔仁'], G({ year: 1940 })),
   f('zhaoyiman', ['赵一曼', 'Zhao Yiman'], ['东北抗联女英雄', 'Heroine of the Northeast resistance'], 'roc', [1905, 1936], ['李坤泰'], W({ year: 1935 })),
   f('xianxinghai', ['冼星海', 'Xian Xinghai'], ['作曲家 · 《黄河大合唱》', 'Composer · Yellow River Cantata'], 'roc', [1905, 1945], [], S({ year: 1939, prop: 'scroll' })),
+  f('linbiao', ['林彪', 'Lin Biao'], ['八路军115师师长 · 平型关大捷', 'Eighth Route Army 115th Division commander · Pingxingguan'], 'roc', [1907, 1971], [], G({ year: 1937 })),
   f('nieer', ['聂耳', 'Nie Er'], ['作曲家 · 《义勇军进行曲》', 'Composer · March of the Volunteers'], 'roc', [1912, 1935], ['聂守信'], S({ year: 1935, prop: 'scroll' })),
   // ------------------------------------------------------------------ 中华人民共和国
   f('zhouenlai', ['周恩来', 'Zhou Enlai'], ['开国总理 · 外交家', 'First Premier of the People’s Republic'], 'prc', [1898, 1976], ['周翔宇'], S({ year: 1955 })),

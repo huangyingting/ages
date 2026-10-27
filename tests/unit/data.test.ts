@@ -237,10 +237,8 @@ describe('stories', () => {
       expect(ERAS.some(e => e.id === eraIdOfDyn(p.dyn)), `${p.id} era`).toBe(true);
       expect(p.span[0], p.id).toBeLessThanOrEqual(p.span[1]);
     }
-    // minor or legendary actors that stay plain chips
-    const minor = new Set(['吴广', '张角', '呼韩邪单于', '史思明', '林彪']);
     for (const e of EVENTS.filter(x => x.scope === 'china')) {
-      for (const n of e.people ?? []) if (!minor.has(n.zh)) expect(personNamed(n.zh), `${e.id}: ${n.zh}`).toBeDefined();
+      for (const n of e.people ?? []) expect(personNamed(n.zh), `${e.id}: ${n.zh}`).toBeDefined();
     }
     expect(personNamed('隋文帝杨坚')?.id).toBe('yangjian');
     expect(personNamed('唐太宗李世民')?.id).toBe('lishimin');
