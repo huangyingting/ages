@@ -12,8 +12,8 @@ import { h, iconBtn, setIcon } from './dom.ts';
 
 /**
  * Time, in two parts. `head` is the headline on the map's top-left corner: the dynasty (click for its card), the year
- * and the ruler / reign era. `el` is the bar across the foot of the map: ⏮ ▶ ⏭ with a
- * speed switch, then the track — the dynasty's territorial area as a stepped curve, event ticks, coloured era bands
+ * and the ruler / reign era. `el` is the bar across the foot of the map: one plate of ⏮ ▶ ⏭ and a
+ * speed toggle (0.5× → 1× → 2×), then the track — the dynasty's territorial area as a stepped curve, event ticks, coloured era bands
  * (two lanes for overlapping regimes), the year axis and a draggable thumb. The axis is piecewise-linear (see
  * shared/lib/timeline.ts) so the dense recent centuries get room while prehistory stays visible.
  */
@@ -27,7 +27,7 @@ export class Timeline {
   private eraEl: HTMLButtonElement;
   private rulerEl: HTMLElement;
   private playBtn: HTMLButtonElement;
-  private speedSeg: HTMLElement;
+  private speedBtn: HTMLButtonElement;
   /** playback rate: 1× crosses the whole axis in ~100 s */
   private speed = 1;
   private tip: HTMLElement;
@@ -48,13 +48,15 @@ export class Timeline {
 
   constructor() {
     this.playBtn = iconBtn('play', t('play'), () => this.setPlaying(!this.playing), 'tl-play');
-    this.speedSeg = h('div', { class: 'seg tl-speed', role: 'radiogroup', 'aria-label': t('speed') }, ...[0.5, 1, 2].map(v => h('button', {
-      type: 'button', role: 'radio', class: v === this.speed ? 'on' : '', 'aria-checked': String(v === this.speed), 'data-speed': v, text: `${v}×`,
+    this.speedBtn = h('button', {
+      type: 'button', class: 'ib tl-speed', title: t('speed'), 'aria-label': `${t('speed')} 1×`, text: '1×',
       onclick: () => {
-        this.speed = v;
-        for (const b of this.speedSeg.children as HTMLCollectionOf<HTMLElement>) { const on = Number(b.dataset.speed) === v; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }
+        const sp = [0.5, 1, 2];
+        this.speed = sp[(sp.indexOf(this.speed) + 1) % sp.length];
+        this.speedBtn.textContent = `${this.speed}×`;
+        this.speedBtn.setAttribute('aria-label', `${t('speed')} ${this.speed}×`);
       },
-    })));
+    });
     this.yearEl = h('div', { class: 'tl-year', 'aria-live': 'polite' });
     this.eraEl = h('button', { type: 'button', class: 'tl-era', onclick: () => { const e = eraAt(this.year); if (e) this.onEra(e.id); } });
     this.rulerEl = h('div', { class: 'tl-ruler' });
@@ -70,7 +72,7 @@ export class Timeline {
     this.head = h('div', { class: 'tl-head' }, this.eraEl, this.yearEl, this.rulerEl);
     const ctl = h('div', { class: 'tl-ctl' },
       iconBtn('prev', t('prevStop'), () => this.step(-1), 'tl-prev'), this.playBtn, iconBtn('next', t('nextStop'), () => this.step(1), 'tl-next'),
-      this.speedSeg);
+      h('i', { class: 'tools-sep', 'aria-hidden': 'true' }), this.speedBtn);
     this.el = h('div', { class: 'tl' }, ctl, this.track);
     this.build();
     this.bind();
@@ -256,7 +258,8 @@ export class Timeline {
     this.track.setAttribute('aria-label', t('era'));
     for (const [c, k] of [['.tl-prev', 'prevStop'], ['.tl-next', 'nextStop']] as const) { const b = this.el.querySelector<HTMLElement>(c)!; b.title = t(k); b.setAttribute('aria-label', t(k)); }
     this.playBtn.title = this.playBtn.ariaLabel = t(this.playing ? 'pause' : 'play');
-    this.speedSeg.setAttribute('aria-label', t('speed'));
+    this.speedBtn.title = t('speed');
+    this.speedBtn.setAttribute('aria-label', `${t('speed')} ${this.speed}×`);
     this.build();
     this.select(this.selected);
   }

@@ -361,7 +361,7 @@ class App {
     this.timeline.set(y, true, false);
     this.atlas.setYear(y);
     const cap = era.capital ? PLACE.get(era.capital) : undefined;
-    if (cap) this.atlas.flyTo({ lon: cap.lon + 2, lat: cap.lat - 4, dist: 52, tilt: 0.9 }, 1.6);
+    if (cap) this.atlas.flyTo({ lon: cap.lon + 2, lat: cap.lat - 3, dist: 50, tilt: 0.6 }, 1.6);
     this.card.showEra(era);
     this.root.classList.add('card-on');
     writeLink({ year: y, lang });

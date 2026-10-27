@@ -27,6 +27,7 @@ export const STAGES: Record<StageId, Stage> = {
     bounds: { west: 50, east: 160, south: -6, north: 64 },
     terrain: 'data/terrain/east-asia.png',
     refLat: 34,
-    home: { lon: 108, lat: 33, dist: 48, tilt: 0.75 },
+    // near top-down and close enough that the land fills the screen (no sky band at the top)
+    home: { lon: 108, lat: 32.5, dist: 40, tilt: 0.45 },
   },
 };

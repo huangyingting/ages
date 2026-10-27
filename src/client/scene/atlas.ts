@@ -805,7 +805,7 @@ export class Atlas {
     if (!isFinite(w)) return;
     const a = this.geo.pos(w, s, 0), b = this.geo.pos(e, n, 0);
     const span = Math.max(Math.abs(b.x - a.x), Math.abs(b.z - a.z) * 1.4);
-    this.flyTo({ lon: (w + e) / 2, lat: (s + n) / 2 - (n - s) * 0.12, dist: Math.max(10, Math.min(120, span * 1.25)), tilt: 0.85 }, 1.6);
+    this.flyTo({ lon: (w + e) / 2, lat: (s + n) / 2 - (n - s) * 0.08, dist: Math.max(10, Math.min(120, span * 1.2)), tilt: 0.6 }, 1.6);
     this.highlight(polity, 2.5);
   }
 
