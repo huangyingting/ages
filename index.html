@@ -22,12 +22,14 @@
       <div id="boot" class="boot">
         <canvas id="boot-dust" class="boot-dust" aria-hidden="true"></canvas>
         <div class="boot-glow" aria-hidden="true"></div>
-        <div class="boot-frame" aria-hidden="true">
-          <span class="bf-corner tl"><i>73°E · 53°N</i><b>禹迹九州 · 舆图志</b></span>
-          <span class="bf-corner tr"><b>浑天星野 · 历朝疆域</b><i>135°E · 53°N</i></span>
-          <span class="bf-corner bl"><i>73°E · 18°N</i><b>山川形胜 · 古今同轨</b></span>
-          <span class="bf-corner br"><b>长河漫卷 · 岁月留痕</b><i>135°E · 18°N</i></span>
-        </div>
+        <svg class="boot-hills" viewBox="0 0 1600 260" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="bh-mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9a85c" stop-opacity="0.16" /><stop offset="0.7" stop-color="#d9a85c" stop-opacity="0" /></linearGradient>
+            <linearGradient id="bh-ink" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0a09" stop-opacity="0.5" /><stop offset="0.6" stop-color="#0b0a09" stop-opacity="0.9" /></linearGradient>
+          </defs>
+          <path fill="url(#bh-mist)" d="M0 150 L70 128 Q110 112 150 120 L230 70 Q262 54 296 78 L360 112 Q400 126 440 104 L520 56 Q548 42 580 66 L660 120 Q700 140 744 118 L830 74 Q870 58 902 84 L960 118 Q1000 132 1046 100 L1120 48 Q1150 34 1182 60 L1250 108 Q1290 128 1330 110 L1420 82 Q1460 70 1500 92 L1600 120 L1600 260 L0 260 Z" />
+          <path fill="url(#bh-ink)" d="M0 206 Q60 196 110 184 L180 156 Q210 146 238 162 L300 190 Q340 204 390 188 L470 152 Q500 140 530 156 L600 194 Q650 212 710 196 L800 160 Q836 148 866 166 L930 196 Q980 212 1040 194 L1120 164 Q1150 154 1180 170 L1250 198 Q1300 212 1360 192 L1440 160 Q1474 150 1504 168 L1600 196 L1600 260 L0 260 Z" />
+        </svg>
         <div class="boot-center">
           <div class="boot-kicker" aria-hidden="true"><span>山河舆图</span><i>·</i><span>三维历史长卷</span></div>
           <div class="boot-wheel" aria-hidden="true">

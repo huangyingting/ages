@@ -117,6 +117,7 @@ export class BootIntro {
     this.updateChronicleBadge(era, this.year);
     this.setProgress(era, 0, 1, true);
 
+    if (lang === 'en') for (const el of [this.verseEl, this.statusEl]) if (el) el.lang = 'en';
     if (this.verseEl && lang === 'en') {
       this.verseEl.textContent = 'Mountains and rivers unscroll · Four millennia under one celestial compass';
     }
