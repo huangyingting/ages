@@ -590,8 +590,8 @@ class App {
       const sheet = this.panel.open ? tl - this.panel.el.offsetHeight : tl;
       return this.atlas.view.setInset(0, 0, Math.min(H * 0.62, H - Math.min(sheet, tl)));
     }
-    const l = this.panel.el;
-    this.atlas.view.setInset(this.panel.open ? l.offsetLeft + l.offsetWidth : 0, 0, 0);
+    // the desktop side panel floats over the map: opening it must not move the map
+    this.atlas.view.setInset(0, 0, 0);
   }
 
   private relabel(): void {
