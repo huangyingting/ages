@@ -27,6 +27,9 @@ void main() {
   gl_Position = projectionMatrix * viewMatrix * w;
 }`;
 
+/** Width, in degrees, of the band where the stage's edges dissolve into the haze; the camera stays inside it. */
+export const EDGE_FADE = 3;
+
 const FRAG = /* glsl */ `
 uniform sampler2D uElev;
 uniform sampler2D uMask;
@@ -212,7 +215,7 @@ void main() {
   float d = distance(uCam, vWorld);
   col = mix(col, uHaze, smoothstep(40.0, 150.0, d) * 0.75);
   vec2 e2 = min(vUv, 1.0 - vUv) * vec2(uBounds.y - uBounds.x, uBounds.w - uBounds.z);
-  col = mix(uHaze, col, smoothstep(0.0, 4.0, min(e2.x, e2.y)));
+  col = mix(uHaze, col, smoothstep(0.0, ${EDGE_FADE.toFixed(1)}, min(e2.x, e2.y)));
   gl_FragColor = vec4(col, 1.0); // already sRGB
 }`;
 

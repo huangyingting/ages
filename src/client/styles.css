@@ -374,8 +374,9 @@ b.w { font-family: 'Linux Libertine', 'Times New Roman', serif; font-weight: 700
 .tools > .ib:hover { background: var(--well); color: var(--ink); }
 .tools > .ib.on { color: var(--zhu); background: var(--zhu-fill); }
 .tools-sep { flex: none; width: 1px; height: 20px; margin: 0 5px; background: var(--rule-2); transform: skewX(-22deg); }
-/* the timeline's transport: one frosted plate like the toolbar — ⏮ ▶ ⏭ | speed */
+/* the timeline's transport: ⏮ ▶ ⏭ | speed, bare on the map (a soft halo keeps them legible) */
 .tl-ctl > .ib { width: 32px; height: 32px; background: none; }
+.tl-ctl > .ib:not(.tl-play) { color: var(--ink); filter: drop-shadow(0 0 2px var(--panel-solid)) drop-shadow(0 0 4px var(--panel-solid)); }
 .tl-ctl > .ib:not(.tl-play):hover { background: var(--well); color: var(--ink); }
 .tl-ctl > .tl-speed { width: auto; min-width: 34px; padding: 0 6px; font-size: var(--t-xs); font-weight: 600; font-variant-numeric: tabular-nums; }
 .search {
@@ -851,13 +852,7 @@ i.seen { color: var(--k-economy); font-style: normal; margin-left: auto; }
    The track, top to bottom: territorial-area curve, event dots, dynasty bands (with phase hairlines), axis. */
 /* one row: the transport buttons, then the track; the buttons line up with the dynasty bands */
 .tl { position: relative; width: 100%; display: flex; align-items: flex-start; gap: 18px; padding: 4px 16px 2px; user-select: none; -webkit-user-select: none; }
-.tl-ctl {
-  --cut: 8px; position: relative; isolation: isolate; flex: none; display: flex; align-items: center; gap: 2px; padding: 3px; margin-top: 23px;
-}
-.tl-ctl::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: var(--panel); clip-path: var(--pp-clip); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass);
-}
+.tl-ctl { flex: none; display: flex; align-items: center; gap: 2px; margin-top: 26px; }
 .tl-ctl .tools-sep { margin: 0 3px; height: 18px; }
 .tl-track { flex: 1 1 auto; min-width: 0; }
 .tl-curve { position: absolute; left: 0; right: 0; top: 0; height: 20px; pointer-events: none; }

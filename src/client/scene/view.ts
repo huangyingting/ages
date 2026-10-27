@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { outdoorEnvironment } from '../models/environment.ts';
 import { MapControls } from 'three/examples/jsm/controls/MapControls.js';
 import type { Geo } from './geo.ts';
-import { HAZE } from './terrain.ts';
+import { EDGE_FADE, HAZE } from './terrain.ts';
 
 export interface CamPose { lon: number; lat: number; dist: number; tilt: number; heading?: number }
 type FrameFn = (dt: number, t: number) => void;
@@ -158,7 +158,8 @@ export class View {
       Math.abs(cam.quaternion.dot(this.lastCamQuat)) > 1 - 1e-8
     ) return;
     this.constrainDirty = false;
-    const W = g.width / 2, D = g.depth / 2;
+    // stay inside the band where the stage's edges dissolve into haze (EDGE_FADE° wide, see terrain.ts)
+    const W = g.width / 2 - EDGE_FADE * g.kx, D = g.depth / 2 - EDGE_FADE;
     const hadOffset = Math.abs(this.inset.x) >= 0.5 || Math.abs(this.inset.y) >= 0.5;
     if (hadOffset) cam.clearViewOffset();
     const sph = new THREE.Spherical().setFromVector3(cam.position.clone().sub(t));
