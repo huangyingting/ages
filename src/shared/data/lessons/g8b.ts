@@ -67,8 +67,7 @@ export const G8B: Lesson[] = [
         body: { zh: '1956年中共八大指出，国内主要矛盾已不再是工人阶级和资产阶级的矛盾，全国人民的主要任务是集中力量发展社会生产力。', en: 'The Eighth Party Congress of 1956 declared that the main contradiction was no longer between the working class and the bourgeoisie, and that the nation’s main task was to develop the productive forces.' },
       },
       {
-        year: 1958, at: [113, 34, 50],
-        title: { zh: '探索中的失误', en: 'Mistakes along the way' },
+        ev: 'dayuejin',
         body: { zh: '1958年开展的“大跃进”和人民公社化运动急于求成，忽视了客观经济规律，以高指标、浮夸风和“共产风”为主要标志的“左”倾错误泛滥，国民经济遭到严重困难。', en: 'The Great Leap Forward and the people’s communes of 1958 rushed ahead and ignored economic laws; leftist errors – inflated targets, exaggeration and levelling – brought the economy into grave difficulty.' },
       },
       { ev: 'daqing' },
@@ -117,6 +116,7 @@ export const G8B: Lesson[] = [
         body: { zh: '1984年起，经济体制改革的重点从农村转向城市，中心环节是增强企业特别是国有大中型企业的活力，实行政企分开、所有权与经营权分离。', en: 'From 1984 reform moved from the countryside to the cities. Its core was to invigorate enterprises, above all large and medium state firms, by separating government from business and ownership from management.' },
       },
       { ev: 'shenzhen' },
+      { ev: 'pudong' },
       { ev: 'nanxun' },
       { ev: 'wto' },
       {
@@ -213,10 +213,10 @@ export const G8B: Lesson[] = [
       },
       { ev: 'bandung' },
       { ev: 'un_seat' },
+      { ev: 'sco' },
       {
-        year: 2013, at: [95, 38, 90],
-        title: { zh: '新时期的外交', en: 'Diplomacy in the new period' },
-        body: { zh: '2001年上海合作组织在上海成立。2013年我国提出共建“一带一路”倡议，积极推动构建人类命运共同体。', en: 'The Shanghai Cooperation Organisation was founded in Shanghai in 2001. In 2013 China proposed the Belt and Road Initiative and works to build a community with a shared future for mankind.' },
+        ev: 'belt_road',
+        body: { zh: '2013年我国提出共建“一带一路”倡议，同沿线国家共商共建共享，积极推动构建人类命运共同体。', en: 'In 2013 China proposed the Belt and Road Initiative, to be planned, built and shared with partner countries, and works to build a community with a shared future for mankind.' },
       },
     ],
     checks: [
@@ -256,12 +256,14 @@ export const G8B: Lesson[] = [
         body: { zh: '1964年我国第一颗原子弹爆炸成功，1967年第一颗氢弹爆炸成功，1970年第一颗人造地球卫星“东方红一号”发射成功。邓稼先被誉为“两弹元勋”。', en: 'China exploded its first atomic bomb in 1964 and its first hydrogen bomb in 1967, and launched its first satellite, Dongfanghong-1, in 1970. Deng Jiaxian is honoured as a founding hero of the bombs and the satellite.' },
       },
       { ev: 'hybrid_rice' },
+      { ev: 'gaokao' },
       {
         year: 1986, at: [116.4, 39.9, 40],
         title: { zh: '教育的发展', en: 'Education grows' },
-        body: { zh: '1977年恢复高等学校招生考试制度。1986年颁布《中华人民共和国义务教育法》，我国开始实行九年制义务教育。', en: 'University entrance examinations resumed in 1977. The Compulsory Education Law of 1986 introduced nine years of compulsory schooling.' },
+        body: { zh: '1986年颁布《中华人民共和国义务教育法》，我国开始实行九年制义务教育。', en: 'The Compulsory Education Law of 1986 introduced nine years of compulsory schooling.' },
       },
       { ev: 'shenzhou5' },
+      { ev: 'change' },
       {
         ev: 'olympics2008',
         body: { zh: '改革开放以来，人民生活水平显著提高，衣食住行发生巨大变化。2008年北京成功举办第29届奥运会；同年京津城际铁路开通，中国进入高铁时代。', en: 'Since reform and opening up living standards have risen sharply and food, clothing, housing and travel have changed greatly. Beijing hosted the 2008 Olympics, and the Beijing–Tianjin intercity line brought China into the high-speed rail age that year.' },

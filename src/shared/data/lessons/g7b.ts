@@ -29,6 +29,7 @@ export const G7B: Lesson[] = [
         body: { zh: '隋炀帝暴政引发农民起义，618年隋朝灭亡，李渊建立唐朝。唐太宗吸取隋亡教训，虚心纳谏、轻徭薄赋、完善科举制，史称“贞观之治”。', en: 'Emperor Yang’s tyranny sparked peasant risings; the Sui fell in 618 and Li Yuan founded the Tang. Learning from the Sui’s fall, Emperor Taizong heeded advice, lightened taxes and labour and improved the examinations: the Reign of Zhenguan.' },
       },
       { ev: 'wencheng', polity: 'tubo' },
+      { ev: 'wuzetian' },
       {
         ev: 'kaiyuan', polity: 'tang',
         body: { zh: '唐玄宗前期励精图治，唐朝进入全盛时期，史称“开元盛世”。长安成为国际性大都市，日本多次派遣唐使来华学习，高僧鉴真东渡日本传播唐文化。', en: 'In his early reign Emperor Xuanzong ruled diligently and the Tang reached its height, the Kaiyuan golden age. Chang’an became a cosmopolitan city; Japan sent envoys to learn from the Tang, and the monk Jianzhen sailed to Japan.' },
@@ -37,6 +38,7 @@ export const G7B: Lesson[] = [
         ev: 'anshi',
         body: { zh: '755年安禄山、史思明发动叛乱，攻占洛阳、长安，763年才被平定。安史之乱是唐朝由盛转衰的转折点，此后藩镇割据，907年唐朝灭亡。', en: 'In 755 An Lushan and Shi Siming rebelled and took Luoyang and Chang’an; the revolt was put down only in 763. It was the turning point from prosperity to decline: regional governors became warlords, and the Tang fell in 907.' },
       },
+      { ev: 'huangchao' },
     ],
     checks: [
       {
@@ -72,6 +74,8 @@ export const G7B: Lesson[] = [
       },
       { ev: 'song_found' },
       { ev: 'chanyuan', polity: 'liao' },
+      { ev: 'song_tech' },
+      { ev: 'songci' },
       {
         ev: 'jingkang',
         body: { zh: '1115年女真首领阿骨打建立金，1125年金灭辽。1127年金军攻破开封，北宋灭亡，史称“靖康之变”；同年赵构即位，后定都临安，史称南宋。', en: 'The Jurchen leader Aguda founded the Jin in 1115, and the Jin destroyed the Liao in 1125. In 1127 Jin troops took Kaifeng and the Northern Song fell; that year Zhao Gou took the throne and later made Lin’an his capital: the Southern Song.' },
@@ -89,6 +93,7 @@ export const G7B: Lesson[] = [
         ev: 'xingsheng',
         body: { zh: '元朝中央设中书省，地方实行行省制度，这是我国省制的开端，加强了中央集权。元朝设宣政院管辖西藏，设澎湖巡检司管辖澎湖和台湾。', en: 'The Yuan ran the court through the Central Secretariat and the provinces through branch secretariats, the origin of China’s provinces, strengthening central power. It governed Tibet through the Xuanzheng Yuan and Penghu and Taiwan through the Penghu Inspectorate.' },
       },
+      { ev: 'guoshoujing' },
     ],
     checks: [
       {
@@ -120,23 +125,35 @@ export const G7B: Lesson[] = [
       {
         year: 1368, at: [116, 34, 55], polity: 'ming',
         title: { zh: '明朝建立', en: 'The Ming is founded' },
-        body: { zh: '1368年朱元璋在应天府称帝，建立明朝，同年明军攻占大都，结束了元朝的统治。明太祖废除丞相，由六部直接对皇帝负责，皇权空前加强。', en: 'In 1368 Zhu Yuanzhang proclaimed himself emperor at Yingtian and founded the Ming; that year his army took Dadu and ended Yuan rule. He abolished the chancellor and made the Six Ministries answer to him directly, greatly strengthening the throne.' },
+        body: { zh: '1368年朱元璋在应天府称帝，建立明朝，同年明军攻占大都，结束了元朝的统治。明朝建立后加强了君主专制。', en: 'In 1368 Zhu Yuanzhang proclaimed himself emperor at Yingtian and founded the Ming; that year his army took Dadu and ended Yuan rule. The Ming went on to strengthen the throne.' },
       },
+      { ev: 'ming_autocracy' },
       { ev: 'zhenghe' },
+      { ev: 'macao_pt' },
       { ev: 'qijiguang' },
+      { ev: 'ming_novels' },
+      { ev: 'later_jin' },
       { ev: 'li_zicheng' },
       { ev: 'zheng_chenggong' },
+      { ev: 'taiwan_fu' },
       { ev: 'yaksa', polity: 'qing' },
       {
         ev: 'zungar', polity: 'qing',
         body: { zh: '康熙、雍正、乾隆三朝平定准噶尔叛乱，乾隆帝又平定大小和卓叛乱，统一新疆并设伊犁将军。清朝还设驻藏大臣，与达赖、班禅共同管理西藏。', en: 'Under Kangxi, Yongzheng and Qianlong the Qing put down the Dzungars, then Qianlong crushed the Khoja revolt, unified Xinjiang and appointed the General of Ili. The Qing also posted Ambans to govern Tibet with the Dalai Lama and the Panchen Lama.' },
       },
+      { ev: 'torghut' },
       {
         ev: 'junjichu',
         body: { zh: '1729年雍正帝设立军机处，军国大事由皇帝一人裁决，君主专制达到顶峰。清朝还实行“闭关锁国”，1757年只开放广州一处通商，使中国逐渐落后于世界潮流。', en: 'In 1729 Emperor Yongzheng set up the Grand Council and decided all affairs of state alone: autocracy reached its peak. The Qing also closed the country, opening only Guangzhou to foreign trade from 1757, and China fell behind the world.' },
       },
     ],
     checks: [
+      {
+        q: { zh: '1771年，从伏尔加河下游回归祖国的是？', en: 'Which people returned to China from the lower Volga in 1771?' },
+        options: [{ zh: '准噶尔部', en: 'The Dzungars' }, { zh: '土尔扈特部', en: 'The Torghuts' }, { zh: '察哈尔部', en: 'The Chahars' }, { zh: '女真族', en: 'The Jurchens' }],
+        answer: 1, ev: 'torghut',
+        why: { zh: '不堪沙俄压迫的土尔扈特部在渥巴锡率领下东归，乾隆帝妥善安置了他们；准噶尔部则在乾隆时被平定。', en: 'Oppressed by Russia, the Torghuts trekked home under Ubashi and the Qianlong emperor resettled them; the Dzungars were the people Qianlong defeated.' },
+      },
       {
         q: { zh: '郑和下西洋最远到达了哪里？', en: 'How far did Zheng He’s voyages reach?' },
         options: [{ zh: '日本和朝鲜', en: 'Japan and Korea' }, { zh: '印度半岛南端', en: 'The southern tip of India' }, { zh: '非洲东海岸和红海沿岸', en: 'The coast of East Africa and the Red Sea' }, { zh: '欧洲地中海沿岸', en: 'The Mediterranean coast of Europe' }],

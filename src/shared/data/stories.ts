@@ -180,6 +180,38 @@ export const STORIES: Record<string, StoryStep[]> = {
     cap('前651年葵丘会盟，周襄王派人赐胙，齐桓公成为春秋时期第一位霸主。', 'At the 651 BCE Kuiqiu assembly, the Zhou king sends sacrificial meat, confirming Duke Huan as first Hegemon.', 4),
   ],
 
+  chengpu: [
+    year(-633), title('城濮之战', 'Battle of Chengpu', '前632年 · 退避三舍 · 晋文公称霸', '632 BCE · Duke Wen of Jin becomes hegemon'),
+    fly(114.4, 34.4, 30, 0.86),
+    cap('前633年，楚军北上围攻宋国，宋向晋国求救，晋文公率军南下。', '633 BCE: Chu marches north and besieges Song; Song begs Jin for help and Duke Wen leads his army south.'),
+    { do: 'army', pts: [[112.2, 30.4], [112.9, 32.0], [114.4, 33.8], [115.6, 34.4]], color: '#8e2b20', dur: 4, count: 30, unit: 'chariot', label: lbl('楚军', 'Chu'), par: true },
+    { do: 'army', pts: [[111.4, 35.6], [113.0, 35.4], [114.5, 35.3], [115.2, 35.6]], color: '#1f618d', dur: 4, count: 30, unit: 'chariot', label: lbl('晋军', 'Jin') },
+    year(-632),
+    banner(115.45, 35.55, '退避三舍', 'Falling back three days’ march', '#1f618d', lbl('晋文公践行流亡时的诺言', 'Duke Wen keeps the promise of his exile')),
+    cap('晋文公信守流亡楚国时的承诺，“退避三舍”（九十里），在城濮与楚军决战。', 'Keeping the promise he made in exile, Duke Wen falls back ninety li before giving battle at Chengpu.'),
+    fly(115.45, 35.4, 14, 0.9, 1.4),
+    { do: 'clash', lon: 115.45, lat: 35.55, a: '#1f618d', b: '#8e2b20', winner: 'a', angle: 20, dur: 6, count: 28, labels: [lbl('晋军', 'Jin'), lbl('楚军', 'Chu')], units: ['chariot', 'chariot'], formations: ['wings', 'line'] },
+    banner(113.95, 35.05, '践土会盟', 'Covenant at Jiantu', '#1f618d', lbl('晋文公成为霸主', 'Duke Wen becomes hegemon')),
+    cap('晋军大败楚军，随后晋文公在践土与诸侯会盟，成为继齐桓公之后的又一位霸主。', 'Jin routs Chu; at Jiantu Duke Wen holds a covenant of the lords and succeeds Duke Huan of Qi as hegemon.', 4),
+  ],
+
+  goujian: [
+    year(-494), title('吴越争霸', 'Wu and Yue', '前494—前473年 · 卧薪尝胆', '494–473 BCE · sleeping on brushwood, tasting gall'),
+    fly(120.6, 30.65, 16, 0.88),
+    cap('前494年，吴王夫差为父报仇，在夫椒大败越军，越王勾践被迫求和，入吴为奴。', '494 BCE: King Fuchai of Wu avenges his father, crushes Yue at Fujiao and takes King Goujian into servitude.'),
+    { do: 'clash', lon: 120.45, lat: 30.95, a: '#2e5e8b', b: '#1e8449', winner: 'a', angle: 0, dur: 5, count: 22, labels: [lbl('吴军', 'Wu'), lbl('越军', 'Yue')], units: ['foot', 'foot'], formations: ['wedge', 'line'] },
+    banner(120.58, 30.0, '卧薪尝胆', 'Brushwood and gall', '#1e8449', lbl('十年生聚，十年教训', 'ten years to grow, ten to train')),
+    cap('勾践回国后卧薪尝胆，发愤图强，任用范蠡、文种，越国逐渐强大。', 'Back home Goujian sleeps on brushwood and tastes gall each day; with Fan Li and Wen Zhong he rebuilds Yue.'),
+    year(-482),
+    { do: 'army', pts: [[120.62, 31.3], [118.8, 32.6], [116.6, 34.0], [114.4, 35.05]], color: '#2e5e8b', dur: 3.5, count: 24, unit: 'foot', label: lbl('夫差北上黄池争霸', 'Fuchai marches to Huangchi'), par: true },
+    { do: 'army', pts: [[120.58, 30.0], [120.5, 30.7], [120.62, 31.25]], color: '#1e8449', dur: 3, count: 24, unit: 'foot', label: lbl('越军', 'Yue') },
+    year(-473),
+    fly(120.62, 31.2, 12, 0.9, 1.4),
+    { do: 'clash', lon: 120.62, lat: 31.3, a: '#1e8449', b: '#2e5e8b', winner: 'a', siege: true, angle: 180, dur: 5.5, count: 24, labels: [lbl('越军', 'Yue'), lbl('吴军', 'Wu')], units: ['foot', 'foot'] },
+    banner(120.62, 31.3, '越灭吴', 'Yue destroys Wu', '#1e8449', lbl('前473年 · 姑苏', '473 BCE · Gusu')),
+    cap('前473年越军攻破吴都姑苏，夫差自杀；勾践北上与诸侯会盟，成为春秋末期的霸主。', '473 BCE: Yue takes the Wu capital Gusu and Fuchai kills himself; Goujian marches north to meet the lords as the last hegemon.', 4),
+  ],
+
   confucius: [
     year(-500), title('孔子与儒家学说', 'Confucius & Confucianism', '仁者爱人 · 有教无类 · 周游列国', 'Benevolence, education for all & fourteen years abroad'),
     fly(116.0, 35.2, 20, 0.88),
@@ -399,6 +431,18 @@ export const STORIES: Record<string, StoryStep[]> = {
     cap('西域都护颁行汉朝号令，屯田驻军、保障丝路畅通，标志西域正式归属中央政权。', 'Enforcing imperial decrees and protecting Silk Road garrisons, it marks Xinjiang’s formal inclusion in central rule.', 4.2),
   ],
 
+  zhaojun: [
+    year(-33), title('昭君出塞', 'Wang Zhaojun Goes Beyond the Wall', '前33年 · 汉匈和亲', '33 BCE · a marriage that kept the peace'),
+    fly(109.8, 37.6, 34, 0.86),
+    cap('前33年，匈奴呼韩邪单于入朝长安，请求和亲，宫女王昭君自愿远嫁匈奴。', '33 BCE: Huhanye Chanyu of the Xiongnu comes to Chang’an seeking a marriage alliance, and the palace lady Wang Zhaojun volunteers.'),
+    { do: 'route', model: { kind: 'rider' }, dur: 6, color: '#a93226', keep: true, label: lbl('昭君出塞', 'Zhaojun’s journey north'),
+      pts: [[108.94, 34.27], [109.4, 36.0], [109.8, 37.9], [110.0, 39.4], [110.9, 40.4], [111.65, 40.82]] },
+    { do: 'fx', lon: 111.65, lat: 40.82, fx: 'glow', color: '#f5b041', dur: 3, par: true },
+    banner(111.65, 40.82, '汉匈和好', 'Han and Xiongnu at peace', '#a93226', lbl('边城晏闭，牛马布野', 'border gates shut late, herds roam free')),
+    orbit(36, 4.2, true),
+    cap('此后汉匈之间几十年没有发生战争，出现了“边城晏闭，牛马布野”的和平景象。', 'For decades afterwards there was no war between Han and Xiongnu: “the border towns shut their gates late and herds covered the plains”.', 4),
+  ],
+
   guangwu: [
     year(25), title('东汉建立与光武中兴', 'Eastern Han & Guangwu Restoration', '25年 · 定都洛阳 · 柔道治国', '25 CE · Liu Xiu restores the Han at Luoyang'),
     fly(112.45, 34.62, 22, 0.88),
@@ -410,6 +454,20 @@ export const STORIES: Record<string, StoryStep[]> = {
     banner(112.45, 34.62, '光武中兴', 'Guangwu Restoration', '#b03a2e', lbl('释放奴婢 · 减轻赋税 · 合并郡县', 'freeing slaves & lightening taxes')),
     orbit(38, 4.2, true),
     cap('光武帝多次下诏释放奴婢、三十税一、整顿吏治，社会经济恢复发展，史称“光武中兴”。', 'Freeing bondservants, cutting land tax to one-thirtieth and trimming bureaucracy, Emperor Guangwu ushers in renewal.', 4),
+  ],
+
+  huangjin: [
+    year(184), title('黄巾起义', 'The Yellow Turban Rebellion', '184年 · 苍天已死，黄天当立', '184 CE · “The blue sky is dead, the yellow sky shall rise”'),
+    fly(114.4, 35.6, 40, 0.84),
+    cap('东汉后期外戚、宦官交替专权，土地兼并严重。184年，张角以太平道组织徒众，头裹黄巾，在八州同时起义。', 'Late Eastern Han: consort clans and eunuchs take turns in power and land is swallowed by the rich. In 184 Zhang Jiao’s Way of Great Peace rises in eight provinces, its followers in yellow turbans.'),
+    { do: 'fx', lon: 115.0, lat: 37.2, fx: 'flag', color: '#d4ac0d', par: true },
+    { do: 'fx', lon: 113.5, lat: 34.0, fx: 'flag', color: '#d4ac0d', par: true },
+    { do: 'fx', lon: 112.53, lat: 33.0, fx: 'flag', color: '#d4ac0d' },
+    banner(115.0, 37.2, '苍天已死，黄天当立', 'The yellow sky shall rise', '#d4ac0d', lbl('张角 · 巨鹿', 'Zhang Jiao · Julu')),
+    { do: 'army', pts: [[112.45, 34.62], [113.2, 34.35], [113.75, 34.18]], color: '#7b241c', dur: 3, count: 26, unit: 'mixed', label: lbl('皇甫嵩 · 朱儁', 'Huangfu Song & Zhu Jun') },
+    { do: 'clash', lon: 113.8, lat: 34.15, a: '#7b241c', b: '#d4ac0d', winner: 'a', angle: 270, dur: 5, count: 24, labels: [lbl('汉军', 'Han army'), lbl('黄巾军', 'Yellow Turbans')], units: ['mixed', 'foot'], formations: ['wedge', 'square'] },
+    { do: 'fx', lon: 113.8, lat: 34.15, fx: 'fire', dur: 3.5, par: true },
+    cap('东汉调集大军镇压，起义坚持了九个多月后失败；地方长官和豪强趁机拥兵割据，东汉名存实亡。', 'The court sends armies and the rising is crushed after nine months, but governors and strongmen keep their troops; the Eastern Han survives in name only.', 4.2),
   ],
 
   guandu: [
@@ -466,6 +524,23 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'highlight', polity: 'wjin', dur: 3, par: true },
     banner(118.78, 32.06, '三国归晋', 'Three Kingdoms Reunited', '#1a5276', lbl('280年 · 西晋灭吴统一全国', '280 CE · Wu surrenders at Jianye')),
     cap('280年西晋水师攻克建业，东吴灭亡，结束了汉末以来近百年的分裂局面。', '280 CE: Jin warships break the iron chains on the Yangtze and take Jianye, ending nearly a century of division.', 4.2),
+  ],
+
+  xijin_fall: [
+    year(291), title('西晋的灭亡', 'Fall of the Western Jin', '291—316年 · 八王之乱 · 永嘉之乱', '291–316 · War of the Eight Princes & the Yongjia disaster'),
+    fly(112.0, 35.4, 30, 0.86),
+    cap('西晋统治腐朽，291年起皇族诸王争权，混战长达十六年，史称“八王之乱”，国力大衰。', 'The Western Jin is rotten; from 291 imperial princes fight one another for sixteen years – the War of the Eight Princes.'),
+    { do: 'fx', lon: 112.45, lat: 34.62, fx: 'smoke', dur: 3, par: true },
+    banner(112.45, 34.62, '八王之乱', 'War of the Eight Princes', '#566573'),
+    year(311),
+    { do: 'army', pts: [[111.52, 36.08], [111.8, 35.4], [112.3, 34.9], [112.45, 34.68]], color: '#7d3c98', dur: 3.2, count: 30, unit: 'horse', label: lbl('匈奴汉国军', 'Xiongnu Han army') },
+    { do: 'clash', lon: 112.45, lat: 34.62, a: '#7d3c98', b: '#2471a3', winner: 'a', siege: true, angle: 0, dur: 5, count: 24, labels: [lbl('匈奴汉国', 'Han-Zhao'), lbl('晋军', 'Jin')], units: ['horse', 'foot'] },
+    { do: 'fx', lon: 112.45, lat: 34.62, fx: 'fire', dur: 4, par: true },
+    banner(112.45, 34.62, '永嘉之乱', 'The Yongjia disaster', '#7d3c98', lbl('311年 · 洛阳陷落', '311 · Luoyang falls')),
+    year(316),
+    { do: 'army', pts: [[111.52, 36.08], [110.4, 35.2], [109.4, 34.5], [108.94, 34.3]], color: '#7d3c98', dur: 3, count: 24, unit: 'horse', label: lbl('攻长安', 'On to Chang’an') },
+    banner(108.94, 34.27, '西晋灭亡', 'The Western Jin falls', '#566573', lbl('316年 · 晋愍帝出降', '316 · Emperor Min surrenders')),
+    cap('311年洛阳被攻破，316年长安失守，西晋灭亡。北方陷入分裂，大批人口南迁。', 'Luoyang falls in 311 and Chang’an in 316: the Western Jin is gone, the north splinters and multitudes flee south.', 4),
   ],
 
   dongjin: [
@@ -620,6 +695,19 @@ export const STORIES: Record<string, StoryStep[]> = {
     cap('洛阳、长安相继失陷，唐玄宗逃往四川。', 'Luoyang and Chang’an fall; Emperor Xuanzong flees to Sichuan.'),
     { do: 'army', pts: [[108.94, 34.27], [108.4, 34.25], [107.1, 33.1], [105.8, 32.4], [105.0, 31.5], [104.07, 30.67]], color: '#d4ac0d', dur: 4, count: 10, unit: 'horse', retreat: true, label: lbl('玄宗入蜀', 'Xuanzong flees') },
     year(763), cap('763年叛乱平定，唐朝由盛转衰。', 'The revolt ends in 763; the Tang never fully recovers.'),
+  ],
+
+  huangchao: [
+    year(875), title('黄巢起义', 'The Huang Chao Rebellion', '875—884年 · 冲天香阵透长安', '875–884 · the rising that broke the Tang'),
+    fly(113.5, 29.5, 70, 0.8),
+    cap('唐朝后期藩镇割据、宦官专权，赋役沉重。875年王仙芝、黄巢在今山东、河南一带起义。', 'Late Tang: warlord governors, eunuchs and crushing taxes. In 875 Wang Xianzhi and Huang Chao rise on the Shandong–Henan border.'),
+    { do: 'army', follow: true, color: '#b7950b', dur: 10, count: 34, unit: 'mixed', keep: true, label: lbl('黄巢起义军', 'Huang Chao’s army'),
+      pts: [[115.4, 35.0], [116.8, 32.2], [118.9, 28.95], [119.3, 26.08], [113.26, 23.13], [110.29, 25.27], [112.98, 28.2], [116.0, 29.7], [118.4, 31.5], [114.6, 33.4], [112.45, 34.62], [110.25, 34.55], [109.1, 34.3]] },
+    year(880),
+    { do: 'clash', lon: 108.94, lat: 34.27, a: '#b7950b', b: '#7b241c', winner: 'a', siege: true, angle: 90, dur: 5, count: 26, labels: [lbl('起义军', 'Rebels'), lbl('唐军', 'Tang')], units: ['mixed', 'foot'] },
+    banner(108.94, 34.27, '攻入长安', 'Chang’an taken', '#b7950b', lbl('880年 · 唐僖宗逃往四川', '880 · Emperor Xizong flees to Sichuan')),
+    year(884),
+    cap('起义军转战大半个中国，880年攻入长安。起义虽于884年失败，却沉重打击了唐朝统治；907年朱温灭唐。', 'Marching across half of China, the rebels take Chang’an in 880. They are crushed in 884, but Tang power is shattered; Zhu Wen ends the dynasty in 907.', 4.2),
   ],
 
   song_found: [
@@ -816,6 +904,20 @@ export const STORIES: Record<string, StoryStep[]> = {
     orbit(35, 4),
   ],
 
+  later_jin: [
+    year(1616), title('后金建立', 'The Later Jin', '1616年 · 八旗 · 萨尔浒之战', '1616 · the Eight Banners & the battle of Sarhu'),
+    fly(124.6, 41.8, 14, 0.88),
+    cap('努尔哈赤统一女真各部，创建八旗制度，1616年在赫图阿拉称汗，建立后金。', 'Nurhaci unites the Jurchen tribes, organises the Eight Banners and in 1616 proclaims himself khan of the Later Jin at Hetu Ala.'),
+    banner(124.8, 41.7, '赫图阿拉', 'Hetu Ala', '#d4ac0d', lbl('努尔哈赤称汗', 'Nurhaci proclaims the Later Jin')),
+    year(1619),
+    { do: 'army', from: [123.43, 41.8], to: [124.15, 41.9], color: '#c0392b', dur: 2.6, count: 22, unit: 'gun', label: lbl('明军', 'Ming army'), par: true },
+    { do: 'army', from: [124.04, 42.55], to: [124.5, 42.05], color: '#c0392b', dur: 2.6, count: 16, unit: 'mixed', par: true },
+    { do: 'army', from: [124.78, 40.73], to: [124.85, 41.4], color: '#c0392b', dur: 2.6, count: 16, unit: 'mixed' },
+    { do: 'clash', lon: 124.2, lat: 41.9, a: '#d4ac0d', b: '#c0392b', winner: 'a', angle: 90, dur: 5.5, count: 26, labels: [lbl('八旗军', 'Eight Banners'), lbl('明军', 'Ming')], units: ['horse', 'gun'], formations: ['wedge', 'line'] },
+    banner(124.2, 41.9, '萨尔浒之战', 'Battle of Sarhu', '#d4ac0d', lbl('凭你几路来，我只一路去', 'whatever your routes, we strike one at a time')),
+    cap('1619年后金在萨尔浒大败明军，从此明攻后金守的局面转为后金攻明守；1636年皇太极改国号为清。', 'At Sarhu in 1619 the Later Jin smash the Ming armies one by one and seize the initiative; in 1636 Hong Taiji renames the state Qing.', 4.2),
+  ],
+
   li_zicheng: [
     year(1644), title('李自成起义与明亡清入关', 'Li Zicheng & the Ming–Qing Transition', '1644年 · 均田免赋 · 大顺军攻克北京', '1644 CE · Fall of the Ming and Qing entry through Shanhai Pass'),
     fly(113.5, 37.5, 28, 0.85),
@@ -838,6 +940,21 @@ export const STORIES: Record<string, StoryStep[]> = {
     year(1662), { do: 'fx', lon: 120.2, lat: 22.99, fx: 'flag', color: '#a04000' },
     banner(120.2, 22.99, '收复台湾', 'Taiwan recovered', '#a04000', lbl('1662年', '1662')),
     cap('1662年荷兰殖民者投降，台湾回到祖国怀抱。', '1662: the Dutch surrender and Taiwan is recovered.'),
+  ],
+
+  taiwan_fu: [
+    year(1683), title('收复台湾，设台湾府', 'Taiwan Prefecture', '1683—1684年 · 澎湖海战 · 台湾隶属福建省', '1683–1684 · the Penghu battle & a new prefecture'),
+    fly(119.2, 23.9, 26, 0.86),
+    cap('1683年，康熙帝派施琅率水师从福建出发，进攻据守台湾的郑氏政权。', '1683: the Kangxi emperor sends Shi Lang’s fleet from Fujian against the Zheng regime holding Taiwan.'),
+    { do: 'fleet', pts: [[118.1, 24.4], [118.8, 24.0], [119.5, 23.62]], model: 'warship', color: '#b03a2e', count: 8, dur: 4, label: lbl('施琅水师', 'Shi Lang’s fleet'), keep: true },
+    { do: 'fx', lon: 119.58, lat: 23.57, fx: 'battle', dur: 3.5, par: true },
+    { do: 'fx', lon: 119.6, lat: 23.52, fx: 'fire', dur: 3.5 },
+    banner(119.58, 23.57, '澎湖海战', 'Battle of Penghu', '#b03a2e', lbl('郑克塽归降', 'Zheng Keshuang submits')),
+    { do: 'fleet', pts: [[119.6, 23.5], [119.9, 23.2], [120.15, 23.0]], model: 'warship', color: '#b03a2e', count: 5, dur: 3 },
+    year(1684),
+    wipe(1684, 120.2, 22.99, '#b03a2e', 3),
+    banner(120.2, 22.99, '设台湾府', 'Taiwan Prefecture', '#b03a2e', lbl('1684年 · 隶属福建省', '1684 · under Fujian province')),
+    cap('1684年清政府设置台湾府，隶属福建省，加强了中央对台湾的管辖；1885年台湾单独建省。', 'In 1684 the Qing makes Taiwan a prefecture of Fujian, tightening central rule; in 1885 Taiwan becomes a province of its own.', 4),
   ],
 
   yaksa: [
@@ -865,6 +982,20 @@ export const STORIES: Record<string, StoryStep[]> = {
     { do: 'highlight', polity: 'qing', dur: 3.5, par: true },
     banner(81.32, 43.92, '设立伊犁将军', 'General of Ili Established', '#8e44ad', lbl('1762年 · 管辖包括巴尔喀什湖在内的整个新疆', '1762 · governing all of Xinjiang')),
     cap('乾隆帝彻底平定准噶尔部及回部大小和卓叛乱，1762年设伊犁将军，1771年土尔扈特部万里东归，西北边疆稳固。', 'Qianlong pacifies the Dzungars and Khojas, establishes the General of Ili in 1762, and welcomes the Torghuts home in 1771.', 4.5),
+  ],
+
+  torghut: [
+    year(1771), title('土尔扈特部东归', 'The Torghut Return', '1771年 · 万里东归', '1771 · the long trek home'),
+    fly(64, 47, 90, 0.82),
+    cap('土尔扈特部原游牧于新疆塔城一带，明末西迁伏尔加河下游，不堪沙俄的压迫与征调。', 'The Torghuts, once nomads of Tarbagatai, had moved to the lower Volga in the late Ming; there they suffered Russian oppression and conscription.'),
+    banner(51.9, 47.1, '渡乌拉尔河东归', 'Across the Ural river', '#a04000', lbl('1771年1月 · 渥巴锡率部启程', 'January 1771 · Ubashi sets out')),
+    { do: 'route', model: { kind: 'rider' }, dur: 9, color: '#a04000', keep: true, label: lbl('东归之路', 'The road home'),
+      pts: [[51.9, 47.1], [56.0, 48.4], [61.0, 48.8], [66.0, 48.0], [70.5, 46.6], [75.0, 45.6], [78.8, 44.7], [81.32, 43.92]] },
+    cap('他们一路冲破沙俄和哥萨克的围追堵截，历时半年、行程万里，部众伤亡过半。', 'Fighting off Russian and Cossack pursuit, they travel for half a year and thousands of miles; more than half of them die on the way.'),
+    { do: 'spawn', lon: 81.32, lat: 43.92, model: { kind: 'yurt', style: 'story_torghut' }, label: lbl('伊犁安置', 'Resettled at Ili') },
+    banner(81.32, 43.92, '回归祖国', 'Home at last', '#a04000', lbl('1771年7月 · 抵达伊犁', 'July 1771 · Ili')),
+    orbit(36, 4, true),
+    cap('1771年7月，土尔扈特部回到伊犁，乾隆帝拨给牧地、牲畜和粮食，妥善安置了他们。', 'In July 1771 they reach Ili; the Qianlong emperor grants them pastures, livestock and grain.', 4),
   ],
 
   humen: [
@@ -960,6 +1091,21 @@ export const STORIES: Record<string, StoryStep[]> = {
     cap('清军采取“先北后南，缓进急战”方略收复除伊犁外新疆全境，1881年收回伊犁，1884年清政府在新疆建立行省。', 'Using “North first, then South; slow advance, swift battle”, Zuo recovers Xinjiang by 1878; Ili returns in 1881 and Xinjiang becomes a province in 1884.', 4.5),
   ],
 
+  sino_french: [
+    year(1884), title('中法战争', 'The Sino-French War', '1883—1885年 · 马尾海战 · 镇南关大捷', '1883–1885 · Fuzhou and Zhennan Pass'),
+    fly(119.45, 26.0, 12, 0.88),
+    cap('法国侵略越南后进犯中国。1884年8月，法国舰队突袭福州马尾港，福建水师几乎全军覆没。', 'After seizing Vietnam France turns on China. In August 1884 its squadron strikes the Fujian fleet at Mawei, Fuzhou, and sinks almost all of it.'),
+    { do: 'fleet', pts: [[120.4, 26.1], [119.9, 26.05], [119.5, 26.0]], model: 'warship', color: '#2e5e8b', count: 6, dur: 3.5, label: lbl('法国舰队', 'French squadron') },
+    { do: 'fx', lon: 119.45, lat: 26.0, fx: 'fire', dur: 4, par: true },
+    banner(119.45, 26.0, '马尾海战', 'Battle of Fuzhou', '#566573', lbl('福建水师覆没', 'the Fujian fleet destroyed')),
+    year(1885),
+    fly(106.75, 21.9, 12, 0.88, 2),
+    { do: 'army', from: [106.76, 21.3], to: [106.75, 21.85], color: '#2e5e8b', dur: 2.6, count: 22, unit: 'gun', label: lbl('法军', 'French army') },
+    { do: 'clash', lon: 106.75, lat: 21.97, a: '#b03a2e', b: '#2e5e8b', winner: 'a', angle: 0, dur: 5.5, count: 26, labels: [lbl('冯子材部', 'Feng Zicai'), lbl('法军', 'French')], units: ['gun', 'gun'], formations: ['line', 'column'] },
+    banner(106.75, 21.97, '镇南关大捷', 'Victory at Zhennan Pass', '#b03a2e', lbl('1885年3月 · 老将冯子材', 'March 1885 · the veteran Feng Zicai')),
+    cap('1885年冯子材在镇南关大败法军，清政府却“乘胜即收”，签订《中法新约》，法国势力伸入中国西南。', 'Feng Zicai routs the French at Zhennan Pass in 1885, yet the Qing makes peace at once; the Treaty of Tianjin opens China’s south-west to France.', 4.2),
+  ],
+
   jiawu: [
     year(1894), title('甲午中日战争', 'First Sino-Japanese War', '1894—1895年', '1894–1895'), fly(122.6, 38.6, 22, 0.85),
     cap('1894年9月黄海海战，北洋舰队与日本联合舰队激战。', 'September 1894: the Beiyang Fleet meets the Japanese fleet in the Yellow Sea.'),
@@ -1003,6 +1149,17 @@ export const STORIES: Record<string, StoryStep[]> = {
     cap('詹天佑独创“竖井开凿法”打通居庸关与八达岭隧道，设计青龙桥“人”字形轨道，1909年提前两年全线通车。', 'Using vertical shafts for the Badaling tunnel and a clever zigzag switchback at Qinglongqiao, the line opens in 1909 ahead of schedule.', 4.2),
   ],
 
+  huanghuagang: [
+    year(1911), title('黄花岗起义', 'The Huanghuagang Uprising', '1911年4月27日 · 广州', '27 April 1911 · Guangzhou'),
+    fly(113.27, 23.13, 8, 0.9),
+    cap('1911年4月27日，黄兴率领一百多名同盟会敢死队员在广州发动起义，直扑两广总督署。', '27 April 1911: Huang Xing leads more than a hundred Tongmenghui volunteers in Guangzhou straight at the viceroy’s yamen.'),
+    { do: 'army', from: [113.31, 23.16], to: [113.27, 23.135], color: '#1f3a93', dur: 2.4, count: 16, unit: 'gun', label: lbl('同盟会敢死队', 'Tongmenghui volunteers') },
+    { do: 'clash', lon: 113.265, lat: 23.13, a: '#566573', b: '#1f3a93', winner: 'a', angle: 90, dur: 5, count: 18, labels: [lbl('清军', 'Qing troops'), lbl('起义军', 'Revolutionaries')], units: ['gun', 'gun'], cam: false },
+    { do: 'fx', lon: 113.265, lat: 23.13, fx: 'smoke', dur: 3, par: true },
+    banner(113.29, 23.14, '黄花岗七十二烈士', 'The 72 martyrs of Huanghuagang', '#1f3a93', lbl('林觉民《与妻书》', 'Lin Juemin’s farewell letter to his wife')),
+    cap('起义失败，牺牲烈士的遗骸被安葬在黄花岗。起义震动全国，半年后武昌起义爆发。', 'The rising fails and its martyrs are buried at Huanghuagang, but it shakes the country; six months later Wuchang rises.', 4),
+  ],
+
   wuchang: [
     year(1911), title('辛亥革命', 'The 1911 Revolution', '1911年10月10日 · 武昌起义', '10 October 1911 · the Wuchang Uprising'), fly(114.3, 30.6, 12, 0.9),
     { do: 'clash', lon: 114.3, lat: 30.56, a: '#c0392b', b: '#d4ac0d', winner: 'a', siege: true, angle: 270, dur: 5, count: 22, labels: [lbl('新军', 'New Army'), lbl('清军', 'Qing')] },
@@ -1017,6 +1174,20 @@ export const STORIES: Record<string, StoryStep[]> = {
     wipe(1912, 118.78, 32.06, '#c0392b', 4),
     { do: 'spawn', lon: 118.78, lat: 32.06, model: { kind: 'flag' }, label: lbl('南京临时政府', 'Nanjing Provisional Government') },
     cap('1912年1月1日中华民国成立，两千多年的君主专制制度结束。', '1 January 1912: the Republic of China is founded, ending two thousand years of monarchy.', 4),
+  ],
+
+  huguo: [
+    year(1915), title('护国运动', 'The National Protection War', '1915—1916年 · 反对袁世凯复辟帝制', '1915–1916 · against Yuan Shikai’s monarchy'),
+    fly(116.39, 39.91, 10, 0.88),
+    banner(116.39, 39.91, '洪宪帝制', 'The Hongxian monarchy', '#7e5109', lbl('1915年12月 · 袁世凯称帝', 'December 1915 · Yuan Shikai crowns himself')),
+    cap('1915年12月，袁世凯宣布复辟帝制，改元“洪宪”。', 'December 1915: Yuan Shikai restores the monarchy and names his reign Hongxian.'),
+    fly(104.0, 27.0, 40, 0.84, 2.2),
+    banner(102.71, 25.04, '云南宣布独立', 'Yunnan breaks away', '#1f618d', lbl('蔡锷 · 唐继尧 · 组织护国军', 'Cai E & Tang Jiyao raise the National Protection Army')),
+    { do: 'army', pts: [[102.71, 25.04], [103.8, 26.6], [104.6, 28.0], [105.3, 28.75]], color: '#1f618d', dur: 4, count: 24, unit: 'gun', label: lbl('护国军', 'National Protection Army'), par: true },
+    { do: 'army', pts: [[106.55, 29.56], [105.9, 29.1], [105.5, 28.9]], color: '#566573', dur: 3.5, count: 26, unit: 'gun', label: lbl('北洋军', 'Beiyang army') },
+    { do: 'clash', lon: 105.4, lat: 28.85, a: '#1f618d', b: '#566573', winner: 'a', angle: 210, dur: 5, count: 22, labels: [lbl('护国军', 'Protection Army'), lbl('北洋军', 'Beiyang')], units: ['gun', 'gun'] },
+    year(1916),
+    cap('各省纷纷响应，1916年3月袁世凯被迫取消帝制，6月病死。此后北洋军阀分裂，割据混战。', 'Province after province joins; in March 1916 Yuan gives up the throne and in June he dies. The Beiyang warlords then split and fight.', 4.2),
   ],
 
   may4: [
@@ -1186,6 +1357,24 @@ export const STORIES: Record<string, StoryStep[]> = {
     cap('百团大战作战1800余次，毙伤日伪军2.5万多人，破坏交通线2000多千米，提高了共产党和八路军的威望。', 'In over 1,800 engagements, the Eighth Route Army destroys 2,000 km of rail and road lines, shattering Japan’s blockade of the base areas.', 4.2),
   ],
 
+  yuanzheng: [
+    year(1942), title('中国远征军', 'The Chinese Expeditionary Force', '1942—1945年 · 保卫滇缅公路', '1942–1945 · defending the Burma Road'),
+    fly(99.0, 23.0, 60, 0.82),
+    cap('滇缅公路是中国获得外援的国际通道。1942年，中国远征军入缅作战，配合盟军抗击日军。', 'The Burma Road is China’s lifeline to its allies. In 1942 the Expeditionary Force marches into Burma to fight Japan beside the Allies.'),
+    { do: 'army', follow: true, pts: [[102.71, 25.04], [100.2, 25.6], [99.17, 25.11], [97.9, 24.0], [97.75, 22.95], [96.9, 21.0], [96.43, 18.94]], color: '#2e86c1', dur: 6, count: 26, unit: 'gun', label: lbl('中国远征军', 'Expeditionary Force') },
+    { do: 'clash', lon: 96.43, lat: 18.94, a: '#2e86c1', b: JP, winner: 'a', angle: 0, dur: 5, count: 22, labels: [lbl('远征军第200师', '200th Division'), lbl('日军', 'Japanese')], units: ['gun', 'gun'] },
+    banner(96.43, 18.94, '同古保卫战', 'Defence of Toungoo', '#2e86c1', lbl('戴安澜将军', 'General Dai Anlan')),
+    year(1944),
+    fly(98.7, 24.9, 16, 0.88, 2),
+    { do: 'army', pts: [[99.17, 25.11], [98.9, 24.85], [98.82, 24.62]], color: '#2e86c1', dur: 2.8, count: 22, unit: 'gun', label: lbl('强渡怒江', 'Across the Salween'), par: true },
+    { do: 'army', pts: [[99.0, 25.3], [98.7, 25.15], [98.52, 25.04]], color: '#2e86c1', dur: 2.8, count: 22, unit: 'gun' },
+    { do: 'clash', lon: 98.49, lat: 25.02, a: '#2e86c1', b: JP, winner: 'a', siege: true, angle: 90, dur: 5.5, count: 24, labels: [lbl('远征军', 'Expeditionary Force'), lbl('日军', 'Japanese')], units: ['gun', 'gun'] },
+    banner(98.49, 25.02, '收复腾冲', 'Tengchong retaken', '#2e86c1', lbl('1944年 · 松山、腾冲大捷', '1944 · Songshan and Tengchong')),
+    year(1945),
+    { do: 'route', dur: 4, color: '#2e86c1', keep: true, label: lbl('中印公路', 'Ledo Road'), pts: [[95.73, 27.29], [97.4, 25.38], [98.07, 24.1], [99.17, 25.11], [102.71, 25.04]] },
+    cap('1944年远征军反攻滇西，收复松山、腾冲；1945年初中印公路打通，有力支援了中国抗战。', 'In 1944 the force retakes Songshan and Tengchong; early in 1945 the Ledo Road is open, a new lifeline for China’s war.', 4.2),
+  ],
+
   victory1945: [
     year(1945), title('抗日战争伟大胜利', 'Victory in the War of Resistance', '1945年8月15日日本投降 · 9月2日签署投降书 · 台湾光复', 'August–October 1945 · Japan surrenders & Taiwan returns to China'),
     fly(114.5, 32.5, 44, 0.84),
@@ -1205,6 +1394,16 @@ export const STORIES: Record<string, StoryStep[]> = {
     banner(118.78, 32.06, '抗日战争伟大胜利', 'Victory After Fourteen Years', '#c0392b', lbl('1945年9月 · 台湾回到祖国怀抱', 'Sep–Oct 1945 · Taiwan restored to China')),
     orbit(35, 4.5, true),
     cap('十四年浴血抗战，中国人民赢得近代以来反抗外敌入侵第一次完全胜利，被日本侵占50年的台湾回到祖国怀抱。', 'After 14 years of sacrifice, China wins its first complete victory against foreign invasion in modern times, and Taiwan returns after 50 years of occupation.', 4.5),
+  ],
+
+  dabieshan: [
+    year(1947), title('挺进大别山', 'March on the Dabie Mountains', '1947年 · 千里跃进 · 战略进攻的序幕', '1947 · the strategic offensive begins'),
+    fly(115.4, 33.6, 34, 0.86),
+    cap('1947年6月30日，刘伯承、邓小平率晋冀鲁豫野战军主力强渡黄河，在鲁西南大量歼敌。', '30 June 1947: Liu Bocheng and Deng Xiaoping lead the Shanxi–Hebei–Shandong–Henan field army across the Yellow River and win in south-west Shandong.'),
+    { do: 'army', follow: true, keep: true, pts: [[115.4, 35.95], [115.9, 35.2], [115.3, 34.3], [114.9, 33.5], [115.0, 32.7], [115.5, 31.8], [115.8, 31.15]], color: PLA, dur: 7, count: 30, unit: 'gun', label: lbl('刘邓大军', 'Liu–Deng army') },
+    banner(115.8, 31.1, '千里跃进大别山', 'A thousand li to the Dabie Mountains', PLA, lbl('越过黄泛区 · 强渡汝河、淮河', 'through the flooded plain, across the Ru and Huai')),
+    orbit(30, 4, true),
+    cap('8月大军越过黄泛区，强渡汝河、淮河，到达大别山区，揭开了人民解放军战略进攻的序幕。', 'In August the army crosses the flooded plain and the Ru and Huai rivers to reach the Dabie Mountains: the PLA’s strategic offensive has begun.', 4.2),
   ],
 
   sanda: [
@@ -1400,6 +1599,18 @@ export const STORIES: Record<string, StoryStep[]> = {
     banner(116.39, 39.99, '同一个世界，同一个梦想', 'One World, One Dream', '#de2910', lbl('百年奥运梦圆 · 展现了改革开放三十年辉煌成就', 'a century-old Olympic dream fulfilled')),
     orbit(50, 5, true),
     cap('北京奥运会圆满成功，中国代表团居金牌榜首位，向世界展现了改革开放三十年的蓬勃生机与大国风范。', 'China tops the gold-medal table as the Games showcase thirty years of reform, opening-up and cultural confidence to the world.', 4.2),
+  ],
+
+  belt_road: [
+    year(2013), title('“一带一路”倡议', 'The Belt and Road Initiative', '2013年 · 丝绸之路经济带 · 21世纪海上丝绸之路', '2013 · the Silk Road Economic Belt & the 21st-century Maritime Silk Road'),
+    fly(92, 30, 120, 0.8),
+    cap('2013年，中国提出共建“丝绸之路经济带”和“21世纪海上丝绸之路”的倡议。', 'In 2013 China proposes building a Silk Road Economic Belt and a 21st-century Maritime Silk Road.'),
+    { do: 'route', model: { kind: 'train' }, dur: 7, color: '#b9770e', keep: true, label: lbl('丝绸之路经济带', 'Silk Road Economic Belt'),
+      pts: [[108.94, 34.27], [103.83, 36.06], [98.5, 39.7], [94.66, 40.14], [87.6, 43.8], [80.4, 44.2], [76.9, 43.25], [69.3, 41.3], [63.5, 39.7], [58.4, 37.95], [51.4, 35.7]] },
+    { do: 'route', dur: 7, color: '#1f5f8b', keep: true, dashed: true, label: lbl('21世纪海上丝绸之路', 'Maritime Silk Road'),
+      pts: [[119.3, 26.08], [117.0, 21.5], [111.0, 13.0], [105.5, 4.0], [103.8, 1.29], [98.5, 5.5], [92.0, 6.0], [79.86, 6.93], [72.0, 11.5], [62.0, 18.0], [54.0, 17.0]] },
+    banner(108.94, 34.27, '共商 · 共建 · 共享', 'Planned, built and shared together', '#b9770e', lbl('政策沟通 · 设施联通 · 贸易畅通 · 资金融通 · 民心相通', 'policy, infrastructure, trade, finance, people')),
+    cap('倡议秉持共商、共建、共享原则，推动与沿线国家互联互通，构建人类命运共同体。', 'Following the principle of planning, building and sharing together, it links China with partner countries towards a community with a shared future.', 4.2),
   ],
 };
 

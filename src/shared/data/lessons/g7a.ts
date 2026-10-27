@@ -15,15 +15,24 @@ export const G7A: Lesson[] = [
       { ev: 'yuanmou' },
       {
         ev: 'peking_man',
-        body: { zh: '北京人保留了猿的某些特征，但能直立行走。他们使用打制石器，会使用天然火，过着群居生活。约3万年前的山顶洞人已掌握磨光和钻孔技术，会用骨针缝制衣服。', en: 'Peking Man still had some ape-like features but walked upright. They used chipped stone tools and natural fire and lived in groups. About 30,000 years ago Upper Cave Man could grind and drill stone and sewed with bone needles.' },
+        body: { zh: '北京人保留了猿的某些特征，但能直立行走。他们使用打制石器，会使用天然火，过着群居生活。', en: 'Peking Man still had some ape-like features but walked upright. They used chipped stone tools and natural fire and lived in groups.' },
       },
+      { ev: 'shandingdong' },
       { ev: 'hemudu' },
       { ev: 'banpo' },
+      { ev: 'hongshan' },
       { ev: 'liangzhu' },
       { ev: 'huangdi' },
+      { ev: 'taosi' },
       { ev: 'shanrang' },
     ],
     checks: [
+      {
+        q: { zh: '已掌握磨光和钻孔技术、会用骨针缝制衣服的远古人类是？', en: 'Which early humans could grind and drill stone and sew with bone needles?' },
+        options: [{ zh: '元谋人', en: 'Yuanmou Man' }, { zh: '北京人', en: 'Peking Man' }, { zh: '山顶洞人', en: 'Upper Cave Man' }, { zh: '半坡居民', en: 'The Banpo villagers' }],
+        answer: 2, ev: 'shandingdong',
+        why: { zh: '约3万年前的山顶洞人会磨光、钻孔，用骨针缝制衣服，还用穿孔的兽牙、贝壳作装饰品；北京人只会制造打制石器。', en: 'Upper Cave Man, about 30,000 years ago, ground and drilled stone, sewed with bone needles and wore pierced teeth and shells; Peking Man made only chipped stone tools.' },
+      },
       {
         q: { zh: '我国境内目前已确认的最早的古人类是？', en: 'Who is the earliest confirmed early human found in China?' },
         options: [{ zh: '北京人', en: 'Peking Man' }, { zh: '山顶洞人', en: 'Upper Cave Man' }, { zh: '元谋人', en: 'Yuanmou Man' }, { zh: '半坡居民', en: 'The Banpo villagers' }],
@@ -66,6 +75,9 @@ export const G7A: Lesson[] = [
         ev: 'kuiqiu',
         body: { zh: '公元前770年周平王东迁洛邑，东周开始。春秋时期周王室衰微，诸侯争霸；齐桓公任用管仲改革，以“尊王攘夷”为号召，成为春秋时期第一个霸主。', en: 'In 770 BCE King Ping moved the capital east to Luoyi and the Eastern Zhou began. As the Zhou kings weakened, lords fought for supremacy; Duke Huan of Qi, who reformed his state with Guan Zhong and claimed to “honour the king and repel the barbarians”, became the first hegemon.' },
       },
+      { ev: 'chengpu' },
+      { ev: 'goujian' },
+      { ev: 'sanjia' },
       {
         ev: 'shangyang', polity: 'qin_s',
         body: { zh: '战国时期铁农具和牛耕逐渐推广，各国纷纷变法图强。商鞅在秦国变法：国家承认土地私有、奖励耕战、建立县制，秦国逐渐成为最强大的诸侯国。', en: 'In the Warring States period iron tools and ox ploughs spread and states reformed to grow strong. Shang Yang’s reforms in Qin recognised private land, rewarded farming and fighting and set up counties, and Qin became the strongest state.' },
@@ -76,6 +88,12 @@ export const G7A: Lesson[] = [
       },
     ],
     checks: [
+      {
+        q: { zh: '“卧薪尝胆”的故事说的是哪位国君？', en: 'Which ruler “slept on brushwood and tasted gall” to prepare his revenge?' },
+        options: [{ zh: '晋文公', en: 'Duke Wen of Jin' }, { zh: '越王勾践', en: 'King Goujian of Yue' }, { zh: '齐桓公', en: 'Duke Huan of Qi' }, { zh: '楚庄王', en: 'King Zhuang of Chu' }],
+        answer: 1, ev: 'goujian',
+        why: { zh: '越王勾践被吴国打败后卧薪尝胆、发愤图强，公元前473年灭吴，成为春秋末期的霸主；晋文公在城濮之战中打败楚国。', en: 'Defeated by Wu, Goujian of Yue toughened himself, rebuilt his state and destroyed Wu in 473 BCE, the last hegemon of the period; Duke Wen of Jin beat Chu at Chengpu.' },
+      },
       {
         q: { zh: '西周为巩固统治，把土地和人民分给王族、功臣等，这种制度是？', en: 'To secure its rule the Western Zhou granted land and people to royal kin and loyal followers. What was this system?' },
         options: [{ zh: '禅让制', en: 'Abdication' }, { zh: '郡县制', en: 'Commanderies and counties' }, { zh: '世袭制', en: 'Hereditary succession' }, { zh: '分封制', en: 'Enfeoffment' }],
@@ -122,7 +140,9 @@ export const G7A: Lesson[] = [
       },
       { ev: 'zhangqian' },
       { ev: 'xiyu_duhu' },
+      { ev: 'zhaojun' },
       { ev: 'cailun' },
+      { ev: 'huangjin' },
     ],
     checks: [
       {
@@ -160,6 +180,7 @@ export const G7A: Lesson[] = [
       { ev: 'chibi' },
       { ev: 'sanguo' },
       { ev: 'wjin_unify', polity: 'wjin' },
+      { ev: 'xijin_fall' },
       {
         ev: 'dongjin', polity: 'ejin',
         body: { zh: '西晋灭亡后，317年司马睿在建康建立东晋。北方人民大量南迁，带来了先进的生产技术和劳动力，加上江南自然条件优越、社会相对安定，江南地区得到开发。', en: 'After the Western Jin fell, Sima Rui founded the Eastern Jin at Jiankang in 317. Northerners moved south in great numbers with skills and labour, and with good land and relative peace the Jiangnan region was opened up.' },
@@ -169,8 +190,15 @@ export const G7A: Lesson[] = [
         ev: 'xiaowendi', polity: 'beiwei',
         body: { zh: '439年北魏统一黄河流域。孝文帝把都城从平城迁到洛阳，推行汉化：穿汉服、说汉语、改汉姓、与汉族通婚、采用汉族官制律法，促进了北方的民族交融。', en: 'The Northern Wei united the Yellow River basin in 439. Emperor Xiaowen moved the capital from Pingcheng to Luoyang and adopted Han ways: Han dress, language and surnames, intermarriage and Han offices and laws, bringing the northern peoples together.' },
       },
+      { ev: 'qimin' },
     ],
     checks: [
+      {
+        q: { zh: '北魏时总结黄河中下游农业生产经验的农书是？', en: 'Which Northern Wei book summed up farming on the middle and lower Yellow River?' },
+        options: [{ zh: '《天工开物》', en: 'Tiangong Kaiwu' }, { zh: '《农政全书》', en: 'Complete Treatise on Agriculture' }, { zh: '《水经注》', en: 'Commentary on the Water Classic' }, { zh: '《齐民要术》', en: 'Qimin Yaoshu' }],
+        answer: 3, ev: 'qimin',
+        why: { zh: '北魏贾思勰的《齐民要术》是我国现存最早、最完整的农书；《天工开物》《农政全书》成书于明朝，《水经注》是北魏郦道元的地理著作。', en: 'Jia Sixie’s Qimin Yaoshu is China’s oldest complete surviving farming manual; Tiangong Kaiwu and the Complete Treatise are Ming books, and the Water Classic commentary is Li Daoyuan’s geography.' },
+      },
       {
         q: { zh: '奠定三国鼎立局面基础的战役是？', en: 'Which battle laid the basis for the three rival kingdoms?' },
         options: [{ zh: '官渡之战', en: 'Guandu' }, { zh: '淝水之战', en: 'The Fei River' }, { zh: '赤壁之战', en: 'The Red Cliffs' }, { zh: '巨鹿之战', en: 'Julu' }],

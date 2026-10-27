@@ -99,7 +99,7 @@ const KNOWN_RICH_STYLES = new Set([
   'slips', 'handscroll', 'siku', 'codex', 'movable', 'press', 'farm', 'humen',
   'hongqiao', 'lugou', 'field', 'zunyi', 'shikumen', 'seawall', 'crh',
   'soviet', 'faw', 'oil', 'daqing', 'jiangnan', 'yangwu', 'joint', 'dasheng',
-  'launch', 'cz2f', 'shenzhou', 'shenzhen',
+  'launch', 'cz2f', 'shenzhou', 'shenzhen', 'shandingdong', 'hongshan',
 ]);
 
 function hashEventStyle(s: string): number {

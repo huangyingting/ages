@@ -64,6 +64,7 @@ export const G8A: Lesson[] = [
         body: { zh: '19世纪60—90年代，洋务派以“自强”“求富”为口号，创办江南制造总局、福州船政局、轮船招商局等近代企业，筹建北洋水师，兴办新式学堂。', en: 'From the 1860s to the 1890s the Westernisers, under the slogans “self-strengthening” and “seeking wealth”, set up arsenals, shipyards and steamship lines, built the Beiyang Fleet and opened new schools.' },
       },
       { ev: 'zuo_xinjiang' },
+      { ev: 'sino_french' },
       {
         ev: 'jiawu',
         body: { zh: '1894年日本发动甲午中日战争。黄海海战中邓世昌指挥“致远”舰英勇作战，壮烈殉国。1895年北洋舰队在威海卫全军覆没，标志着洋务运动的失败。', en: 'Japan started the war of 1894. Deng Shichang fought the cruiser Zhiyuan to the end in the Yellow Sea battle. The Beiyang Fleet was wiped out at Weihaiwei in 1895, marking the failure of self-strengthening.' },
@@ -87,6 +88,12 @@ export const G8A: Lesson[] = [
       },
     ],
     checks: [
+      {
+        q: { zh: '中法战争中，在镇南关大败法军的将领是？', en: 'Who routed the French at Zhennan Pass in the Sino-French War?' },
+        options: [{ zh: '左宗棠', en: 'Zuo Zongtang' }, { zh: '邓世昌', en: 'Deng Shichang' }, { zh: '冯子材', en: 'Feng Zicai' }, { zh: '林则徐', en: 'Lin Zexu' }],
+        answer: 2, ev: 'sino_french',
+        why: { zh: '1885年老将冯子材率军取得镇南关大捷；左宗棠收复新疆，邓世昌在甲午黄海海战中殉国，林则徐主持虎门销烟。', en: 'The veteran Feng Zicai won at Zhennan Pass in 1885; Zuo Zongtang recovered Xinjiang, Deng Shichang died in the Yellow Sea battle of 1894, and Lin Zexu destroyed the opium at Humen.' },
+      },
       {
         q: { zh: '标志着洋务运动失败的是？', en: 'What marked the failure of the Self-Strengthening Movement?' },
         options: [{ zh: '黄海海战', en: 'The Battle of the Yellow Sea' }, { zh: '北洋舰队全军覆没', en: 'The destruction of the Beiyang Fleet' }, { zh: '《马关条约》签订', en: 'The Treaty of Shimonoseki' }, { zh: '戊戌政变', en: 'The coup of 1898' }],
@@ -122,6 +129,7 @@ export const G8A: Lesson[] = [
         ev: 'tongmenghui',
         body: { zh: '1905年中国同盟会在日本东京成立，孙中山任总理，以“驱除鞑虏，恢复中华，创立民国，平均地权”为纲领，是第一个全国性的资产阶级革命政党。孙中山将纲领概括为三民主义。', en: 'The Tongmenghui was founded in Tokyo in 1905 with Sun Yat-sen at its head. Its programme made it China’s first nationwide bourgeois revolutionary party; Sun summed it up as the Three Principles of the People.' },
       },
+      { ev: 'huanghuagang' },
       {
         ev: 'wuchang',
         body: { zh: '1911年4月黄花岗起义失败。10月10日，湖北的革命党人在武昌发动起义并取得胜利，各省纷纷响应，清朝统治土崩瓦解。这一年是农历辛亥年，史称辛亥革命。', en: 'The Huanghuagang rising failed in April 1911. On 10 October revolutionaries rose at Wuchang and won; province after province declared independence and Qing rule collapsed. It is called the 1911 (Xinhai) Revolution.' },
@@ -135,6 +143,7 @@ export const G8A: Lesson[] = [
         title: { zh: '北洋政府的黑暗统治', en: 'The dark rule of the Beiyang government' },
         body: { zh: '1912年袁世凯在北京就任临时大总统，窃取了辛亥革命的果实。1915年他复辟帝制，蔡锷等发动护国战争，袁世凯被迫取消帝制；袁死后北洋军阀割据混战。', en: 'Yuan Shikai became provisional president in Beijing in 1912 and seized the fruits of the revolution. In 1915 he restored the monarchy; Cai E led the National Protection War and Yuan had to give it up. After his death the warlords fought for power.' },
       },
+      { ev: 'huguo' },
     ],
     checks: [
       {
@@ -228,6 +237,8 @@ export const G8A: Lesson[] = [
       },
       { ev: 'nanchang' },
       { ev: 'jinggang' },
+      { ev: 'gutian' },
+      { ev: 'ruijin' },
       {
         ev: 'long_march',
         body: { zh: '由于第五次反“围剿”失败，1934年10月中央红军被迫撤离中央革命根据地，从瑞金等地出发，开始长征。', en: 'After the fifth campaign against the encirclements failed, the Central Red Army had to leave its base and set out from Ruijin in October 1934 on the Long March.' },
@@ -275,6 +286,7 @@ export const G8A: Lesson[] = [
         ev: 'sept18',
         body: { zh: '1931年9月18日夜，日本关东军炸毁沈阳柳条湖附近的一段铁路，反诬中国军队所为，进攻东北军北大营。不到半年东北三省全部沦陷。九一八事变是中国人民抗日战争的起点。', en: 'On the night of 18 September 1931 Japan’s Kwantung Army blew up a stretch of railway at Liutiaohu near Shenyang, blamed China and attacked the Beidaying barracks. Within six months the three northeastern provinces were lost. The incident began China’s War of Resistance.' },
       },
+      { ev: 'dec9' },
       {
         ev: 'xian_incident',
         body: { zh: '1936年12月12日，张学良、杨虎城在西安扣押蒋介石，逼其抗日。中共派周恩来等调停，事变和平解决，成为时局转换的枢纽，十年内战基本结束。', en: 'On 12 December 1936 Zhang Xueliang and Yang Hucheng detained Chiang Kai-shek in Xi’an to force him to fight Japan. The CPC sent Zhou Enlai to mediate; the peaceful settlement turned the tide and the ten-year civil war largely ended.' },
@@ -289,6 +301,8 @@ export const G8A: Lesson[] = [
         ev: 'baituan', polity: 'jp_occ',
         body: { zh: '八路军、新四军深入敌后，开辟抗日根据地。1937年9月八路军取得平型关大捷；1940年彭德怀指挥八路军100多个团发动百团大战，这是抗战以来八路军主动出击日军规模最大的战役。', en: 'The Eighth Route Army and New Fourth Army set up bases behind enemy lines. The Eighth Route Army won at Pingxingguan in September 1937, and in 1940 Peng Dehuai led over a hundred regiments in its largest offensive of the war.' },
       },
+      { ev: 'yuanzheng' },
+      { ev: 'qida' },
       {
         ev: 'victory1945',
         body: { zh: '1945年8月15日日本宣布无条件投降，9月2日签署投降书。抗日战争是近代以来中国反抗外敌入侵第一次取得完全胜利的民族解放战争，台湾回到祖国怀抱。', en: 'Japan announced its unconditional surrender on 15 August 1945 and signed on 2 September. It was China’s first complete victory over a foreign invader in modern times, and Taiwan returned to China.' },
@@ -332,6 +346,7 @@ export const G8A: Lesson[] = [
         title: { zh: '千里跃进大别山', en: 'The drive into the Dabie Mountains' },
         body: { zh: '1947年6月，刘伯承、邓小平率领晋冀鲁豫解放军主力强渡黄河，千里跃进大别山，揭开了人民解放军战略进攻的序幕。', en: 'In June 1947 Liu Bocheng and Deng Xiaoping led their main force across the Yellow River and deep into the Dabie Mountains, opening the People’s Liberation Army’s strategic offensive.' },
       },
+      { ev: 'dabieshan' },
       {
         ev: 'sanda',
         body: { zh: '1948年9月至1949年1月，人民解放军发动辽沈、淮海、平津三大战役，共歼灭和改编国民党军队150多万人，基本上消灭了国民党军队的主力。', en: 'From September 1948 to January 1949 the PLA fought the Liaoshen, Huaihai and Pingjin campaigns, destroying or absorbing over 1.5 million Kuomintang troops – most of its main forces.' },
@@ -379,8 +394,7 @@ export const G8A: Lesson[] = [
         body: { zh: '鸦片战争后，西方的机器生产、交通工具和生活方式逐渐传入中国，中国近代经济、社会生活和教育文化发生了深刻变化。', en: 'After the Opium War Western machines, transport and ways of life gradually reached China, changing its economy, daily life, education and culture.' },
       },
       {
-        year: 1899, at: [120.86, 32.01, 20],
-        title: { zh: '张謇与实业救国', en: 'Zhang Jian and industry to save the nation' },
+        ev: 'zhang_jian',
         body: { zh: '甲午战争后，状元张謇在家乡江苏南通创办大生纱厂，走上“实业救国”的道路；他还兴办学校，推动了近代民族工业和教育的发展。', en: 'After the war of 1894 Zhang Jian, top scholar of the imperial examinations, founded the Dasheng cotton mill in his home town of Nantong to save the nation through industry, and opened schools as well.' },
       },
       { ev: 'jingzhang' },
@@ -394,14 +408,13 @@ export const G8A: Lesson[] = [
         title: { zh: '民族工业的“短暂的春天”', en: 'A “brief spring” for national industry' },
         body: { zh: '中华民国成立后，政府鼓励兴办实业；第一次世界大战期间，欧洲列强暂时放松了对中国的经济侵略，中国民族工业迎来了“短暂的春天”。', en: 'The new Republic encouraged industry, and during the First World War the European powers eased their economic grip on China, giving Chinese-owned industry a brief spring.' },
       },
+      { ev: 'jingshi_dxt' },
       {
-        year: 1905, at: [116.4, 39.9, 30],
-        title: { zh: '新式教育', en: 'New schools' },
+        ev: 'keju_end',
         body: { zh: '1862年清政府在北京设立京师同文馆；1898年创办京师大学堂；1905年清政府废除科举制度，新式学堂迅速发展起来。', en: 'The Qing opened the Tongwen Guan language school in Beijing in 1862 and the Imperial University of Peking in 1898; in 1905 it abolished the imperial examinations, and new-style schools spread fast.' },
       },
       {
-        year: 1897, at: [121.47, 31.23, 25],
-        title: { zh: '商务印书馆与近代报刊', en: 'The Commercial Press and the modern press' },
+        ev: 'commercial_press',
         body: { zh: '1897年商务印书馆在上海创办，出版新式教科书、工具书和大量中外书籍；《申报》等近代报刊也在上海兴起，传播了新知识、新思想。', en: 'The Commercial Press was founded in Shanghai in 1897 and published new textbooks, reference works and many Chinese and foreign books; newspapers such as Shenbao also flourished in Shanghai, spreading new ideas.' },
       },
       {

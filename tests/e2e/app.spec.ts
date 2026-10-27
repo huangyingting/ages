@@ -545,9 +545,9 @@ test.describe('Ages atlas', () => {
     expect(lb.y).toBeGreaterThanOrEqual((await page.locator('.hud-tl').boundingBox())!.y + (await page.locator('.hud-tl').boundingBox())!.height);
     expect(lb.y + lb.height).toBeLessThanOrEqual((await page.locator('.map-key').boundingBox())!.y);
     await expect(page).toHaveURL(/#lesson=g7a-3/);
-    await expect(ls.locator('.ls-n')).toHaveText('1 / 8');
+    await expect(ls.locator('.ls-n')).toHaveText('1 / 10');
     await page.keyboard.press('ArrowRight');
-    await expect(ls.locator('.ls-n')).toHaveText('2 / 8');
+    await expect(ls.locator('.ls-n')).toHaveText('2 / 10');
     await shot(page, 'desktop-lesson');
     while (await ls.locator('.ls-h').count()) await ls.locator('[data-act=next]').click();
     for (let i = 0; i < 4; i++) {

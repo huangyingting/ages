@@ -148,7 +148,100 @@ function shrub(p: THREE.Object3D, x: number, y: number, z: number, s: number, c:
   lump(p, x, y, z, s, s * 0.6, s, c, { seed, detail: 1, rough: 0.3, paint: (px, py, pz) => shade(c, 0.78 + fbm(px * 4 + seed, py * 4, pz * 4, 2) * 0.45) });
 }
 
-const cave: Builder = gp => {
+/**
+ * Upper Cave 山顶洞 (Zhoukoudian, c. 30 ka): a small cave just under the summit of 龙骨山, with a terrace before its
+ * mouth. Modern humans lived at the entrance (upper room) and buried their dead in the lower room on hematite
+ * powder with ornaments (pierced teeth, shells, stone beads); a 8 cm bone needle with a drilled eye shows sewn hide
+ * clothes. Ref: zh Wikipedia "山顶洞人"; 统编七上第1课. Scale ≈ 0.04 / m.
+ */
+function upperCave(gp: THREE.Object3D): void {
+  const R = 0.445, h0 = ground(gp, 0.46, '#9a8662', '#6a5a40');
+  const lime = '#aaa495', nL = 10, lh = 0.03, j0 = 6, xm = 0.03, mw = 0.08, mh = (nL - j0) * lh + 0.006, depth = 0.1;
+  const yL = j0 * lh;
+  for (let j = 0; j < nL; j++) {
+    const y0 = j * lh, ym = y0 + lh / 2, yy = ym - yL;
+    const half = j >= j0 && yy < mh ? mw * Math.sqrt(1 - (yy / mh) ** 2) : 0;
+    const F = j < j0 ? 0.21 - ym * 0.42 : 0.055 - (ym - yL) * 0.35;
+    const ax = 0.45 - ym * 0.62, azb = 0.27 - ym * 0.4, zc = -0.16;
+    const fz = (x: number) => F - (x / ax) ** 2 * 0.14 + (fbm(x * 7 + j * 0.41, j * 0.8, 1.7, 3) - 0.5) * 0.04 + x * 0.03;
+    const pts: [number, number][] = [], N = 110;
+    for (let i = 0; i < N; i++) {
+      const th = (i / N) * Math.PI * 2, n = 1 + (fbm(Math.cos(th) * 2 + j * 0.3, Math.sin(th) * 2, j * 0.5 + 4, 2) - 0.5) * 0.18;
+      const x = Math.cos(th) * ax * n;
+      let z = zc + Math.sin(th) * (Math.sin(th) > 0 ? 0.6 : azb * n);
+      const f0 = fz(x);
+      if (z > f0) {
+        z = f0;
+        if (half > 0 && Math.abs(x - xm) < half) z -= depth * Math.sqrt(1 - ((x - xm) / half) ** 2) + 0.008;
+      }
+      const d = Math.hypot(x, z);
+      pts.push(d > R ? [x * R / d, z * R / d] : [x, z]);
+    }
+    pprism(gp, pts, h0 + y0, lh + 0.002, lime, (x, y, z, _nx, ny) => {
+      const front = fz(x);
+      if (half > 0 && Math.abs(x - xm) < half + 0.004 && z < front - 0.01) return mix('#3a3128', '#120e0b', Math.min(1, (front - z) / depth));
+      if (ny > 0.5) return j === j0 - 1 ? mix('#857660', '#9a8a6a', fbm(x * 9, j, z * 9, 2)) : mix('#8a8a58', '#a99a72', fbm(x * 9, j, z * 9, 2));
+      const n = fbm(x * 10, (y + y0) * 26, z * 10, 3), st = fbm(x * 22, y0 * 3, 4, 2);
+      let col = shade(j % 3 === 2 ? '#b2ac9e' : lime, (0.8 + n * 0.32) * (y < lh * 0.18 ? 0.8 : 1));
+      if (st > 0.6) col = mix(col, '#a07a4e', (st - 0.6) * 1.6);
+      return col;
+    });
+  }
+  const yT = h0 + nL * lh;
+  // the summit roofs the mouth: soil, grass and hackberry
+  lump(gp, 0.01, yT - 0.004, -0.1, 0.2, 0.07, 0.15, '#8a8456', { seed: 12, rough: 0.2, detail: 3, paint: (x, y, z) => mix('#7a7a4a', '#9a8a5e', fbm(x * 5, y * 5, z * 5, 2)) });
+  leafTree(gp, -0.12, yT, -0.2, 0.15, '#5f6e3a', 5);
+  leafTree(gp, 0.14, yT, -0.24, 0.12, '#68703e', 6);
+  for (const [x, z, s, k] of [[0.2, -0.12, 0.04, 7], [-0.2, -0.1, 0.035, 8]] as const) shrub(gp, x, yT, z, s, '#62683c', k);
+  // dark interior: floor and back wall of the upper room
+  prism(gp, [[xm - mw, 0.04], [xm + mw, 0.04], [xm + mw * 0.6, -0.06], [xm - mw * 0.6, -0.06]], h0 + yL + 0.001, 0.003, '#2a221b');
+  box(gp, '#120e0b', xm, h0 + yL, -0.062, mw * 1.4, mh * 0.8, 0.01);
+  // lower room burial: a flexed body on scattered red hematite powder, wearing a necklace of pierced teeth and shells
+  const yB = h0 + yL + 0.004;
+  ellip(gp, '#9a2e1c', xm - 0.01, yB, -0.005, 0.05, 0.002, 0.03);
+  for (let i = 0; i < 14; i++) ellip(gp, '#b23a22', xm - 0.06 + hash3(i, 2, 7) * 0.1, yB + 0.001, -0.03 + hash3(i, 5, 1) * 0.06, 0.004, 0.0015, 0.004);
+  const dead = person(gp, 0, 0, 0, { skin: '#8a6244', hair: '#2a1d14', top: '#6a4a32', bottom: '#5e4530', sleeve: 0, shorts: true, h: 0.058, pose: 'sitGround', ry: 0 });
+  dead.group.rotation.set(0, Math.PI / 2, -Math.PI / 2);
+  dead.group.position.set(xm - 0.01, yB + 0.012, -0.005);
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 8) * Math.PI;
+    ellip(gp, i % 3 === 0 ? '#e8e0cc' : i % 3 === 1 ? '#d9c38a' : '#a3c4c0', xm + 0.02 + Math.cos(a) * 0.008, yB + 0.016, -0.005 + Math.sin(a) * 0.01 - 0.005, 0.0022);
+  }
+  // terrace before the mouth: hearth, a woman sewing hide with a bone needle, a mourner scattering red powder
+  const yl = h0 + yL, hum = { skin: '#8a6244', hair: '#2a1d14', bottom: '#5e4530', shoes: '#7a5438', sleeve: 0.4, build: 1.0 };
+  const fx = xm + 0.07, fzz = 0.08;
+  ellip(gp, '#a39d90', fx, yl + 0.001, fzz, 0.026, 0.002, 0.02);
+  for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2; lump(gp, fx + Math.cos(a) * 0.02, yl, fzz + Math.sin(a) * 0.016, 0.006, 0.005, 0.006, '#6d6558', { seed: i + 3, detail: 0, rough: 0.2 }); }
+  flame(gp, fx, yl + 0.003, fzz, 0.03);
+  smoke(gp, fx, yl + 0.04, fzz - 0.01, 0.02, '#8a847a', 4, 0.4);
+  const sew = person(gp, xm - 0.05, yl, 0.085, { ...hum, top: '#7a5a3c', h: 0.06, pose: 'sitGround', ry: 0.5 });
+  ellip(gp, '#8a6a46', sew.handL[0] + 0.004, sew.handL[1] - 0.004, sew.handL[2] + 0.004, 0.016, 0.0025, 0.012, 0.4);
+  rod(gp, sew.handR, [sew.handR[0] + 0.01, sew.handR[1] + 0.008, sew.handR[2] + 0.004], 0.0011, '#efe6cf', 4);
+  const mo = person(gp, xm - 0.04, yl, 0.035, { ...hum, top: '#6b4f36', h: 0.062, pose: 'kneel', ry: -2.4 });
+  for (let i = 0; i < 4; i++) ellip(gp, '#b23a22', mo.handR[0] - 0.004 * i, mo.handR[1] - 0.006 - i * 0.006, mo.handR[2] - 0.003 * i, 0.0018);
+  // hide stretched to dry on a pole frame
+  const hx = xm + 0.13, hz = 0.03;
+  for (const s of [-1, 1]) rod(gp, [hx + s * 0.022, yl, hz], [hx + s * 0.022, yl + 0.05, hz], 0.0018, '#5a4028', 4);
+  rod(gp, [hx - 0.024, yl + 0.048, hz], [hx + 0.024, yl + 0.048, hz], 0.0016, '#5a4028', 4);
+  box(gp, '#8f6a44', hx, yl + 0.024, hz, 0.04, 0.036, 0.003);
+  // a path of stones from the river flat up to the terrace
+  for (let i = 0; i < 7; i++) {
+    const t = i / 6, x = 0.32 - t * 0.12, z = 0.2 - t * 0.12, y = h0 + t * (yL - 0.012);
+    lump(gp, x, y, z, 0.03, 0.012 + (i ? 0.012 : 0), 0.024, '#9a958a', { seed: 30 + i, detail: 0, rough: 0.2, paint: rockPaint('#a29d90', '#7a7a4a', i) });
+  }
+  // below: the riverside flat where they fished (grass carp bones were found) and hunted
+  water(gp, discPart(0.44, 0.3), h0, '#4f7a78');
+  const hun = person(gp, 0.25, h0, 0.25, { ...hum, top: '#6f5034', h: 0.064, pose: 'carry', ry: -2.2 });
+  ellip(gp, '#7c8a8c', hun.handR[0], hun.handR[1] - 0.012, hun.handR[2], 0.004, 0.014, 0.003);
+  const sp = person(gp, -0.18, h0, 0.28, { ...hum, top: '#75573a', h: 0.064, pose: 'stand', ry: 0.4 });
+  rod(gp, [sp.handR[0], h0 + 0.004, sp.handR[2]], [sp.handR[0] + 0.004, sp.handR[1] + 0.05, sp.handR[2] - 0.004], 0.0018, '#6b4a2a', 4);
+  for (const [x, z, s, k] of [[-0.33, 0.1, 0.05, 1], [0.38, 0.0, 0.05, 2], [-0.06, 0.24, 0.03, 3]] as const) {
+    lump(gp, x, h0, z, s, s * 0.7, s * 0.8, lime, { seed: k + 40, detail: 0, rough: 0.25, paint: rockPaint('#a29d90', '#7a7a4a', k) });
+  }
+}
+
+const cave: Builder = (gp, r) => {
+  if (r.style === 'shandingdong') { upperCave(gp); return; }
   // Zhoukoudian Locality 1 (周口店第一地点, 龙骨山 "Dragon Bone Hill", c. 700–200 ka): a hill of grey Ordovician
   // limestone in thick, slightly tilted beds, weathered buff and rust-stained; the cave opened on its east face.
   // Peking Man left ash layers (hearths), quartz flakes and deer bones (肿骨鹿) at the mouth. Ref: zh/en Wikipedia
@@ -340,7 +433,96 @@ function jadeGeo(p: THREE.Object3D, geo: THREE.BufferGeometry, base: string, x: 
   return add(p, paintFaces(geo, base, jadePaint(base, seed)), jadeMat(), x, y, z, 1, 1, 1);
 }
 
+/**
+ * Hongshan culture (红山, c. 4500–3000 BC) jades from the 牛河梁 stone-cairn tombs, at object scale on the cairn:
+ * a stone-slab cist inside a kerb of piled limestone, with a row of bottomless painted-pottery tubes (彩陶筒形器,
+ * red ware with black hooked-triangle bands) along the kerb; on the cist cover a C-shaped pig-dragon 玉猪龙 (fat
+ * snout, big round ears, ringed eyes, wrinkled brow, the slit between head and tail, drilled suspension hole), a
+ * cloud-hook plaque 勾云形玉佩 and an oblique 马蹄形玉箍 hoop, plus the clay goddess head with jade-inlaid eyes from
+ * the Goddess Temple 女神庙. Ref: zh Wikipedia "红山文化", "牛河梁遗址", "玉猪龙"; National Museum of China.
+ */
+function hongshanJade(gp: THREE.Object3D, J: string): void {
+  const h0 = ground(gp, 0.46, '#8a7a5c', '#5a4a38');
+  pbox(gp, 0, h0, 0, 0.74, 0.012, 0.56, [24, 1, 18], '#a39478', (x, _y, z) => shade('#a39478', 0.86 + hash3(Math.floor(x * 70), Math.floor(z * 70), 8) * 0.2));
+  // kerb of piled stones (积石) round the back and sides
+  for (let i = 0; i < 26; i++) {
+    const t = i / 25, a = Math.PI * (1.08 + t * 0.84), x = Math.cos(a) * 0.34, z = Math.sin(a) * 0.24 - 0.02;
+    lump(gp, x, h0 + 0.012, z, 0.032 + hash3(i, 1, 3) * 0.012, 0.022 + hash3(i, 2, 3) * 0.01, 0.026, '#b3ab98', { seed: i, detail: 0, rough: 0.25, paint: rockPaint('#b0a894', '#8a8a5a', i) });
+  }
+  // painted pottery tubes behind the cist
+  for (let i = 0; i < 6; i++) {
+    const x = -0.25 + i * 0.1, z = -0.16 - Math.abs(i - 2.5) * 0.012;
+    plathe(gp, [[0.024, 0], [0.026, 0.002], [0.026, 0.07], [0.029, 0.074], [0.029, 0.078], [0.024, 0.078]], '#a6532f', (px, py, pz) => {
+      const a = Math.atan2(pz, px), b = py;
+      const band = b > 0.02 && b < 0.06, hook = Math.sin(a * 6 + b * 90) > 0.2;
+      return band && hook ? '#2a1e18' : shade('#a6532f', 0.9 + hash3(Math.floor(a * 9), Math.floor(b * 200), i) * 0.15);
+    }, x, h0 + 0.012, z, 18, { rough: 0.8 });
+    cyl(gp, '#2a1a12', x, h0 + 0.012 + 0.077, z, 0.023, 0.002, 14);
+  }
+  // stone-slab cist with a cover slab, the jades laid on it
+  const T = h0 + 0.012;
+  for (const [x, z, w, d] of [[0, -0.06, 0.4, 0.02], [0, 0.18, 0.4, 0.02], [-0.19, 0.06, 0.02, 0.22], [0.19, 0.06, 0.02, 0.22]] as const) {
+    pbox(gp, x, T, z, w, 0.03, d, [6, 1, 3], '#9c9584', (px, py, pz) => shade('#9c9584', 0.85 + fbm(px * 30, py * 30, pz * 30, 2) * 0.3));
+  }
+  pbox(gp, 0, T + 0.03, 0.06, 0.38, 0.012, 0.22, [12, 1, 8], '#8e8878', (px, _y, pz) => shade('#8e8878', 0.86 + fbm(px * 20, 3, pz * 20, 3) * 0.26));
+  const S = T + 0.042;
+  // ---- pig-dragon 玉猪龙: a thick C (torus arc), standing upright, head at the top-right end
+  const D = grp(gp, -0.06, 0.06, 0.25, S);
+  const rC = 0.062, rt = 0.03, gapA = 0.55;
+  const tor = new THREE.TorusGeometry(rC, rt, 14, 40, Math.PI * 2 - gapA);
+  tor.rotateZ(Math.PI / 2 + gapA / 2);
+  const tm = jadeGeo(D, tor, J, 0, rC + rt, 0, 3);
+  tm.scale.set(1, 1, 0.75);
+  const hA = Math.PI / 2 + gapA / 2, hx = Math.cos(hA) * rC, hy = rC + rt + Math.sin(hA) * rC;
+  const head = grp(D, hx, 0, 0, hy);
+  jadeGeo(head, new THREE.SphereGeometry(rt * 1.28, 16, 12), shade(J, 1.03), 0, 0, 0, 5).scale.set(1.1, 1, 0.82);
+  // snout: flat-ended, with nostril grooves
+  jadeGeo(head, new THREE.CylinderGeometry(rt * 0.95, rt * 1.15, 0.03, 16), shade(J, 1.0), 0.026, -0.012, 0, 6).rotation.z = Math.PI / 2 + 0.5;
+  for (let k = 0; k < 3; k++) box(head, shade(J, 0.66), 0.012 - k * 0.006, 0.02 - k * 0.002, 0, 0.002, 0.004, rt * 1.6, 0, 0, 0.3);
+  for (const s of [-1, 1]) {
+    jadeGeo(head, new THREE.SphereGeometry(0.014, 10, 8), shade(J, 1.08), -0.012, 0.034, s * 0.016, 7 + s).scale.set(1, 1.1, 0.55);
+    ellip(head, shade(J, 1.2), 0.012, 0.004, s * rt * 0.82, 0.009, 0.009, 0.003);
+    ellip(head, '#4e6b58', 0.0125, 0.004, s * rt * 0.86, 0.0045, 0.0045, 0.002);
+  }
+  // suspension hole drilled through the back
+  cyl(D, '#25322a', -0.01, rC * 2 + rt * 1.6, 0, 0.007, 0.003, 10).rotation.x = Math.PI / 2;
+  // ---- cloud-hook plaque 勾云形玉佩: a thin rectangle with curled corners and a central swirl, lying on the cover
+  const Pq = grp(gp, 0.1, 0.02, -0.2, S);
+  const pl = new THREE.Shape(), w = 0.07, d = 0.045;
+  pl.moveTo(-w, -d); pl.lineTo(w, -d); pl.lineTo(w, d); pl.lineTo(-w, d); pl.closePath();
+  const hole = new THREE.Path(); hole.absarc(0, 0, 0.012, 0, Math.PI * 2, true); pl.holes.push(hole);
+  const pg = new THREE.ExtrudeGeometry(pl, { depth: 0.006, bevelEnabled: true, bevelSize: 0.004, bevelThickness: 0.002, bevelSegments: 2, curveSegments: 16 });
+  pg.rotateX(-Math.PI / 2);
+  jadeGeo(Pq, pg, shade(J, 1.06), 0, 0.002, 0, 9);
+  const yP = 0.011;
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+    const pts: V3[] = [];
+    for (let k = 0; k <= 10; k++) { const a = k / 10 * Math.PI * 1.4, rr = 0.016 - k * 0.0011; pts.push([sx * (w - 0.018) + sx * Math.cos(a) * rr, yP, sz * (d - 0.016) + sz * Math.sin(a) * rr]); }
+    tube(Pq, pts, 0.0018, 0.0012, shade(J, 0.66), { radial: 4 });
+  }
+  const sw: V3[] = [];
+  for (let k = 0; k <= 16; k++) { const a = k / 16 * Math.PI * 2.4, rr = 0.03 - k * 0.0011; sw.push([Math.cos(a) * rr, yP, Math.sin(a) * rr * 0.8]); }
+  tube(Pq, sw, 0.002, 0.0014, shade(J, 0.66), { radial: 4 });
+  // ---- 马蹄形玉箍: an oblique, flaring open hoop lying on its side
+  const H = grp(gp, 0.1, 0.14, 0.2, S);
+  const hg = new THREE.LatheGeometry([[0.022, 0], [0.026, 0], [0.034, 0.07], [0.03, 0.07]].map(([a, b]) => new THREE.Vector2(a, b)), 28);
+  const hp = hg.getAttribute('position');
+  for (let i = 0; i < hp.count; i++) { const x = hp.getX(i), y = hp.getY(i); if (y > 0.03) hp.setY(i, y - (x + 0.034) * 0.35); }
+  hg.rotateZ(Math.PI / 2);
+  jadeGeo(H, hg, shade(J, 0.94), 0.035, 0.026, 0, 13);
+  // ---- goddess head 女神头像: red clay face, green jade eyes, on the left of the cairn
+  const Gh = grp(gp, -0.27, 0.16, 0.5, T);
+  lump(Gh, 0, 0, 0, 0.05, 0.06, 0.04, '#b0764e', { seed: 3, detail: 3, rough: 0.05, paint: (x, y, z) => shade('#b0764e', 0.82 + fbm(x * 6, y * 6, z * 6, 2) * 0.3) });
+  for (const s of [-1, 1]) {
+    ellip(Gh, '#c08660', s * 0.018, 0.064, 0.034, 0.013, 0.006, 0.006);
+    ellip(Gh, '#6fa08a', s * 0.018, 0.064, 0.038, 0.0075, 0.005, 0.004);
+  }
+  ellip(Gh, '#a8704a', 0, 0.045, 0.04, 0.007, 0.012, 0.008);
+  ellip(Gh, '#8a4a34', 0, 0.022, 0.035, 0.012, 0.003, 0.004);
+}
+
 const jade: Builder = (gp, r) => {
+  if (r.style === 'hongshan') { hongshanJade(gp, str(r.color, '#a9b48e')); return; }
   // Liangzhu (良渚, c. 3300–2300 BC) ritual jades of tremolite nephrite, now mostly a milky green-white with ivory
   // "chicken-bone" whitening and brown iron stains: a 4-tier cong 琮 (square outside, round bore, collars at both ends,
   // each corner carved with the simplified 神人兽面 mask: two feather-crown bands, ringed eyes, a nose bar), a bi 璧

@@ -37,6 +37,7 @@ export const HS1: Lesson[] = [
         body: { zh: '汉武帝颁布“推恩令”削弱王国势力，设刺史监察地方；“罢黜百家，独尊儒术”；盐铁官营、统一铸造五铢钱；北击匈奴。大一统局面从政治、思想、经济、军事上得到巩固。', en: 'Emperor Wu split up the vassal kingdoms with the Edict of Grace and sent inspectors to watch the provinces; made Confucianism the state teaching; put salt and iron under state monopoly and minted the wuzhu coin; and drove back the Xiongnu, securing unity politically, ideologically, economically and militarily.' },
       },
       { ev: 'xiyu_duhu' },
+      { ev: 'huangjin' },
     ],
     checks: [
       {
@@ -77,6 +78,7 @@ export const HS1: Lesson[] = [
         title: { zh: '由统一走向分裂', en: 'From unity to division' },
         body: { zh: '东汉末年豪强割据，220年东汉灭亡，三国鼎立。西晋短暂统一后，北方多个政权并立，南方东晋和宋、齐、梁、陈相继，形成长期分裂的局面。', en: 'Late Han warlords carved up the realm; in 220 the Han ended and three kingdoms emerged. After the brief Western Jin unity, the north split among many regimes while the Eastern Jin and then Song, Qi, Liang and Chen ruled the south.' },
       },
+      { ev: 'xijin_fall' },
       {
         ev: 'dongjin', polity: 'ejin',
         body: { zh: '北方战乱，大量人口南迁，带来劳动力和先进生产技术；江南自然条件优越、社会相对安定，经济得到开发，为后来经济重心南移奠定了基础。', en: 'War in the north drove many people south with their labour and farming skills. With good land and relative peace, the Yangtze delta was developed, preparing the later shift of China’s economic centre southwards.' },
@@ -98,6 +100,7 @@ export const HS1: Lesson[] = [
         ev: 'keju',
         body: { zh: '科举制以考试成绩选拔官员，改变了魏晋以来门阀士族垄断仕途的局面，扩大了官吏来源，加强了中央集权，也促进了文化教育的发展。', en: 'The examinations chose officials by results, ending the great families’ hold on office since the Wei and Jin. They widened recruitment, strengthened central power and encouraged learning.' },
       },
+      { ev: 'wuzetian' },
       {
         ev: 'kaiyuan', polity: 'tang',
         body: { zh: '唐朝前期出现“贞观之治”和“开元盛世”，疆域辽阔，民族关系友好，文成公主入藏促进了唐蕃交往；中外交流频繁，长安成为国际性大都市。', en: 'The early Tang saw the Zhenguan and Kaiyuan golden ages: a vast realm, friendly ties with neighbouring peoples (Princess Wencheng went to Tibet) and busy foreign exchange that made Chang’an a cosmopolitan city.' },
@@ -106,6 +109,7 @@ export const HS1: Lesson[] = [
         ev: 'anshi',
         body: { zh: '安史之乱是唐朝由盛转衰的转折点。此后藩镇割据、宦官专权、朋党之争，907年唐朝灭亡。', en: 'The An Lushan rebellion turned the Tang from glory to decline. Regional governors went their own way, eunuchs dominated the court and factions feuded until the dynasty fell in 907.' },
       },
+      { ev: 'huangchao' },
     ],
     checks: [
       {
@@ -174,6 +178,8 @@ export const HS1: Lesson[] = [
         ev: 'xingsheng', polity: 'yuan',
         body: { zh: '元朝中央设中书省总领全国政务，地方设行省；设宣政院管辖西藏地区，设澎湖巡检司管辖澎湖和台湾。行省制度加强了中央对地方的管辖，是我国省制的开端。', en: 'The Yuan Secretariat ran the whole realm and provinces (xingsheng) governed the regions; the Bureau of Buddhist and Tibetan Affairs ruled Tibet and a police office on Penghu covered Penghu and Taiwan. The provinces tightened central control and began China’s province system.' },
       },
+      { ev: 'song_tech' },
+      { ev: 'guoshoujing' },
     ],
     checks: [
       {
@@ -218,10 +224,12 @@ export const HS1: Lesson[] = [
         ev: 'ming_found', polity: 'ming',
         body: { zh: '明太祖废除丞相和中书省，由六部直接对皇帝负责；地方设三司，分掌行政、司法和军事。皇权空前加强。', en: 'The Hongwu emperor abolished the chancellor and the Secretariat, making the six ministries answer to him directly, and split each province between three offices for administration, justice and the army. Imperial power grew as never before.' },
       },
+      { ev: 'ming_autocracy' },
       {
         ev: 'forbidden_city',
         body: { zh: '明成祖迁都北京，设立内阁。内阁大学士起初只是皇帝的顾问，后来地位逐渐提高，但内阁不是法定的中央一级行政机构，决策权始终掌握在皇帝手中。', en: 'The Yongle emperor moved the capital to Beijing and set up the Grand Secretariat. Its grand secretaries began as advisers and grew in standing, but it was never a statutory organ of government: decisions stayed with the emperor.' },
       },
+      { ev: 'later_jin' },
       {
         ev: 'li_zicheng',
         body: { zh: '明朝后期政治腐败、土地兼并严重，1644年李自成攻入北京，明朝灭亡；同年清军入关，迁都北京，逐步统一全国。', en: 'Corruption and land concentration weakened the late Ming. In 1644 Li Zicheng took Beijing and the Ming fell; the same year Qing armies entered through Shanhai Pass, moved their capital to Beijing and went on to unify the country.' },
@@ -240,6 +248,8 @@ export const HS1: Lesson[] = [
         title: { zh: '统一多民族国家的巩固', en: 'Consolidating the multi-ethnic state' },
         body: { zh: '清朝收复台湾并设台湾府，抗击沙俄、签订《尼布楚条约》，平定准噶尔和大小和卓叛乱、统一新疆，设驻藏大臣管理西藏。到18世纪中叶，奠定了中国的版图。', en: 'The Qing recovered Taiwan and made it a prefecture, resisted Russia and signed the Treaty of Nerchinsk, crushed the Dzungars and the Khoja revolt to unify Xinjiang, and sent resident ministers to Tibet. By the mid-18th century China’s territory had taken shape.' },
       },
+      { ev: 'taiwan_fu' },
+      { ev: 'torghut' },
       {
         ev: 'canton',
         body: { zh: '清朝实行“闭关锁国”政策，1757年只开广州一处对外通商。这一政策对西方殖民者有一定的自卫作用，但使中国与世界隔绝，逐渐落后于世界潮流。', en: 'The Qing closed the country, from 1757 allowing foreign trade only at Canton. This offered some defence against Western colonisers but cut China off from the world, and it fell behind.' },
@@ -297,6 +307,7 @@ export const HS1: Lesson[] = [
         ev: 'yangwu',
         body: { zh: '洋务派以“中学为体，西学为用”为指导，以“自强”“求富”为口号，创办近代军事和民用工业、筹建海军、兴办新式学堂，开启了中国近代化的进程，但没有触动封建制度。', en: 'Guided by “Chinese learning as the core, Western learning for use”, the Self-Strengthening officials built arsenals, factories, a navy and new schools under the slogans of strength and wealth. They began China’s modernisation but left the old order untouched.' },
       },
+      { ev: 'sino_french' },
       {
         ev: 'maguan',
         body: { zh: '甲午战败后签订的《马关条约》允许日本在中国通商口岸开设工厂，适应了列强资本输出的需要；列强随即掀起瓜分中国的狂潮，民族危机空前严重。', en: 'After defeat in 1895 the Treaty of Shimonoseki let Japan open factories in the treaty ports, suiting the powers’ export of capital; a scramble for concessions followed and the national crisis became graver than ever.' },
@@ -305,6 +316,7 @@ export const HS1: Lesson[] = [
         ev: 'wuxu',
         body: { zh: '维新派主张学习西方、实行君主立宪。戊戌变法是一次资产阶级性质的政治改革，也是一场思想启蒙运动，但因维新派力量弱小、顽固势力强大而失败。', en: 'The reformers wanted to learn from the West and set up a constitutional monarchy. The Hundred Days’ Reform of 1898 was a bourgeois political reform and an intellectual awakening, but the weak reformers were crushed by the conservatives.' },
       },
+      { ev: 'zhang_jian' },
       { ev: 'baguo' },
     ],
     checks: [
@@ -345,11 +357,13 @@ export const HS1: Lesson[] = [
         title: { zh: '二十世纪初的中国', en: 'China at the turn of the century' },
         body: { zh: '《辛丑条约》后清政府推行“新政”，1905年废除科举，1906年宣布“预备仿行立宪”，1911年却成立“皇族内阁”。民族资本主义有所发展，资产阶级革命派登上历史舞台。', en: 'After the Boxer Protocol the Qing launched the New Policies, ended the examinations in 1905 and promised a constitution in 1906, yet in 1911 formed a cabinet of princes. Chinese-owned industry grew and a bourgeois revolutionary movement took the stage.' },
       },
+      { ev: 'keju_end' },
       {
         ev: 'tongmenghui',
         body: { zh: '1905年中国同盟会在东京成立，是第一个全国性的资产阶级革命政党。孙中山把它的纲领阐发为民族、民权、民生三民主义，成为资产阶级民主革命纲领。', en: 'Founded in Tokyo in 1905, the Revolutionary Alliance was China’s first nationwide bourgeois revolutionary party. Sun Yat-sen set out its programme as the Three Principles of nationalism, democracy and the people’s livelihood.' },
       },
       { ev: 'jingzhang' },
+      { ev: 'huanghuagang' },
       {
         ev: 'wuchang',
         body: { zh: '1911年10月10日武昌起义爆发，各省纷纷宣布独立，清朝统治迅速土崩瓦解。', en: 'The Wuchang Uprising broke out on 10 October 1911; province after province declared independence and Qing rule fell apart.' },
@@ -368,6 +382,7 @@ export const HS1: Lesson[] = [
         title: { zh: '袁世凯复辟帝制', en: 'Yuan Shikai restores the monarchy' },
         body: { zh: '袁世凯就任大总统后独揽大权，1915年底复辟帝制，引发护国战争，次年被迫取消帝制，不久死去。此后北洋军阀分裂割据。', en: 'As president Yuan Shikai gathered all power and at the end of 1915 made himself emperor. The National Protection War forced him to give up the throne the next year, and he soon died; the Beiyang warlords then divided the country.' },
       },
+      { ev: 'huguo' },
     ],
     checks: [
       {
@@ -431,6 +446,8 @@ export const HS1: Lesson[] = [
         ev: 'jinggang',
         body: { zh: '毛泽东率秋收起义部队进军井冈山，创建第一个农村革命根据地，开辟了农村包围城市、武装夺取政权的革命道路。', en: 'Mao Zedong led the Autumn Harvest troops to the Jinggang Mountains and built the first rural base, opening the road of surrounding the cities from the countryside and seizing power by arms.' },
       },
+      { ev: 'gutian' },
+      { ev: 'ruijin' },
       {
         ev: 'zunyi',
         body: { zh: '第五次反“围剿”失败后红军被迫长征。1935年遵义会议事实上确立了毛泽东在党中央和红军的领导地位，是党的历史上一个生死攸关的转折点。', en: 'After the fifth encirclement campaign the Red Army set out on the Long March. The 1935 Zunyi Conference in effect confirmed Mao Zedong’s leadership of the Party and the army, a life-or-death turning point in Party history.' },
@@ -476,6 +493,7 @@ export const HS1: Lesson[] = [
         body: { zh: '1931年日本发动九一八事变，东北人民和爱国官兵奋起抵抗，中国人民的局部抗战由此开始。中国是世界反法西斯战争中开始最早、持续时间最长的国家。', en: 'Japan’s Mukden Incident of 1931 met resistance from the people and patriotic soldiers of the north-east: China’s local War of Resistance had begun, the earliest and longest fight of the world’s anti-fascist war.' },
       },
       { ev: 'sept18' },
+      { ev: 'dec9' },
       {
         ev: 'xian_incident',
         body: { zh: '1936年西安事变和平解决，十年内战基本结束，成为时局转换的枢纽，国共两党由内战走向第二次合作。', en: 'The peaceful settlement of the Xi’an Incident in 1936 all but ended ten years of civil war and became the hinge of the situation: the two parties moved from war to a second alliance.' },
@@ -490,10 +508,13 @@ export const HS1: Lesson[] = [
         body: { zh: '国民党军队担负正面战场作战，进行了淞沪、台儿庄等会战；中国共产党领导八路军、新四军开辟敌后战场，建立抗日根据地。两个战场相互配合，构成中国抗战的整体。', en: 'Guomindang armies held the front line in battles such as Shanghai and Taierzhuang; the CPC’s Eighth Route and New Fourth Armies opened a front behind enemy lines and built base areas. The two fronts together made up China’s war.' },
       },
       { ev: 'baituan' },
+      { ev: 'yuanzheng' },
+      { ev: 'qida' },
       {
         ev: 'victory1945',
         body: { zh: '抗日战争的胜利是近代以来中国反抗外敌入侵第一次取得完全胜利的民族解放战争，台湾回归祖国；中国为世界反法西斯战争的胜利作出了重大贡献，国际地位显著提高。', en: 'Victory in 1945 was China’s first complete victory over a foreign invader in modern times, and Taiwan returned to China. China made a major contribution to the world’s defeat of fascism and its international standing rose.' },
       },
+      { ev: 'dabieshan' },
       {
         ev: 'sanda',
         body: { zh: '1946年国民党挑起全面内战。人民解放军由战略防御转入战略进攻，1948年至1949年初进行辽沈、淮海、平津三大战役，基本消灭了国民党军队主力。', en: 'The Guomindang launched all-out civil war in 1946. The People’s Liberation Army went from defence to the offensive, and the Liaoshen, Huaihai and Pingjin campaigns of 1948–49 destroyed the bulk of the Guomindang armies.' },
@@ -560,6 +581,7 @@ export const HS1: Lesson[] = [
         title: { zh: '在探索中曲折发展', en: 'Exploration, with setbacks' },
         body: { zh: '1956年中共八大提出集中力量发展社会生产力。此后“大跃进”和人民公社化运动出现严重失误，1966年至1976年的“文化大革命”使国家遭到新中国成立以来最严重的挫折，但建设仍取得一批重大成就。', en: 'In 1956 the Eighth Party Congress called for concentrating on developing the productive forces. The Great Leap Forward and the people’s communes brought grave errors, and the Cultural Revolution of 1966–76 was the worst setback since 1949, yet major achievements were still made.' },
       },
+      { ev: 'dayuejin' },
       { ev: 'liangdan' },
     ],
     checks: [
@@ -601,6 +623,7 @@ export const HS1: Lesson[] = [
         title: { zh: '历史的转折', en: 'A historic turn' },
         body: { zh: '1976年“文化大革命”结束后，国家百废待兴。1978年关于真理标准问题的讨论冲破了“两个凡是”的束缚，为历史性的转折作了思想准备。', en: 'When the Cultural Revolution ended in 1976 the country had much to rebuild. The 1978 debate on the criterion of truth broke the hold of the “two whatevers” and prepared minds for a historic turn.' },
       },
+      { ev: 'gaokao' },
       {
         ev: 'third_plenum',
         body: { zh: '十一届三中全会重新确立解放思想、实事求是的思想路线，把工作重点转移到经济建设上来，作出改革开放的历史性决策，开启了改革开放和社会主义现代化建设新时期。', en: 'The Third Plenum of the 11th Central Committee restored the line of emancipating the mind and seeking truth from facts, shifted the focus to economic development and decided on reform and opening-up, opening a new era.' },
@@ -613,6 +636,7 @@ export const HS1: Lesson[] = [
         ev: 'shenzhen',
         body: { zh: '从设立经济特区，到开放沿海港口城市、开发开放上海浦东，我国逐步形成全方位、多层次、宽领域的对外开放格局。', en: 'From the special economic zones to the open coastal cities and Shanghai’s Pudong, China built up opening on all fronts, at many levels and in many fields.' },
       },
+      { ev: 'pudong' },
       {
         ev: 'nanxun',
         body: { zh: '1992年邓小平南方谈话回答了长期困扰人们思想的重大问题；同年中共十四大确立建立社会主义市场经济体制的改革目标。', en: 'Deng Xiaoping’s 1992 southern tour answered questions that had long troubled people, and the 14th Party Congress that year made a socialist market economy the goal of reform.' },
@@ -622,6 +646,8 @@ export const HS1: Lesson[] = [
         body: { zh: '“一国两制”的伟大构想在香港、澳门成功实践：1997年香港回归，1999年澳门回归，洗雪了百年耻辱。', en: '“One country, two systems” was put into practice: Hong Kong returned in 1997 and Macao in 1999, wiping out a century of humiliation.' },
       },
       { ev: 'wto' },
+      { ev: 'sco' },
+      { ev: 'change' },
     ],
     checks: [
       {
