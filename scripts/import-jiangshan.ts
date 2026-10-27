@@ -71,12 +71,92 @@ function ringRef(ring: Pt[]): number | null {
   if (i === undefined) { i = rings.length; rings.push(s); ringIdx.set(s, i); }
   return i;
 }
-/** All rings of a shape (outer rings and holes), painted with the even-odd rule. */
-function shapeRings(shape: Shape | undefined | null): number[] {
+/**
+ * The upstream polity shapes stop at a data window (SRC_WINDOW) with straight cut edges, which would show inside our
+ * larger stage. West, east and north, edges along the cut are pushed out past the stage (PAD) so those realms run off
+ * the map. The south cut (2°N) crosses islands, so there a realm is instead joined with coarse fills of the land it
+ * held below the line (the tint is land-masked, so the fills may spill over the sea) — only when its shape really
+ * reaches the cut over that island (`gate`). compute-areas.ts measures only inside SRC_WINDOW.
+ */
+const SRC_WINDOW = { west: 58, east: 152, south: 2, north: 62 };
+const PAD = { west: 46, east: 164, north: 78 };
+type Poly = Pt[][];
+const JOHOR: Pt[] = [[102.2, 2], [104.9, 2], [104.9, 1.3], [104.4, 1.28], [104.1, 1.19], [103.6, 1.19], [103.2, 1.2], [102.75, 1.7]];
+const SARAWAK: Pt[] = [[109.5, 2], [114.9, 2], [114.7, 1.6], [114.2, 1.45], [113.6, 1.3], [113, 1.45], [112.4, 1.55], [111.9, 1.05],
+  [111.2, 1], [110.4, 0.95], [110, 1.2], [109.65, 1.55], [109.55, 1.85]];
+const PT_TIMOR: Pt[][] = [
+  [[125.08, -8.95], [125.5, -8.15], [127.4, -8.3], [127.4, -8.5], [126.5, -9], [125.1, -9.6]],
+  [[124.05, -9.15], [124.5, -9.15], [124.45, -9.5], [124.1, -9.4]],
+];
+const FILL: Record<string, { gate: [number, number]; poly: Poly[] }> = {
+  sumatra: { gate: [98, 101.5], poly: [[[[95, 2], [102.2, 2], [102.75, 1.7], [103.2, 1.2], [103.6, 1.19], [104.1, 1.19], [104.4, 1.28],
+    [104.9, 1.3], [106.5, 1], [108.4, -1], [108.4, -3.6], [107, -3.6], [106.2, -4.6], [105.85, -5.6], [105.6, -6.05], [104.6, -6.25],
+    [101.5, -6], [98, -4], [95, 0]]]] },
+  johor: { gate: [102.3, 104.5], poly: [[JOHOR]] },
+  sarawak: { gate: [110.5, 114.95], poly: [[SARAWAK]] },
+  borneo: { gate: [110.5, 118.5], poly: [[[[108.5, 2], [119.4, 2], [119.35, 0.8], [118.7, -1], [117.6, -3.3], [116.9, -4.6], [108.5, -4.6]]]] },
+  // the Netherlands Indies: everything south of the cut to 141°E bar British Sarawak and Johor and Portuguese Timor
+  indies: { gate: [98, 118.5], poly: pc.difference([[[94.5, 2], [141, 2], [141, -11], [94.5, -11]]], [[SARAWAK]], [[JOHOR]], ...PT_TIMOR.map(r => [[r]] as Poly[])) as Poly[] },
+};
+const SOUTH_FILLS: Record<string, string[]> = {
+  '三佛齐': ['sumatra', 'johor'], '马来诸国': ['sumatra', 'borneo'], '马来诸苏丹国': ['sumatra', 'borneo'], '荷属东印度': ['indies'],
+  '满剌加': ['johor'], '孟—高棉诸部': ['johor'], '马来亚（英属）': ['johor', 'sarawak'], '马来亚': ['johor', 'sarawak'],
+};
+/** Joins a realm with the island fills below the south cut that its (snapped) shape reaches. */
+function southFill(polys: Poly[], title: string): Poly[] {
+  const fills = SOUTH_FILLS[title];
+  if (!fills) return polys;
+  const runs: [number, number][] = [];
+  for (const p of polys) for (const r of p) for (let i = 0; i < r.length; i++) {
+    const a = r[i], b = r[(i + 1) % r.length];
+    if (a[1] === SRC_WINDOW.south && b[1] === SRC_WINDOW.south) runs.push([Math.min(a[0], b[0]), Math.max(a[0], b[0])]);
+  }
+  const add = fills.map(f => FILL[f]).filter(f => runs.some(([a, b]) => a < f.gate[1] && b > f.gate[0])).flatMap(f => f.poly);
+  return add.length ? pc.union(polys, ...add.map(p => [p] as Poly[])) as Poly[] : polys;
+}
+/**
+ * The upstream cut wobbles about its line (up to ~0.3° inside and ~0.45° outside the window), so a cut is a run of
+ * consecutive vertices in that band that spans at least CUT_MIN along the line; the run's vertices move to `to` (its
+ * end vertices also stay put). `out` is the outward direction of the line.
+ */
+const CUT_IN = 0.3, CUT_OUT = 0.6, CUT_MIN = 0.5;
+function pushRuns(ring: Pt[], ax: 0 | 1, line: number, out: 1 | -1, to: number): Pt[] {
+  const n = ring.length, near = ring.map(p => { const d = (p[ax] - line) * out; return d >= -CUT_IN && d <= CUT_OUT; });
+  const s = near.indexOf(false);
+  if (s < 0) return ring;
+  const res: Pt[] = [];
+  let run: Pt[] = [];
+  const flush = () => {
+    const along = run.map(p => p[1 - ax]);
+    if (run.length > 1 && Math.max(...along) - Math.min(...along) >= CUT_MIN) {
+      res.push(run[0], ...run.map(p => { const q: Pt = [p[0], p[1]]; q[ax] = to; return q; }), run[run.length - 1]);
+    } else res.push(...run);
+    run = [];
+  };
+  for (let k = 0; k < n; k++) {
+    const i = (s + k) % n;
+    if (near[i]) run.push(ring[i]);
+    else { flush(); res.push(ring[i]); }
+  }
+  flush();
+  return res;
+}
+/** A polity shape with its cut edges snapped (south), filled below (south) and pushed past the stage (west, east, north). */
+function polityPolys(shape: Shape, title: string): Poly[] {
+  const polys = (shape.type === 'Polygon' ? [shape.coordinates] : shape.coordinates)
+    .map(p => p.map(r => pushRuns(r.map(pt), 1, SRC_WINDOW.south, -1, SRC_WINDOW.south)));
+  return southFill(polys, title).map(p => p.map(r =>
+    pushRuns(pushRuns(pushRuns(r, 0, SRC_WINDOW.west, -1, PAD.west), 0, SRC_WINDOW.east, 1, PAD.east), 1, SRC_WINDOW.north, 1, PAD.north)));
+}
+/** All rings of a shape (outer rings and holes), painted with the even-odd rule; a `polity` title extends its cut edges. */
+function shapeRings(shape: Shape | undefined | null, polity?: string): number[] {
   if (!shape) return [];
-  const polys = shape.type === 'Polygon' ? [shape.coordinates] : shape.coordinates;
+  const polys = polity !== undefined ? polityPolys(shape, polity) : shape.type === 'Polygon' ? [shape.coordinates] : shape.coordinates;
   const out: number[] = [];
-  for (const poly of polys) for (const ring of poly) { const r = ringRef(ring); if (r !== null) out.push(r); }
+  for (const poly of polys) for (const ring of poly) {
+    const r = ringRef(ring);
+    if (r !== null) out.push(r);
+  }
   return out;
 }
 
@@ -133,7 +213,7 @@ const shapeSnaps: Record<string, Any> = {};
 for (const id of used) {
   const s = SNAPS[id];
   const pol = (s.polities ?? []).map((p: Any) => {
-    const r = shapeRings(p.shape);
+    const r = shapeRings(p.shape, p.title);
     return r.length ? [polityRef(p.title, p.tint, p.role), p.tint, ROLE[p.role] ?? 'neighbor', p.anchor ? pt(p.anchor) : null, r] : null;
   }).filter(Boolean);
   const admin = (list: Any[] | undefined) => (list ?? []).map((f: Any) => {

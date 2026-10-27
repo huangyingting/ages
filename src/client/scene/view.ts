@@ -45,7 +45,7 @@ export class View {
     c.screenSpacePanning = false;
     c.minDistance = 1.4;
     c.maxDistance = 120;
-    c.maxPolarAngle = 1.25;
+    c.maxPolarAngle = 1.1; // and lower near the edges or far out, see clampTilt
     c.zoomSpeed = 1.2;
     c.zoomToCursor = true;
     c.addEventListener('start', () => this.cancelFlight());
@@ -206,10 +206,37 @@ export class View {
       const w = Math.max(1, el.clientWidth), h = Math.max(1, el.clientHeight);
       cam.setViewOffset(w, h, this.inset.x, this.inset.y, w, h);
     }
+    this.clampTilt(W, D);
     cam.updateMatrixWorld();
     this.lastCamPos.copy(cam.position);
     this.lastCamQuat.copy(cam.quaternion);
     this.lastTarget.copy(t);
+  }
+
+  /**
+   * Lowers the tilt until the top edge of the view lands on the ground inside the stage (W × D half-extents), so no
+   * tilt shows the sky or the stage's edge; close up there is room to lean, far out or near an edge the view flattens.
+   */
+  private clampTilt(W: number, D: number): void {
+    const t = this.controls.target, cam = this.camera;
+    const sph = new THREE.Spherical().setFromVector3(cam.position.clone().sub(t));
+    const at = (phi: number): boolean => {
+      cam.position.setFromSpherical(new THREE.Spherical(sph.radius, phi, sph.theta)).add(t);
+      cam.lookAt(t);
+      cam.updateMatrixWorld();
+      for (const nx of [-1, 0, 1]) {
+        this.raycaster.setFromCamera(this.ndcVec.set(nx, 1), cam);
+        const r = this.raycaster.ray;
+        if (r.direction.y > -0.05) return false;
+        r.at(-r.origin.y / r.direction.y, this.hit);
+        if (Math.abs(this.hit.x) > W || Math.abs(this.hit.z) > D) return false;
+      }
+      return true;
+    };
+    if (at(sph.phi)) return;
+    let lo = 0.02, hi = sph.phi;
+    for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (at(mid)) lo = mid; else hi = mid; }
+    at(lo);
   }
 
   /** Current pose as lon/lat/dist/tilt/heading. */

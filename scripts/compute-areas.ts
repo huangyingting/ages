@@ -39,12 +39,15 @@ function ringArea(r: Ring): number {
 /** Area of a multipolygon: outer rings minus holes. */
 const mpArea = (mp: pc.MultiPolygon): number => mp.reduce((s, poly) => s + poly.reduce((t, r, k) => t + (k ? -1 : 1) * ringArea(r as Ring), 0), 0);
 
+/** The imported shapes' source window; outside it their edges are only padding (see SRC_WINDOW in import-jiangshan.ts). */
+const WINDOW: pc.Polygon = [[[58, 2], [152, 2], [152, 62], [58, 62], [58, 2]]];
+
 /** Fill area of a set of rings: evenodd regions XOR their rings (holes), the others union them (nonzero). */
 function fillArea(rings: Ring[], evenodd: boolean): number {
   const polys = rings.filter(r => r.length > 2).map(r => [r] as pc.Polygon);
   if (!polys.length) return 0;
   try {
-    return mpArea(evenodd ? pc.xor(polys[0], ...polys.slice(1)) : pc.union(polys[0], ...polys.slice(1)));
+    return mpArea(pc.intersection(evenodd ? pc.xor(polys[0], ...polys.slice(1)) : pc.union(polys[0], ...polys.slice(1)), WINDOW));
   } catch {
     return rings.reduce((s, r) => s + ringArea(r), 0);
   }
