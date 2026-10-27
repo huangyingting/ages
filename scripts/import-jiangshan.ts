@@ -73,8 +73,7 @@ function ringRef(ring: Pt[]): number | null {
 }
 /**
  * The upstream polity shapes stop at a data window (SRC_WINDOW) with straight cut edges, which would show inside our
- * larger stage. West, east and north, edges along the cut are pushed out past the stage (PAD) so those realms run off
- * the map. The south cut (2°N) crosses islands, so there a realm is instead joined with coarse fills of the land it
+ * larger stage. West, east and north those realms are run off the map (see extendCuts). The south cut (2°N) crosses islands, so there a realm is instead joined with coarse fills of the land it
  * held below the line (the tint is land-masked, so the fills may spill over the sea) — only when its shape really
  * reaches the cut over that island (`gate`). compute-areas.ts measures only inside SRC_WINDOW.
  */
@@ -115,12 +114,11 @@ function southFill(polys: Poly[], title: string): Poly[] {
   return add.length ? pc.union(polys, ...add.map(p => [p] as Poly[])) as Poly[] : polys;
 }
 /**
- * The upstream cut wobbles about its line (up to ~0.3° inside and ~0.45° outside the window), so a cut is a run of
- * consecutive vertices in that band that spans at least CUT_MIN along the line; the run's vertices move to `to` (its
- * end vertices also stay put). `out` is the outward direction of the line.
+ * The upstream cut wobbles about its line (up to ~0.3° inside and ~0.45° outside the window), so south a cut is a run
+ * of consecutive vertices in that band spanning at least CUT_MIN; the run snaps onto the line (`to`).
  */
 const CUT_IN = 0.3, CUT_OUT = 0.6, CUT_MIN = 0.5;
-function pushRuns(ring: Pt[], ax: 0 | 1, line: number, out: 1 | -1, to: number): Pt[] {
+function snapRuns(ring: Pt[], ax: 0 | 1, line: number, out: 1 | -1, to: number): Pt[] {
   const n = ring.length, near = ring.map(p => { const d = (p[ax] - line) * out; return d >= -CUT_IN && d <= CUT_OUT; });
   const s = near.indexOf(false);
   if (s < 0) return ring;
@@ -141,12 +139,55 @@ function pushRuns(ring: Pt[], ax: 0 | 1, line: number, out: 1 | -1, to: number):
   flush();
   return res;
 }
-/** A polity shape with its cut edges snapped (south), filled below (south) and pushed past the stage (west, east, north). */
+/**
+ * West, east and north each realm is clipped at a clean line just inside the wobble (CLIP), and wherever it crosses
+ * that line the crossing is extruded straight out to PAD, so borders continue perpendicular to the cut and a realm's
+ * own edge never leaves notches or spikes. The east cut runs down the Sea of Okhotsk, so the realm holding its coast
+ * at KAMCHATKA_GATE also takes Kamchatka (land-masked like the south fills).
+ */
+const CLIP = { west: SRC_WINDOW.west + CUT_IN, east: SRC_WINDOW.east - CUT_IN, north: SRC_WINDOW.north - CUT_IN };
+const KAMCHATKA_GATE = 59.2;
+const KAMCHATKA: Poly = [[[SRC_WINDOW.east, 50.5], [PAD.east, 50.5], [PAD.east, 59.2], [SRC_WINDOW.east, 59.2]]];
+const box = (x0: number, x1: number, y0: number, y1: number): Poly => [[[x0, y0], [x1, y0], [x1, y1], [x0, y1]]];
+const EPS = 1e-3;
+/** The spans (along the other axis) where `polys` crosses the line `ax` = `v`. */
+function crossings(polys: Poly[], ax: 0 | 1, v: number): [number, number][] {
+  const strip = ax === 0 ? box(v - EPS, v + EPS, -90, 90) : box(-180, 180, v - EPS, v + EPS);
+  const spans: [number, number][] = (pc.intersection(polys, strip) as Poly[]).map(p => {
+    const c = p[0].map(q => q[1 - ax]);
+    return [Math.min(...c), Math.max(...c)];
+  });
+  spans.sort((a, b) => a[0] - b[0]);
+  const out: [number, number][] = [];
+  for (const sp of spans) {
+    const last = out[out.length - 1];
+    if (last && sp[0] <= last[1] + 2 * EPS) last[1] = Math.max(last[1], sp[1]);
+    else out.push([...sp]);
+  }
+  return out.filter(([a, b]) => b - a > 0.05); // hairline touches would extrude into hairline stripes
+}
+function extendCuts(polys: Poly[]): Poly[] {
+  const pts = polys.flatMap(p => p[0]);
+  if (pts.every(q => q[0] > CLIP.west && q[0] < CLIP.east && q[1] < CLIP.north)) return polys;
+  const inner = pc.intersection(polys, box(CLIP.west, CLIP.east, -90, CLIP.north)) as Poly[];
+  if (!inner.length) return polys;
+  const near = (a: number, b: number) => Math.abs(a - b) < 2 * EPS;
+  const add: Poly[] = [];
+  for (const [y0, y1] of crossings(inner, 0, CLIP.west)) add.push(box(PAD.west, CLIP.west, y0, near(y1, CLIP.north) ? PAD.north : y1));
+  for (const [y0, y1] of crossings(inner, 0, CLIP.east)) {
+    add.push(box(CLIP.east, PAD.east, y0, near(y1, CLIP.north) ? PAD.north : y1));
+    if (y0 <= KAMCHATKA_GATE && y1 >= KAMCHATKA_GATE) add.push(KAMCHATKA);
+  }
+  for (const [x0, x1] of crossings(inner, 1, CLIP.north)) {
+    add.push(box(near(x0, CLIP.west) ? PAD.west : x0, near(x1, CLIP.east) ? PAD.east : x1, CLIP.north, PAD.north));
+  }
+  return add.length ? pc.union(inner, ...add.map(p => [p] as Poly[])) as Poly[] : inner;
+}
+/** A polity shape with its south cut snapped and filled below, and its west, east and north cuts run past the stage. */
 function polityPolys(shape: Shape, title: string): Poly[] {
   const polys = (shape.type === 'Polygon' ? [shape.coordinates] : shape.coordinates)
-    .map(p => p.map(r => pushRuns(r.map(pt), 1, SRC_WINDOW.south, -1, SRC_WINDOW.south)));
-  return southFill(polys, title).map(p => p.map(r =>
-    pushRuns(pushRuns(pushRuns(r, 0, SRC_WINDOW.west, -1, PAD.west), 0, SRC_WINDOW.east, 1, PAD.east), 1, SRC_WINDOW.north, 1, PAD.north)));
+    .map(p => p.map(r => snapRuns(r.map(pt), 1, SRC_WINDOW.south, -1, SRC_WINDOW.south)));
+  return extendCuts(southFill(polys, title));
 }
 /** All rings of a shape (outer rings and holes), painted with the even-odd rule; a `polity` title extends its cut edges. */
 function shapeRings(shape: Shape | undefined | null, polity?: string): number[] {
