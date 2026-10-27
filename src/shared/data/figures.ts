@@ -1,0 +1,216 @@
+import type { Person } from './jiangshan.ts';
+import type { Year } from './types.ts';
+
+/**
+ * Famous figures (政治家、军事家、思想家、文学家、科学家) that complete the imported people index: everyone the
+ * curriculum events name, and the major thinkers, writers, statesmen and generals of every period, from 周武王 to
+ * 杨利伟. `dyn` values are era ids. `fl` marks spans that are an active period (birth and death unknown) and `alive`
+ * a living person (span ends at the timeline's last year). Costume and pose hints feed personModel (heroes.ts).
+ */
+type T = readonly [string, string];
+type Role = 'ruler' | 'general' | 'monk' | 'woman' | 'scholar';
+export interface FigureLook { role: Role; year?: number; prop?: string; female?: boolean; eth?: string }
+interface Opt { role: Role; year?: number; prop?: string; female?: boolean; eth?: string; fl?: boolean; alive?: boolean }
+
+const LOOK: Record<string, FigureLook> = {};
+const f = (id: string, name: T, title: T, dyn: string, span: [Year, Year], aliases: string[], o: Opt): Person => {
+  const { fl, alive, ...look } = o;
+  LOOK[name[0]] = look;
+  return {
+    id, name: { zh: name[0], en: name[1] }, title: { zh: title[0], en: title[1] }, dyn, span, aliases, tokens: [name[0], ...aliases],
+    ...(fl ? { fl: true } : {}), ...(alive ? { alive: true } : {}),
+  };
+};
+const R = (o: Omit<Opt, 'role'> = {}): Opt => ({ role: 'ruler', ...o });
+const G = (o: Omit<Opt, 'role'> = {}): Opt => ({ role: 'general', ...o });
+const S = (o: Omit<Opt, 'role'> = {}): Opt => ({ role: 'scholar', ...o });
+const W = (o: Omit<Opt, 'role'> = {}): Opt => ({ role: 'woman', female: true, ...o });
+const M = (o: Omit<Opt, 'role'> = {}): Opt => ({ role: 'monk', ...o });
+
+export const FIGURES: Person[] = [
+  // ------------------------------------------------------------------ 西周 · 春秋 · 战国
+  f('zhouwuwang', ['周武王', 'King Wu of Zhou'], ['姬发 · 牧野之战灭商', 'Ji Fa · overthrew Shang at Muye'], 'wzhou', [-1046, -1043], ['姬发'], R({ year: -1046, prop: 'axe', fl: true })),
+  f('guanzhong', ['管仲', 'Guan Zhong'], ['齐国名相 · 辅佐齐桓公称霸', 'Chancellor of Qi who made Duke Huan hegemon'], 'chunqiu', [-723, -645], ['管夷吾', '管子'], S({ prop: 'bamboo_scroll' })),
+  f('qihuangong', ['齐桓公', 'Duke Huan of Qi'], ['春秋首霸 · 九合诸侯', 'First of the Five Hegemons'], 'chunqiu', [-716, -643], ['姜小白'], R({ prop: 'sword' })),
+  f('laozi', ['老子', 'Laozi'], ['道家创始人 · 《道德经》', 'Founder of Daoism · Daodejing'], 'chunqiu', [-571, -471], ['老聃', '李耳'], S({ year: -520, prop: 'bamboo_scroll' })),
+  f('sunwu', ['孙武', 'Sun Tzu'], ['兵圣 · 《孙子兵法》', 'Sage of war · The Art of War'], 'chunqiu', [-545, -470], ['孙武子', 'Sun Tzu'], G({ prop: 'bamboo_scroll' })),
+  f('goujian', ['勾践', 'Goujian'], ['越王 · 卧薪尝胆', 'King of Yue · slept on brushwood, tasted gall'], 'chunqiu', [-520, -465], ['越王勾践'], R({ prop: 'sword' })),
+  f('fuchai', ['夫差', 'Fuchai'], ['吴王 · 破越争霸', 'King of Wu who crushed Yue'], 'chunqiu', [-528, -473], ['吴王夫差'], R({ prop: 'sword' })),
+  f('mozi', ['墨子', 'Mozi'], ['墨家创始人 · 兼爱非攻', 'Founder of Mohism · universal love, no aggression'], 'zhanguo', [-468, -376], ['墨翟'], S({ prop: 'bamboo_scroll' })),
+  f('wuqi', ['吴起', 'Wu Qi'], ['兵家 · 楚国变法', 'Strategist and reformer of Chu'], 'zhanguo', [-440, -381], ['吴子'], G({ prop: 'sword' })),
+  f('qinxiaogong', ['秦孝公', 'Duke Xiao of Qin'], ['任用商鞅变法图强', 'Ruler who backed Shang Yang’s reforms'], 'zhanguo', [-381, -338], ['嬴渠梁'], R()),
+  f('zhuangzi', ['庄子', 'Zhuangzi'], ['道家 · 逍遥齐物', 'Daoist philosopher · free and easy wandering'], 'zhanguo', [-369, -286], ['庄周'], S({ prop: 'fan' })),
+  f('lianpo', ['廉颇', 'Lian Po'], ['赵国名将 · 负荆请罪', 'General of Zhao · knelt bearing thorns'], 'zhanguo', [-327, -243], [], G({ prop: 'sword' })),
+  f('linxiangru', ['蔺相如', 'Lin Xiangru'], ['赵国上卿 · 完璧归赵', 'Minister of Zhao · returned the jade intact'], 'zhanguo', [-283, -260], [], S({ prop: 'hu', fl: true })),
+  f('xunzi', ['荀子', 'Xunzi'], ['儒家 · 《劝学》 · 性恶论', 'Confucian · Exhortation to Learning'], 'zhanguo', [-313, -238], ['荀况', '荀卿'], S({ prop: 'bamboo_scroll' })),
+  f('hanfei', ['韩非', 'Han Fei'], ['法家集大成者 · 《韩非子》', 'Synthesiser of Legalism · Han Feizi'], 'zhanguo', [-280, -233], ['韩非子'], S({ prop: 'bamboo_scroll' })),
+  f('libing', ['李冰', 'Li Bing'], ['秦蜀郡守 · 修都江堰', 'Qin governor of Shu · built Dujiangyan'], 'zhanguo', [-256, -251], [], S({ prop: 'spade', fl: true })),
+  // ------------------------------------------------------------------ 两汉
+  f('jiayi', ['贾谊', 'Jia Yi'], ['政论家 · 《过秦论》', 'Statesman-essayist · The Faults of Qin'], 'whan', [-200, -168], ['贾生', '贾长沙'], S({ prop: 'scroll' })),
+  f('simaxiangru', ['司马相如', 'Sima Xiangru'], ['汉赋大家 · 《子虚赋》', 'Master of the Han rhapsody'], 'whan', [-179, -118], ['司马长卿'], S({ prop: 'scroll' })),
+  f('dongzhongshu', ['董仲舒', 'Dong Zhongshu'], ['罢黜百家 · 独尊儒术', 'Made Confucianism the state creed'], 'whan', [-179, -104], ['董子'], S({ prop: 'book' })),
+  f('wangzhaojun', ['王昭君', 'Wang Zhaojun'], ['昭君出塞 · 汉匈和亲', 'Han lady who wed the Xiongnu chanyu'], 'whan', [-54, -19], ['王嫱', '昭君', '明妃'], W({ prop: 'pipa' })),
+  f('mayuan', ['马援', 'Ma Yuan'], ['伏波将军 · 马革裹尸', 'Wave-Calming General'], 'ehan', [-14, 49], ['马文渊'], G({ year: 30, prop: 'sword' })),
+  f('wangchong', ['王充', 'Wang Chong'], ['唯物思想家 · 《论衡》', 'Rationalist thinker · Lunheng'], 'ehan', [27, 97], ['王仲任'], S({ prop: 'book' })),
+  f('bangu', ['班固', 'Ban Gu'], ['史学家 · 《汉书》', 'Historian · Book of Han'], 'ehan', [32, 92], ['班孟坚'], S({ prop: 'brush' })),
+  f('banzhao', ['班昭', 'Ban Zhao'], ['女史学家 · 续成《汉书》', 'Woman historian who completed the Book of Han'], 'ehan', [45, 117], ['曹大家'], W({ prop: 'book' })),
+  f('cailun', ['蔡伦', 'Cai Lun'], ['改进造纸术 · 蔡侯纸', 'Improved papermaking'], 'ehan', [63, 121], ['蔡敬仲'], S({ year: 105, prop: 'scroll' })),
+  f('zhangheng', ['张衡', 'Zhang Heng'], ['浑天仪 · 地动仪', 'Armillary sphere and seismoscope'], 'ehan', [78, 139], ['张平子'], S({ prop: 'armillary' })),
+  f('huatuo', ['华佗', 'Hua Tuo'], ['神医 · 麻沸散 · 五禽戏', 'Physician · anaesthetic and Five Animals exercise'], 'ehan', [145, 208], ['华元化'], S({ prop: 'herbs' })),
+  f('zhangzhongjing', ['张仲景', 'Zhang Zhongjing'], ['医圣 · 《伤寒杂病论》', 'Sage of medicine · Treatise on Cold Damage'], 'ehan', [150, 219], ['张机'], S({ year: 180, prop: 'herbs' })),
+  // ------------------------------------------------------------------ 三国 · 两晋 · 南北朝
+  f('caozhi', ['曹植', 'Cao Zhi'], ['建安文学 · 才高八斗', 'Jian’an poet · Rhapsody on the Luo Goddess'], 'sanguo', [192, 232], ['曹子建', '陈思王'], S({ prop: 'scroll' })),
+  f('jikang', ['嵇康', 'Ji Kang'], ['竹林七贤 · 《广陵散》', 'Seven Sages of the Bamboo Grove'], 'sanguo', [224, 263], ['嵇叔夜', '嵇中散'], S({ prop: 'book' })),
+  f('simayan', ['司马炎', 'Sima Yan'], ['晋武帝 · 灭吴统一', 'Emperor Wu of Jin · reunified China'], 'wjin', [236, 290], ['晋武帝'], R({ year: 275 })),
+  f('peixiu', ['裴秀', 'Pei Xiu'], ['地图学家 · 制图六体', 'Cartographer · six principles of mapmaking'], 'wjin', [224, 271], ['裴季彦'], S({ year: 268, prop: 'map' })),
+  f('chenshou', ['陈寿', 'Chen Shou'], ['史学家 · 《三国志》', 'Historian · Records of the Three Kingdoms'], 'wjin', [233, 297], ['陈承祚'], S({ year: 280, prop: 'brush' })),
+  f('zuosi', ['左思', 'Zuo Si'], ['《三都赋》 · 洛阳纸贵', 'Three Capitals Rhapsody'], 'wjin', [250, 305], ['左太冲'], S({ year: 290, prop: 'scroll' })),
+  f('wangdao', ['王导', 'Wang Dao'], ['东晋开国丞相 · 王与马共天下', 'Founding chancellor of Eastern Jin'], 'ejin', [276, 339], ['王茂弘'], S({ year: 318, prop: 'hu' })),
+  f('gukaizhi', ['顾恺之', 'Gu Kaizhi'], ['画绝 · 《洛神赋图》', 'Painter · Nymph of the Luo River'], 'ejin', [348, 409], ['顾长康', '顾虎头'], S({ year: 380, prop: 'brush' })),
+  f('xielingyun', ['谢灵运', 'Xie Lingyun'], ['山水诗鼻祖', 'Father of landscape poetry'], 'nanbei', [385, 433], ['谢康乐'], S({ prop: 'scroll' })),
+  f('zuchongzhi', ['祖冲之', 'Zu Chongzhi'], ['圆周率 · 《大明历》', 'Computed π · Daming calendar'], 'nanbei', [429, 500], ['祖文远'], S({ year: 462, prop: 'armillary' })),
+  f('fanzhen', ['范缜', 'Fan Zhen'], ['无神论者 · 《神灭论》', 'Atheist thinker · On the Extinction of the Soul'], 'nanbei', [450, 515], ['范子真'], S({ prop: 'book' })),
+  f('liuxie', ['刘勰', 'Liu Xie'], ['文学理论家 · 《文心雕龙》', 'Literary critic · Literary Mind and Carving of Dragons'], 'nanbei', [465, 521], ['刘彦和'], S({ prop: 'brush' })),
+  f('lidaoyuan', ['郦道元', 'Li Daoyuan'], ['地理学家 · 《水经注》', 'Geographer · Commentary on the Water Classic'], 'nanbei', [470, 527], ['郦善长'], S({ year: 515, prop: 'map' })),
+  f('jiasixie', ['贾思勰', 'Jia Sixie'], ['农学家 · 《齐民要术》', 'Agronomist · Essential Techniques for the Common People'], 'nanbei', [533, 544], [], S({ year: 540, prop: 'rice', fl: true })),
+  // ------------------------------------------------------------------ 隋 · 唐 · 五代
+  f('lichun', ['李春', 'Li Chun'], ['隋代工匠 · 建赵州桥', 'Sui engineer who built the Zhaozhou Bridge'], 'sui', [595, 605], [], S({ year: 600, prop: 'map', fl: true })),
+  f('sunsimiao', ['孙思邈', 'Sun Simiao'], ['药王 · 《千金方》', 'King of Medicine · Prescriptions Worth a Thousand Gold'], 'tang', [541, 682], [], S({ year: 640, prop: 'herbs' })),
+  f('liyuan', ['李渊', 'Li Yuan'], ['唐高祖 · 建立唐朝', 'Emperor Gaozu, founder of Tang'], 'tang', [566, 635], ['唐高祖'], R({ year: 618 })),
+  f('fangxuanling', ['房玄龄', 'Fang Xuanling'], ['贞观名相 · 房谋杜断', 'Chancellor of the Zhenguan era'], 'tang', [579, 648], ['房乔'], S({ prop: 'hu' })),
+  f('xuerengui', ['薛仁贵', 'Xue Rengui'], ['唐朝名将 · 三箭定天山', 'Tang general · three arrows at Tianshan'], 'tang', [614, 683], ['薛礼'], G({ prop: 'bow' })),
+  f('songzanganbu', ['松赞干布', 'Songtsen Gampo'], ['吐蕃赞普 · 统一青藏高原', 'Tsenpo who unified Tibet'], 'tang', [617, 650], ['弃宗弄赞'], R({ year: 641, eth: 'steppe' })),
+  f('wencheng', ['文成公主', 'Princess Wencheng'], ['唐蕃和亲 · 远嫁吐蕃', 'Tang princess who married into Tibet'], 'tang', [625, 680], [], W({ year: 641 })),
+  f('huineng', ['慧能', 'Huineng'], ['禅宗六祖 · 《坛经》', 'Sixth Patriarch of Chan · Platform Sutra'], 'tang', [638, 713], ['惠能', '六祖慧能'], M({ prop: 'mala' })),
+  f('wangbo', ['王勃', 'Wang Bo'], ['初唐四杰 · 《滕王阁序》', 'Early Tang poet · Preface to the Tengwang Pavilion'], 'tang', [650, 676], ['王子安'], S({ prop: 'brush' })),
+  f('wudaozi', ['吴道子', 'Wu Daozi'], ['画圣 · 吴带当风', 'Sage of painting'], 'tang', [680, 759], ['吴道玄'], S({ prop: 'brush' })),
+  f('yixing', ['僧一行', 'Yixing'], ['天文学家 · 实测子午线', 'Monk-astronomer who measured the meridian'], 'tang', [683, 727], ['张遂'], M({ prop: 'armillary' })),
+  f('luyu', ['陆羽', 'Lu Yu'], ['茶圣 · 《茶经》', 'Sage of tea · The Classic of Tea'], 'tang', [733, 804], ['陆鸿渐'], S({ prop: 'cup' })),
+  f('dumu', ['杜牧', 'Du Mu'], ['晚唐诗人 · 《阿房宫赋》', 'Late Tang poet · Epang Palace rhapsody'], 'tang', [803, 852], ['杜樊川', '小杜'], S({ prop: 'cup' })),
+  f('lishangyin', ['李商隐', 'Li Shangyin'], ['晚唐诗人 · 无题诗', 'Late Tang poet of the untitled poems'], 'tang', [813, 858], ['李义山', '玉溪生'], S({ prop: 'scroll' })),
+  f('zhuwen', ['朱温', 'Zhu Wen'], ['后梁太祖 · 篡唐建梁', 'Ended the Tang and founded Later Liang'], 'wudai', [852, 912], ['朱全忠', '后梁太祖'], R({ year: 907, prop: 'sword' })),
+  f('shijingtang', ['石敬瑭', 'Shi Jingtang'], ['后晋高祖 · 割让燕云十六州', 'Ceded the Sixteen Prefectures to Liao'], 'wudai', [892, 942], ['后晋高祖'], R({ year: 936 })),
+  // ------------------------------------------------------------------ 宋 · 辽 · 西夏 · 金
+  f('yangye', ['杨业', 'Yang Ye'], ['北宋名将 · 杨家将', 'Song general of the Yang family'], 'bsong', [950, 986], ['杨继业', '杨令公', '杨无敌'], G({ prop: 'guandao', fl: true })),
+  f('songzhenzong', ['宋真宗', 'Emperor Zhenzong of Song'], ['赵恒 · 澶渊之盟', 'Zhao Heng · Treaty of Chanyuan'], 'bsong', [968, 1022], ['赵恒'], R({ year: 1005 })),
+  f('liuyong', ['柳永', 'Liu Yong'], ['婉约派词人 · 《雨霖铃》', 'Lyricist of the graceful school'], 'bsong', [984, 1053], ['柳三变', '柳七'], S({ prop: 'pipa' })),
+  f('diqing', ['狄青', 'Di Qing'], ['北宋名将 · 面涅将军', 'Song general with the tattooed face'], 'bsong', [1008, 1057], ['狄汉臣'], G({ prop: 'sword' })),
+  f('zhangzai', ['张载', 'Zhang Zai'], ['关学宗师 · 横渠四句', 'Neo-Confucian · the Four Sentences of Hengqu'], 'bsong', [1020, 1077], ['张横渠', '横渠先生'], S({ prop: 'book' })),
+  f('shenkuo', ['沈括', 'Shen Kuo'], ['科学家 · 《梦溪笔谈》', 'Polymath · Dream Pool Essays'], 'bsong', [1031, 1095], ['沈存中'], S({ prop: 'book' })),
+  f('chengyi', ['程颐', 'Cheng Yi'], ['理学奠基人 · 程门立雪', 'Founder of Neo-Confucian learning'], 'bsong', [1033, 1107], ['程伊川', '伊川先生'], S({ prop: 'book' })),
+  f('bisheng', ['毕昇', 'Bi Sheng'], ['发明活字印刷术', 'Inventor of movable type'], 'bsong', [1041, 1048], [], S({ year: 1045, prop: 'book', fl: true })),
+  f('huangtingjian', ['黄庭坚', 'Huang Tingjian'], ['江西诗派 · 苏门四学士', 'Poet-calligrapher of the Jiangxi school'], 'bsong', [1045, 1105], ['黄山谷', '山谷道人'], S({ prop: 'brush' })),
+  f('mifu', ['米芾', 'Mi Fu'], ['宋四家 · 书画家', 'Calligrapher and painter'], 'bsong', [1051, 1107], ['米南宫', '米颠'], S({ prop: 'brush' })),
+  f('songhuizong', ['宋徽宗', 'Emperor Huizong of Song'], ['赵佶 · 瘦金体 · 靖康之变', 'Zhao Ji · artist-emperor taken at Jingkang'], 'bsong', [1082, 1135], ['赵佶'], R({ year: 1110, prop: 'brush' })),
+  f('zhangzeduan', ['张择端', 'Zhang Zeduan'], ['画家 · 《清明上河图》', 'Painter · Along the River during Qingming'], 'bsong', [1101, 1125], ['张正道'], S({ year: 1120, prop: 'brush', fl: true })),
+  f('qinhui', ['秦桧', 'Qin Hui'], ['南宋宰相 · 主和陷害岳飞', 'Song chancellor who had Yue Fei killed'], 'nsong', [1091, 1155], [], S({ year: 1140, prop: 'hu' })),
+  f('zhuxi', ['朱熹', 'Zhu Xi'], ['理学集大成者 · 《四书章句集注》', 'Great synthesiser of Neo-Confucianism'], 'nsong', [1130, 1200], ['朱子', '朱晦庵', '紫阳先生'], S({ year: 1170, prop: 'book' })),
+  f('lujiuyuan', ['陆九渊', 'Lu Jiuyuan'], ['心学开创者 · 象山先生', 'Founder of the School of Mind'], 'nsong', [1139, 1193], ['陆象山', '象山先生'], S({ prop: 'book' })),
+  f('song_ci', ['宋慈', 'Song Ci'], ['法医学之父 · 《洗冤集录》', 'Father of forensic science'], 'nsong', [1186, 1249], ['宋惠父'], S({ prop: 'book' })),
+  f('yelirenrong', ['野利仁荣', 'Yeli Renrong'], ['创制西夏文', 'Created the Tangut script'], 'xixia', [1036, 1042], [], S({ year: 1038, prop: 'scroll', eth: 'steppe', fl: true })),
+  f('yuanhaowen', ['元好问', 'Yuan Haowen'], ['金代文坛盟主 · 问世间情为何物', 'Leading poet of the Jin'], 'jin', [1190, 1257], ['元遗山', '遗山先生'], S({ year: 1230, prop: 'brush' })),
+  // ------------------------------------------------------------------ 元
+  f('guanhanqing', ['关汉卿', 'Guan Hanqing'], ['元曲四大家之首 · 《窦娥冤》', 'Foremost Yuan playwright · The Injustice to Dou E'], 'yuan', [1220, 1300], ['已斋叟'], S({ year: 1280, prop: 'scroll' })),
+  f('guoshoujing', ['郭守敬', 'Guo Shoujing'], ['天文学家 · 《授时历》', 'Astronomer · Season-Granting Calendar'], 'yuan', [1231, 1316], ['郭若思'], S({ year: 1280, prop: 'armillary' })),
+  f('basiba', ['八思巴', 'Drogön Chögyal Phagpa'], ['元朝帝师 · 创八思巴字', 'Imperial preceptor · Phags-pa script'], 'yuan', [1235, 1280], [], M({ year: 1270, prop: 'mala' })),
+  f('huangdaopo', ['黄道婆', 'Huang Daopo'], ['棉纺织技术革新家', 'Pioneer of cotton spinning and weaving'], 'yuan', [1245, 1330], [], W({ year: 1295 })),
+  f('mazhiyuan', ['马致远', 'Ma Zhiyuan'], ['元曲四大家 · 《天净沙·秋思》', 'Yuan dramatist and lyricist'], 'yuan', [1250, 1321], ['东篱'], S({ prop: 'scroll' })),
+  f('zhaomengfu', ['赵孟頫', 'Zhao Mengfu'], ['书画家 · 赵体', 'Calligrapher and painter'], 'yuan', [1254, 1322], ['赵子昂', '松雪道人'], S({ prop: 'brush' })),
+  f('tuotuo', ['脱脱', 'Toqto’a'], ['元朝丞相 · 主修宋辽金三史', 'Yuan chancellor · edited the Song, Liao and Jin histories'], 'yuan', [1314, 1355], [], S({ year: 1344, prop: 'book' })),
+  // ------------------------------------------------------------------ 明
+  f('shinaian', ['施耐庵', 'Shi Nai’an'], ['小说家 · 《水浒传》', 'Novelist · Water Margin'], 'ming', [1296, 1370], [], S({ year: 1368, prop: 'brush' })),
+  f('liuji', ['刘基', 'Liu Ji'], ['明朝开国谋臣 · 刘伯温', 'Strategist of the Ming founding'], 'ming', [1311, 1375], ['刘伯温', '刘诚意'], S({ year: 1368, prop: 'fan' })),
+  f('luoguanzhong', ['罗贯中', 'Luo Guanzhong'], ['小说家 · 《三国演义》', 'Novelist · Romance of the Three Kingdoms'], 'ming', [1330, 1400], ['罗本', '湖海散人'], S({ year: 1370, prop: 'brush' })),
+  f('changyuchun', ['常遇春', 'Chang Yuchun'], ['明朝开国名将 · 常十万', 'Founding general of the Ming'], 'ming', [1330, 1369], ['常伯仁'], G({ year: 1368, prop: 'guandao' })),
+  f('tangyin', ['唐寅', 'Tang Yin'], ['吴中四才子 · 书画家', 'Painter-poet of Suzhou'], 'ming', [1470, 1524], ['唐伯虎', '六如居士'], S({ prop: 'fan' })),
+  f('wuchengen', ['吴承恩', 'Wu Cheng’en'], ['小说家 · 《西游记》', 'Novelist · Journey to the West'], 'ming', [1500, 1582], ['吴汝忠', '射阳山人'], S({ prop: 'brush' })),
+  f('hairui', ['海瑞', 'Hai Rui'], ['清官 · 海青天', 'Upright official'], 'ming', [1514, 1587], ['海青天', '海刚峰'], S({ prop: 'hu' })),
+  f('lishizhen', ['李时珍', 'Li Shizhen'], ['药圣 · 《本草纲目》', 'Physician · Compendium of Materia Medica'], 'ming', [1518, 1593], ['李东璧'], S({ year: 1578, prop: 'herbs' })),
+  f('lizhi', ['李贽', 'Li Zhi'], ['思想家 · 《焚书》', 'Iconoclastic thinker · A Book to Burn'], 'ming', [1527, 1602], ['李卓吾'], S({ prop: 'book' })),
+  f('tangxianzu', ['汤显祖', 'Tang Xianzu'], ['戏曲家 · 《牡丹亭》', 'Playwright · The Peony Pavilion'], 'ming', [1550, 1616], ['汤义仍', '若士'], S({ prop: 'scroll' })),
+  f('limadou', ['利玛窦', 'Matteo Ricci'], ['意大利传教士 · 中西文化交流', 'Italian Jesuit who bridged China and Europe'], 'ming', [1552, 1610], ['Matteo Ricci'], S({ year: 1600, prop: 'book' })),
+  f('xuguangqi', ['徐光启', 'Xu Guangqi'], ['科学家 · 《农政全书》', 'Scientist · Complete Treatise on Agriculture'], 'ming', [1562, 1633], ['徐子先', '徐文定'], S({ prop: 'book' })),
+  f('fengmenglong', ['冯梦龙', 'Feng Menglong'], ['文学家 · “三言”', 'Writer · the Three Words story collections'], 'ming', [1574, 1646], ['冯犹龙'], S({ prop: 'book' })),
+  f('songyingxing', ['宋应星', 'Song Yingxing'], ['科学家 · 《天工开物》', 'Scientist · Exploitation of the Works of Nature'], 'ming', [1587, 1666], ['宋长庚'], S({ year: 1637, prop: 'book' })),
+  f('shikefa', ['史可法', 'Shi Kefa'], ['南明督师 · 扬州抗清', 'Ming commander who held Yangzhou'], 'ming', [1601, 1645], ['史道邻', '史阁部'], G({ year: 1643, prop: 'sword' })),
+  f('chongzhen', ['崇祯帝', 'Chongzhen Emperor'], ['朱由检 · 明朝末代皇帝', 'Zhu Youjian · last Ming emperor'], 'ming', [1611, 1644], ['朱由检', '明思宗'], R({ year: 1640 })),
+  // ------------------------------------------------------------------ 清
+  f('huangzongxi', ['黄宗羲', 'Huang Zongxi'], ['思想家 · 《明夷待访录》', 'Thinker · Waiting for the Dawn'], 'qing', [1610, 1695], ['黄梨洲', '梨洲先生'], S({ year: 1640, prop: 'book' })),
+  f('wusangui', ['吴三桂', 'Wu Sangui'], ['山海关总兵 · 引清兵入关', 'Ming general who let the Qing through Shanhai Pass'], 'qing', [1612, 1678], [], G({ year: 1644, prop: 'sword' })),
+  f('guyanwu', ['顾炎武', 'Gu Yanwu'], ['思想家 · 天下兴亡匹夫有责', 'Thinker · everyone shares the fate of the realm'], 'qing', [1613, 1682], ['顾亭林', '亭林先生'], S({ year: 1640, prop: 'book' })),
+  f('wangfuzhi', ['王夫之', 'Wang Fuzhi'], ['思想家 · 船山先生', 'Thinker · Master Chuanshan'], 'qing', [1619, 1692], ['王船山', '船山先生'], S({ year: 1640, prop: 'book' })),
+  f('shilang', ['施琅', 'Shi Lang'], ['福建水师提督 · 统一台湾', 'Qing admiral who took Taiwan'], 'qing', [1621, 1696], ['施尊侯'], G({ year: 1683, prop: 'sword' })),
+  f('pusongling', ['蒲松龄', 'Pu Songling'], ['小说家 · 《聊斋志异》', 'Writer · Strange Tales from a Chinese Studio'], 'qing', [1640, 1715], ['蒲留仙', '柳泉居士'], S({ prop: 'brush' })),
+  f('galdan', ['噶尔丹', 'Galdan Boshugtu Khan'], ['准噶尔首领 · 康熙亲征', 'Dzungar khan defeated by Kangxi'], 'qing', [1644, 1697], [], R({ year: 1688, prop: 'bow', eth: 'steppe' })),
+  f('nalanxingde', ['纳兰性德', 'Nalan Xingde'], ['清代词人 · 《饮水词》', 'Manchu lyric poet'], 'qing', [1655, 1685], ['纳兰容若', '纳兰成德'], S({ prop: 'scroll' })),
+  f('zhengbanqiao', ['郑板桥', 'Zheng Banqiao'], ['扬州八怪 · 画竹', 'Eccentric of Yangzhou · bamboo painter'], 'qing', [1693, 1766], ['郑燮'], S({ prop: 'brush' })),
+  f('wujingzi', ['吴敬梓', 'Wu Jingzi'], ['小说家 · 《儒林外史》', 'Novelist · The Scholars'], 'qing', [1701, 1754], ['吴敏轩'], S({ prop: 'brush' })),
+  f('caoxueqin', ['曹雪芹', 'Cao Xueqin'], ['小说家 · 《红楼梦》', 'Novelist · Dream of the Red Chamber'], 'qing', [1715, 1763], ['曹霑'], S({ year: 1750, prop: 'brush' })),
+  f('jiyun', ['纪昀', 'Ji Yun'], ['《四库全书》总纂官', 'Chief editor of the Siku Quanshu'], 'qing', [1724, 1805], ['纪晓岚'], S({ prop: 'book' })),
+  f('daizhen', ['戴震', 'Dai Zhen'], ['乾嘉考据学大师', 'Master of evidential learning'], 'qing', [1724, 1777], ['戴东原'], S({ prop: 'book' })),
+  f('wobaxi', ['渥巴锡', 'Ubashi Khan'], ['土尔扈特首领 · 万里东归', 'Torghut khan who led his people home'], 'qing', [1742, 1775], [], R({ year: 1771, prop: 'bow', eth: 'steppe' })),
+  f('guantianpei', ['关天培', 'Guan Tianpei'], ['广东水师提督 · 虎门殉国', 'Admiral who fell defending Humen'], 'qing', [1781, 1841], [], G({ year: 1840, prop: 'sword' })),
+  f('gongzizhen', ['龚自珍', 'Gong Zizhen'], ['思想家 · 我劝天公重抖擞', 'Reformist thinker and poet'], 'qing', [1792, 1841], ['龚定庵'], S({ prop: 'scroll' })),
+  f('weiyuan', ['魏源', 'Wei Yuan'], ['《海国图志》 · 师夷长技以制夷', 'Illustrated Treatise on the Sea Kingdoms'], 'qing', [1794, 1857], ['魏默深'], S({ year: 1842, prop: 'map' })),
+  f('fengzicai', ['冯子材', 'Feng Zicai'], ['老将 · 镇南关大捷', 'Veteran general who won at Zhennan Pass'], 'qing', [1818, 1903], ['冯萃亭'], G({ year: 1885, prop: 'sword' })),
+  f('hongrengan', ['洪仁玕', 'Hong Rengan'], ['太平天国干王 · 《资政新篇》', 'Taiping reformer · A New Treatise on Government'], 'qing', [1822, 1864], ['干王'], S({ year: 1859, prop: 'book' })),
+  f('shidakai', ['石达开', 'Shi Dakai'], ['太平天国翼王 · 大渡河', 'Taiping Wing King'], 'qing', [1831, 1863], ['翼王'], G({ year: 1855, prop: 'sword' })),
+  f('cixi', ['慈禧太后', 'Empress Dowager Cixi'], ['晚清实际统治者 · 垂帘听政', 'De facto ruler of the late Qing'], 'qing', [1835, 1908], ['慈禧', '西太后'], R({ year: 1875, female: true })),
+  f('liumingchuan', ['刘铭传', 'Liu Mingchuan'], ['首任台湾巡抚 · 抗法保台', 'First governor of Taiwan Province'], 'qing', [1836, 1896], ['刘省三'], G({ year: 1885, prop: 'sword' })),
+  f('zhangzhidong', ['张之洞', 'Zhang Zhidong'], ['洋务派 · 中体西用', 'Self-Strengthening governor-general'], 'qing', [1837, 1909], ['张香涛'], S({ year: 1889, prop: 'book' })),
+  f('liuyongfu', ['刘永福', 'Liu Yongfu'], ['黑旗军首领 · 抗法保台', 'Black Flag Army leader'], 'qing', [1837, 1917], [], G({ year: 1884, prop: 'sword' })),
+  f('dengshichang', ['邓世昌', 'Deng Shichang'], ['致远舰管带 · 黄海海战殉国', 'Captain of the Zhiyuan, fell at the Yalu'], 'qing', [1849, 1894], ['邓正卿'], G({ year: 1894, prop: 'sword' })),
+  f('zhangjian', ['张謇', 'Zhang Jian'], ['状元实业家 · 实业救国', 'Top scholar turned industrialist'], 'qing', [1853, 1926], ['张季直'], S({ year: 1899, prop: 'book' })),
+  f('yanfu', ['严复', 'Yan Fu'], ['翻译家 · 《天演论》', 'Translator · Evolution and Ethics'], 'qing', [1854, 1921], ['严几道'], S({ year: 1898, prop: 'book' })),
+  f('kangyouwei', ['康有为', 'Kang Youwei'], ['维新派领袖 · 公车上书', 'Leader of the 1898 reformers'], 'qing', [1858, 1927], ['康南海', '康长素'], S({ year: 1898, prop: 'book' })),
+  f('zhantianyou', ['詹天佑', 'Zhan Tianyou'], ['中国铁路之父 · 京张铁路', 'Father of China’s railways'], 'qing', [1861, 1919], ['詹眷诚'], S({ year: 1905, prop: 'map' })),
+  f('tansitong', ['谭嗣同', 'Tan Sitong'], ['戊戌六君子 · 我自横刀向天笑', 'Martyr of the Hundred Days’ Reform'], 'qing', [1865, 1898], ['谭复生'], S({ prop: 'sword' })),
+  f('guangxu', ['光绪帝', 'Guangxu Emperor'], ['载湉 · 戊戌变法', 'Zaitian · Hundred Days’ Reform'], 'qing', [1871, 1908], ['载湉'], R({ year: 1898 })),
+  f('liangqichao', ['梁启超', 'Liang Qichao'], ['维新派 · 《少年中国说》', 'Reformer · Ode to Young China'], 'qing', [1873, 1929], ['梁任公', '饮冰室主人'], S({ year: 1898, prop: 'book' })),
+  f('qiujin', ['秋瑾', 'Qiu Jin'], ['女革命家 · 鉴湖女侠', 'Revolutionary heroine'], 'qing', [1875, 1907], ['鉴湖女侠', '秋竞雄'], W({ year: 1905, prop: 'sword' })),
+  // ------------------------------------------------------------------ 中华民国
+  f('yuanshikai', ['袁世凯', 'Yuan Shikai'], ['北洋军阀首领 · 复辟帝制', 'Beiyang strongman who tried to be emperor'], 'roc', [1859, 1916], ['袁项城', '袁慰亭'], G({ year: 1912 })),
+  f('caiyuanpei', ['蔡元培', 'Cai Yuanpei'], ['北京大学校长 · 兼容并包', 'President of Peking University'], 'roc', [1868, 1940], ['蔡孑民'], S({ year: 1917, prop: 'book' })),
+  f('huangxing', ['黄兴', 'Huang Xing'], ['辛亥革命元勋 · 黄花岗起义', 'Commander of the 1911 Revolution'], 'roc', [1874, 1916], ['黄克强'], G({ year: 1911 })),
+  f('chenduxiu', ['陈独秀', 'Chen Duxiu'], ['《新青年》创办人 · 新文化运动', 'Founder of New Youth'], 'roc', [1879, 1942], ['陈仲甫'], S({ year: 1919, prop: 'book' })),
+  f('lu_xun', ['鲁迅', 'Lu Xun'], ['文学家 · 《狂人日记》', 'Writer · A Madman’s Diary'], 'roc', [1881, 1936], ['周树人'], S({ year: 1925, prop: 'book' })),
+  f('songjiaoren', ['宋教仁', 'Song Jiaoren'], ['国民党创建者 · 宪政先驱', 'Founder of the Kuomintang · constitutionalist'], 'roc', [1882, 1913], ['宋遁初'], S({ year: 1912, prop: 'book' })),
+  f('caie', ['蔡锷', 'Cai E'], ['护国军总司令 · 讨袁护国', 'Led the National Protection War'], 'roc', [1882, 1916], ['蔡松坡'], G({ year: 1915 })),
+  f('zhude', ['朱德', 'Zhu De'], ['红军总司令 · 南昌起义', 'Commander-in-chief of the Red Army'], 'roc', [1886, 1976], ['朱玉阶'], G({ year: 1937 })),
+  f('lidazhao', ['李大钊', 'Li Dazhao'], ['马克思主义传播先驱', 'Pioneer of Marxism in China'], 'roc', [1889, 1927], ['李守常'], S({ year: 1920, prop: 'book' })),
+  f('bethune', ['白求恩', 'Norman Bethune'], ['加拿大医生 · 援华抗战', 'Canadian surgeon in the War of Resistance'], 'roc', [1890, 1939], ['Norman Bethune'], S({ year: 1938, prop: 'herbs' })),
+  f('hushi', ['胡适', 'Hu Shi'], ['白话文运动倡导者', 'Champion of vernacular writing'], 'roc', [1891, 1962], ['胡适之'], S({ year: 1920, prop: 'book' })),
+  f('lizongren', ['李宗仁', 'Li Zongren'], ['桂系将领 · 台儿庄大捷', 'Commander at Taierzhuang'], 'roc', [1891, 1969], ['李德邻'], G({ year: 1938 })),
+  f('zhangzizhong', ['张自忠', 'Zhang Zizhong'], ['抗日名将 · 枣宜会战殉国', 'General who fell at Zaoyang–Yichang'], 'roc', [1891, 1940], ['张荩忱'], G({ year: 1940 })),
+  f('guomoruo', ['郭沫若', 'Guo Moruo'], ['诗人 · 《女神》', 'Poet · The Goddesses'], 'roc', [1892, 1978], ['郭鼎堂'], S({ year: 1925, prop: 'book' })),
+  f('liubocheng', ['刘伯承', 'Liu Bocheng'], ['军事家 · 独眼将军', 'One-eyed strategist'], 'roc', [1892, 1986], ['刘明昭'], G({ year: 1937 })),
+  f('yanghucheng', ['杨虎城', 'Yang Hucheng'], ['西北军将领 · 西安事变', 'Northwest Army general · Xi’an Incident'], 'roc', [1893, 1949], [], G({ year: 1936 })),
+  f('yeting', ['叶挺', 'Ye Ting'], ['北伐名将 · 新四军军长', 'Northern Expedition general · New Fourth Army'], 'roc', [1896, 1946], ['叶希夷'], G({ year: 1927 })),
+  f('helong', ['贺龙', 'He Long'], ['南昌起义总指挥 · 两把菜刀闹革命', 'Commander of the Nanchang Uprising'], 'roc', [1896, 1969], ['贺云卿'], G({ year: 1936 })),
+  f('pengdehuai', ['彭德怀', 'Peng Dehuai'], ['百团大战 · 志愿军司令员', 'Hundred Regiments Offensive · Volunteer Army'], 'roc', [1898, 1974], ['彭石穿'], G({ year: 1940 })),
+  f('fangzhimin', ['方志敏', 'Fang Zhimin'], ['赣东北根据地 · 《可爱的中国》', 'Revolutionary · Lovely China'], 'roc', [1899, 1935], [], S({ year: 1934, prop: 'book' })),
+  f('wenyiduo', ['闻一多', 'Wen Yiduo'], ['诗人学者 · 《最后一次讲演》', 'Poet-scholar · The Last Lecture'], 'roc', [1899, 1946], [], S({ year: 1940, prop: 'book' })),
+  f('laoshe', ['老舍', 'Lao She'], ['人民艺术家 · 《骆驼祥子》', 'Writer · Rickshaw Boy'], 'roc', [1899, 1966], ['舒庆春'], S({ year: 1936, prop: 'book' })),
+  f('zhangxueliang', ['张学良', 'Zhang Xueliang'], ['东北军少帅 · 西安事变', 'The Young Marshal · Xi’an Incident'], 'roc', [1901, 2001], ['张汉卿'], G({ year: 1936 })),
+  f('daianlan', ['戴安澜', 'Dai Anlan'], ['中国远征军 · 第200师师长', 'Expeditionary Force divisional commander'], 'roc', [1904, 1942], ['戴衍功'], G({ year: 1942 })),
+  f('yangjingyu', ['杨靖宇', 'Yang Jingyu'], ['东北抗日联军将领', 'Northeast Anti-Japanese United Army commander'], 'roc', [1905, 1940], [], G({ year: 1938 })),
+  f('zuoquan', ['左权', 'Zuo Quan'], ['八路军副参谋长 · 抗日殉国', 'Eighth Route Army deputy chief of staff'], 'roc', [1905, 1942], ['左叔仁'], G({ year: 1940 })),
+  f('zhaoyiman', ['赵一曼', 'Zhao Yiman'], ['东北抗联女英雄', 'Heroine of the Northeast resistance'], 'roc', [1905, 1936], ['李坤泰'], W({ year: 1935 })),
+  f('xianxinghai', ['冼星海', 'Xian Xinghai'], ['作曲家 · 《黄河大合唱》', 'Composer · Yellow River Cantata'], 'roc', [1905, 1945], [], S({ year: 1939, prop: 'scroll' })),
+  f('nieer', ['聂耳', 'Nie Er'], ['作曲家 · 《义勇军进行曲》', 'Composer · March of the Volunteers'], 'roc', [1912, 1935], ['聂守信'], S({ year: 1935, prop: 'scroll' })),
+  // ------------------------------------------------------------------ 中华人民共和国
+  f('zhouenlai', ['周恩来', 'Zhou Enlai'], ['开国总理 · 外交家', 'First Premier of the People’s Republic'], 'prc', [1898, 1976], ['周翔宇'], S({ year: 1955 })),
+  f('qianxuesen', ['钱学森', 'Qian Xuesen'], ['中国航天之父 · 两弹一星元勋', 'Father of China’s space programme'], 'prc', [1911, 2009], [], S({ year: 1960, prop: 'book' })),
+  f('jiaoyulu', ['焦裕禄', 'Jiao Yulu'], ['县委书记的榜样 · 治理兰考', 'Model county leader of Lankao'], 'prc', [1922, 1964], [], S({ year: 1963 })),
+  f('wangjinxi', ['王进喜', 'Wang Jinxi'], ['铁人 · 大庆石油会战', 'The Iron Man of Daqing'], 'prc', [1923, 1970], ['王铁人'], S({ year: 1960 })),
+  f('dengjiaxian', ['邓稼先', 'Deng Jiaxian'], ['两弹元勋 · 核武器研制', 'Father of China’s atomic bomb'], 'prc', [1924, 1986], [], S({ year: 1964, prop: 'book' })),
+  f('qiushaoyun', ['邱少云', 'Qiu Shaoyun'], ['志愿军战士 · 烈火中永生', 'Volunteer soldier who died in silence'], 'prc', [1926, 1952], [], G({ year: 1952 })),
+  f('yuanlongping', ['袁隆平', 'Yuan Longping'], ['杂交水稻之父', 'Father of hybrid rice'], 'prc', [1930, 2021], [], S({ year: 1975, prop: 'rice' })),
+  f('tuyouyou', ['屠呦呦', 'Tu Youyou'], ['青蒿素发现者 · 诺贝尔奖得主', 'Discoverer of artemisinin · Nobel laureate'], 'prc', [1930, 2025], [], W({ year: 1972, prop: 'herbs', alive: true })),
+  f('huangjiguang', ['黄继光', 'Huang Jiguang'], ['志愿军特级英雄 · 上甘岭', 'Volunteer hero of Shangganling'], 'prc', [1931, 1952], [], G({ year: 1952 })),
+  f('leifeng', ['雷锋', 'Lei Feng'], ['解放军战士 · 雷锋精神', 'PLA soldier, model of selfless service'], 'prc', [1940, 1962], [], G({ year: 1962 })),
+  f('yangliwei', ['杨利伟', 'Yang Liwei'], ['中国首位航天员 · 神舟五号', 'China’s first astronaut · Shenzhou 5'], 'prc', [1965, 2025], [], G({ year: 2003, alive: true })),
+];
+
+/** Role, costume year and prop hints for FIGURES (curated PERSON_OVERRIDE entries in heroes.ts win). */
+export const FIGURE_LOOK: Readonly<Record<string, FigureLook>> = LOOK;

@@ -209,7 +209,7 @@ describe('period-dressed figures', () => {
         expect(s.tris, p.id).toBeLessThan(30_000);
       }
     }
-  }, 120_000);
+  }, 300_000);
 
   it('supports dynasty-by-dynasty priority loading, prefetching, cancellation and LRU pruning', async () => {
     const qinEra = ERAS.find(e => e.id === 'qin')!;

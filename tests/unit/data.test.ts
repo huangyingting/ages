@@ -4,7 +4,7 @@ import { ERAS, RULERS } from '../../src/shared/data/eras.ts';
 import { MODEL_KINDS } from '../../src/shared/data/event-kit.ts';
 import { EVENTS, hasStory, storyOf } from '../../src/shared/data/events.ts';
 import { PLACE, PLACES, isCapital, mapName, placeExists, placeName, riverName } from '../../src/shared/data/places.ts';
-import { JOURNEYS, PERSON, RIVER_LABELS, WORKS, eraIdOfDyn, reignAt } from '../../src/shared/data/jiangshan.ts';
+import { JOURNEYS, PEOPLE, PERSON, RIVER_LABELS, WORKS, eraIdOfDyn, personNamed, reignAt } from '../../src/shared/data/jiangshan.ts';
 import { POLITY, POLITIES, polityMatches } from '../../src/shared/data/polities.ts';
 import { STAGES } from '../../src/shared/data/stage.ts';
 import { lifePlace, MAX_KEY, sceneryOf } from '../../src/shared/data/scenery.ts';
@@ -229,6 +229,24 @@ describe('stories', () => {
       expect(steps.filter(s => s.do === 'banner').length, j.id).toBe(j.stops.length);
       for (const s of steps) for (const [lon, lat] of points(s)) expect(inStage(lon, lat), `${j.id} ${s.do} ${lon},${lat}`).toBe(true);
     }
+  });
+  it('give every curriculum event figure a person card', () => {
+    expect(new Set(PEOPLE.map(p => p.id)).size).toBe(PEOPLE.length);
+    expect(new Set(PEOPLE.map(p => p.name.zh)).size).toBe(PEOPLE.length);
+    for (const p of PEOPLE) {
+      expect(ERAS.some(e => e.id === eraIdOfDyn(p.dyn)), `${p.id} era`).toBe(true);
+      expect(p.span[0], p.id).toBeLessThanOrEqual(p.span[1]);
+    }
+    // minor or legendary actors that stay plain chips
+    const minor = new Set(['吴广', '张角', '呼韩邪单于', '史思明', '林彪']);
+    for (const e of EVENTS.filter(x => x.scope === 'china')) {
+      for (const n of e.people ?? []) if (!minor.has(n.zh)) expect(personNamed(n.zh), `${e.id}: ${n.zh}`).toBeDefined();
+    }
+    expect(personNamed('隋文帝杨坚')?.id).toBe('yangjian');
+    expect(personNamed('唐太宗李世民')?.id).toBe('lishimin');
+    expect(personNamed('朱元璋（明太祖）')?.id).toBe('zhuyuanzhang');
+    expect(personNamed('明成祖')?.id).toBe('zhudi');
+    expect(personNamed('花木兰')).toBeUndefined();
   });
   it('follow at least one traveller through every era band', () => {
     for (const e of ERAS.filter(x => x.scope === 'china')) {

@@ -250,7 +250,8 @@ export class Card {
     return h('button', { type: 'button', class: 'btn primary', 'data-act': 'journey', onclick: () => this.hooks.journey(j) }, icon('play'), h('span', { text: tr(j.title, lang) }));
   }
   private lifespan(p: Person): [string, string] {
-    return [t('lifespan'), `${formatYear(p.span[0], lang, { short: true })} – ${formatYear(p.span[1], lang, { short: true })}`];
+    const [a, b] = p.span.map(y => formatYear(y, lang, { short: true }));
+    return [t(p.fl ? 'active' : 'lifespan'), p.alive ? `${a} –` : `${a} – ${b}`];
   }
 
   private renderPerson(p: Person): void {
@@ -338,7 +339,7 @@ export class Card {
     const cap = era.capital ? PLACE.get(era.capital) : undefined;
     const i = ERAS.indexOf(era);
     const dy = dynastyOfEra(era.name.zh);
-    const figures = PEOPLE.filter(p => eraIdOfDyn(p.dyn) === era.id);
+    const figures = PEOPLE.filter(p => eraIdOfDyn(p.dyn) === era.id).sort((a, b) => a.span[0] - b.span[0]);
     const journeys = JOURNEYS.filter(j => eraIdOfDyn(j.dyn) === era.id);
     const life = lifeOf(era.id).filter(x => x.kind !== 'person');
     const seat = cap ? tr(placeName(cap, era.start), L) : dy?.seat.zh ? tr(dy.seat, L) : '';

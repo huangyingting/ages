@@ -1,4 +1,5 @@
 import type { HistEvent, ModelRecipe, Place } from './types.ts';
+import { FIGURE_LOOK } from './figures.ts';
 
 /**
  * Detailed "hero" models (pocket-planet packs, src/client/models/heroes) for landmark events, places and people.
@@ -559,7 +560,7 @@ export function personRole(title: string): PersonRole {
 export function personModel(p: { name: { zh: string }; title?: { zh: string }; span?: [number, number] }): ModelRecipe {
   const hero = PERSON_HERO[p.name.zh];
   if (hero) return { kind: 'person', hero };
-  const ov = PERSON_OVERRIDE[p.name.zh];
+  const ov = PERSON_OVERRIDE[p.name.zh] ?? FIGURE_LOOK[p.name.zh];
   // dressed for the prime of their life (period costume), with dynasty-boundary overrides when needed
   const year = ov?.year ?? (p.span ? Math.min(p.span[1], p.span[0] + 40) : undefined);
   const role = ov?.role ?? (/[帝汗]$/.test(p.name.zh) ? 'ruler' : personRole(p.title?.zh ?? ''));

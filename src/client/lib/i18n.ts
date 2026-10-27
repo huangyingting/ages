@@ -205,6 +205,7 @@ const S = {
   where: { zh: '地点', en: 'Where' },
   dynasty: { zh: '朝代', en: 'Dynasty' },
   lifespan: { zh: '生卒', en: 'Lived' },
+  active: { zh: '活动', en: 'Active' },
   duration: { zh: '历时', en: 'Lasted' },
   years: { zh: '{n} 年', en: '{n} yrs' },
   eventsN: { zh: '史事', en: 'Events' },

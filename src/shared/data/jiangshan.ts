@@ -1,6 +1,7 @@
 import RAW from './gen/jiangshan.json' with { type: 'json' };
 import type { EventKind, HistEvent, I18n, LonLat, ModelRecipe, Place, Polity, Snapshot, Year } from './types.ts';
 import { EXTRA_JOURNEYS, EXTRA_PEOPLE } from './journeys.ts';
+import { FIGURES } from './figures.ts';
 
 /**
  * Content imported from DeanChensj/jiangshan-map (GPL-3.0, see NOTICE.md) by scripts/import-jiangshan.ts:
@@ -40,7 +41,8 @@ export interface JourneyStop {
 export interface Journey { id: string; dyn: string; color: string; short: I18n; title: I18n; span: I18n; stops: JourneyStop[]; person?: string }
 /** A great work: wall, canal, road or route, drawn as a line through its active years. */
 export interface Work { id: string; kind: 'wall' | 'canal' | 'road' | 'route' | 'sea' | string; name: I18n; span: [Year, Year]; summary: I18n; label: LonLat | null; lines: LonLat[][] }
-export interface Person { id: string; name: I18n; title: I18n; dyn: string; span: [Year, Year]; aliases: string[]; tokens: string[] }
+/** A historical figure; `fl` marks a span that is only their active period, `alive` a living person (span ends today). */
+export interface Person { id: string; name: I18n; title: I18n; dyn: string; span: [Year, Year]; aliases: string[]; tokens: string[]; fl?: boolean; alive?: boolean }
 export interface Dynasty { id: string; name: I18n; short: I18n; start: Year; end: Year; color: string; seat: I18n; summary: I18n }
 
 export const DYNASTIES: Dynasty[] = J.dynasties;
@@ -53,15 +55,29 @@ export const JOURNEYS: Journey[] = [...J.journeys, ...EXTRA_JOURNEYS].sort((a, b
 export const journeysOf = (personId: string): Journey[] => JOURNEYS.filter(j => (j.person ?? j.id) === personId);
 export const WORKS: Work[] = J.works;
 // 王莽 founded his own dynasty, the 新 era band
-export const PEOPLE: Person[] = [...J.people.map(p => p.id === 'wangmang' ? { ...p, dyn: 'xin' } : p), ...EXTRA_PEOPLE];
+export const PEOPLE: Person[] = [...J.people.map(p => p.id === 'wangmang' ? { ...p, dyn: 'xin' } : p), ...EXTRA_PEOPLE, ...FIGURES];
 /** A river or lake name on the map; `from` / `to` bound the years its course or water existed. */
 export interface RiverLabel { name: I18n; lon: number; lat: number; kind: string; from?: Year; to?: Year }
 export const RIVER_LABELS: RiverLabel[] = J.rivers;
 export const MUSIC = J.music;
 export const GAZETTEER = J.gazetteer;
 export const PERSON = new Map(PEOPLE.map(p => [p.id, p]));
-const BY_NAME = new Map(PEOPLE.map(p => [p.name.zh, p]));
-export const personNamed = (zh: string): Person | undefined => BY_NAME.get(zh);
+const BY_NAME = new Map<string, Person>();
+for (const p of PEOPLE) BY_NAME.set(p.name.zh, p);
+for (const p of PEOPLE) for (const a of p.aliases) if (!BY_NAME.has(a)) BY_NAME.set(a, p);
+const NAME_KEYS = [...BY_NAME.keys()].filter(k => k.length >= 2 && /^[\u4e00-\u9fff·]+$/.test(k)).sort((a, b) => b.length - a.length);
+/**
+ * The person a Chinese name refers to: the name itself or an alias, either part of 「朱元璋（明太祖）」, or a known
+ * name that opens or closes a longer label (隋文帝杨坚 → 杨坚, 唐太宗李世民 → 唐太宗).
+ */
+export function personNamed(zh: string): Person | undefined {
+  const hit = BY_NAME.get(zh);
+  if (hit) return hit;
+  const m = /^(.+?)[（(](.+?)[）)]$/.exec(zh.trim());
+  if (m) return personNamed(m[1].trim()) ?? personNamed(m[2].trim());
+  for (const k of NAME_KEYS) if (zh.length >= k.length + 2 && (zh.startsWith(k) || zh.endsWith(k))) return BY_NAME.get(k);
+  return undefined;
+}
 /** The imported dynasty record for an era band (matched by its Chinese name). */
 export const dynastyOfEra = (nameZh: string): Dynasty | undefined => DYNASTIES.find(d => d.name.zh === nameZh);
 
