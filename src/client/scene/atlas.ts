@@ -15,8 +15,7 @@ import { previousSnap } from '../../shared/lib/chronicle.ts';
 import type { AdminUnit, Era, HistEvent, LonLat, ModelRecipe, Place, Region, Snapshot, Year } from '../../shared/data/types.ts';
 import { eraAt, formatYear } from '../../shared/lib/timeline.ts';
 import { kindName, t as ui } from '../lib/i18n.ts';
-import { loadHeroesFor } from '../models/heroes/index.ts';
-import { cancelByTag, prefetchEraModels, prunePrototypes } from '../models/library.ts';
+import { cancelByTag, prefetchEraModels, prunePrototypes, warmHeroes } from '../models/library.ts';
 import { glyph } from '../ui/icons.ts';
 import { Fx, type SpawnState } from './fx.ts';
 import { Beam, Halo } from './halo.ts';
@@ -970,7 +969,7 @@ export class Atlas {
       this.fx.clear('base');
       if (cap && key && era) {
         const capRecipe = capitalModel(era);
-        void loadHeroesFor([capRecipe.hero]);
+        warmHeroes([capRecipe.hero]);
         this.fx.spawn({
           lon: cap.lon, lat: cap.lat, model: capRecipe, scale: 1.9, yaw: 0, ring: KIND_COLOR.capital,
           priority: 100, tag: `era:${era.id}`,
@@ -1009,7 +1008,7 @@ export class Atlas {
     const items = sceneryOf(era);
     const tag = `era:${era.id}`;
     // Pre-fetch all lazy hero chunks required by this single dynasty in parallel
-    void loadHeroesFor(items.map(s => s.model.hero));
+    warmHeroes(items.map(s => s.model.hero));
     // Subtle golden historical dust swirl over the new dynasty's capital when switching eras
     if (!this.lowfx && prevEra && prevEra !== era.id && era.capital) {
       const cap = PLACE.get(era.capital);

@@ -72,6 +72,7 @@ export class Preview {
     try {
       const r = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
       r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      r.debug.checkShaderErrors = import.meta.env.DEV;
       r.outputColorSpace = THREE.SRGBColorSpace;
       r.toneMapping = THREE.NeutralToneMapping;
       r.toneMappingExposure = 0.95;

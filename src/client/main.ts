@@ -273,7 +273,9 @@ class App {
     this.relabel();
     onLang(l => this.onLang(l));
 
-    const inset = () => this.updateInset();
+    // measured at most once a frame: class flips and resizes come in bursts, and every pass forces a layout
+    let insetQ = 0;
+    const inset = () => { insetQ ||= requestAnimationFrame(() => { insetQ = 0; this.updateInset(); }); };
     new MutationObserver(inset).observe(this.root, { attributes: true, attributeFilter: ['class'] });
     const ro = new ResizeObserver(inset);
     ro.observe(this.root); ro.observe(this.panel.el); ro.observe(this.timeline.el); ro.observe(this.hudTl); ro.observe(this.hudBl); ro.observe(this.hudBc);

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { ModelRecipe } from '../../shared/data/types.ts';
-import { loadHeroesFor } from './heroes/index.ts';
+import { loadHeroesFor, parseHero } from './heroes/index.ts';
 import { unpackModel, type PackedModel } from './pack.ts';
 
 /**
@@ -168,13 +168,26 @@ export function prunePrototypes(keep: Iterable<ModelRecipe> = []): void {
   }
 }
 
+const warmed = new Set<string>();
+/**
+ * Fetches the hero packs these refs need where the models get built: in every worker (each has its own copy), or on
+ * the main thread only when there are no workers.
+ */
+export function warmHeroes(refs: Iterable<unknown>): void {
+  const fresh = [...refs].filter((r): r is string => !!parseHero(r) && !warmed.has(parseHero(r)!.pack));
+  if (!fresh.length) return;
+  for (const r of fresh) warmed.add(parseHero(r)!.pack);
+  if (broken) { void loadHeroesFor(fresh); return; }
+  for (const s of pool()) s.w.postMessage({ warm: fresh });
+}
+
 /**
  * Low-priority background pre-warmer for an upcoming dynasty: fetches its lazy hero chunks first, then queues its
  * primary models at lowest priority only if not already cached.
  */
 export async function prefetchEraModels(recipes: ModelRecipe[], eraId: string): Promise<void> {
   const tag = `prefetch:${eraId}`;
-  await loadHeroesFor(recipes.map(r => r.hero));
+  warmHeroes(recipes.map(r => r.hero));
   for (const r of recipes) {
     if (ready(r)) continue;
     try {

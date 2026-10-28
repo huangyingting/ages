@@ -23,6 +23,8 @@ export class Chronicle {
   private core = load<boolean>('chCore', false);
   private userScroll = -Infinity;
   private lastYear: Year = 0;
+  /** Laid out (the period popover is open); while hidden, following the year costs no layout. */
+  private shown = false;
   onOpen: (e: HistEvent) => void = () => {};
 
   constructor() {
@@ -31,6 +33,11 @@ export class Chronicle {
     this.list.addEventListener('wheel', () => (this.userScroll = performance.now()), { passive: true });
     this.list.addEventListener('touchmove', () => (this.userScroll = performance.now()), { passive: true });
     this.el = h('section', { class: 'pv-sec chronicle' }, this.head, this.list);
+    new ResizeObserver(([e]) => {
+      const was = this.shown;
+      this.shown = e.contentRect.height > 0;
+      if (this.shown && !was) this.scrollToCur(true);
+    }).observe(this.list);
   }
 
   /** Follows the timeline: rebuilds when the dynasty changes, otherwise just moves the highlight. */
@@ -58,7 +65,7 @@ export class Chronicle {
 
   /** Keeps the current line in view (not while the reader scrolls the list themselves). */
   scrollToCur(force = false): void {
-    if (!force && performance.now() - this.userScroll < 4000) return;
+    if (!this.shown || (!force && performance.now() - this.userScroll < 4000)) return;
     const li = this.list.querySelector<HTMLElement>('.cur');
     if (!li) { this.list.scrollTop = 0; return; }
     const H = this.list.clientHeight;

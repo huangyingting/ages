@@ -3,7 +3,8 @@
  *
  * Source: AWS Open Data "Terrain Tiles" (Terrarium encoding; SRTM, GMTED2010, ETOPO1 and others, see
  * https://registry.opendata.aws/terrain-tiles/). Tiles are Web Mercator; we resample them to an equirectangular
- * grid covering the stage bounds and write `public/data/terrain/east-asia.png`:
+ * grid covering the stage bounds and write `public/data/terrain/east-asia.webp` (lossless, bit-exact; a third smaller
+ * than the PNG it replaced):
  *   R,G = elevation as (R * 256 + G) - 11000 metres (clamped to -11000…+54535)
  *   B   = 255 for connected ocean (flood-filled from the edges); on land 0, or 1…254 = river strength
  *         (log of D8 flow accumulation after priority-flood pit filling). Inland basins (e.g. Turpan, -154 m) stay land.
@@ -11,6 +12,7 @@
  */
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { PNG } from 'pngjs';
+import sharp from 'sharp';
 import { STAGES } from '../src/shared/data/stage.ts';
 
 const stage = STAGES.china;
@@ -188,18 +190,17 @@ for (let k = 0; k < NC; k++) {
   river[k] = Math.min(254, Math.max(1, Math.round(40 * Math.log2(acc[k] / RIVER_MIN) + 1)));
 }
 
-const png = new PNG({ width: OUT_W, height: OUT_H });
+const rgb = Buffer.alloc(OUT_W * OUT_H * 3);
 let land = 0, maxE = -1e9, minE = 1e9;
 for (let k = 0; k < elev.length; k++) {
   const e = Math.max(0, Math.min(65535, Math.round(elev[k] + 11000)));
-  png.data[k * 4] = e >> 8;
-  png.data[k * 4 + 1] = e & 255;
-  png.data[k * 4 + 2] = ocean[k] ? 255 : river[k];
-  png.data[k * 4 + 3] = 255;
+  rgb[k * 3] = e >> 8;
+  rgb[k * 3 + 1] = e & 255;
+  rgb[k * 3 + 2] = ocean[k] ? 255 : river[k];
   if (!ocean[k]) land++;
   maxE = Math.max(maxE, elev[k]); minE = Math.min(minE, elev[k]);
 }
 mkdirSync('public/data/terrain', { recursive: true });
-const buf = PNG.sync.write(png, { colorType: 6 });
-writeFileSync('public/data/terrain/east-asia.png', buf);
-console.log(`wrote public/data/terrain/east-asia.png ${(buf.length / 1024).toFixed(0)} KB · land ${(100 * land / elev.length).toFixed(1)}% · elev ${minE.toFixed(0)}…${maxE.toFixed(0)} m`);
+const buf = await sharp(rgb, { raw: { width: OUT_W, height: OUT_H, channels: 3 } }).webp({ lossless: true, exact: true, effort: 6 }).toBuffer();
+writeFileSync('public/data/terrain/east-asia.webp', buf);
+console.log(`wrote public/data/terrain/east-asia.webp ${(buf.length / 1024).toFixed(0)} KB · land ${(100 * land / elev.length).toFixed(1)}% · elev ${minE.toFixed(0)}…${maxE.toFixed(0)} m`);

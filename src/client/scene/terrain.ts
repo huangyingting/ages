@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Geo, heightOf } from './geo.ts';
 import { INK } from './ink.ts';
 
-/** Loads the stage heightmap PNG as raw bytes (no colour-space conversion or premultiplication). */
+/** Loads the stage heightmap (lossless WebP) as raw bytes (no colour-space conversion or premultiplication). */
 export async function loadHeightmap(url: string): Promise<{ rgba: Uint8Array; w: number; h: number }> {
   const r = await fetch(url);
   if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);

@@ -29,12 +29,17 @@ export class View {
   private perf = { t: 0, n: 0, good: 0 };
   /** Increments whenever the projection matrix (resize or view-offset inset) changes. */
   projVersion = 0;
+  /** The canvas' CSS size, kept by resize() so per-label projection never touches the DOM. */
+  private cssW = 1;
+  private cssH = 1;
 
   constructor(readonly canvas: HTMLCanvasElement, readonly geo: Geo, readonly lowfx: boolean) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !lowfx, alpha: true, powerPreference: lowfx ? 'low-power' : 'high-performance', preserveDrawingBuffer: false });
     this.maxRatio = Math.min(window.devicePixelRatio || 1, lowfx ? 1 : 2);
     this.ratio = this.maxRatio;
     this.renderer.setPixelRatio(this.ratio);
+    // the error check reads the program log synchronously, stalling on every new material; dev builds keep it
+    this.renderer.debug.checkShaderErrors = import.meta.env.DEV;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.setClearColor(0x000000, 0);
     this.camera = new THREE.PerspectiveCamera(36, 1, 0.1, 600);
@@ -83,6 +88,8 @@ export class View {
     const el = this.canvas.parentElement ?? this.canvas;
     const w = Math.max(1, el.clientWidth), h = Math.max(1, el.clientHeight);
     this.renderer.setSize(w, h, false);
+    this.cssW = this.canvas.clientWidth;
+    this.cssH = this.canvas.clientHeight;
     this.camera.aspect = w / h;
     // narrow portrait screens: widen the view so the map still fits
     this.camera.fov = w / h < 0.8 ? 52 : 36;
@@ -324,9 +331,8 @@ export class View {
   /** Projects a world point to CSS pixels in the canvas; z > 1 means behind the camera. */
   project(v: THREE.Vector3, out: THREE.Vector3 = new THREE.Vector3()): THREE.Vector3 {
     out.copy(v).project(this.camera);
-    const el = this.canvas;
-    out.x = (out.x * 0.5 + 0.5) * el.clientWidth;
-    out.y = (-out.y * 0.5 + 0.5) * el.clientHeight;
+    out.x = (out.x * 0.5 + 0.5) * this.cssW;
+    out.y = (-out.y * 0.5 + 0.5) * this.cssH;
     return out;
   }
 

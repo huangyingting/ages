@@ -593,7 +593,7 @@ test.describe('Ages atlas', () => {
       return keys.flat();
     });
     expect(cached).toContain('/');
-    expect(cached).toContain('/data/terrain/east-asia.png');
+    expect(cached).toContain('/data/terrain/east-asia.webp');
     expect(cached.filter(p => /^\/assets\/life-food-.*\.js$/.test(p)).length).toBeGreaterThan(0);
     await ctx.setOffline(true);
     await page.goto('about:blank');
