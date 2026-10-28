@@ -106,7 +106,8 @@ export class TerritoryPainter {
     if (!p) {
       const c = document.createElement('canvas');
       c.width = c.height = n;
-      const x = c.getContext('2d')!;
+      // CPU-backed like the map canvases: a GPU tile used as a CPU pattern makes every hatched fill crawl
+      const x = c.getContext('2d', { willReadFrequently: true })!;
       x.fillStyle = withAlpha(color, light ? 0.16 : 0.25);
       x.fillRect(0, 0, n, n);
       x.strokeStyle = withAlpha(color, light ? 0.5 : 0.85);
@@ -134,7 +135,8 @@ export class TerritoryPainter {
     const c = document.createElement('canvas');
     c.width = frame?.w ?? this.W;
     c.height = frame?.h ?? this.H;
-    const ctx = c.getContext('2d')!;
+    // CPU-backed: the phase morph reads these pixels back, and a GPU canvas readback stalls the page (seconds on first use)
+    const ctx = c.getContext('2d', { willReadFrequently: true })!;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     this.frame = frame ?? null;
@@ -229,7 +231,7 @@ export class TerritoryPainter {
     const c = document.createElement('canvas');
     c.width = this.W;
     c.height = this.H;
-    const ctx = c.getContext('2d')!;
+    const ctx = c.getContext('2d', { willReadFrequently: true })!;
     for (const r of s?.regions ?? []) {
       const rule: CanvasFillRule = r.evenodd ? 'evenodd' : 'nonzero';
       this.path(ctx, r.rings);
